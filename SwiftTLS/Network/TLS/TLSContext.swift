@@ -51,16 +51,203 @@ protocol TLSDataProvider : class
     func readData(#count : Int, completionBlock : ((data : [UInt8]?, error : TLSDataProviderError?) -> ()))
 }
 
+private func handshakeMessageNameForType(handshakeType : TLSHandshakeType) -> String
+{
+    var messageName : String
+    switch (handshakeType)
+    {
+    case .HelloRequest:
+        messageName = "HelloRequest"
+        
+    case .ClientHello:
+        messageName = "ClientHello"
+        
+    case .ServerHello:
+        messageName = "ServerHello"
+        
+    case .Certificate:
+        messageName = "Certificate"
+        
+    case .ServerKeyExchange:
+        messageName = "ServerKeyExchange"
+        
+    case .CertificateRequest:
+        messageName = "CertificateRequest"
+        
+    case .ServerHelloDone:
+        messageName = "ServerHelloDone"
+        
+    case .CertificateVerify:
+        messageName = "CertificateVerify"
+        
+    case .ClientKeyExchange:
+        messageName = "ClientKeyExchange"
+        
+    case .Finished:
+        messageName = "Finished"
+    }
+    
+    return messageName
+}
+
+private func messageNameForType(messageType : TLSMessageType) -> String
+{
+    var messageName : String
+    switch (messageType)
+    {
+    case .ChangeCipherSpec:
+        messageName = "ChangeCipherSpec"
+        
+    case .Handshake(let handshakeType):
+        let handshakeMessageName : String
+        switch (handshakeType)
+        {
+        case .HelloRequest:
+            handshakeMessageName = "HelloRequest"
+            
+        case .ClientHello:
+            handshakeMessageName = "ClientHello"
+            
+        case .ServerHello:
+            handshakeMessageName = "ServerHello"
+            
+        case .Certificate:
+            handshakeMessageName = "Certificate"
+            
+        case .ServerKeyExchange:
+            handshakeMessageName = "ServerKeyExchange"
+            
+        case .CertificateRequest:
+            handshakeMessageName = "CertificateRequest"
+            
+        case .ServerHelloDone:
+            handshakeMessageName = "ServerHelloDone"
+            
+        case .CertificateVerify:
+            handshakeMessageName = "CertificateVerify"
+            
+        case .ClientKeyExchange:
+            handshakeMessageName = "ClientKeyExchange"
+            
+        case .Finished:
+            handshakeMessageName = "Finished"
+        }
+        
+        messageName = "Handshake(\(handshakeMessageName))"
+        
+    case .Alert(let alertLevel, let alertDescription):
+        let alertLevelString : String
+        let alertDescriptionString : String
+        
+        switch (alertDescription)
+        {
+        case .CloseNotify:
+            alertDescriptionString = "CloseNotify"
+            
+        case .UnexpectedMessage:
+            alertDescriptionString = "UnexpectedMessage"
+            
+        case .BadRecordMAC:
+            alertDescriptionString = "BadRecordMAC"
+            
+        case .DecryptionFailed:
+            alertDescriptionString = "DecryptionFailed"
+            
+        case .RecordOverflow:
+            alertDescriptionString = "RecordOverflow"
+            
+        case .DecompressionFailure:
+            alertDescriptionString = "DecompressionFailure"
+            
+        case .HandshakeFailure:
+            alertDescriptionString = "HandshakeFailure"
+            
+        case .NoCertificate:
+            alertDescriptionString = "NoCertificate"
+            
+        case .BadCertificate:
+            alertDescriptionString = "BadCertificate"
+            
+        case .UnsupportedCertificate:
+            alertDescriptionString = "UnsupportedCertificate"
+            
+        case .CertificateRevoked:
+            alertDescriptionString = "CertificateRevoked"
+            
+        case .CertificateExpired:
+            alertDescriptionString = "CertificateExpired"
+            
+        case .CertificateUnknown:
+            alertDescriptionString = "CertificateUnknown"
+            
+        case .IllegalParameter:
+            alertDescriptionString = "IllegalParameter"
+            
+        case .UnknownCA:
+            alertDescriptionString = "UnknownCA"
+            
+        case .AccessDenied:
+            alertDescriptionString = "AccessDenied"
+            
+        case .DecodeError:
+            alertDescriptionString = "DecodeError"
+            
+        case .DecryptError:
+            alertDescriptionString = "DecryptError"
+            
+        case .ExportRestriction:
+            alertDescriptionString = "ExportRestriction"
+            
+        case .ProtocolVersion:
+            alertDescriptionString = "ProtocolVersion"
+            
+        case .InsufficientSecurity:
+            alertDescriptionString = "InsufficientSecurity"
+            
+        case .InternalError:
+            alertDescriptionString = "InternalError"
+            
+        case .UserCancelled:
+            alertDescriptionString = "UserCancelled"
+            
+        case .NoRenegotiation:
+            alertDescriptionString = "NoRenegotiation"
+            
+        }
+        
+        switch (alertLevel)
+        {
+        case .Warning:
+            alertLevelString = "Warning"
+            
+        case .Fatal:
+            alertLevelString = "Fatal"
+        }
+        
+        messageName = "Alert(\(alertLevelString), \(alertDescriptionString))"
+        
+    case .ApplicationData:
+        messageName = "ApplicationData"
+        
+    }
+    
+    return messageName
+}
+
 class TLSContext
 {
+    var protocolVersion : TLSProtocolVersion
+    var negotiatedProtocolVersion : TLSProtocolVersion! = nil
+    
     var state : TLSContextState = .Idle
     weak var dataProvider : TLSDataProvider!
     
     var serverKey : CryptoKey? = nil
     var clientKey : CryptoKey? = nil
     
-    init(dataProvider : TLSDataProvider)
+    init(protocolVersion: TLSProtocolVersion, dataProvider : TLSDataProvider)
     {
+        self.protocolVersion = protocolVersion
         self.dataProvider = dataProvider
     }
     
@@ -72,28 +259,156 @@ class TLSContext
         self.receiveNextTLSMessage(completionBlock)
     }
     
-    private func sendClientHello() {
+    func sendMessage(message : TLSMessage, completionBlock : ((TLSDataProviderError?) -> ())? = nil)
+    {
+        let contentType : ContentType
+        switch (message.type)
+        {
+        case .ChangeCipherSpec:
+            contentType = .ChangeCipherSpec
+            
+        case .Alert:
+            contentType = .Alert
+            
+        case .Handshake:
+            contentType = .Handshake
+            
+        case .ApplicationData:
+            contentType = .ApplicationData
+        }
+        
+        var record = TLSRecord(contentType: contentType, body: DataBuffer(message).buffer)
+        self.dataProvider.writeData(DataBuffer(record).buffer, completionBlock: completionBlock)
+        self.didSendMessage(message)
+    }
+    
+    func sendHandshakeMessage(message : TLSHandshakeMessage, completionBlock : ((TLSDataProviderError?) -> ())? = nil)
+    {
+        self.sendMessage(message, completionBlock: completionBlock)
+    }
+    
+    func didSendMessage(message : TLSMessage)
+    {
+        println("did send message \(messageNameForType(message.type))")
+    }
+    
+    func didSendHandshakeMessage(message : TLSHandshakeMessage)
+    {
+    }
+    
+    func didReceiveHandshakeMessage(message : TLSHandshakeMessage)
+    {
+    }
+    
+    func _didReceiveMessage(message : TLSMessage, completionBlock: ((TLSContextError?) -> ())?)
+    {
+        println("did receive message \(messageNameForType(message.type))")
+
+        switch (message.type)
+        {
+        case .ChangeCipherSpec:
+            break
+            
+        case .Handshake(let handshakeType):
+            var handshakeMessage = message as! TLSHandshakeMessage
+            self._didReceiveHandshakeMessage(handshakeMessage, completionBlock: completionBlock)
+            
+            break
+            
+        case .Alert:
+            break
+            
+        case .ApplicationData:
+            break
+        }
+    }
+
+    func _didReceiveHandshakeMessage(message : TLSHandshakeMessage, completionBlock: ((TLSContextError?) -> ())?)
+    {
+        let tlsConnectCompletionBlock = completionBlock
+
+        self.didReceiveHandshakeMessage(message)
+        
+        switch (message.type)
+        {
+        case .Handshake(let handshakeType):
+            
+            switch (handshakeType)
+            {
+            case .ClientHello:
+                break
+                
+            case .ServerHello:
+                if self.state != .ClientHelloSent {
+                    if let block = tlsConnectCompletionBlock {
+                        block(TLSContextError.Error)
+                        return
+                    }
+                }
+                else {
+                    self.state = .ServerHelloReceived
+                    let version = (message as! TLSServerHello).version
+                    println("Server wants to speak \(version)")
+                }
+                break
+                
+            case .Certificate:
+                println("certificate")
+                var certificate = message as! TLSCertificateMessage
+                self.serverKey = certificate.publicKey
+                self.sendClientKeyExchange()
+                
+                break
+                
+            case .ServerHelloDone:
+                self.sendChangeCipherSpec()
+                break
+                
+            default:
+                println("unsupported handshake \(handshakeType.rawValue)")
+                if let block = tlsConnectCompletionBlock {
+                    block(TLSContextError.Error)
+                    return
+                }
+            }
+            
+            break
+            
+        default:
+            println("unsupported handshake \(message.type)")
+            if let block = tlsConnectCompletionBlock {
+                block(TLSContextError.Error)
+                return
+            }
+        }
+    }
+    
+    private func sendClientHello()
+    {
         var clientHello = TLSClientHello(
-            clientVersion: ProtocolVersion.TLS_v1_2,
+            clientVersion: self.protocolVersion,
             random: Random(),
             sessionID: nil,
             cipherSuites: [.TLS_RSA_WITH_AES_256_CBC_SHA],
             compressionMethods: [.NULL])
         
-        var record = TLSRecord(contentType: .Handshake, body: DataBuffer(clientHello).buffer)
-        self.dataProvider.writeData(DataBuffer(record).buffer, completionBlock: { (error : TLSDataProviderError?) -> () in
-        })
+        self.sendHandshakeMessage(clientHello)
     }
     
-    private func sendClientKeyExchange() {
+    private func sendClientKeyExchange()
+    {
         if let serverKey = self.serverKey {
-            var message = TLSClientKeyExchange(preMasterSecret: PreMasterSecret(clientVersion: ProtocolVersion.TLS_v1_2), publicKey: serverKey)
+            var message = TLSClientKeyExchange(preMasterSecret: PreMasterSecret(clientVersion: TLSProtocolVersion.TLS_v1_2), publicKey: serverKey)
 
-            var record = TLSRecord(contentType: .Handshake, body: DataBuffer(message).buffer)
-            self.dataProvider.writeData(DataBuffer(record).buffer, completionBlock: { (error : TLSDataProviderError?) -> () in
-            })
+            self.sendHandshakeMessage(message)
         }
+    }
+
+    private func sendChangeCipherSpec()
+    {
+        var message = TLSChangeCipherSpec()
         
+        self.sendMessage(message)
     }
 
     private func receiveNextTLSMessage(completionBlock: ((TLSContextError?) -> ())?)
@@ -104,62 +419,19 @@ class TLSContext
             (message : TLSMessage?) -> () in
             
             if let m = message {
-                switch (m.type)
-                {
-                case .ChangeCipherSpec:
-                    break
-                    
-                case .Handshake(let handshakeType):
-                    println("handshake type = \(handshakeType.rawValue)")
-                    
-                    switch (handshakeType)
-                    {
-                    case .ServerHello:
-                        if self.state != .ClientHelloSent {
-                            if let block = tlsConnectCompletionBlock {
-                                block(TLSContextError.Error)
-                                return
-                            }
-                        }
-                        else {
-                            self.state = .ServerHelloReceived
-                            let version = (message as! TLSServerHello).version
-                            println("Server wants to speak \(version)")
-                        }
-                        break
-                        
-                    case .Certificate:
-                        println("certificate")
-                        var certificate = message as! TLSCertificateMessage
-                        self.serverKey = certificate.publicKey
-                        self.sendClientKeyExchange()
-                        
-                        break
-                        
-                    case .ServerHelloDone:
-                        println("server hello done")
-                        break
-                        
-                    default:
-                        println("unsupported handshake \(handshakeType.rawValue)")
-                    }
-                    break
-                    
-                case .Alert:
-                    break
-                    
-                case .ApplicationData:
-                    break
-                }
+                self._didReceiveMessage(m, completionBlock: completionBlock)
             }
             
             self.receiveNextTLSMessage(tlsConnectCompletionBlock)
         }
     }
     
-    private func readTLSMessage(completionBlock: (message : TLSMessage?) -> ()) {
+    private func readTLSMessage(completionBlock: (message : TLSMessage?) -> ())
+    {
         let headerProbeLength = TLSRecord.headerProbeLength
+        
         self.dataProvider.readData(count: headerProbeLength) { (data, error) -> () in
+        
             if let header = data {
                 if let (contentType, bodyLength) = TLSRecord.probeHeader(header) {
                     
@@ -184,6 +456,8 @@ class TLSContext
                                         break
                                         
                                     case .Alert:
+                                        var alert = TLSAlert.alertFromData(body)
+                                        completionBlock(message: alert)
                                         break
                                         
                                     case .Handshake:

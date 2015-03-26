@@ -19,13 +19,13 @@ let TLS_RecordHeaderLength = 5
 
 class TLSRecord : BinaryStreamable, BinaryReadable {
     var contentType : ContentType
-    var protocolVersion : ProtocolVersion
+    var protocolVersion : TLSProtocolVersion
     var body : [UInt8]
     
     required init?(inputStream: BinaryInputStreamType) {
         
         var contentType : ContentType?
-        var protocolVersion : ProtocolVersion?
+        var protocolVersion : TLSProtocolVersion?
         var body : [UInt8]?
         
         if let c : UInt8 = inputStream.read() {
@@ -36,7 +36,7 @@ class TLSRecord : BinaryStreamable, BinaryReadable {
         
         if let major : UInt8? = inputStream.read(),
             minor : UInt8? = inputStream.read(),
-            v = ProtocolVersion(major: major!, minor: minor!)
+            v = TLSProtocolVersion(major: major!, minor: minor!)
         {
             protocolVersion = v
         }

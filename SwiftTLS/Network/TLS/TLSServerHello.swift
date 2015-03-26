@@ -10,13 +10,13 @@ import Foundation
 
 class TLSServerHello : TLSHandshakeMessage
 {
-    var version : ProtocolVersion
+    var version : TLSProtocolVersion
     var random : Random
     var sessionID : SessionID?
     var cipherSuite : CipherSuite
     var compressionMethod : CompressionMethod
     
-    init(serverVersion : ProtocolVersion, random : Random, sessionID : SessionID?, cipherSuite : CipherSuite, compressionMethod : CompressionMethod)
+    init(serverVersion : TLSProtocolVersion, random : Random, sessionID : SessionID?, cipherSuite : CipherSuite, compressionMethod : CompressionMethod)
     {
         self.version = serverVersion
         self.random = random
@@ -29,7 +29,7 @@ class TLSServerHello : TLSHandshakeMessage
     
     required init?(inputStream : BinaryInputStreamType)
     {
-        var clientVersion : ProtocolVersion?
+        var clientVersion : TLSProtocolVersion?
         var random : Random?
         var sessionID : SessionID?
         var cipherSuite : CipherSuite?
@@ -42,7 +42,7 @@ class TLSServerHello : TLSHandshakeMessage
                 
                 if let major : UInt8? = inputStream.read(),
                     minor : UInt8? = inputStream.read(),
-                    cv = ProtocolVersion(major: major!, minor: minor!)
+                    cv = TLSProtocolVersion(major: major!, minor: minor!)
                 {
                     clientVersion = cv
                 }
@@ -84,7 +84,7 @@ class TLSServerHello : TLSHandshakeMessage
             super.init(type: .Handshake(.ServerHello))
         }
         else {
-            self.version = ProtocolVersion.TLS_v1_0
+            self.version = TLSProtocolVersion.TLS_v1_0
             self.random = Random()
             self.sessionID = nil
             self.cipherSuite = CipherSuite.TLS_RSA_WITH_NULL_MD5

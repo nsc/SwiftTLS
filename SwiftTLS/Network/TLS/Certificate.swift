@@ -12,6 +12,16 @@ class Certificate
 {
     private var certificate : SecCertificateRef!
     
+    var data : [UInt8] {
+        get {
+            var data = SecCertificateCopyData(self.certificate).takeRetainedValue() as NSData
+            var buffer = [UInt8](count: data.length, repeatedValue: 0)
+            data.getBytes(&buffer, length: data.length)
+            
+            return buffer
+        }
+    }
+    
     var commonName : String? {
         get {
             var ptr : Unmanaged<CFString>? = nil

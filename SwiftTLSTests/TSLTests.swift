@@ -24,7 +24,7 @@ class TSLTests: XCTestCase {
     func test_connectTLS() {
         var expectation = self.expectationWithDescription("successfully connected")
         
-        var socket = TLSSocket()
+        var socket = TLSSocket(protocolVersion: TLSProtocolVersion.TLS_v1_2)
 //        var host = "195.50.155.66"
         var host = "85.13.137.205"
         socket.connect(IPAddress.addressWithString(host, port: 443)!, completionBlock: { (error : TLSSocketError?) -> () in

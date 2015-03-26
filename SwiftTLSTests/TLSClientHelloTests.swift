@@ -14,7 +14,7 @@ class TLSClientHelloTests: XCTestCase {
     func test_writeTo__givesCorrectBinaryRepresentation() {
         var random = Random()
         var clientHello = TLSClientHello(
-            clientVersion: ProtocolVersion.TLS_v1_0,
+            clientVersion: TLSProtocolVersion.TLS_v1_0,
             random: random,
             sessionID: nil,
             cipherSuites: [.TLS_RSA_WITH_RC4_128_SHA],

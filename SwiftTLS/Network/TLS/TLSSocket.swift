@@ -12,7 +12,7 @@ enum TLSSocketError {
     case Error
 }
 
-enum ProtocolVersion : UInt16, Printable {
+enum TLSProtocolVersion : UInt16, Printable {
     init?(major : UInt8, minor : UInt8)
     {
         self.init(rawValue: (UInt16(major) << 8) + UInt16(minor))
@@ -67,6 +67,25 @@ protocol BinaryReadable
     init?(inputStream : BinaryInputStreamType)
 }
 
+func writeUInt24(var target : BinaryOutputStreamType, value : Int)
+{
+    target.write(UInt8((value >> 16) & 0xff))
+    target.write(UInt8((value >>  8) & 0xff))
+    target.write(UInt8((value >>  0) & 0xff))
+}
+
+func readUInt24(inputStream : BinaryInputStreamType) -> Int?
+{
+    if  let a : UInt8 = inputStream.read(),
+        let b : UInt8 = inputStream.read(),
+        let c : UInt8 = inputStream.read()
+    {
+        return Int(a) << 16 + Int(b) << 8 + Int(c)
+    }
+    
+    return nil
+}
+
 class Random : BinaryStreamable, BinaryReadable
 {
     static let NumberOfRandomBytes = 28
@@ -107,10 +126,11 @@ class TLSSocket : TCPSocket, TLSDataProvider
 {
     var context : TLSContext!
     
-    override init() {
+    init(protocolVersion : TLSProtocolVersion)
+    {
         self.context = nil
         super.init()
-         self.context = TLSContext(dataProvider: self)
+        self.context = TLSContext(protocolVersion: protocolVersion, dataProvider: self)
     }
     
     func connect(address: IPAddress, completionBlock: ((TLSSocketError?) -> ())?) {

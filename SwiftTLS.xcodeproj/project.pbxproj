@@ -52,6 +52,8 @@
 		033AC3B81AC474430004EEC1 /* TLSServerHelloDone.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC39D1AC474430004EEC1 /* TLSServerHelloDone.swift */; };
 		033AC3B91AC474430004EEC1 /* TLSSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC39E1AC474430004EEC1 /* TLSSocket.swift */; };
 		033AC3BA1AC474430004EEC1 /* TLSSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC39E1AC474430004EEC1 /* TLSSocket.swift */; };
+		03A4BF011AC4851F00CEB7A3 /* TLSAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03A4BF001AC4851F00CEB7A3 /* TLSAlert.swift */; };
+		03A4BF021AC4851F00CEB7A3 /* TLSAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03A4BF001AC4851F00CEB7A3 /* TLSAlert.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -97,6 +99,7 @@
 		033AC39C1AC474430004EEC1 /* TLSServerHello.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSServerHello.swift; sourceTree = "<group>"; };
 		033AC39D1AC474430004EEC1 /* TLSServerHelloDone.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSServerHelloDone.swift; sourceTree = "<group>"; };
 		033AC39E1AC474430004EEC1 /* TLSSocket.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSSocket.swift; sourceTree = "<group>"; };
+		03A4BF001AC4851F00CEB7A3 /* TLSAlert.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSAlert.swift; sourceTree = "<group>"; };
 		03EEC8B31AC4752E00B92BD0 /* SwiftTLS-Bridging-Header.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "SwiftTLS-Bridging-Header.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -205,6 +208,7 @@
 				033AC3981AC474430004EEC1 /* TLSContext.swift */,
 				033AC3991AC474430004EEC1 /* TLSHandshake.swift */,
 				033AC39A1AC474430004EEC1 /* TLSMessage.swift */,
+				03A4BF001AC4851F00CEB7A3 /* TLSAlert.swift */,
 				033AC39B1AC474430004EEC1 /* TLSRecord.swift */,
 				033AC39C1AC474430004EEC1 /* TLSServerHello.swift */,
 				033AC39D1AC474430004EEC1 /* TLSServerHelloDone.swift */,
@@ -317,6 +321,7 @@
 				033AC3A51AC474430004EEC1 /* TLSCertificateMessage.swift in Sources */,
 				033AC3B11AC474430004EEC1 /* TLSMessage.swift in Sources */,
 				033AC3A71AC474430004EEC1 /* TLSChangeCipherSpec.swift in Sources */,
+				03A4BF011AC4851F00CEB7A3 /* TLSAlert.swift in Sources */,
 				033AC38A1AC474350004EEC1 /* IPAddress.swift in Sources */,
 				033AC3B91AC474430004EEC1 /* TLSSocket.swift in Sources */,
 				033AC39F1AC474430004EEC1 /* BigInt.swift in Sources */,
@@ -359,6 +364,7 @@
 				033AC3B61AC474430004EEC1 /* TLSServerHello.swift in Sources */,
 				033AC37D1AC473980004EEC1 /* TSLTests.swift in Sources */,
 				033AC37E1AC473980004EEC1 /* TLSRecordTests.swift in Sources */,
+				03A4BF021AC4851F00CEB7A3 /* TLSAlert.swift in Sources */,
 				033AC3891AC474350004EEC1 /* DataBuffer.swift in Sources */,
 				033AC3A81AC474430004EEC1 /* TLSChangeCipherSpec.swift in Sources */,
 				033AC3AE1AC474430004EEC1 /* TLSContext.swift in Sources */,

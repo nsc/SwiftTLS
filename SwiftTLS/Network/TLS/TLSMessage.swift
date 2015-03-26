@@ -13,7 +13,10 @@ enum TLSHandshakeType : UInt8 {
     case ClientHello = 1
     case ServerHello = 2
     case Certificate = 11
+    case ServerKeyExchange = 12
+    case CertificateRequest = 13
     case ServerHelloDone = 14
+    case CertificateVerify = 15
     case ClientKeyExchange = 16
     case Finished = 20
 }
@@ -22,8 +25,13 @@ enum TLSMessageType
 {
     case ChangeCipherSpec
     case Handshake(TLSHandshakeType)
-    case Alert
+    case Alert(TLSAlertLevel, TLSAlertDescription)
     case ApplicationData
+}
+
+enum TLSChangeCipherSpecType : UInt8
+{
+    case ChangeCipherSpec = 1
 }
 
 class TLSMessage : BinaryStreamable, BinaryReadable
@@ -36,10 +44,11 @@ class TLSMessage : BinaryStreamable, BinaryReadable
     }
     
     required init?(inputStream: BinaryInputStreamType) {
-        self.type = .Alert
+        self.type = .Alert(.Warning, .CloseNotify)
         return nil
     }
     
-    func writeTo<Target : BinaryOutputStreamType>(inout target: Target) {
+    func writeTo<Target : BinaryOutputStreamType>(inout target: Target)
+    {
     }
 }

@@ -89,10 +89,6 @@ class TLSCertificateMessage : TLSHandshakeMessage
         }
     }
 
-//    func bla() {
-////        var cryptor = QCCRSASmallCryptorT(toEncryptSmallInputData: <#NSData!#>, key: <#SecKey!#>)
-//    }
-    
     override func writeTo<Target : BinaryOutputStreamType>(inout target: Target)
     {
 //        var buffer = DataBuffer()

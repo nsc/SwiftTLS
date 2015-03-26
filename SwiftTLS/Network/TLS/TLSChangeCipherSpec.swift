@@ -28,5 +28,6 @@ class TLSChangeCipherSpec : TLSMessage
     }
     
     override func writeTo<Target : BinaryOutputStreamType>(inout target: Target) {
+        target.write(TLSChangeCipherSpecType.ChangeCipherSpec.rawValue)
     }
 }

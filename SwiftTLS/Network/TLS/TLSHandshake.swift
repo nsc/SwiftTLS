@@ -10,18 +10,18 @@ import Foundation
 
 class TLSHandshakeMessage : TLSMessage
 {
-    override init(type : TLSMessageType)
-    {
-        super.init(type: type)
+    var handshakeType : TLSHandshakeType {
+        get {
+            switch (self.type)
+            {
+            case .Handshake(let handshakeType):
+                return handshakeType
+            default:
+                assert(false)
+            }
+        }
     }
-
-    required init?(inputStream : BinaryInputStreamType)
-    {
-        super.init(inputStream: inputStream)
-        
-        return nil
-    }
-
+    
     class func handshakeMessageFromData(data : [UInt8]) -> TLSHandshakeMessage? {
         let (handshakeType, bodyLength) = readHeader(BinaryInputStream(data: data))
             
@@ -60,16 +60,11 @@ class TLSHandshakeMessage : TLSMessage
     }
     
     internal class func readHeader(inputStream : BinaryInputStreamType) -> (type: TLSHandshakeType?, bodyLength: Int?) {
-        var type : UInt8? = inputStream.read()
-        var bodyLengthA : UInt8? = inputStream.read()
-        var bodyLengthB : UInt8? = inputStream.read()
-        var bodyLengthC : UInt8? = inputStream.read()
-        
-        if let t = type, handshakeType = TLSHandshakeType(rawValue: t) {
-            if let a = bodyLengthA, b = bodyLengthB, c = bodyLengthC {
-                var length = Int(a) << 16 + Int(b) << 8 + Int(c)
-                return (handshakeType, length)
-            }
+        if  let type : UInt8 = inputStream.read(),
+            handshakeType = TLSHandshakeType(rawValue: type),
+            let bodyLength = readUInt24(inputStream)
+        {
+            return (handshakeType, bodyLength)
         }
         
         return (nil, nil)

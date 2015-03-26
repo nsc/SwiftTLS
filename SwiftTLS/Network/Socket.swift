@@ -214,12 +214,8 @@ class Socket
             self.setupSocketReadSource()
         }
         
-        println("read \(count) bytes")
-        
         if let socketReadSource = _socketReadSource {
             dispatch_async(Socket.socketQueue) {
-                println("append read request for \(count) bytes")
-
                 self._readRequests.append(ReadRequest(count: count, completionBlock: completionBlock))
                 
                 self.resumeReadSource()
@@ -238,7 +234,6 @@ class Socket
         if self.isReadSourceRunning {
             if let source = _socketReadSource {
                 dispatch_suspend(source)
-                println("suspend read source")
                 
                 self.isReadSourceRunning = false
             }
@@ -249,7 +244,6 @@ class Socket
         if !self.isReadSourceRunning {
             if let source = _socketReadSource {
                 dispatch_resume(source)
-                println("resume read source")
                 
                 self.isReadSourceRunning = true
             }

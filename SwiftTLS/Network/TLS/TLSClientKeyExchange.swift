@@ -12,7 +12,7 @@ class PreMasterSecret : BinaryStreamable, BinaryReadable
 {
     static let NumberOfRandomBytes = 46
     
-    init(clientVersion : ProtocolVersion)
+    init(clientVersion : TLSProtocolVersion)
     {
         self.clientVersion = clientVersion
         
@@ -21,7 +21,7 @@ class PreMasterSecret : BinaryStreamable, BinaryReadable
         arc4random_buf(&self.random, PreMasterSecret.NumberOfRandomBytes)
     }
     
-    var clientVersion : ProtocolVersion
+    var clientVersion : TLSProtocolVersion
     var random : [UInt8] // 46 bytes
     
     required init?(inputStream : BinaryInputStreamType)
@@ -30,7 +30,7 @@ class PreMasterSecret : BinaryStreamable, BinaryReadable
             let minor : UInt8 = inputStream.read(),
             let bytes : [UInt8] = inputStream.read(Random.NumberOfRandomBytes)
         {
-            if let version = ProtocolVersion(major: major, minor: minor) {
+            if let version = TLSProtocolVersion(major: major, minor: minor) {
                 self.clientVersion = version
                 self.random = bytes
                 
@@ -76,7 +76,7 @@ class TLSClientKeyExchange : TLSHandshakeMessage
             if t == TLSHandshakeType.ClientKeyExchange {
                 if let data : [UInt8] = inputStream.read(64) {
                     self.encryptedPreMasterSecret = data
-                    super.init(type: .Handshake(.ServerHelloDone))
+                    super.init(type: .Handshake(.ClientKeyExchange))
                     
                     return
                 }
@@ -84,13 +84,14 @@ class TLSClientKeyExchange : TLSHandshakeMessage
         }
 
         self.encryptedPreMasterSecret = []
-        super.init(type: .Handshake(.ServerHelloDone))
+        super.init(type: .Handshake(.ClientKeyExchange))
         
         return nil        
     }
 
     override func writeTo<Target : BinaryOutputStreamType>(inout target: Target)
     {
-        self.writeHeader(type: .ClientKeyExchange, bodyLength: 0, target: &target)
+        self.writeHeader(type: .ClientKeyExchange, bodyLength: self.encryptedPreMasterSecret.count, target: &target)
+        target.write(self.encryptedPreMasterSecret)
     }
 }
