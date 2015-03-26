@@ -1,0 +1,562 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		033AC35C1AC473730004EEC1 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC35B1AC473730004EEC1 /* AppDelegate.swift */; };
+		033AC35E1AC473730004EEC1 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC35D1AC473730004EEC1 /* ViewController.swift */; };
+		033AC3601AC473730004EEC1 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 033AC35F1AC473730004EEC1 /* Images.xcassets */; };
+		033AC3631AC473730004EEC1 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 033AC3611AC473730004EEC1 /* Main.storyboard */; };
+		033AC37D1AC473980004EEC1 /* TSLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3781AC473980004EEC1 /* TSLTests.swift */; };
+		033AC37E1AC473980004EEC1 /* TLSRecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3791AC473980004EEC1 /* TLSRecordTests.swift */; };
+		033AC37F1AC473980004EEC1 /* TLSClientHelloTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC37A1AC473980004EEC1 /* TLSClientHelloTests.swift */; };
+		033AC3801AC473980004EEC1 /* TLSServerHelloTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC37B1AC473980004EEC1 /* TLSServerHelloTests.swift */; };
+		033AC3811AC473980004EEC1 /* BigIntTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC37C1AC473980004EEC1 /* BigIntTests.swift */; };
+		033AC3881AC474350004EEC1 /* DataBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3831AC474350004EEC1 /* DataBuffer.swift */; };
+		033AC3891AC474350004EEC1 /* DataBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3831AC474350004EEC1 /* DataBuffer.swift */; };
+		033AC38A1AC474350004EEC1 /* IPAddress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3841AC474350004EEC1 /* IPAddress.swift */; };
+		033AC38B1AC474350004EEC1 /* IPAddress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3841AC474350004EEC1 /* IPAddress.swift */; };
+		033AC38C1AC474350004EEC1 /* Socket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3851AC474350004EEC1 /* Socket.swift */; };
+		033AC38D1AC474350004EEC1 /* Socket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3851AC474350004EEC1 /* Socket.swift */; };
+		033AC38E1AC474350004EEC1 /* SwiftHelper.c in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3861AC474350004EEC1 /* SwiftHelper.c */; };
+		033AC38F1AC474350004EEC1 /* SwiftHelper.c in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3861AC474350004EEC1 /* SwiftHelper.c */; };
+		033AC39F1AC474430004EEC1 /* BigInt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3911AC474430004EEC1 /* BigInt.swift */; };
+		033AC3A01AC474430004EEC1 /* BigInt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3911AC474430004EEC1 /* BigInt.swift */; };
+		033AC3A11AC474430004EEC1 /* Certificate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3921AC474430004EEC1 /* Certificate.swift */; };
+		033AC3A21AC474430004EEC1 /* Certificate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3921AC474430004EEC1 /* Certificate.swift */; };
+		033AC3A31AC474430004EEC1 /* CryptoKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3931AC474430004EEC1 /* CryptoKey.swift */; };
+		033AC3A41AC474430004EEC1 /* CryptoKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3931AC474430004EEC1 /* CryptoKey.swift */; };
+		033AC3A51AC474430004EEC1 /* TLSCertificateMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3941AC474430004EEC1 /* TLSCertificateMessage.swift */; };
+		033AC3A61AC474430004EEC1 /* TLSCertificateMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3941AC474430004EEC1 /* TLSCertificateMessage.swift */; };
+		033AC3A71AC474430004EEC1 /* TLSChangeCipherSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3951AC474430004EEC1 /* TLSChangeCipherSpec.swift */; };
+		033AC3A81AC474430004EEC1 /* TLSChangeCipherSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3951AC474430004EEC1 /* TLSChangeCipherSpec.swift */; };
+		033AC3A91AC474430004EEC1 /* TLSClientHello.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3961AC474430004EEC1 /* TLSClientHello.swift */; };
+		033AC3AA1AC474430004EEC1 /* TLSClientHello.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3961AC474430004EEC1 /* TLSClientHello.swift */; };
+		033AC3AB1AC474430004EEC1 /* TLSClientKeyExchange.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3971AC474430004EEC1 /* TLSClientKeyExchange.swift */; };
+		033AC3AC1AC474430004EEC1 /* TLSClientKeyExchange.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3971AC474430004EEC1 /* TLSClientKeyExchange.swift */; };
+		033AC3AD1AC474430004EEC1 /* TLSContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3981AC474430004EEC1 /* TLSContext.swift */; };
+		033AC3AE1AC474430004EEC1 /* TLSContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3981AC474430004EEC1 /* TLSContext.swift */; };
+		033AC3AF1AC474430004EEC1 /* TLSHandshake.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3991AC474430004EEC1 /* TLSHandshake.swift */; };
+		033AC3B01AC474430004EEC1 /* TLSHandshake.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3991AC474430004EEC1 /* TLSHandshake.swift */; };
+		033AC3B11AC474430004EEC1 /* TLSMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC39A1AC474430004EEC1 /* TLSMessage.swift */; };
+		033AC3B21AC474430004EEC1 /* TLSMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC39A1AC474430004EEC1 /* TLSMessage.swift */; };
+		033AC3B31AC474430004EEC1 /* TLSRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC39B1AC474430004EEC1 /* TLSRecord.swift */; };
+		033AC3B41AC474430004EEC1 /* TLSRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC39B1AC474430004EEC1 /* TLSRecord.swift */; };
+		033AC3B51AC474430004EEC1 /* TLSServerHello.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC39C1AC474430004EEC1 /* TLSServerHello.swift */; };
+		033AC3B61AC474430004EEC1 /* TLSServerHello.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC39C1AC474430004EEC1 /* TLSServerHello.swift */; };
+		033AC3B71AC474430004EEC1 /* TLSServerHelloDone.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC39D1AC474430004EEC1 /* TLSServerHelloDone.swift */; };
+		033AC3B81AC474430004EEC1 /* TLSServerHelloDone.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC39D1AC474430004EEC1 /* TLSServerHelloDone.swift */; };
+		033AC3B91AC474430004EEC1 /* TLSSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC39E1AC474430004EEC1 /* TLSSocket.swift */; };
+		033AC3BA1AC474430004EEC1 /* TLSSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC39E1AC474430004EEC1 /* TLSSocket.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		033AC3691AC473730004EEC1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 033AC34E1AC473730004EEC1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 033AC3551AC473730004EEC1;
+			remoteInfo = SwiftTLS;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		033AC3561AC473730004EEC1 /* SwiftTLS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SwiftTLS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		033AC35A1AC473730004EEC1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		033AC35B1AC473730004EEC1 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		033AC35D1AC473730004EEC1 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		033AC35F1AC473730004EEC1 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
+		033AC3621AC473730004EEC1 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		033AC3681AC473730004EEC1 /* SwiftTLSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SwiftTLSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		033AC36D1AC473730004EEC1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		033AC3781AC473980004EEC1 /* TSLTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TSLTests.swift; sourceTree = "<group>"; };
+		033AC3791AC473980004EEC1 /* TLSRecordTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSRecordTests.swift; sourceTree = "<group>"; };
+		033AC37A1AC473980004EEC1 /* TLSClientHelloTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSClientHelloTests.swift; sourceTree = "<group>"; };
+		033AC37B1AC473980004EEC1 /* TLSServerHelloTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSServerHelloTests.swift; sourceTree = "<group>"; };
+		033AC37C1AC473980004EEC1 /* BigIntTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BigIntTests.swift; sourceTree = "<group>"; };
+		033AC3831AC474350004EEC1 /* DataBuffer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DataBuffer.swift; sourceTree = "<group>"; };
+		033AC3841AC474350004EEC1 /* IPAddress.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = IPAddress.swift; sourceTree = "<group>"; };
+		033AC3851AC474350004EEC1 /* Socket.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Socket.swift; sourceTree = "<group>"; };
+		033AC3861AC474350004EEC1 /* SwiftHelper.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = SwiftHelper.c; sourceTree = "<group>"; };
+		033AC3871AC474350004EEC1 /* SwiftHelper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SwiftHelper.h; sourceTree = "<group>"; };
+		033AC3911AC474430004EEC1 /* BigInt.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BigInt.swift; sourceTree = "<group>"; };
+		033AC3921AC474430004EEC1 /* Certificate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Certificate.swift; sourceTree = "<group>"; };
+		033AC3931AC474430004EEC1 /* CryptoKey.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CryptoKey.swift; sourceTree = "<group>"; };
+		033AC3941AC474430004EEC1 /* TLSCertificateMessage.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSCertificateMessage.swift; sourceTree = "<group>"; };
+		033AC3951AC474430004EEC1 /* TLSChangeCipherSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSChangeCipherSpec.swift; sourceTree = "<group>"; };
+		033AC3961AC474430004EEC1 /* TLSClientHello.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSClientHello.swift; sourceTree = "<group>"; };
+		033AC3971AC474430004EEC1 /* TLSClientKeyExchange.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSClientKeyExchange.swift; sourceTree = "<group>"; };
+		033AC3981AC474430004EEC1 /* TLSContext.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSContext.swift; sourceTree = "<group>"; };
+		033AC3991AC474430004EEC1 /* TLSHandshake.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSHandshake.swift; sourceTree = "<group>"; };
+		033AC39A1AC474430004EEC1 /* TLSMessage.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSMessage.swift; sourceTree = "<group>"; };
+		033AC39B1AC474430004EEC1 /* TLSRecord.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSRecord.swift; sourceTree = "<group>"; };
+		033AC39C1AC474430004EEC1 /* TLSServerHello.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSServerHello.swift; sourceTree = "<group>"; };
+		033AC39D1AC474430004EEC1 /* TLSServerHelloDone.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSServerHelloDone.swift; sourceTree = "<group>"; };
+		033AC39E1AC474430004EEC1 /* TLSSocket.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSSocket.swift; sourceTree = "<group>"; };
+		03EEC8B31AC4752E00B92BD0 /* SwiftTLS-Bridging-Header.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "SwiftTLS-Bridging-Header.h"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		033AC3531AC473730004EEC1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		033AC3651AC473730004EEC1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		033AC34D1AC473730004EEC1 = {
+			isa = PBXGroup;
+			children = (
+				033AC3581AC473730004EEC1 /* SwiftTLS */,
+				033AC36B1AC473730004EEC1 /* SwiftTLSTests */,
+				033AC3571AC473730004EEC1 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		033AC3571AC473730004EEC1 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				033AC3561AC473730004EEC1 /* SwiftTLS.app */,
+				033AC3681AC473730004EEC1 /* SwiftTLSTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		033AC3581AC473730004EEC1 /* SwiftTLS */ = {
+			isa = PBXGroup;
+			children = (
+				033AC3821AC473B70004EEC1 /* Network */,
+				03EEC8B31AC4752E00B92BD0 /* SwiftTLS-Bridging-Header.h */,
+				033AC35B1AC473730004EEC1 /* AppDelegate.swift */,
+				033AC35D1AC473730004EEC1 /* ViewController.swift */,
+				033AC35F1AC473730004EEC1 /* Images.xcassets */,
+				033AC3611AC473730004EEC1 /* Main.storyboard */,
+				033AC3591AC473730004EEC1 /* Supporting Files */,
+			);
+			path = SwiftTLS;
+			sourceTree = "<group>";
+		};
+		033AC3591AC473730004EEC1 /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				033AC35A1AC473730004EEC1 /* Info.plist */,
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+		033AC36B1AC473730004EEC1 /* SwiftTLSTests */ = {
+			isa = PBXGroup;
+			children = (
+				033AC3781AC473980004EEC1 /* TSLTests.swift */,
+				033AC3791AC473980004EEC1 /* TLSRecordTests.swift */,
+				033AC37A1AC473980004EEC1 /* TLSClientHelloTests.swift */,
+				033AC37B1AC473980004EEC1 /* TLSServerHelloTests.swift */,
+				033AC37C1AC473980004EEC1 /* BigIntTests.swift */,
+				033AC36C1AC473730004EEC1 /* Supporting Files */,
+			);
+			path = SwiftTLSTests;
+			sourceTree = "<group>";
+		};
+		033AC36C1AC473730004EEC1 /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				033AC36D1AC473730004EEC1 /* Info.plist */,
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+		033AC3821AC473B70004EEC1 /* Network */ = {
+			isa = PBXGroup;
+			children = (
+				033AC3901AC474430004EEC1 /* TLS */,
+				033AC3831AC474350004EEC1 /* DataBuffer.swift */,
+				033AC3841AC474350004EEC1 /* IPAddress.swift */,
+				033AC3851AC474350004EEC1 /* Socket.swift */,
+				033AC3861AC474350004EEC1 /* SwiftHelper.c */,
+				033AC3871AC474350004EEC1 /* SwiftHelper.h */,
+			);
+			path = Network;
+			sourceTree = "<group>";
+		};
+		033AC3901AC474430004EEC1 /* TLS */ = {
+			isa = PBXGroup;
+			children = (
+				033AC3911AC474430004EEC1 /* BigInt.swift */,
+				033AC3921AC474430004EEC1 /* Certificate.swift */,
+				033AC3931AC474430004EEC1 /* CryptoKey.swift */,
+				033AC3941AC474430004EEC1 /* TLSCertificateMessage.swift */,
+				033AC3951AC474430004EEC1 /* TLSChangeCipherSpec.swift */,
+				033AC3961AC474430004EEC1 /* TLSClientHello.swift */,
+				033AC3971AC474430004EEC1 /* TLSClientKeyExchange.swift */,
+				033AC3981AC474430004EEC1 /* TLSContext.swift */,
+				033AC3991AC474430004EEC1 /* TLSHandshake.swift */,
+				033AC39A1AC474430004EEC1 /* TLSMessage.swift */,
+				033AC39B1AC474430004EEC1 /* TLSRecord.swift */,
+				033AC39C1AC474430004EEC1 /* TLSServerHello.swift */,
+				033AC39D1AC474430004EEC1 /* TLSServerHelloDone.swift */,
+				033AC39E1AC474430004EEC1 /* TLSSocket.swift */,
+			);
+			path = TLS;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		033AC3551AC473730004EEC1 /* SwiftTLS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 033AC3721AC473730004EEC1 /* Build configuration list for PBXNativeTarget "SwiftTLS" */;
+			buildPhases = (
+				033AC3521AC473730004EEC1 /* Sources */,
+				033AC3531AC473730004EEC1 /* Frameworks */,
+				033AC3541AC473730004EEC1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SwiftTLS;
+			productName = SwiftTLS;
+			productReference = 033AC3561AC473730004EEC1 /* SwiftTLS.app */;
+			productType = "com.apple.product-type.application";
+		};
+		033AC3671AC473730004EEC1 /* SwiftTLSTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 033AC3751AC473730004EEC1 /* Build configuration list for PBXNativeTarget "SwiftTLSTests" */;
+			buildPhases = (
+				033AC3641AC473730004EEC1 /* Sources */,
+				033AC3651AC473730004EEC1 /* Frameworks */,
+				033AC3661AC473730004EEC1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				033AC36A1AC473730004EEC1 /* PBXTargetDependency */,
+			);
+			name = SwiftTLSTests;
+			productName = SwiftTLSTests;
+			productReference = 033AC3681AC473730004EEC1 /* SwiftTLSTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		033AC34E1AC473730004EEC1 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0620;
+				ORGANIZATIONNAME = "Nico Schmidt";
+				TargetAttributes = {
+					033AC3551AC473730004EEC1 = {
+						CreatedOnToolsVersion = 6.2;
+					};
+					033AC3671AC473730004EEC1 = {
+						CreatedOnToolsVersion = 6.2;
+						TestTargetID = 033AC3551AC473730004EEC1;
+					};
+				};
+			};
+			buildConfigurationList = 033AC3511AC473730004EEC1 /* Build configuration list for PBXProject "SwiftTLS" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 033AC34D1AC473730004EEC1;
+			productRefGroup = 033AC3571AC473730004EEC1 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				033AC3551AC473730004EEC1 /* SwiftTLS */,
+				033AC3671AC473730004EEC1 /* SwiftTLSTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		033AC3541AC473730004EEC1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				033AC3601AC473730004EEC1 /* Images.xcassets in Resources */,
+				033AC3631AC473730004EEC1 /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		033AC3661AC473730004EEC1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		033AC3521AC473730004EEC1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				033AC35E1AC473730004EEC1 /* ViewController.swift in Sources */,
+				033AC3AD1AC474430004EEC1 /* TLSContext.swift in Sources */,
+				033AC3A51AC474430004EEC1 /* TLSCertificateMessage.swift in Sources */,
+				033AC3B11AC474430004EEC1 /* TLSMessage.swift in Sources */,
+				033AC3A71AC474430004EEC1 /* TLSChangeCipherSpec.swift in Sources */,
+				033AC38A1AC474350004EEC1 /* IPAddress.swift in Sources */,
+				033AC3B91AC474430004EEC1 /* TLSSocket.swift in Sources */,
+				033AC39F1AC474430004EEC1 /* BigInt.swift in Sources */,
+				033AC3AF1AC474430004EEC1 /* TLSHandshake.swift in Sources */,
+				033AC3A91AC474430004EEC1 /* TLSClientHello.swift in Sources */,
+				033AC3B51AC474430004EEC1 /* TLSServerHello.swift in Sources */,
+				033AC3A31AC474430004EEC1 /* CryptoKey.swift in Sources */,
+				033AC3B31AC474430004EEC1 /* TLSRecord.swift in Sources */,
+				033AC38C1AC474350004EEC1 /* Socket.swift in Sources */,
+				033AC38E1AC474350004EEC1 /* SwiftHelper.c in Sources */,
+				033AC35C1AC473730004EEC1 /* AppDelegate.swift in Sources */,
+				033AC3AB1AC474430004EEC1 /* TLSClientKeyExchange.swift in Sources */,
+				033AC3881AC474350004EEC1 /* DataBuffer.swift in Sources */,
+				033AC3B71AC474430004EEC1 /* TLSServerHelloDone.swift in Sources */,
+				033AC3A11AC474430004EEC1 /* Certificate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		033AC3641AC473730004EEC1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				033AC3A41AC474430004EEC1 /* CryptoKey.swift in Sources */,
+				033AC38F1AC474350004EEC1 /* SwiftHelper.c in Sources */,
+				033AC38D1AC474350004EEC1 /* Socket.swift in Sources */,
+				033AC3AC1AC474430004EEC1 /* TLSClientKeyExchange.swift in Sources */,
+				033AC3B21AC474430004EEC1 /* TLSMessage.swift in Sources */,
+				033AC3801AC473980004EEC1 /* TLSServerHelloTests.swift in Sources */,
+				033AC3811AC473980004EEC1 /* BigIntTests.swift in Sources */,
+				033AC3A01AC474430004EEC1 /* BigInt.swift in Sources */,
+				033AC3B41AC474430004EEC1 /* TLSRecord.swift in Sources */,
+				033AC38B1AC474350004EEC1 /* IPAddress.swift in Sources */,
+				033AC37F1AC473980004EEC1 /* TLSClientHelloTests.swift in Sources */,
+				033AC3B81AC474430004EEC1 /* TLSServerHelloDone.swift in Sources */,
+				033AC3B01AC474430004EEC1 /* TLSHandshake.swift in Sources */,
+				033AC3AA1AC474430004EEC1 /* TLSClientHello.swift in Sources */,
+				033AC3A61AC474430004EEC1 /* TLSCertificateMessage.swift in Sources */,
+				033AC3BA1AC474430004EEC1 /* TLSSocket.swift in Sources */,
+				033AC3A21AC474430004EEC1 /* Certificate.swift in Sources */,
+				033AC3B61AC474430004EEC1 /* TLSServerHello.swift in Sources */,
+				033AC37D1AC473980004EEC1 /* TSLTests.swift in Sources */,
+				033AC37E1AC473980004EEC1 /* TLSRecordTests.swift in Sources */,
+				033AC3891AC474350004EEC1 /* DataBuffer.swift in Sources */,
+				033AC3A81AC474430004EEC1 /* TLSChangeCipherSpec.swift in Sources */,
+				033AC3AE1AC474430004EEC1 /* TLSContext.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		033AC36A1AC473730004EEC1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 033AC3551AC473730004EEC1 /* SwiftTLS */;
+			targetProxy = 033AC3691AC473730004EEC1 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		033AC3611AC473730004EEC1 /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				033AC3621AC473730004EEC1 /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		033AC3701AC473730004EEC1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		033AC3711AC473730004EEC1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		033AC3731AC473730004EEC1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = SwiftTLS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "SwiftTLS/SwiftTLS-Bridging-Header.h";
+			};
+			name = Debug;
+		};
+		033AC3741AC473730004EEC1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = SwiftTLS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "SwiftTLS/SwiftTLS-Bridging-Header.h";
+			};
+			name = Release;
+		};
+		033AC3761AC473730004EEC1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(DEVELOPER_FRAMEWORKS_DIR)",
+					"$(inherited)",
+				);
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				INFOPLIST_FILE = SwiftTLSTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "SwiftTLS/SwiftTLS-Bridging-Header.h";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SwiftTLS.app/Contents/MacOS/SwiftTLS";
+			};
+			name = Debug;
+		};
+		033AC3771AC473730004EEC1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(DEVELOPER_FRAMEWORKS_DIR)",
+					"$(inherited)",
+				);
+				INFOPLIST_FILE = SwiftTLSTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "SwiftTLS/SwiftTLS-Bridging-Header.h";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SwiftTLS.app/Contents/MacOS/SwiftTLS";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		033AC3511AC473730004EEC1 /* Build configuration list for PBXProject "SwiftTLS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				033AC3701AC473730004EEC1 /* Debug */,
+				033AC3711AC473730004EEC1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		033AC3721AC473730004EEC1 /* Build configuration list for PBXNativeTarget "SwiftTLS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				033AC3731AC473730004EEC1 /* Debug */,
+				033AC3741AC473730004EEC1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		033AC3751AC473730004EEC1 /* Build configuration list for PBXNativeTarget "SwiftTLSTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				033AC3761AC473730004EEC1 /* Debug */,
+				033AC3771AC473730004EEC1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 033AC34E1AC473730004EEC1 /* Project object */;
+}
