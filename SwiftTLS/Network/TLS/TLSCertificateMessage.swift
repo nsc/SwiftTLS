@@ -91,28 +91,18 @@ class TLSCertificateMessage : TLSHandshakeMessage
 
     override func writeTo<Target : BinaryOutputStreamType>(inout target: Target)
     {
-//        var buffer = DataBuffer()
-//        
-//        buffer.write(clientVersion.rawValue)
-//        
-//        random.writeTo(&buffer)
-//        
-//        if let session_id = sessionID {
-//            session_id.writeTo(&buffer)
-//        }
-//        else {
-//            buffer.write(UInt8(0))
-//        }
-//        
-//        buffer.write(UInt16(cipherSuites.count * sizeof(UInt16)))
-//        buffer.write(cipherSuites.map { $0.rawValue})
-//        
-//        buffer.write(UInt8(compressionMethods.count))
-//        buffer.write(compressionMethods.map { $0.rawValue})
-//        
-//        var data = buffer.buffer
-//        
-//        self.writeHeader(type: .ClientHello, bodyLength: data.count, target: &target)
-//        target.write(data)
+        var buffer = DataBuffer()
+        
+        for certificate in self.certificates {
+            var certificateData = certificate.data
+            writeUInt24(buffer, certificateData.count)
+            buffer.write(certificateData)
+        }
+        
+        var data = buffer.buffer
+
+        self.writeHeader(type: .Certificate, bodyLength: data.count, target: &target)
+        writeUInt24(target, data.count)
+        target.write(data)
     }
 }

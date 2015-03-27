@@ -83,10 +83,9 @@ class Certificate
         self.certificate = certificate
     }
     
-    init?(var certificateData : [UInt8])
+    init?(var certificateData : NSData)
     {
-        var data = NSData(bytesNoCopy: &certificateData, length: certificateData.count, freeWhenDone: false)
-        var unmanagedCert = SecCertificateCreateWithData(kCFAllocatorDefault, data)
+        var unmanagedCert = SecCertificateCreateWithData(kCFAllocatorDefault, certificateData)
         if let cert = unmanagedCert?.takeRetainedValue() {
             self.certificate = cert
         }
@@ -94,5 +93,11 @@ class Certificate
             self.certificate = nil
             return nil
         }
+    }
+
+    convenience init?(var certificateData : [UInt8])
+    {
+        var data = NSData(bytesNoCopy: &certificateData, length: certificateData.count, freeWhenDone: false)
+        self.init(certificateData: data)
     }
 }
