@@ -27,7 +27,7 @@ class TLSClientHello : TLSHandshakeMessage
         super.init(type: .Handshake(.ClientHello))
     }
     
-    required init?(inputStream : BinaryInputStreamType)
+    required init?(inputStream : InputStreamType)
     {
         var clientVersion : TLSProtocolVersion?
         var random : Random?
@@ -40,8 +40,8 @@ class TLSClientHello : TLSHandshakeMessage
         if let t = type {
             if t == TLSHandshakeType.ClientHello {
                 
-                if let major : UInt8? = inputStream.read(),
-                    minor : UInt8? = inputStream.read(),
+                if let major : UInt8? = read(inputStream),
+                    minor : UInt8? = read(inputStream),
                     cv = TLSProtocolVersion(major: major!, minor: minor!)
                 {
                     clientVersion = cv
@@ -52,20 +52,20 @@ class TLSClientHello : TLSHandshakeMessage
                     random = r
                 }
                 
-                if  let sessionIDSize : UInt8 = inputStream.read(),
-                    let rawSessionID : [UInt8] = inputStream.read(Int(sessionIDSize))
+                if  let sessionIDSize : UInt8 = read(inputStream),
+                    let rawSessionID : [UInt8] = read(inputStream, Int(sessionIDSize))
                 {
                     sessionID = SessionID(sessionID: rawSessionID)
                 }
                 
-                if  let cipherSuitesSize : UInt16 = inputStream.read(),
-                    let rawCipherSuites : [UInt16] = inputStream.read(Int(cipherSuitesSize) / sizeof(UInt16))
+                if  let cipherSuitesSize : UInt16 = read(inputStream),
+                    let rawCipherSuites : [UInt16] = read(inputStream, Int(cipherSuitesSize) / sizeof(UInt16))
                 {
                     cipherSuites = rawCipherSuites.map {CipherSuite(rawValue: $0)!}
                 }
                 
-                if  let compressionMethodsSize : UInt8 = inputStream.read(),
-                    let rawCompressionMethods : [UInt8] = inputStream.read(Int(compressionMethodsSize))
+                if  let compressionMethodsSize : UInt8 = read(inputStream),
+                    let rawCompressionMethods : [UInt8] = read(inputStream, Int(compressionMethodsSize))
                 {
                     compressionMethods = rawCompressionMethods.map {CompressionMethod(rawValue: $0)!}
                 }
@@ -98,11 +98,11 @@ class TLSClientHello : TLSHandshakeMessage
         }
     }
     
-    override func writeTo<Target : BinaryOutputStreamType>(inout target: Target)
+    override func writeTo<Target : OutputStreamType>(inout target: Target)
     {
         var buffer = DataBuffer()
         
-        buffer.write(clientVersion.rawValue)
+        write(buffer, clientVersion.rawValue)
         
         random.writeTo(&buffer)
         
@@ -110,18 +110,18 @@ class TLSClientHello : TLSHandshakeMessage
             session_id.writeTo(&buffer)
         }
         else {
-            buffer.write(UInt8(0))
+            write(buffer, UInt8(0))
         }
         
-        buffer.write(UInt16(cipherSuites.count * sizeof(UInt16)))
-        buffer.write(cipherSuites.map { $0.rawValue})
+        write(buffer, UInt16(cipherSuites.count * sizeof(UInt16)))
+        write(buffer, cipherSuites.map { $0.rawValue})
         
-        buffer.write(UInt8(compressionMethods.count))
-        buffer.write(compressionMethods.map { $0.rawValue})
+        write(buffer, UInt8(compressionMethods.count))
+        write(buffer, compressionMethods.map { $0.rawValue})
         
         var data = buffer.buffer
         
         self.writeHeader(type: .ClientHello, bodyLength: data.count, target: &target)
-        target.write(data)
+        write(target, data)
     }
 }

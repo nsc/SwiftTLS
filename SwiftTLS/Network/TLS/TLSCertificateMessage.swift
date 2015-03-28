@@ -32,7 +32,7 @@ class TLSCertificateMessage : TLSHandshakeMessage
         super.init(type: .Handshake(.Certificate))
     }
     
-    required init?(inputStream : BinaryInputStreamType)
+    required init?(inputStream : InputStreamType)
     {
         var certificates : [Certificate]?
         
@@ -40,7 +40,7 @@ class TLSCertificateMessage : TLSHandshakeMessage
         
         if let t = type {
             if t == TLSHandshakeType.Certificate {
-                if let header : [UInt8] = inputStream.read(3) {
+                if let header : [UInt8] = read(inputStream, 3) {
                     var a = header[0]
                     var b = header[1]
                     var c = header[2]
@@ -49,13 +49,13 @@ class TLSCertificateMessage : TLSHandshakeMessage
                     certificates = []
                     
                     while bytesForCertificates > 0 {
-                        if let certHeader : [UInt8] = inputStream.read(3) {
+                        if let certHeader : [UInt8] = read(inputStream, 3) {
                             var a = certHeader[0]
                             var b = certHeader[1]
                             var c = certHeader[2]
                             var bytesForCertificate = Int(UInt32(a) << 16 + UInt32(b) << 8 + UInt32(c))
                         
-                            var data : [UInt8]? = inputStream.read(bytesForCertificate)
+                            var data : [UInt8]? = read(inputStream, bytesForCertificate)
                             
                             if let d = data {
                                 var certificate = Certificate(certificateData: d)
@@ -89,20 +89,20 @@ class TLSCertificateMessage : TLSHandshakeMessage
         }
     }
 
-    override func writeTo<Target : BinaryOutputStreamType>(inout target: Target)
+    override func writeTo<Target : OutputStreamType>(inout target: Target)
     {
         var buffer = DataBuffer()
         
         for certificate in self.certificates {
             var certificateData = certificate.data
             writeUInt24(buffer, certificateData.count)
-            buffer.write(certificateData)
+            write(buffer, certificateData)
         }
         
         var data = buffer.buffer
 
         self.writeHeader(type: .Certificate, bodyLength: data.count, target: &target)
         writeUInt24(target, data.count)
-        target.write(data)
+        write(target, data)
     }
 }

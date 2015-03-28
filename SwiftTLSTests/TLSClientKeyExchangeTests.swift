@@ -33,13 +33,13 @@ class TLSClientKeyExchangeTests: XCTestCase {
                     1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,
                     1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]
                 var data = DataBuffer()
-                data.write(TLSHandshakeType.ClientKeyExchange.rawValue)
+                write(data, TLSHandshakeType.ClientKeyExchange.rawValue)
                 writeUInt24(data, encryptedPreMasterSecret.count)
-                data.write(encryptedPreMasterSecret)
+                write(data, encryptedPreMasterSecret)
                 super.init(inputStream: BinaryInputStream(data: data.buffer))
             }
 
-            required init?(inputStream: BinaryInputStreamType) {
+            required init?(inputStream: InputStreamType) {
                 fatalError("init(inputStream:) has not been implemented")
             }
         }

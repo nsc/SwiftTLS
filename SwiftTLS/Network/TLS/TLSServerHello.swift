@@ -27,7 +27,7 @@ class TLSServerHello : TLSHandshakeMessage
         super.init(type: .Handshake(.ServerHello))
     }
     
-    required init?(inputStream : BinaryInputStreamType)
+    required init?(inputStream : InputStreamType)
     {
         var clientVersion : TLSProtocolVersion?
         var random : Random?
@@ -40,8 +40,8 @@ class TLSServerHello : TLSHandshakeMessage
         if let t = type {
             if t == TLSHandshakeType.ServerHello {
                 
-                if let major : UInt8? = inputStream.read(),
-                    minor : UInt8? = inputStream.read(),
+                if let major : UInt8? = read(inputStream),
+                    minor : UInt8? = read(inputStream),
                     cv = TLSProtocolVersion(major: major!, minor: minor!)
                 {
                     clientVersion = cv
@@ -52,18 +52,18 @@ class TLSServerHello : TLSHandshakeMessage
                     random = r
                 }
                 
-                if  let sessionIDSize : UInt8 = inputStream.read(),
-                    let rawSessionID : [UInt8] = inputStream.read(Int(sessionIDSize))
+                if  let sessionIDSize : UInt8 = read(inputStream),
+                    let rawSessionID : [UInt8] = read(inputStream, Int(sessionIDSize))
                 {
                     sessionID = SessionID(sessionID: rawSessionID)
                 }
                 
-                if  let rawCiperSuite : UInt16 = inputStream.read()
+                if  let rawCiperSuite : UInt16 = read(inputStream)
                 {
                     cipherSuite = CipherSuite(rawValue: rawCiperSuite)
                 }
                 
-                if  let rawCompressionMethod : UInt8 = inputStream.read()
+                if  let rawCompressionMethod : UInt8 = read(inputStream)
                 {
                     compressionMethod = CompressionMethod(rawValue: rawCompressionMethod)
                 }
@@ -96,11 +96,11 @@ class TLSServerHello : TLSHandshakeMessage
         }
     }
     
-    override func writeTo<Target : BinaryOutputStreamType>(inout target: Target)
+    override func writeTo<Target : OutputStreamType>(inout target: Target)
     {
         var buffer = DataBuffer()
         
-        buffer.write(self.version.rawValue)
+        write(buffer, self.version.rawValue)
         
         random.writeTo(&buffer)
         
@@ -108,16 +108,16 @@ class TLSServerHello : TLSHandshakeMessage
             session_id.writeTo(&buffer)
         }
         else {
-            buffer.write(UInt8(0))
+            write(buffer, UInt8(0))
         }
         
-        buffer.write(self.cipherSuite.rawValue)
+        write(buffer, self.cipherSuite.rawValue)
         
-        buffer.write(self.compressionMethod.rawValue)
+        write(buffer, self.compressionMethod.rawValue)
         
         var data = buffer.buffer
         
         self.writeHeader(type: .ClientHello, bodyLength: data.count, target: &target)
-        target.write(data)
+        write(target, data)
     }
 }

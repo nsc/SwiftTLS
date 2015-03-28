@@ -15,7 +15,7 @@ class TLSServerHelloDone : TLSHandshakeMessage
         super.init(type: .Handshake(.ServerHelloDone))
     }
     
-    required init?(inputStream : BinaryInputStreamType)
+    required init?(inputStream : InputStreamType)
     {
         let (type, bodyLength) = TLSHandshakeMessage.readHeader(inputStream)
         
@@ -31,7 +31,7 @@ class TLSServerHelloDone : TLSHandshakeMessage
         super.init(type: .Handshake(.ServerHelloDone))
     }
     
-    override func writeTo<Target : BinaryOutputStreamType>(inout target: Target)
+    override func writeTo<Target : OutputStreamType>(inout target: Target)
     {
         self.writeHeader(type: .ServerHelloDone, bodyLength: 0, target: &target)
     }

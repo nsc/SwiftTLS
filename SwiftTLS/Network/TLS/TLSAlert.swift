@@ -55,11 +55,11 @@ class TLSAlert : TLSMessage
         super.init(type: .Alert(alertLevel, alertDescription))
     }
 
-    required init?(inputStream: BinaryInputStreamType)
+    required init?(inputStream: InputStreamType)
     {
-        if  let level : UInt8 = inputStream.read(),
+        if  let level : UInt8 = read(inputStream),
             alertLevel = TLSAlertLevel(rawValue: level),
-            let description : UInt8 = inputStream.read(),
+            let description : UInt8 = read(inputStream),
             alertDescription = TLSAlertDescription(rawValue: description)
         {
             self.alertLevel = alertLevel

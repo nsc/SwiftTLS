@@ -39,54 +39,106 @@ enum TLSProtocolVersion : UInt16, Printable {
     }
 }
 
-protocol BinaryOutputStreamType
+protocol OutputStreamType
 {
     mutating func write(data : [UInt8])
-    mutating func write(data : [UInt16])
-    mutating func write(data : UInt8)
-    mutating func write(data : UInt16)
-    mutating func write(data : UInt32)
 }
 
-protocol BinaryInputStreamType
+protocol InputStreamType
 {
-    func read() -> UInt8?
-    func read() -> UInt16?
-    func read() -> UInt32?
     func read(length : Int) -> [UInt8]?
-    func read(length : Int) -> [UInt16]?
 }
 
-protocol BinaryStreamable
+protocol Streamable
 {
-    func writeTo<Target : BinaryOutputStreamType>(inout target: Target)
+    init?(inputStream : InputStreamType)
+    func writeTo<Target : OutputStreamType>(inout target: Target)
 }
 
-protocol BinaryReadable
-{
-    init?(inputStream : BinaryInputStreamType)
+func write(var target : OutputStreamType, data : [UInt8]) {
+    target.write(data)
 }
 
-func writeUInt24(var target : BinaryOutputStreamType, value : Int)
-{
-    target.write(UInt8((value >> 16) & 0xff))
-    target.write(UInt8((value >>  8) & 0xff))
-    target.write(UInt8((value >>  0) & 0xff))
+func write(var target : OutputStreamType, data : [UInt16]) {
+    for a in data {
+        target.write([UInt8(a >> 8), UInt8(a & 0xff)])
+    }
 }
 
-func readUInt24(inputStream : BinaryInputStreamType) -> Int?
+func write(var target : OutputStreamType, data : UInt8) {
+    target.write([data])
+}
+
+func write(var target : OutputStreamType, data : UInt16) {
+    target.write([UInt8(data >> 8), UInt8(data & 0xff)])
+}
+
+func write(var target : OutputStreamType, data : UInt32) {
+    target.write([UInt8((data >> 24) & 0xff), UInt8((data >> 16) & 0xff), UInt8((data >>  8) & 0xff), UInt8((data >>  0) & 0xff)])
+}
+
+func writeUInt24(var target : OutputStreamType, value : Int)
 {
-    if  let a : UInt8 = inputStream.read(),
-        let b : UInt8 = inputStream.read(),
-        let c : UInt8 = inputStream.read()
-    {
-        return Int(a) << 16 + Int(b) << 8 + Int(c)
+    target.write([UInt8((value >> 16) & 0xff), UInt8((value >>  8) & 0xff), UInt8((value >>  0) & 0xff)])
+}
+
+func read(stream : InputStreamType, length: Int) -> [UInt8]?
+{
+    return stream.read(length)
+}
+
+func read(stream : InputStreamType) -> UInt8?
+{
+    if let a : [UInt8] = stream.read(1) {
+        return a[0]
     }
     
     return nil
 }
 
-class Random : BinaryStreamable, BinaryReadable
+func read(stream : InputStreamType) -> UInt16?
+{
+    if let s : [UInt8] = stream.read(2) {
+        return UInt16(s[0]) << 8 + UInt16(s[1])
+    }
+    
+    return nil
+}
+
+func read(stream : InputStreamType) -> UInt32?
+{
+    if let s : [UInt8] = stream.read(4) {
+        return UInt32(s[0]) << 24 + UInt32(s[1]) << 16 + UInt32(s[2]) << 8 + UInt32(s[3])
+    }
+    
+    return nil
+}
+
+func read(stream : InputStreamType, length: Int) -> [UInt16]?
+{
+    if let s : [UInt8] = stream.read(length * 2) {
+        var buffer = [UInt16](count:length, repeatedValue: 0)
+        for var i = 0; i < length; ++i {
+            buffer[i] = UInt16(s[2 * i]) << 8 + UInt16(s[2 * i + 1])
+        }
+        
+        return buffer
+    }
+    
+    return nil
+}
+
+func readUInt24(inputStream : InputStreamType) -> Int?
+{
+    if  let a : [UInt8] = read(inputStream, 3)
+    {
+        return Int(a[0]) << 16 + Int(a[1]) << 8 + Int(a[2])
+    }
+    
+    return nil
+}
+
+class Random : Streamable
 {
     static let NumberOfRandomBytes = 28
     var gmtUnixTime : UInt32
@@ -100,10 +152,10 @@ class Random : BinaryStreamable, BinaryReadable
         gmtUnixTime = UInt32(NSDate().timeIntervalSinceReferenceDate)
     }
     
-    required init?(inputStream : BinaryInputStreamType)
+    required init?(inputStream : InputStreamType)
     {
-        if  let time : UInt32 = inputStream.read(),
-            let bytes : [UInt8] = inputStream.read(Random.NumberOfRandomBytes)
+        if  let time : UInt32 = read(inputStream),
+            let bytes : [UInt8] = read(inputStream, Random.NumberOfRandomBytes)
         {
             self.gmtUnixTime = time
             self.randomBytes = bytes
@@ -116,9 +168,9 @@ class Random : BinaryStreamable, BinaryReadable
         }
     }
     
-    func writeTo<Target : BinaryOutputStreamType>(inout target: Target) {
-        target.write(gmtUnixTime)
-        target.write(randomBytes)
+    func writeTo<Target : OutputStreamType>(inout target: Target) {
+        write(target, gmtUnixTime)
+        write(target, randomBytes)
     }
 }
 

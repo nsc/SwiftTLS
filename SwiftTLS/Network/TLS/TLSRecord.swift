@@ -17,32 +17,32 @@ enum ContentType : UInt8 {
 
 let TLS_RecordHeaderLength = 5
 
-class TLSRecord : BinaryStreamable, BinaryReadable {
+class TLSRecord : Streamable {
     var contentType : ContentType
     var protocolVersion : TLSProtocolVersion
     var body : [UInt8]
     
-    required init?(inputStream: BinaryInputStreamType) {
+    required init?(inputStream: InputStreamType) {
         
         var contentType : ContentType?
         var protocolVersion : TLSProtocolVersion?
         var body : [UInt8]?
         
-        if let c : UInt8 = inputStream.read() {
+        if let c : UInt8 = read(inputStream) {
             if let ct = ContentType(rawValue: c) {
                 contentType = ct
             }
         }
         
-        if let major : UInt8? = inputStream.read(),
-            minor : UInt8? = inputStream.read(),
+        if let major : UInt8? = read(inputStream),
+            minor : UInt8? = read(inputStream),
             v = TLSProtocolVersion(major: major!, minor: minor!)
         {
             protocolVersion = v
         }
         
-        if let bodyLength : UInt16 = inputStream.read() {
-            body = inputStream.read(Int(bodyLength))
+        if let bodyLength : UInt16 = read(inputStream) {
+            body = read(inputStream, Int(bodyLength))
         }
 
         if  let c = contentType,
@@ -90,10 +90,10 @@ class TLSRecord : BinaryStreamable, BinaryReadable {
         return nil
     }
     
-    func writeTo<Target : BinaryOutputStreamType>(inout target: Target) {
-        target.write(self.contentType.rawValue)
-        target.write(self.protocolVersion.rawValue)
-        target.write(UInt16(self.body.count))
-        target.write(self.body)
+    func writeTo<Target : OutputStreamType>(inout target: Target) {
+        write(target, self.contentType.rawValue)
+        write(target, self.protocolVersion.rawValue)
+        write(target, UInt16(self.body.count))
+        write(target, self.body)
     }
 }

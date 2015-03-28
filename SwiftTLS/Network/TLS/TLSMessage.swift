@@ -34,7 +34,7 @@ enum TLSChangeCipherSpecType : UInt8
     case ChangeCipherSpec = 1
 }
 
-class TLSMessage : BinaryStreamable, BinaryReadable
+class TLSMessage : Streamable
 {
     let type : TLSMessageType
 
@@ -43,12 +43,12 @@ class TLSMessage : BinaryStreamable, BinaryReadable
         self.type = type
     }
     
-    required init?(inputStream: BinaryInputStreamType) {
+    required init?(inputStream: InputStreamType) {
         self.type = .Alert(.Warning, .CloseNotify)
         return nil
     }
     
-    func writeTo<Target : BinaryOutputStreamType>(inout target: Target)
+    func writeTo<Target : OutputStreamType>(inout target: Target)
     {
     }
 }

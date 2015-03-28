@@ -18,6 +18,7 @@ class TLSHandshakeMessage : TLSMessage
                 return handshakeType
             default:
                 assert(false)
+                fatalError("")
             }
         }
     }
@@ -50,17 +51,17 @@ class TLSHandshakeMessage : TLSMessage
         return nil
     }
     
-    internal func writeHeader<Target : BinaryOutputStreamType>(#type : TLSHandshakeType, bodyLength: Int, inout target: Target)
+    internal func writeHeader<Target : OutputStreamType>(#type : TLSHandshakeType, bodyLength: Int, inout target: Target)
     {
-        target.write(type.rawValue)
+        write(target, type.rawValue)
     
-        target.write(UInt8((bodyLength >> 16) & 0xff))
-        target.write(UInt8((bodyLength >>  8) & 0xff))
-        target.write(UInt8((bodyLength >>  0) & 0xff))
+        write(target, UInt8((bodyLength >> 16) & 0xff))
+        write(target, UInt8((bodyLength >>  8) & 0xff))
+        write(target, UInt8((bodyLength >>  0) & 0xff))
     }
     
-    internal class func readHeader(inputStream : BinaryInputStreamType) -> (type: TLSHandshakeType?, bodyLength: Int?) {
-        if  let type : UInt8 = inputStream.read(),
+    internal class func readHeader(inputStream : InputStreamType) -> (type: TLSHandshakeType?, bodyLength: Int?) {
+        if  let type : UInt8 = read(inputStream),
             handshakeType = TLSHandshakeType(rawValue: type),
             let bodyLength = readUInt24(inputStream)
         {
@@ -70,12 +71,12 @@ class TLSHandshakeMessage : TLSMessage
         return (nil, nil)
     }
     
-    override func writeTo<Target : BinaryOutputStreamType>(inout target: Target)
+    override func writeTo<Target : OutputStreamType>(inout target: Target)
     {
     }
 }
 
-class SessionID : BinaryStreamable
+class SessionID : Streamable
 {
     static let MaximumSessionIDLength = 32
 
@@ -85,9 +86,22 @@ class SessionID : BinaryStreamable
         self.sessionID = sessionID
     }
     
-    func writeTo<Target : BinaryOutputStreamType>(inout target: Target) {
-        target.write(UInt8(sessionID.count))
-        target.write(sessionID)
+    required init?(inputStream : InputStreamType)
+    {
+        if let length : UInt8 = read(inputStream) {
+            if let sessionID : [UInt8] = read(inputStream, Int(length)) {
+                self.sessionID = sessionID
+                return
+            }
+        }
+        
+        self.sessionID = []
+        return nil
+    }
+    
+    func writeTo<Target : OutputStreamType>(inout target: Target) {
+        write(target, UInt8(sessionID.count))
+        write(target, sessionID)
     }
 }
 

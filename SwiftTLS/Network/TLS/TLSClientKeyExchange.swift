@@ -8,7 +8,7 @@
 
 import Foundation
 
-class PreMasterSecret : BinaryStreamable, BinaryReadable
+class PreMasterSecret : Streamable
 {
     static let NumberOfRandomBytes = 46
     
@@ -24,11 +24,11 @@ class PreMasterSecret : BinaryStreamable, BinaryReadable
     var clientVersion : TLSProtocolVersion
     var random : [UInt8] // 46 bytes
     
-    required init?(inputStream : BinaryInputStreamType)
+    required init?(inputStream : InputStreamType)
     {
-        if  let major : UInt8 = inputStream.read(),
-            let minor : UInt8 = inputStream.read(),
-            let bytes : [UInt8] = inputStream.read(Random.NumberOfRandomBytes)
+        if  let major : UInt8 = read(inputStream),
+            let minor : UInt8 = read(inputStream),
+            let bytes : [UInt8] = read(inputStream, Random.NumberOfRandomBytes)
         {
             if let version = TLSProtocolVersion(major: major, minor: minor) {
                 self.clientVersion = version
@@ -44,9 +44,9 @@ class PreMasterSecret : BinaryStreamable, BinaryReadable
         return nil
     }
     
-    func writeTo<Target : BinaryOutputStreamType>(inout target: Target) {
-        target.write(self.clientVersion.rawValue)
-        target.write(random)
+    func writeTo<Target : OutputStreamType>(inout target: Target) {
+        write(target, self.clientVersion.rawValue)
+        write(target, random)
     }
 }
 
@@ -68,13 +68,13 @@ class TLSClientKeyExchange : TLSHandshakeMessage
         super.init(type: .Handshake(.ClientKeyExchange))
     }
     
-    required init?(inputStream : BinaryInputStreamType)
+    required init?(inputStream : InputStreamType)
     {
         let (type, bodyLength) = TLSHandshakeMessage.readHeader(inputStream)
         
         if let t = type {
             if t == TLSHandshakeType.ClientKeyExchange {
-                if let data : [UInt8] = inputStream.read(64) {
+                if let data : [UInt8] = read(inputStream, 64) {
                     self.encryptedPreMasterSecret = data
                     super.init(type: .Handshake(.ClientKeyExchange))
                     
@@ -89,9 +89,9 @@ class TLSClientKeyExchange : TLSHandshakeMessage
         return nil        
     }
 
-    override func writeTo<Target : BinaryOutputStreamType>(inout target: Target)
+    override func writeTo<Target : OutputStreamType>(inout target: Target)
     {
         self.writeHeader(type: .ClientKeyExchange, bodyLength: self.encryptedPreMasterSecret.count, target: &target)
-        target.write(self.encryptedPreMasterSecret)
+        write(target, self.encryptedPreMasterSecret)
     }
 }
