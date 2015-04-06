@@ -245,6 +245,11 @@ class TLSContext
     var serverKey : CryptoKey? = nil
     var clientKey : CryptoKey? = nil
     
+    var preMasterSecret     : [UInt8]? = nil
+    var masterSecret        : [UInt8]? = nil
+    var clientHelloRandom   : [UInt8]? = nil
+    var serverHelloRandom   : [UInt8]? = nil
+    
     init(protocolVersion: TLSProtocolVersion, dataProvider : TLSDataProvider)
     {
         self.protocolVersion = protocolVersion
@@ -336,6 +341,7 @@ class TLSContext
             switch (handshakeType)
             {
             case .ClientHello:
+                self.clientHelloRandom = DataBuffer((message as! TLSClientHello).random).buffer
                 break
                 
             case .ServerHello:
@@ -349,6 +355,8 @@ class TLSContext
                     self.state = .ServerHelloReceived
                     let version = (message as! TLSServerHello).version
                     println("Server wants to speak \(version)")
+                    
+                    self.serverHelloRandom = DataBuffer((message as! TLSServerHello).random).buffer
                 }
                 break
                 
@@ -385,21 +393,25 @@ class TLSContext
     
     private func sendClientHello()
     {
+        var clientHelloRandom = Random()
         var clientHello = TLSClientHello(
             clientVersion: self.protocolVersion,
-            random: Random(),
+            random: clientHelloRandom,
             sessionID: nil,
             cipherSuites: [.TLS_RSA_WITH_AES_256_CBC_SHA],
             compressionMethods: [.NULL])
         
+        self.clientHelloRandom = DataBuffer(clientHelloRandom).buffer
         self.sendHandshakeMessage(clientHello)
     }
     
     private func sendClientKeyExchange()
     {
         if let serverKey = self.serverKey {
-            var message = TLSClientKeyExchange(preMasterSecret: PreMasterSecret(clientVersion: TLSProtocolVersion.TLS_v1_2), publicKey: serverKey)
+            var preMasterSecret = PreMasterSecret(clientVersion: TLSProtocolVersion.TLS_v1_2)
+            var message = TLSClientKeyExchange(preMasterSecret: preMasterSecret, publicKey: serverKey)
 
+            self.preMasterSecret = DataBuffer(preMasterSecret).buffer
             self.sendHandshakeMessage(message)
         }
     }
@@ -409,6 +421,8 @@ class TLSContext
         var message = TLSChangeCipherSpec()
         
         self.sendMessage(message)
+        
+        self.masterSecret = self.calculateMasterSecret()
     }
 
     private func receiveNextTLSMessage(completionBlock: ((TLSContextError?) -> ())?)
@@ -484,4 +498,98 @@ class TLSContext
         }
     }
 
+
+    /// P_hash function as defined in RFC 2246, section 5, p. 11
+    typealias HashFunction = (secret : [UInt8], data : [UInt8]) -> [UInt8]
+    private func P_hash(hashFunction : HashFunction, secret : [UInt8], seed : [UInt8], var outputLength : Int) -> [UInt8]
+    {
+        var outputData = [UInt8]()
+        var A : [UInt8] = seed
+        var bytesLeftToWrite = outputLength
+        while (bytesLeftToWrite > 0)
+        {
+            A = hashFunction(secret: secret, data: A)
+            var output = hashFunction(secret: secret, data: A + seed)
+            var bytesFromOutput = min(bytesLeftToWrite, output.count)
+            outputData.extend(output[0..<bytesFromOutput])
+            
+            bytesLeftToWrite -= bytesFromOutput
+        }
+        
+        return outputData
+    }
+    
+    /// PRF function as defined in RFC 2246, section 5, p. 12
+    private func PRF(#secret : [UInt8], label : [UInt8], seed : [UInt8], var outputLength : Int) -> [UInt8]
+    {
+        var halfSecretLength = secret.count / 2
+        var S1 : [UInt8]
+        var S2 : [UInt8]
+        if (secret.count % 2 == 0) {
+            S1 = [UInt8](secret[0..<halfSecretLength])
+            S2 = [UInt8](secret[halfSecretLength..<secret.count])
+        }
+        else {
+            S1 = [UInt8](secret[0..<halfSecretLength + 1])
+            S2 = [UInt8](secret[halfSecretLength..<secret.count])
+        }
+        
+        assert(S1.count == S2.count)
+        
+        var md5data  = P_hash(Hash_MD5,  secret: S1, seed: label + seed, outputLength: outputLength)
+        var sha1data = P_hash(Hash_SHA1, secret: S2, seed: label + seed, outputLength: outputLength)
+        
+        var output = [UInt8](count: outputLength, repeatedValue: 0)
+        for var i = 0; i < output.count; ++i
+        {
+            output[i] = md5data[i] ^ sha1data[i]
+        }
+
+        return output
+    }
+    
+    // Calculate master secret as described in RFC 2246, section 8.1, p. 46
+    func calculateMasterSecret() -> [UInt8] {
+        return PRF(secret: self.preMasterSecret!, label: [UInt8]("master secret".utf8), seed: self.clientHelloRandom! + self.serverHelloRandom!, outputLength: 48)
+    }
+}
+
+func Hash_MD5(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
+{
+    var output = [UInt8](count: Int(CC_MD5_DIGEST_LENGTH), repeatedValue: 0)
+    output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
+        CCHmac(UInt32(kCCHmacAlgMD5), secret, secret.count, data, data.count, buffer.baseAddress)
+    }
+    
+    return output
+}
+
+func Hash_SHA1(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
+{
+    var output = [UInt8](count: Int(CC_SHA1_DIGEST_LENGTH), repeatedValue: 0)
+    output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
+        CCHmac(UInt32(kCCHmacAlgSHA1), secret, secret.count, data, data.count, buffer.baseAddress)
+    }
+    
+    return output
+}
+
+func Hash_SHA_256(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
+{
+    var output = [UInt8](count: Int(CC_SHA256_DIGEST_LENGTH), repeatedValue: 0)
+    output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
+        CCHmac(UInt32(kCCHmacAlgSHA256), secret, secret.count, data, data.count, buffer.baseAddress)
+    }
+    
+    return output
+}
+
+func Hash_SHA_384(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
+{
+    var output = [UInt8](count: Int(CC_SHA384_DIGEST_LENGTH), repeatedValue: 0)
+    output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
+        CCHmac(UInt32(kCCHmacAlgSHA384), secret, secret.count, data, data.count, buffer.baseAddress)
+    }
+    
+    return output
 }
