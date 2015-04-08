@@ -234,6 +234,9 @@ private func messageNameForType(messageType : TLSMessageType) -> String
     return messageName
 }
 
+let TLSClientFinishedLabel = [UInt8]("client finished".utf8)
+let TLSServerFinishedLabel = [UInt8]("server finished".utf8)
+
 class TLSContext
 {
     var protocolVersion : TLSProtocolVersion
@@ -250,10 +253,16 @@ class TLSContext
     var clientHelloRandom   : [UInt8]? = nil
     var serverHelloRandom   : [UInt8]? = nil
     
-    init(protocolVersion: TLSProtocolVersion, dataProvider : TLSDataProvider)
+    var handshakeMessages : [TLSHandshakeMessage]
+    
+    let isClient : Bool
+    
+    init(protocolVersion: TLSProtocolVersion, dataProvider : TLSDataProvider, isClient : Bool = true)
     {
         self.protocolVersion = protocolVersion
         self.dataProvider = dataProvider
+        self.isClient = true
+        self.handshakeMessages = []
     }
     
     func startConnection(completionBlock : (error : TLSContextError?) -> ()) {
@@ -290,6 +299,8 @@ class TLSContext
     func sendHandshakeMessage(message : TLSHandshakeMessage, completionBlock : ((TLSDataProviderError?) -> ())? = nil)
     {
         self.sendMessage(message, completionBlock: completionBlock)
+        
+        self.handshakeMessages.append(message)
     }
     
     func didSendMessage(message : TLSMessage)
@@ -318,8 +329,6 @@ class TLSContext
             var handshakeMessage = message as! TLSHandshakeMessage
             self._didReceiveHandshakeMessage(handshakeMessage, completionBlock: completionBlock)
             
-            break
-            
         case .Alert:
             break
             
@@ -332,9 +341,7 @@ class TLSContext
     {
         let tlsConnectCompletionBlock = completionBlock
 
-        self.didReceiveHandshakeMessage(message)
-        
-        switch (message.type)
+        SWITCH: switch (message.type)
         {
         case .Handshake(let handshakeType):
             
@@ -342,13 +349,13 @@ class TLSContext
             {
             case .ClientHello:
                 self.clientHelloRandom = DataBuffer((message as! TLSClientHello).random).buffer
-                break
                 
             case .ServerHello:
                 if self.state != .ClientHelloSent {
                     if let block = tlsConnectCompletionBlock {
                         block(TLSContextError.Error)
-                        return
+
+                        break SWITCH
                     }
                 }
                 else {
@@ -358,7 +365,6 @@ class TLSContext
                     
                     self.serverHelloRandom = DataBuffer((message as! TLSServerHello).random).buffer
                 }
-                break
                 
             case .Certificate:
                 println("certificate")
@@ -366,29 +372,35 @@ class TLSContext
                 self.serverKey = certificate.publicKey
                 self.sendClientKeyExchange()
                 
-                break
-                
             case .ServerHelloDone:
                 self.sendChangeCipherSpec()
+                self.sendFinished()
+                
+            case .Finished:
+                
                 break
                 
             default:
                 println("unsupported handshake \(handshakeType.rawValue)")
                 if let block = tlsConnectCompletionBlock {
                     block(TLSContextError.Error)
-                    return
+
+                    break SWITCH
                 }
             }
-            
-            break
             
         default:
             println("unsupported handshake \(message.type)")
             if let block = tlsConnectCompletionBlock {
                 block(TLSContextError.Error)
-                return
+
+                break SWITCH
             }
         }
+        
+        self.handshakeMessages.append(message)
+        
+        self.didReceiveHandshakeMessage(message)
     }
     
     private func sendClientHello()
@@ -425,6 +437,24 @@ class TLSContext
         self.masterSecret = self.calculateMasterSecret()
     }
 
+    private func sendFinished()
+    {
+        var finishedLabel = self.isClient ? TLSClientFinishedLabel : TLSServerFinishedLabel
+    
+        var buffer = DataBuffer()
+        for message in self.handshakeMessages {
+            message.writeTo(&buffer)
+        }
+        
+        var clientHandshakeMD5  = Hash_MD5(buffer.buffer)
+        var clientHandshakeSHA1 = Hash_SHA1(buffer.buffer)
+        
+        var d = clientHandshakeMD5 + clientHandshakeSHA1
+        var verifyData = PRF(secret: self.masterSecret!, label: finishedLabel, seed: d, outputLength: 12)
+
+        self.sendHandshakeMessage(TLSFinished(verifyData: verifyData), completionBlock: nil)
+    }
+    
     private func receiveNextTLSMessage(completionBlock: ((TLSContextError?) -> ())?)
     {
         let tlsConnectCompletionBlock = completionBlock
@@ -536,8 +566,8 @@ class TLSContext
         
         assert(S1.count == S2.count)
         
-        var md5data  = P_hash(Hash_MD5,  secret: S1, seed: label + seed, outputLength: outputLength)
-        var sha1data = P_hash(Hash_SHA1, secret: S2, seed: label + seed, outputLength: outputLength)
+        var md5data  = P_hash(HMAC_MD5,  secret: S1, seed: label + seed, outputLength: outputLength)
+        var sha1data = P_hash(HMAC_SHA1, secret: S2, seed: label + seed, outputLength: outputLength)
         
         var output = [UInt8](count: outputLength, repeatedValue: 0)
         for var i = 0; i < output.count; ++i
@@ -554,7 +584,7 @@ class TLSContext
     }
 }
 
-func Hash_MD5(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
+func HMAC_MD5(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
 {
     var output = [UInt8](count: Int(CC_MD5_DIGEST_LENGTH), repeatedValue: 0)
     output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
@@ -564,7 +594,7 @@ func Hash_MD5(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
     return output
 }
 
-func Hash_SHA1(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
+func HMAC_SHA1(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
 {
     var output = [UInt8](count: Int(CC_SHA1_DIGEST_LENGTH), repeatedValue: 0)
     output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
@@ -574,7 +604,7 @@ func Hash_SHA1(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
     return output
 }
 
-func Hash_SHA_256(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
+func HMAC_SHA_256(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
 {
     var output = [UInt8](count: Int(CC_SHA256_DIGEST_LENGTH), repeatedValue: 0)
     output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
@@ -584,7 +614,7 @@ func Hash_SHA_256(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
     return output
 }
 
-func Hash_SHA_384(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
+func HMAC_SHA_384(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
 {
     var output = [UInt8](count: Int(CC_SHA384_DIGEST_LENGTH), repeatedValue: 0)
     output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
@@ -593,3 +623,44 @@ func Hash_SHA_384(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
     
     return output
 }
+
+func Hash_MD5(var data : [UInt8]) -> [UInt8]
+{
+    var output = [UInt8](count: Int(CC_MD5_DIGEST_LENGTH), repeatedValue: 0)
+    output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
+        CC_MD5(data, CC_LONG(data.count), buffer.baseAddress)
+    }
+    
+    return output
+}
+
+func Hash_SHA1(var data : [UInt8]) -> [UInt8]
+{
+    var output = [UInt8](count: Int(CC_SHA1_DIGEST_LENGTH), repeatedValue: 0)
+    output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
+        CC_SHA1(data, CC_LONG(data.count), buffer.baseAddress)
+    }
+    
+    return output
+}
+
+func Hash_SHA_256(var data : [UInt8]) -> [UInt8]
+{
+    var output = [UInt8](count: Int(CC_SHA256_DIGEST_LENGTH), repeatedValue: 0)
+    output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
+        CC_SHA256(data, CC_LONG(data.count), buffer.baseAddress)
+    }
+    
+    return output
+}
+
+func Hash_SHA_384(var data : [UInt8]) -> [UInt8]
+{
+    var output = [UInt8](count: Int(CC_SHA384_DIGEST_LENGTH), repeatedValue: 0)
+    output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
+        CC_SHA384(data, CC_LONG(data.count), buffer.baseAddress)
+    }
+    
+    return output
+}
+
