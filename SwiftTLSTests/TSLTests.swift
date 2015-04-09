@@ -31,7 +31,7 @@ class TSLTests: XCTestCase {
             expectation.fulfill()
         })
         
-        self.waitForExpectationsWithTimeout(20.0, handler: { (error : NSError!) -> Void in
+        self.waitForExpectationsWithTimeout(2.0, handler: { (error : NSError!) -> Void in
             
         })
     }
