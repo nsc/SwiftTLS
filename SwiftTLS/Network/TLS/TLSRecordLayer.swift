@@ -13,6 +13,8 @@ let TLSKeyExpansionLabel = [UInt8]("key expansion".utf8)
 class TLSRecordLayer
 {
     weak var dataProvider : TLSDataProvider!
+    let protocolVersion: TLSProtocolVersion
+    
     private var securityParameters : TLSSecurityParameters!
     private var encryptor : CCCryptorRef!
     private var decryptor : CCCryptorRef!
@@ -52,9 +54,12 @@ class TLSRecordLayer
     var serverWriteKey : [UInt8]?
     var clientWriteIV : [UInt8]?
     var serverWriteIV : [UInt8]?
+    var clientWriteSequenceNumber : Int64 = 0
+    var serverWriteSequenceNumber : Int64 = 0
     
     init(protocolVersion: TLSProtocolVersion, dataProvider: TLSDataProvider)
     {
+        self.protocolVersion = protocolVersion
         self.dataProvider = dataProvider
     }
     
@@ -62,38 +67,42 @@ class TLSRecordLayer
     
     func sendMessage(message : TLSMessage, completionBlock : ((TLSDataProviderError?) -> ())? = nil)
     {
-        let contentType : ContentType
-        switch (message.type)
-        {
-        case .ChangeCipherSpec:
-            contentType = .ChangeCipherSpec
-            
-        case .Alert:
-            contentType = .Alert
-            
-        case .Handshake:
-            contentType = .Handshake
-            
-        case .ApplicationData:
-            contentType = .ApplicationData
-        }
-        
-        var body = DataBuffer(message).buffer
+        let contentType = message.contentType
+        var messageData = DataBuffer(message).buffer
         
         if self.securityParameters != nil {
-            if let b = encryptAndMAC(body) {
-                body = b
-            }
-            else {
-                if let block = completionBlock {
-                    block(nil)
+            var secret = self.securityParameters.connectionEnd == .Client ? self.clientWriteKey! : self.serverWriteKey!
+            if let MAC = calculateMessageMAC(secret: secret, contentType: message.contentType, messageData: messageData) {
+                var plainTextRecordData = messageData + MAC
+                var paddingLength = (plainTextRecordData.count % self.securityParameters.blockLength)
+                if paddingLength == 0 {
+                    paddingLength = self.securityParameters.blockLength
                 }
-                return
+                
+                var padding = [UInt8](count: paddingLength, repeatedValue: UInt8(paddingLength - 1))
+                
+                plainTextRecordData.extend(padding)
+                var cipherText : [UInt8]
+                if let b = encrypt(plainTextRecordData) {
+                    cipherText = b
+                }
+                else {
+                    if let block = completionBlock {
+                        block(nil)
+                    }
+                    return
+                }
+                
+                self.clientWriteSequenceNumber += 1
+                var record = TLSRecord(contentType: contentType, body: cipherText)
+                self.dataProvider.writeData(DataBuffer(record).buffer, completionBlock: completionBlock)
             }
         }
-        
-        var record = TLSRecord(contentType: contentType, body: body)
-        self.dataProvider.writeData(DataBuffer(record).buffer, completionBlock: completionBlock)
+        else {
+            // no security parameters have been negotiated yet
+            var record = TLSRecord(contentType: contentType, body: messageData)
+            self.dataProvider.writeData(DataBuffer(record).buffer, completionBlock: completionBlock)
+        }
     }
 
     
@@ -156,12 +165,55 @@ class TLSRecordLayer
         }
     }
 
-    private func encryptAndMAC(var data : [UInt8]) -> [UInt8]?
+    private func calculateMessageMAC(#secret: [UInt8], contentType : ContentType, messageData : [UInt8]) -> [UInt8]?
+    {
+        var macData = DataBuffer()
+        write(macData, self.clientWriteMACKey!)
+        write(macData, self.clientWriteSequenceNumber)
+        write(macData, contentType.rawValue)
+        write(macData, self.protocolVersion.rawValue)
+        write(macData, UInt16(messageData.count))
+        write(macData, messageData)
+        
+        return self.calculateMAC(secret: secret, data: macData.buffer)
+    }
+    
+    private func calculateMAC(#secret : [UInt8], var data : [UInt8]) -> [UInt8]?
+    {
+        var HMAC : (secret : [UInt8], data : [UInt8]) -> [UInt8]
+        if let algorithm = self.securityParameters.macAlgorithm {
+            switch (algorithm)
+            {
+            case .HMAC_MD5:
+                HMAC = HMAC_MD5
+                
+            case .HMAC_SHA1:
+                HMAC = HMAC_SHA1
+
+            case .HMAC_SHA256:
+                HMAC = HMAC_SHA256
+
+            case .HMAC_SHA384:
+                HMAC = HMAC_SHA384
+
+            case .HMAC_SHA512:
+                HMAC = HMAC_SHA512
+
+            }
+        }
+        else {
+            return nil
+        }
+        
+        return HMAC(secret: secret, data: data)
+    }
+    
+    private func encrypt(var data : [UInt8]) -> [UInt8]?
     {
         if self.securityParameters == nil {
             return nil
         }
-        
+    
         var algorithm : CCAlgorithm?
         switch (self.securityParameters.bulkCipherAlgorithm!)
         {

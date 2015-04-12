@@ -38,6 +38,28 @@ class TLSMessage : Streamable
 {
     let type : TLSMessageType
 
+    var contentType : ContentType {
+        get {
+            let contentType : ContentType
+            switch (self.type)
+            {
+            case .ChangeCipherSpec:
+                contentType = .ChangeCipherSpec
+                
+            case .Alert:
+                contentType = .Alert
+                
+            case .Handshake:
+                contentType = .Handshake
+                
+            case .ApplicationData:
+                contentType = .ApplicationData
+            }
+
+            return contentType
+        }
+    }
+    
     init(type : TLSMessageType)
     {
         self.type = type

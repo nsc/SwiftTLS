@@ -14,6 +14,11 @@ struct CipherAlgorithmDescriptor {
     var blockSize   : Int
 }
 
+struct HMACDescriptor {
+    var algorithm   : MACAlgorithm
+    var size        : Int
+}
+
 struct CipherSuiteDescriptor {
     var cipherSuite : CipherSuite
     
@@ -21,17 +26,17 @@ struct CipherSuiteDescriptor {
     var bulkCipherAlgorithm : CipherAlgorithmDescriptor
     var cipherType : CipherType
     var blockCipherMode : BlockCipherMode?
-    var macAlgorithm : MACAlgorithm
+    var hmacDescriptor : HMACDescriptor
 }
 
-let TLSCipherDescritions : [CipherSuite:CipherSuiteDescriptor] = [
+let TLSCipherSuiteDescritions : [CipherSuite:CipherSuiteDescriptor] = [
     CipherSuite.TLS_RSA_WITH_NULL_MD5: CipherSuiteDescriptor(
         cipherSuite: .TLS_RSA_WITH_NULL_MD5,
         certificateCipherAlgorithm: .RSA,
         bulkCipherAlgorithm: CipherAlgorithmDescriptor(algorithm: .NULL, keySize: 0, blockSize: 0),
         cipherType: .Stream,
         blockCipherMode: nil,
-        macAlgorithm: .HMAC_MD5),
+        hmacDescriptor: HMACDescriptor(algorithm: .HMAC_MD5, size: Int(CC_MD5_DIGEST_LENGTH))),
     
     .TLS_RSA_WITH_NULL_SHA: CipherSuiteDescriptor(
         cipherSuite: .TLS_RSA_WITH_NULL_SHA,
@@ -39,7 +44,7 @@ let TLSCipherDescritions : [CipherSuite:CipherSuiteDescriptor] = [
         bulkCipherAlgorithm: CipherAlgorithmDescriptor(algorithm: .NULL, keySize: 0, blockSize: 0),
         cipherType: .Stream,
         blockCipherMode: nil,
-        macAlgorithm: .HMAC_SHA1),
+        hmacDescriptor: HMACDescriptor(algorithm: .HMAC_SHA1, size: Int(CC_SHA1_DIGEST_LENGTH))),
 
     .TLS_RSA_WITH_AES_256_CBC_SHA: CipherSuiteDescriptor(
         cipherSuite: .TLS_RSA_WITH_AES_256_CBC_SHA,
@@ -47,7 +52,7 @@ let TLSCipherDescritions : [CipherSuite:CipherSuiteDescriptor] = [
         bulkCipherAlgorithm: CipherAlgorithmDescriptor(algorithm: .AES, keySize: kCCKeySizeAES256, blockSize: kCCBlockSizeAES128),
         cipherType: .Stream,
         blockCipherMode: .CBC,
-        macAlgorithm: .HMAC_SHA1),
+        hmacDescriptor: HMACDescriptor(algorithm: .HMAC_SHA1, size: Int(CC_SHA1_DIGEST_LENGTH))),
 
     .TLS_RSA_WITH_AES_256_CBC_SHA256: CipherSuiteDescriptor(
         cipherSuite: .TLS_RSA_WITH_AES_256_CBC_SHA256,
@@ -55,5 +60,5 @@ let TLSCipherDescritions : [CipherSuite:CipherSuiteDescriptor] = [
         bulkCipherAlgorithm: CipherAlgorithmDescriptor(algorithm: .AES, keySize: kCCKeySizeAES256, blockSize: kCCBlockSizeAES128),
         cipherType: .Stream,
         blockCipherMode: .CBC,
-        macAlgorithm: .HMAC_SHA256),
+        hmacDescriptor: HMACDescriptor(algorithm: .HMAC_SHA256, size: Int(CC_SHA256_DIGEST_LENGTH))),
 ]

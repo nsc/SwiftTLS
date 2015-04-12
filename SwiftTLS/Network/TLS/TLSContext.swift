@@ -248,12 +248,19 @@ class TLSContext
                     println("Server wants to speak \(version)")
                     
                     self.pendingSecurityParameters.serverRandom = DataBuffer(serverHello.random).buffer
-                    if let cipherDescriptor = TLSCipherSuiteDescriptorForCipherSuite(serverHello.cipherSuite)?.bulkCipherAlgorithm {
+                    var cipherSuiteDescriptor = TLSCipherSuiteDescriptorForCipherSuite(serverHello.cipherSuite)
+                    if let cipherDescriptor = cipherSuiteDescriptor?.bulkCipherAlgorithm {
                         self.pendingSecurityParameters.bulkCipherAlgorithm = cipherDescriptor.algorithm
                         self.pendingSecurityParameters.encodeKeyLength  = cipherDescriptor.keySize
                         self.pendingSecurityParameters.blockLength      = cipherDescriptor.blockSize
                         self.pendingSecurityParameters.fixedIVLength    = cipherDescriptor.blockSize
                         self.pendingSecurityParameters.recordIVLength   = cipherDescriptor.blockSize
+
+                        if let hmacDescriptor = cipherSuiteDescriptor?.hmacDescriptor {
+                            self.pendingSecurityParameters.macAlgorithm     = hmacDescriptor.algorithm
+                            self.pendingSecurityParameters.macKeyLength        = hmacDescriptor.size
+                            self.pendingSecurityParameters.macLength        = hmacDescriptor.size
+                        }
                     }
                     else {
                         fatalError("security parameters not set after server hello was received")

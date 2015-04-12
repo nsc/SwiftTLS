@@ -77,6 +77,13 @@ func write(var target : OutputStreamType, data : UInt32) {
     target.write([UInt8((data >> 24) & 0xff), UInt8((data >> 16) & 0xff), UInt8((data >>  8) & 0xff), UInt8((data >>  0) & 0xff)])
 }
 
+func write(var target : OutputStreamType, data : Int64) {
+    target.write([
+        UInt8((data >> 56) & 0xff), UInt8((data >> 48) & 0xff), UInt8((data >> 40) & 0xff), UInt8((data >> 32) & 0xff),
+        UInt8((data >> 24) & 0xff), UInt8((data >> 16) & 0xff), UInt8((data >>  8) & 0xff), UInt8((data >>  0) & 0xff)
+        ])
+}
+
 func writeUInt24(var target : OutputStreamType, value : Int)
 {
     target.write([UInt8((value >> 16) & 0xff), UInt8((value >>  8) & 0xff), UInt8((value >>  0) & 0xff)])

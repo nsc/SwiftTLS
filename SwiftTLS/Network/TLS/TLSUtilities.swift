@@ -88,7 +88,7 @@ func HMAC_SHA1(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
 
 
 
-func HMAC_SHA_256(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
+func HMAC_SHA256(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
 {
     var output = [UInt8](count: Int(CC_SHA256_DIGEST_LENGTH), repeatedValue: 0)
     output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
@@ -100,11 +100,23 @@ func HMAC_SHA_256(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
 
 
 
-func HMAC_SHA_384(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
+func HMAC_SHA384(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
 {
     var output = [UInt8](count: Int(CC_SHA384_DIGEST_LENGTH), repeatedValue: 0)
     output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
         CCHmac(UInt32(kCCHmacAlgSHA384), secret, secret.count, data, data.count, buffer.baseAddress)
+    }
+    
+    return output
+}
+
+
+
+func HMAC_SHA512(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
+{
+    var output = [UInt8](count: Int(CC_SHA512_DIGEST_LENGTH), repeatedValue: 0)
+    output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
+        CCHmac(UInt32(kCCHmacAlgSHA512), secret, secret.count, data, data.count, buffer.baseAddress)
     }
     
     return output
@@ -136,7 +148,7 @@ func Hash_SHA1(var data : [UInt8]) -> [UInt8]
 
 
 
-func Hash_SHA_256(var data : [UInt8]) -> [UInt8]
+func Hash_SHA256(var data : [UInt8]) -> [UInt8]
 {
     var output = [UInt8](count: Int(CC_SHA256_DIGEST_LENGTH), repeatedValue: 0)
     output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
@@ -148,11 +160,23 @@ func Hash_SHA_256(var data : [UInt8]) -> [UInt8]
 
 
 
-func Hash_SHA_384(var data : [UInt8]) -> [UInt8]
+func Hash_SHA384(var data : [UInt8]) -> [UInt8]
 {
     var output = [UInt8](count: Int(CC_SHA384_DIGEST_LENGTH), repeatedValue: 0)
     output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
         CC_SHA384(data, CC_LONG(data.count), buffer.baseAddress)
+    }
+    
+    return output
+}
+
+
+
+func Hash_SHA512(var data : [UInt8]) -> [UInt8]
+{
+    var output = [UInt8](count: Int(CC_SHA512_DIGEST_LENGTH), repeatedValue: 0)
+    output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
+        CC_SHA512(data, CC_LONG(data.count), buffer.baseAddress)
     }
     
     return output
@@ -346,6 +370,6 @@ func TLSMessageNameForType(messageType : TLSMessageType) -> String
 
 func TLSCipherSuiteDescriptorForCipherSuite(cipherSuite : CipherSuite) -> CipherSuiteDescriptor?
 {
-    return TLSCipherDescritions[cipherSuite]
+    return TLSCipherSuiteDescritions[cipherSuite]
 }
 
