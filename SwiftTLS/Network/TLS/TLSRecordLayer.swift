@@ -13,8 +13,10 @@ let TLSKeyExpansionLabel = [UInt8]("key expansion".utf8)
 class TLSRecordLayer
 {
     weak var dataProvider : TLSDataProvider!
-    private var securityParameters : TLSSecurityParameters?
-        
+    private var securityParameters : TLSSecurityParameters!
+    private var encryptor : CCCryptorRef!
+    private var decryptor : CCCryptorRef!
+    
     func activateSecurityParameters(securityParameters : TLSSecurityParameters)
     {
         self.securityParameters = securityParameters
@@ -79,7 +81,15 @@ class TLSRecordLayer
         var body = DataBuffer(message).buffer
         
         if self.securityParameters != nil {
-            
+            if let b = encryptAndMAC(body) {
+                body = b
+            }
+            else {
+                if let block = completionBlock {
+                    block(nil)
+                }
+                return
+            }
         }
         
         var record = TLSRecord(contentType: contentType, body: body)
@@ -146,4 +156,57 @@ class TLSRecordLayer
         }
     }
 
+    private func encryptAndMAC(var data : [UInt8]) -> [UInt8]?
+    {
+        if self.securityParameters == nil {
+            return nil
+        }
+        
+        var algorithm : CCAlgorithm?
+        switch (self.securityParameters.bulkCipherAlgorithm!)
+        {
+        case .AES:
+            algorithm = CCAlgorithm(kCCAlgorithmAES)
+            
+        case .TRIPLE_DES:
+            algorithm = CCAlgorithm(kCCAlgorithm3DES)
+            
+        case .NULL:
+            algorithm = nil
+        }
+
+        if let encryptor = self.encryptor {
+        }
+        else {
+            if algorithm == nil {
+                return nil
+            }
+            
+            var encryptor = CCCryptorRef()
+            var status = Int(CCCryptorCreate(CCOperation(kCCEncrypt), algorithm!, 0, &self.clientWriteKey!, self.clientWriteKey!.count, &self.clientWriteIV!, &encryptor))
+            if status != kCCSuccess {
+                println("Error: Could not create encryptor")
+                return nil
+            }
+            
+            self.encryptor = encryptor
+        }
+        
+        var outputLength : Int = CCCryptorGetOutputLength(self.encryptor, data.count, false)
+        var outputData = [UInt8](count: outputLength, repeatedValue: 0)
+        
+        var status = outputData.withUnsafeMutableBufferPointer { (inout outputBuffer : UnsafeMutableBufferPointer<UInt8>) -> Int in
+            var outputDataWritten : Int = 0
+            var status = Int(CCCryptorUpdate(self.encryptor, data, data.count, outputBuffer.baseAddress, outputLength, &outputDataWritten))
+            assert(outputDataWritten == outputLength)
+            return status
+        }
+        
+        if status != kCCSuccess {
+            println("Error: Could not encrypt data")
+            return nil
+        }
+        
+        return outputData
+    }
 }

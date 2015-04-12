@@ -7,7 +7,7 @@
 //
 
 import Foundation
-
+    
 enum CipherSuite : UInt16 {
     case TLS_RSA_WITH_NULL_MD5 = 1
     case TLS_RSA_WITH_NULL_SHA = 2
@@ -75,6 +75,10 @@ enum CipherType {
     case Stream
 }
 
+enum BlockCipherMode {
+    case CBC
+}
+
 enum MACAlgorithm {
     case HMAC_MD5
     case HMAC_SHA1
@@ -85,8 +89,15 @@ enum MACAlgorithm {
 
 enum CipherAlgorithm
 {
+    case NULL
     case TRIPLE_DES
     case AES
+}
+
+enum CertificateCipherAlgorithm
+{
+    case RSA
+    case DSS
 }
 
 enum PRFAlgorithm {
@@ -100,7 +111,7 @@ class TLSSecurityParameters
     var                     connectionEnd : ConnectionEnd = .Client
     var                     prfAlgorithm : PRFAlgorithm = .PRF_TLS_1_0
     var                     bulkCipherAlgorithm : CipherAlgorithm? = nil
-    var                     ciperType : CipherType? = nil
+    var                     cipherType : CipherType? = nil
     var                     encodeKeyLength : Int = 0
     var                     blockLength : Int = 0
     var                     fixedIVLength : Int = 0
@@ -232,10 +243,21 @@ class TLSContext
                 }
                 else {
                     self.state = .ServerHelloReceived
-                    let version = (message as! TLSServerHello).version
+                    var serverHello = message as! TLSServerHello
+                    let version = serverHello.version
                     println("Server wants to speak \(version)")
                     
-                    self.pendingSecurityParameters.serverRandom = DataBuffer((message as! TLSServerHello).random).buffer
+                    self.pendingSecurityParameters.serverRandom = DataBuffer(serverHello.random).buffer
+                    if let cipherDescriptor = TLSCipherSuiteDescriptorForCipherSuite(serverHello.cipherSuite)?.bulkCipherAlgorithm {
+                        self.pendingSecurityParameters.bulkCipherAlgorithm = cipherDescriptor.algorithm
+                        self.pendingSecurityParameters.encodeKeyLength  = cipherDescriptor.keySize
+                        self.pendingSecurityParameters.blockLength      = cipherDescriptor.blockSize
+                        self.pendingSecurityParameters.fixedIVLength    = cipherDescriptor.blockSize
+                        self.pendingSecurityParameters.recordIVLength   = cipherDescriptor.blockSize
+                    }
+                    else {
+                        fatalError("security parameters not set after server hello was received")
+                    }
                 }
                 
             case .Certificate:
@@ -250,7 +272,7 @@ class TLSContext
                 
             case .Finished:
                 
-                break
+                break SWITCH
                 
             default:
                 println("unsupported handshake \(handshakeType.rawValue)")

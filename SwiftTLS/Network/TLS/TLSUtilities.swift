@@ -344,4 +344,8 @@ func TLSMessageNameForType(messageType : TLSMessageType) -> String
     return messageName
 }
 
+func TLSCipherSuiteDescriptorForCipherSuite(cipherSuite : CipherSuite) -> CipherSuiteDescriptor?
+{
+    return TLSCipherDescritions[cipherSuite]
+}
 

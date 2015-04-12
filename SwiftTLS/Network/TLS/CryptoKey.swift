@@ -30,6 +30,7 @@ class CryptoKey
             parameters[kSecAttrKeyType as String] = kSecAttrKeyTypeAES as String
         
         default:
+            self.key = nil
             return nil
         }
         
