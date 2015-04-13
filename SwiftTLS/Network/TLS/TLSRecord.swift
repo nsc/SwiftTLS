@@ -62,10 +62,10 @@ class TLSRecord : Streamable {
         }
     }
     
-    init(var contentType : ContentType, var body : [UInt8])
+    init(contentType : ContentType, protocolVersion: TLSProtocolVersion, var body : [UInt8])
     {
         self.contentType = contentType
-        self.protocolVersion = .TLS_v1_0
+        self.protocolVersion = protocolVersion
         self.body = body
     }
     

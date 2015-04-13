@@ -26,8 +26,11 @@ class TSLTests: XCTestCase {
         
         var socket = TLSSocket(protocolVersion: TLSProtocolVersion.TLS_v1_2)
 //        var host = "195.50.155.66"
-        var host = "85.13.137.205"
-        socket.connect(IPAddress.addressWithString(host, port: 443)!, completionBlock: { (error : TLSSocketError?) -> () in
+//        var host = "85.13.137.205" // nschmidt.name
+        var host = "127.0.0.1"
+        var port = 4433
+//        var port = 443
+        socket.connect(IPAddress.addressWithString(host, port: port)!, completionBlock: { (error : TLSSocketError?) -> () in
             expectation.fulfill()
         })
         

@@ -13,7 +13,7 @@ let TLSKeyExpansionLabel = [UInt8]("key expansion".utf8)
 class TLSRecordLayer
 {
     weak var dataProvider : TLSDataProvider!
-    let protocolVersion: TLSProtocolVersion
+    var protocolVersion: TLSProtocolVersion
     
     private var securityParameters : TLSSecurityParameters!
     private var encryptor : CCCryptorRef!
@@ -94,13 +94,13 @@ class TLSRecordLayer
                 }
                 
                 self.clientWriteSequenceNumber += 1
-                var record = TLSRecord(contentType: contentType, body: cipherText)
+                var record = TLSRecord(contentType: contentType, protocolVersion: self.protocolVersion, body: cipherText)
                 self.dataProvider.writeData(DataBuffer(record).buffer, completionBlock: completionBlock)
             }
         }
         else {
             // no security parameters have been negotiated yet
-            var record = TLSRecord(contentType: contentType, body: messageData)
+            var record = TLSRecord(contentType: contentType, protocolVersion: self.protocolVersion, body: messageData)
             self.dataProvider.writeData(DataBuffer(record).buffer, completionBlock: completionBlock)
         }
     }

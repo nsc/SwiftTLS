@@ -94,7 +94,9 @@ class CryptoKey
                 }
                 
                 if let data = resultData as? NSData {
-                    return [UInt8](UnsafeBufferPointer<UInt8>(start: UnsafePointer<UInt8>(data.bytes), count: data.length))
+                    var result = [UInt8](UnsafeBufferPointer<UInt8>(start: UnsafePointer<UInt8>(data.bytes), count: data.length))
+                    
+                    return result
                 }
             }
         }

@@ -247,6 +247,8 @@ class TLSContext
                     let version = serverHello.version
                     println("Server wants to speak \(version)")
                     
+                    self.recordLayer.protocolVersion = version
+                    
                     self.pendingSecurityParameters.serverRandom = DataBuffer(serverHello.random).buffer
                     var cipherSuiteDescriptor = TLSCipherSuiteDescriptorForCipherSuite(serverHello.cipherSuite)
                     if let cipherDescriptor = cipherSuiteDescriptor?.bulkCipherAlgorithm {

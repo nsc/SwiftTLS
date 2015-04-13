@@ -35,6 +35,7 @@ class TLSClientKeyExchangeTests: XCTestCase {
                 var data = DataBuffer()
                 write(data, TLSHandshakeType.ClientKeyExchange.rawValue)
                 writeUInt24(data, encryptedPreMasterSecret.count)
+                write(data, UInt16(encryptedPreMasterSecret.count))
                 write(data, encryptedPreMasterSecret)
                 super.init(inputStream: BinaryInputStream(data: data.buffer))
             }

@@ -20,7 +20,7 @@ class TLSCertificateMessage : TLSHandshakeMessage
             }
             
             let certificate = certificates[0]
-            println("\(certificate.commonName!)")
+            println("\(certificate.commonName)")
             return certificate.publicKey
         }
     }
@@ -61,7 +61,7 @@ class TLSCertificateMessage : TLSHandshakeMessage
                                 var certificate = Certificate(certificateData: d)
                                 if let cert = certificate {
                                     certificates!.append(cert)
-                                    println("common name: \(cert.commonName!)")
+                                    println("common name: \(cert.commonName)")
                                 }
                             }
                             
