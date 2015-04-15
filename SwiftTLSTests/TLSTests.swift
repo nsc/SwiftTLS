@@ -23,6 +23,9 @@ class TSLTests: XCTestCase {
 
     func test_connectTLS() {
         var expectation = self.expectationWithDescription("successfully connected")
+        var task = NSTask.launchedTaskWithLaunchPath("/usr/bin/openssl", arguments: ["s_server",  "-cert", "SwiftTLSTests/mycert.pem", "-www",  "-debug"])
+
+        sleep(1)
         
         var socket = TLSSocket(protocolVersion: TLSProtocolVersion.TLS_v1_2)
 //        var host = "195.50.155.66"
@@ -30,12 +33,13 @@ class TSLTests: XCTestCase {
         var host = "127.0.0.1"
         var port = 4433
 //        var port = 443
+        
         socket.connect(IPAddress.addressWithString(host, port: port)!, completionBlock: { (error : TLSSocketError?) -> () in
             expectation.fulfill()
         })
         
-        self.waitForExpectationsWithTimeout(2.0, handler: { (error : NSError!) -> Void in
-            
+        self.waitForExpectationsWithTimeout(5.0, handler: { (error : NSError!) -> Void in
+            task.terminate()
         })
     }
 

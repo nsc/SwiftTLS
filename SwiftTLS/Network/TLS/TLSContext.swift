@@ -228,6 +228,8 @@ class TLSContext
         {
         case .Handshake(let handshakeType):
             
+            self.handshakeMessages.append(message)
+            
             switch (handshakeType)
             {
             case .ClientHello:
@@ -300,8 +302,6 @@ class TLSContext
                 break SWITCH
             }
         }
-        
-        self.handshakeMessages.append(message)
         
         self.didReceiveHandshakeMessage(message)
     }
