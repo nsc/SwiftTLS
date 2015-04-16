@@ -117,7 +117,7 @@ class TLSServerHello : TLSHandshakeMessage
         
         var data = buffer.buffer
         
-        self.writeHeader(type: .ClientHello, bodyLength: data.count, target: &target)
+        self.writeHeader(type: .ServerHello, bodyLength: data.count, target: &target)
         write(target, data)
     }
 }

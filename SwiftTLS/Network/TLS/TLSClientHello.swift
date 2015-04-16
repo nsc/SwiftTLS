@@ -52,10 +52,12 @@ class TLSClientHello : TLSHandshakeMessage
                     random = r
                 }
                 
-                if  let sessionIDSize : UInt8 = read(inputStream),
-                    let rawSessionID : [UInt8] = read(inputStream, Int(sessionIDSize))
-                {
-                    sessionID = SessionID(sessionID: rawSessionID)
+                if  let sessionIDSize : UInt8 = read(inputStream) {
+                    if sessionIDSize > 0 {
+                        if let rawSessionID : [UInt8] = read(inputStream, Int(sessionIDSize)) {
+                            sessionID = SessionID(sessionID: rawSessionID)
+                        }
+                    }
                 }
                 
                 if  let cipherSuitesSize : UInt16 = read(inputStream),

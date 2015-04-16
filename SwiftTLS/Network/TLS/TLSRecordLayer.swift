@@ -70,6 +70,12 @@ class TLSRecordLayer
         let contentType = message.contentType
         var messageData = DataBuffer(message).buffer
         
+        if contentType == ContentType.Handshake {
+            if let handshake = TLSHandshakeMessage.handshakeMessageFromData(messageData) {
+                println("\(handshake)")
+            }
+        }
+        
         if self.securityParameters != nil {
             var secret = self.securityParameters.connectionEnd == .Client ? self.clientWriteKey! : self.serverWriteKey!
             if let MAC = calculateMessageMAC(secret: secret, contentType: message.contentType, messageData: messageData) {

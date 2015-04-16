@@ -349,13 +349,17 @@ class TLSContext
     {
         var finishedLabel = self.isClient ? TLSClientFinishedLabel : TLSServerFinishedLabel
     
-        var buffer = DataBuffer()
+        var handshakeData = [UInt8]()
         for message in self.handshakeMessages {
-            message.writeTo(&buffer)
+            var messageBuffer = DataBuffer()
+            message.writeTo(&messageBuffer)
+            handshakeData.extend(messageBuffer.buffer)
+            
+            assert(messageBuffer.buffer == DataBuffer(TLSHandshakeMessage.handshakeMessageFromData(messageBuffer.buffer)!).buffer)
         }
         
-        var clientHandshakeMD5  = Hash_MD5(buffer.buffer)
-        var clientHandshakeSHA1 = Hash_SHA1(buffer.buffer)
+        var clientHandshakeMD5  = Hash_MD5(handshakeData)
+        var clientHandshakeSHA1 = Hash_SHA1(handshakeData)
         
         var d = clientHandshakeMD5 + clientHandshakeSHA1
         var verifyData = PRF(secret: self.currentSecurityParameters.masterSecret!, label: finishedLabel, seed: d, outputLength: 12)

@@ -43,6 +43,12 @@ class TLSHandshakeMessage : TLSMessage
             case .ServerHelloDone:
                 return TLSServerHelloDone(inputStream: BinaryInputStream(data: data))
 
+            case .ClientKeyExchange:
+                return TLSClientKeyExchange(inputStream: BinaryInputStream(data: data))
+                
+            case .Finished:
+                return TLSFinished(inputStream: BinaryInputStream(data: data))
+                
             default:
                 fatalError("Unsupported handshake message")
             }
