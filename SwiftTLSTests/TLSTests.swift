@@ -23,11 +23,11 @@ class TSLTests: XCTestCase {
 
     func test_connectTLS() {
         var expectation = self.expectationWithDescription("successfully connected")
-        var task = NSTask.launchedTaskWithLaunchPath("/usr/bin/openssl", arguments: ["s_server",  "-cert", "SwiftTLSTests/mycert.pem", "-www",  "-debug"])
+        var task = NSTask.launchedTaskWithLaunchPath("/usr/bin/openssl", arguments: ["s_server",  "-cert", "SwiftTLSTests/mycert.pem", "-www",  "-debug", "-cipher", "ALL:NULL" ])
 
         sleep(1)
         
-        var socket = TLSSocket(protocolVersion: TLSProtocolVersion.TLS_v1_2)
+        var socket = TLSSocket(protocolVersion: TLSProtocolVersion.TLS_v1_0)
 //        var host = "195.50.155.66"
 //        var host = "85.13.137.205" // nschmidt.name
         var host = "127.0.0.1"

@@ -313,7 +313,8 @@ class TLSContext
             clientVersion: self.protocolVersion,
             random: clientHelloRandom,
             sessionID: nil,
-            cipherSuites: [.TLS_RSA_WITH_AES_256_CBC_SHA],
+//            cipherSuites: [.TLS_RSA_WITH_AES_256_CBC_SHA],
+            cipherSuites: [.TLS_RSA_WITH_NULL_SHA],
             compressionMethods: [.NULL])
         
         self.pendingSecurityParameters.clientRandom = DataBuffer(clientHelloRandom).buffer

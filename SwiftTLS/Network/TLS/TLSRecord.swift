@@ -90,10 +90,16 @@ class TLSRecord : Streamable {
         return nil
     }
     
-    func writeTo<Target : OutputStreamType>(inout target: Target) {
-        write(target, self.contentType.rawValue)
-        write(target, self.protocolVersion.rawValue)
-        write(target, UInt16(self.body.count))
+    class func writeRecordHeader<Target : OutputStreamType>(inout target: Target, contentType: ContentType, protocolVersion : TLSProtocolVersion, contentLength : Int)
+    {
+        write(target, contentType.rawValue)
+        write(target, protocolVersion.rawValue)
+        write(target, UInt16(contentLength))
+    }
+    
+    func writeTo<Target : OutputStreamType>(inout target: Target)
+    {
+        self.dynamicType.writeRecordHeader(&target, contentType: self.contentType, protocolVersion: self.protocolVersion, contentLength: self.body.count)
         write(target, self.body)
     }
 }

@@ -54,8 +54,8 @@ class TLSRecordLayer
     var serverWriteKey : [UInt8]?
     var clientWriteIV : [UInt8]?
     var serverWriteIV : [UInt8]?
-    var clientWriteSequenceNumber : Int64 = 0
-    var serverWriteSequenceNumber : Int64 = 0
+    var clientWriteSequenceNumber : UInt64 = 0
+    var serverWriteSequenceNumber : UInt64 = 0
     
     init(protocolVersion: TLSProtocolVersion, dataProvider: TLSDataProvider)
     {
@@ -77,19 +77,25 @@ class TLSRecordLayer
         }
         
         if self.securityParameters != nil {
-            var secret = self.securityParameters.connectionEnd == .Client ? self.clientWriteKey! : self.serverWriteKey!
+            var secret = self.securityParameters.connectionEnd == .Client ? self.clientWriteMACKey! : self.serverWriteMACKey!
             if let MAC = calculateMessageMAC(secret: secret, contentType: message.contentType, messageData: messageData) {
                 var plainTextRecordData = messageData + MAC
-                var paddingLength = (plainTextRecordData.count % self.securityParameters.blockLength)
-                if paddingLength == 0 {
-                    paddingLength = self.securityParameters.blockLength
+                var blockLength = self.securityParameters.blockLength
+                if blockLength > 0 {
+                    var paddingLength = blockLength - ((plainTextRecordData.count + TLS_RecordHeaderLength) % blockLength)
+                    if paddingLength != 0 {
+                        var padding = [UInt8](count: paddingLength, repeatedValue: UInt8(paddingLength - 1))
+                        
+                        plainTextRecordData.extend(padding)
+                    }
                 }
                 
-                var padding = [UInt8](count: paddingLength, repeatedValue: UInt8(paddingLength - 1))
+                var headerBuffer = DataBuffer()
+                TLSRecord.writeRecordHeader(&headerBuffer, contentType: message.contentType, protocolVersion: self.protocolVersion, contentLength: plainTextRecordData.count)
+                var headerData = headerBuffer.buffer
                 
-                plainTextRecordData.extend(padding)
                 var cipherText : [UInt8]
-                if let b = encrypt(plainTextRecordData) {
+                if let b = encrypt(headerData + plainTextRecordData) {
                     cipherText = b
                 }
                 else {
@@ -174,7 +180,7 @@ class TLSRecordLayer
     private func calculateMessageMAC(#secret: [UInt8], contentType : ContentType, messageData : [UInt8]) -> [UInt8]?
     {
         var macData = DataBuffer()
-        write(macData, self.clientWriteMACKey!)
+//        write(macData, self.clientWriteMACKey!)
         write(macData, self.clientWriteSequenceNumber)
         write(macData, contentType.rawValue)
         write(macData, self.protocolVersion.rawValue)
@@ -237,7 +243,7 @@ class TLSRecordLayer
         }
         else {
             if algorithm == nil {
-                return nil
+                return data
             }
             
             var encryptor = CCCryptorRef()
