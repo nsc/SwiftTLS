@@ -7,3 +7,9 @@ var data = NSData(base64EncodedString: "ZMOP1NFa5VKTQ8I2awGXDjzKP+686eujiangAgf5
 var a = [UInt8](count: data!.length, repeatedValue: 0)
 data?.getBytes(&a, length: a.count)
 a
+
+func f(ints:Int...) -> String {
+    return "\(ints)"
+}
+
+f(1,2,3,4)

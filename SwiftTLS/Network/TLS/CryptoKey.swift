@@ -87,7 +87,7 @@ class CryptoKey
             
             if (success) {
                 var error : Unmanaged<CFErrorRef>? = nil
-                var resultData: SecTransform! = SecTransformExecute(transform, &error)
+                var resultData: AnyObject! = SecTransformExecute(transform, &error)
 
                 if resultData == nil {
                     println("\(error?.takeUnretainedValue())")

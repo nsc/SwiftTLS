@@ -8,7 +8,19 @@
 
 import Foundation
 
-
+func hex(data : [UInt8]) -> String
+{
+    var s = ""
+    for var i = 0; i < data.count; ++i {
+        var c = data[i]
+        if (i % 16 == 0 && i != 0) {
+            s += "\n"
+        }
+        s += String(format: "%02x ", arguments: [c])
+    }
+    
+    return s
+}
 
 /// P_hash function as defined in RFC 2246, section 5, p. 11
 typealias HashFunction = (secret : [UInt8], data : [UInt8]) -> [UInt8]

@@ -127,6 +127,7 @@ class TLSSecurityParameters
     func calculateMasterSecret(preMasterSecret : [UInt8])
     {
         self.masterSecret = PRF(secret: preMasterSecret, label: [UInt8]("master secret".utf8), seed: self.clientRandom! + self.serverRandom!, outputLength: 48)
+        println("master secret: \(hex(self.masterSecret!))")
     }
 }
 
@@ -324,7 +325,7 @@ class TLSContext
     private func sendClientKeyExchange()
     {
         if let serverKey = self.serverKey {
-            var preMasterSecret = PreMasterSecret(clientVersion: TLSProtocolVersion.TLS_v1_2)
+            var preMasterSecret = PreMasterSecret(clientVersion: self.protocolVersion)
             var message = TLSClientKeyExchange(preMasterSecret: preMasterSecret, publicKey: serverKey)
 
             self.preMasterSecret = DataBuffer(preMasterSecret).buffer
@@ -343,6 +344,10 @@ class TLSContext
         self.currentSecurityParameters = self.pendingSecurityParameters
         self.pendingSecurityParameters = TLSSecurityParameters()
         
+        println("client random:\n \(hex(self.currentSecurityParameters.clientRandom!))")
+        println("server random:\n \(hex(self.currentSecurityParameters.serverRandom!))")
+        println("pre master secret:\n \(hex(self.preMasterSecret!))")
+        
         self.recordLayer.activateSecurityParameters(self.currentSecurityParameters)
     }
 
@@ -356,7 +361,7 @@ class TLSContext
             message.writeTo(&messageBuffer)
             handshakeData.extend(messageBuffer.buffer)
             
-            assert(messageBuffer.buffer == DataBuffer(TLSHandshakeMessage.handshakeMessageFromData(messageBuffer.buffer)!).buffer)
+//            assert(messageBuffer.buffer == DataBuffer(TLSHandshakeMessage.handshakeMessageFromData(messageBuffer.buffer)!).buffer)
         }
         
         var clientHandshakeMD5  = Hash_MD5(handshakeData)

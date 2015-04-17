@@ -28,6 +28,8 @@ class TLSRecordLayer
         var numberOfKeyMaterialBytes = 2 * (s.macKeyLength + s.encodeKeyLength + s.fixedIVLength)
         var keyBlock = PRF(secret: s.masterSecret!, label: TLSKeyExpansionLabel, seed: s.serverRandom! + s.clientRandom!, outputLength: numberOfKeyMaterialBytes)
         
+        println("key block: \(hex(keyBlock))")
+        
         var index = 0
         self.clientWriteMACKey = [UInt8](keyBlock[index..<index + s.macKeyLength])
         index += s.macKeyLength
@@ -78,7 +80,9 @@ class TLSRecordLayer
         
         if self.securityParameters != nil {
             var secret = self.securityParameters.connectionEnd == .Client ? self.clientWriteMACKey! : self.serverWriteMACKey!
+
             if let MAC = calculateMessageMAC(secret: secret, contentType: message.contentType, messageData: messageData) {
+            
                 var plainTextRecordData = messageData + MAC
                 var blockLength = self.securityParameters.blockLength
                 if blockLength > 0 {
@@ -90,12 +94,8 @@ class TLSRecordLayer
                     }
                 }
                 
-                var headerBuffer = DataBuffer()
-                TLSRecord.writeRecordHeader(&headerBuffer, contentType: message.contentType, protocolVersion: self.protocolVersion, contentLength: plainTextRecordData.count)
-                var headerData = headerBuffer.buffer
-                
                 var cipherText : [UInt8]
-                if let b = encrypt(headerData + plainTextRecordData) {
+                if let b = encrypt(plainTextRecordData) {
                     cipherText = b
                 }
                 else {
@@ -180,12 +180,13 @@ class TLSRecordLayer
     private func calculateMessageMAC(#secret: [UInt8], contentType : ContentType, messageData : [UInt8]) -> [UInt8]?
     {
         var macData = DataBuffer()
-//        write(macData, self.clientWriteMACKey!)
         write(macData, self.clientWriteSequenceNumber)
         write(macData, contentType.rawValue)
         write(macData, self.protocolVersion.rawValue)
         write(macData, UInt16(messageData.count))
         write(macData, messageData)
+        
+        println("mac data: \(hex(macData.buffer))")
         
         return self.calculateMAC(secret: secret, data: macData.buffer)
     }

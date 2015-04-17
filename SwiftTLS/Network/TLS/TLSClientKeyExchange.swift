@@ -59,6 +59,8 @@ class TLSClientKeyExchange : TLSHandshakeMessage
         preMasterSecret.writeTo(&dataBuffer)
         if let crypttext = publicKey.encrypt(dataBuffer.buffer) {
             self.encryptedPreMasterSecret = crypttext
+            var data = crypttext
+            NSData(bytesNoCopy: &data, length: data.count, freeWhenDone: false).writeToFile("/Users/nico/tmp/preMasterSecret", atomically: true)
         }
         else {
             self.encryptedPreMasterSecret = []
