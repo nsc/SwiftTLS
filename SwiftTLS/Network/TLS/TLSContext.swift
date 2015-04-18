@@ -276,9 +276,9 @@ class TLSContext
                 println("certificate")
                 var certificate = message as! TLSCertificateMessage
                 self.serverKey = certificate.publicKey
-                self.sendClientKeyExchange()
                 
             case .ServerHelloDone:
+                self.sendClientKeyExchange()
                 self.sendChangeCipherSpec()
                 self.sendFinished()
                 
@@ -359,6 +359,9 @@ class TLSContext
         for message in self.handshakeMessages {
             var messageBuffer = DataBuffer()
             message.writeTo(&messageBuffer)
+            
+            println("update handshake data:\n \(hex(messageBuffer.buffer))")
+
             handshakeData.extend(messageBuffer.buffer)
             
 //            assert(messageBuffer.buffer == DataBuffer(TLSHandshakeMessage.handshakeMessageFromData(messageBuffer.buffer)!).buffer)
