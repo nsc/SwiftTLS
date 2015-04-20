@@ -229,7 +229,11 @@ class TLSContext
         {
         case .Handshake(let handshakeType):
             
-            self.handshakeMessages.append(message)
+            if (handshakeType != .Finished) {
+                // don't add the incoming Finished message to handshakeMessages.
+                // We need to verify it's data against the handshake messages before it.
+                self.handshakeMessages.append(message)
+            }
             
             switch (handshakeType)
             {
@@ -255,15 +259,15 @@ class TLSContext
                     self.pendingSecurityParameters.serverRandom = DataBuffer(serverHello.random).buffer
                     var cipherSuiteDescriptor = TLSCipherSuiteDescriptorForCipherSuite(serverHello.cipherSuite)
                     if let cipherDescriptor = cipherSuiteDescriptor?.bulkCipherAlgorithm {
-                        self.pendingSecurityParameters.bulkCipherAlgorithm = cipherDescriptor.algorithm
-                        self.pendingSecurityParameters.encodeKeyLength  = cipherDescriptor.keySize
-                        self.pendingSecurityParameters.blockLength      = cipherDescriptor.blockSize
-                        self.pendingSecurityParameters.fixedIVLength    = cipherDescriptor.blockSize
-                        self.pendingSecurityParameters.recordIVLength   = cipherDescriptor.blockSize
+                        self.pendingSecurityParameters.bulkCipherAlgorithm  = cipherDescriptor.algorithm
+                        self.pendingSecurityParameters.encodeKeyLength      = cipherDescriptor.keySize
+                        self.pendingSecurityParameters.blockLength          = cipherDescriptor.blockSize
+                        self.pendingSecurityParameters.fixedIVLength        = cipherDescriptor.blockSize
+                        self.pendingSecurityParameters.recordIVLength       = cipherDescriptor.blockSize
 
                         if let hmacDescriptor = cipherSuiteDescriptor?.hmacDescriptor {
                             self.pendingSecurityParameters.macAlgorithm     = hmacDescriptor.algorithm
-                            self.pendingSecurityParameters.macKeyLength        = hmacDescriptor.size
+                            self.pendingSecurityParameters.macKeyLength     = hmacDescriptor.size
                             self.pendingSecurityParameters.macLength        = hmacDescriptor.size
                         }
                     }
@@ -283,6 +287,12 @@ class TLSContext
                 self.sendFinished()
                 
             case .Finished:
+                if (self.verifyFinishedMessage(message as! TLSFinished, isClient: !self.isClient)) {
+                    println("Finished verified.")
+                }
+                else {
+                    println("Error: could not verify Finished message.")
+                }
                 break SWITCH
                 
             default:
@@ -352,29 +362,39 @@ class TLSContext
 
     private func sendFinished()
     {
-        var finishedLabel = self.isClient ? TLSClientFinishedLabel : TLSServerFinishedLabel
-    
+        var verifyData = self.verifyDataForFinishedMessage(isClient: self.isClient)
+        self.sendHandshakeMessage(TLSFinished(verifyData: verifyData), completionBlock: nil)
+    }
+
+    private func verifyFinishedMessage(finishedMessage : TLSFinished, isClient: Bool) -> Bool
+    {
+        var verifyData = self.verifyDataForFinishedMessage(isClient: isClient)
+        
+        return finishedMessage.verifyData == verifyData
+    }
+
+    private func verifyDataForFinishedMessage(#isClient: Bool) -> [UInt8]
+    {
+        var finishedLabel = isClient ? TLSClientFinishedLabel : TLSServerFinishedLabel
+        
         var handshakeData = [UInt8]()
         for message in self.handshakeMessages {
             var messageBuffer = DataBuffer()
             message.writeTo(&messageBuffer)
             
-            println("update handshake data:\n \(hex(messageBuffer.buffer))")
-
             handshakeData.extend(messageBuffer.buffer)
-            
-//            assert(messageBuffer.buffer == DataBuffer(TLSHandshakeMessage.handshakeMessageFromData(messageBuffer.buffer)!).buffer)
         }
         
         var clientHandshakeMD5  = Hash_MD5(handshakeData)
         var clientHandshakeSHA1 = Hash_SHA1(handshakeData)
         
         var d = clientHandshakeMD5 + clientHandshakeSHA1
-        println("finish PRF input:\n\(hex(d))")
-        var verifyData = PRF(secret: self.currentSecurityParameters.masterSecret!, label: finishedLabel, seed: d, outputLength: 12)
 
-        self.sendHandshakeMessage(TLSFinished(verifyData: verifyData), completionBlock: nil)
+        var verifyData = PRF(secret: self.currentSecurityParameters.masterSecret!, label: finishedLabel, seed: d, outputLength: 12)
+        
+        return verifyData
     }
+    
     
     private func receiveNextTLSMessage(completionBlock: ((TLSContextError?) -> ())?)
     {

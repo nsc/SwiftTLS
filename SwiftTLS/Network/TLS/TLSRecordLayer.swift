@@ -146,6 +146,8 @@ class TLSRecordLayer
                                     switch (record.contentType)
                                     {
                                     case .ChangeCipherSpec:
+                                        var changeCipherSpec = TLSChangeCipherSpec(inputStream: BinaryInputStream(data: body))
+                                        completionBlock(message: changeCipherSpec)
                                         break
                                         
                                     case .Alert:
