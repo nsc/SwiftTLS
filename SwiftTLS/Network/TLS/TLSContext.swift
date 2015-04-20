@@ -283,7 +283,6 @@ class TLSContext
                 self.sendFinished()
                 
             case .Finished:
-                
                 break SWITCH
                 
             default:
@@ -371,6 +370,7 @@ class TLSContext
         var clientHandshakeSHA1 = Hash_SHA1(handshakeData)
         
         var d = clientHandshakeMD5 + clientHandshakeSHA1
+        println("finish PRF input:\n\(hex(d))")
         var verifyData = PRF(secret: self.currentSecurityParameters.masterSecret!, label: finishedLabel, seed: d, outputLength: 12)
 
         self.sendHandshakeMessage(TLSFinished(verifyData: verifyData), completionBlock: nil)

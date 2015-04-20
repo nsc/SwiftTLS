@@ -101,7 +101,8 @@ class TLSCertificateMessage : TLSHandshakeMessage
         
         var data = buffer.buffer
 
-        self.writeHeader(type: .Certificate, bodyLength: data.count, target: &target)
+        let bodyLength = data.count + 3 // add 3 bytes for the 24 bit length of the certifacte data below
+        self.writeHeader(type: .Certificate, bodyLength: bodyLength, target: &target)
         writeUInt24(target, data.count)
         write(target, data)
     }
