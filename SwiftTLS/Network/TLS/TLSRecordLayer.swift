@@ -131,24 +131,21 @@ class TLSRecordLayer
     }
     
     
-    
-    func sendMessage(message : TLSMessage, completionBlock : ((TLSDataProviderError?) -> ())? = nil)
+    func sendData(#contentType: ContentType, data: [UInt8], completionBlock : ((TLSDataProviderError?) -> ())? = nil)
     {
-        let contentType = message.contentType
-        var messageData = DataBuffer(message).buffer
         
         if contentType == ContentType.Handshake {
-            if let handshake = TLSHandshakeMessage.handshakeMessageFromData(messageData) {
+            if let handshake = TLSHandshakeMessage.handshakeMessageFromData(data) {
                 println("\(handshake)")
             }
         }
         
         if let encryptionParameters = self.currentWriteEncryptionParameters {
             var secret = encryptionParameters.MACKey
-
-            if let MAC = calculateMessageMAC(secret: secret, contentType: message.contentType, messageData: messageData, isRead: false) {
             
-                var plainTextRecordData = messageData + MAC
+            if let MAC = calculateMessageMAC(secret: secret, contentType: contentType, data: data, isRead: false) {
+                
+                var plainTextRecordData = data + MAC
                 var blockLength = encryptionParameters.blockLength
                 if blockLength > 0 {
                     var paddingLength = blockLength - ((plainTextRecordData.count) % blockLength)
@@ -178,9 +175,17 @@ class TLSRecordLayer
         }
         else {
             // no security parameters have been negotiated yet
-            var record = TLSRecord(contentType: contentType, protocolVersion: self.protocolVersion, body: messageData)
+            var record = TLSRecord(contentType: contentType, protocolVersion: self.protocolVersion, body: data)
             self.dataProvider?.writeData(DataBuffer(record).buffer, completionBlock: completionBlock)
         }
+    }
+    
+    func sendMessage(message : TLSMessage, completionBlock : ((TLSDataProviderError?) -> ())? = nil)
+    {
+        let contentType = message.contentType
+        var messageData = DataBuffer(message).buffer
+        
+        self.sendData(contentType: contentType, data: messageData, completionBlock: completionBlock)
     }
 
     
@@ -258,15 +263,15 @@ class TLSRecordLayer
         }
     }
 
-    private func calculateMessageMAC(#secret: [UInt8], contentType : ContentType, messageData : [UInt8], isRead : Bool) -> [UInt8]?
+    private func calculateMessageMAC(#secret: [UInt8], contentType : ContentType, data : [UInt8], isRead : Bool) -> [UInt8]?
     {
         if let encryptionParameters = self.currentWriteEncryptionParameters {
             var macData = DataBuffer()
             write(macData, encryptionParameters.sequenceNumber)
             write(macData, contentType.rawValue)
             write(macData, self.protocolVersion.rawValue)
-            write(macData, UInt16(messageData.count))
-            write(macData, messageData)
+            write(macData, UInt16(data.count))
+            write(macData, data)
             
             println("mac data: \(hex(macData.buffer))")
             

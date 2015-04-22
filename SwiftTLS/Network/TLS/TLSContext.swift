@@ -177,6 +177,11 @@ class TLSContext
         self.receiveNextTLSMessage(completionBlock)
     }
     
+    func sendApplicationData(data : [UInt8], completionBlock : ((TLSDataProviderError?) -> ())? = nil)
+    {
+        self.recordLayer.sendData(contentType: .ApplicationData, data: data, completionBlock: completionBlock)
+    }
+    
     func sendMessage(message : TLSMessage, completionBlock : ((TLSDataProviderError?) -> ())? = nil)
     {
         self.recordLayer.sendMessage(message, completionBlock: completionBlock)

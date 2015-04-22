@@ -205,17 +205,27 @@ class TLSSocket : TCPSocket, TLSDataProvider
         })
     }
     
-    func readData(#count: Int, completionBlock: ((data: [UInt8]?, error: TLSDataProviderError?) -> ())) {
-        self.read(count: count) { (data, error) -> () in
+    func readData(#count: Int, completionBlock: ((data: [UInt8]?, error: TLSDataProviderError?) -> ()))
+    {
+        self._read(count: count) { (data, error) -> () in
             // TODO: map socket errors to data provider errors
             completionBlock(data: data, error: nil)
         }
     }
     
-    func writeData(data: [UInt8], completionBlock: ((TLSDataProviderError?) -> ())?) {
-        self.write(data) { (error: SocketError?) -> () in
+    func writeData(data: [UInt8], completionBlock: ((TLSDataProviderError?) -> ())?)
+    {
+        self._write(data) { (error: SocketError?) -> () in
             // TODO: map socket errors to data provider errors
             completionBlock?(nil)
         }
+    }
+    
+    override func write(data: [UInt8], completionBlock: ((SocketError?) -> ())?)
+    {
+        self.context.sendApplicationData(data, completionBlock: { (error : TLSDataProviderError?) -> () in
+            // TODO: map socket errors to data provider errors
+            completionBlock?(nil)
+        })
     }
 }

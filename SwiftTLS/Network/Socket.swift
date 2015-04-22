@@ -183,6 +183,11 @@ class Socket
     }
 
     func write(data : [UInt8], completionBlock : ((SocketError?) -> ())? = nil) {
+        self._write(data, completionBlock: completionBlock)
+    }
+    
+    internal func _write(data : [UInt8], completionBlock : ((SocketError?) -> ())? = nil)
+    {
         var numberOfBytesToWrite = data.count
         self.sendTo(nil, data: data) {
             (numberOfBytesWritten, error) -> () in
@@ -209,7 +214,12 @@ class Socket
         self.write(data, completionBlock: completionBlock)
     }
     
-    func read(#count : Int, completionBlock : ((data : [UInt8]?, error : SocketError?) -> ())) {
+    func read(#count : Int, completionBlock : ((data : [UInt8]?, error : SocketError?) -> ()))
+    {
+        return self._read(count: count, completionBlock: completionBlock)
+    }
+    
+    internal func _read(#count : Int, completionBlock : ((data : [UInt8]?, error : SocketError?) -> ())) {
         if _socketReadSource == nil {
             self.setupSocketReadSource()
         }
@@ -224,6 +234,11 @@ class Socket
     }
     
     func close() {
+        self._close()
+    }
+    
+    internal func _close()
+    {
         if let socket = socketDescriptor {
             Darwin.close(socket)
             socketDescriptor = nil

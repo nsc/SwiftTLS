@@ -35,10 +35,14 @@ class TSLTests: XCTestCase {
 //        var port = 443
         
         socket.connect(IPAddress.addressWithString(host, port: port)!, completionBlock: { (error : TLSSocketError?) -> () in
-            expectation.fulfill()
+            socket.write([UInt8]("hello\n".utf8), completionBlock: { (error : SocketError?) -> () in
+                expectation.fulfill()
+            })
+            
+            return
         })
         
-        self.waitForExpectationsWithTimeout(500.0, handler: { (error : NSError!) -> Void in
+        self.waitForExpectationsWithTimeout(50.0, handler: { (error : NSError!) -> Void in
             task.terminate()
         })
     }
