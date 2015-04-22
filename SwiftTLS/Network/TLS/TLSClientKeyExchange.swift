@@ -53,11 +53,9 @@ class PreMasterSecret : Streamable
 class TLSClientKeyExchange : TLSHandshakeMessage
 {
     var encryptedPreMasterSecret : [UInt8]
-    init(preMasterSecret : PreMasterSecret, publicKey : CryptoKey)
+    init(preMasterSecret : [UInt8], publicKey : CryptoKey)
     {
-        var dataBuffer = DataBuffer()
-        preMasterSecret.writeTo(&dataBuffer)
-        if let crypttext = publicKey.encrypt(dataBuffer.buffer) {
+        if let crypttext = publicKey.encrypt(preMasterSecret) {
             self.encryptedPreMasterSecret = crypttext
             var data = crypttext
             NSData(bytesNoCopy: &data, length: data.count, freeWhenDone: false).writeToFile("/Users/nico/tmp/preMasterSecret", atomically: true)

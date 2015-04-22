@@ -38,7 +38,7 @@ class TSLTests: XCTestCase {
             expectation.fulfill()
         })
         
-        self.waitForExpectationsWithTimeout(5.0, handler: { (error : NSError!) -> Void in
+        self.waitForExpectationsWithTimeout(500.0, handler: { (error : NSError!) -> Void in
             task.terminate()
         })
     }

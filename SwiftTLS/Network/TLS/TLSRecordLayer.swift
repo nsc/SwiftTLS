@@ -10,59 +10,124 @@ import Foundation
 
 let TLSKeyExpansionLabel = [UInt8]("key expansion".utf8)
 
+class EncryptionParameters {
+    var macAlgorithm : MACAlgorithm
+    var bulkCipherAlgorithm : CipherAlgorithm
+    var MACKey  : [UInt8]
+    var bulkKey : [UInt8]
+    var blockLength : Int
+    var IV      : [UInt8]
+    var sequenceNumber : UInt64
+    
+    init(macAlgorithm : MACAlgorithm, MACKey: [UInt8], bulkCipherAlgorithm: CipherAlgorithm, bulkKey: [UInt8], blockLength: Int, IV: [UInt8], sequenceNumber: UInt64 = UInt64(0))
+    {
+        self.macAlgorithm = macAlgorithm
+        self.bulkCipherAlgorithm = bulkCipherAlgorithm
+        self.MACKey = MACKey
+        self.bulkKey = bulkKey
+        self.blockLength = blockLength
+        self.IV = IV
+        self.sequenceNumber = sequenceNumber
+    }
+    
+}
+
 class TLSRecordLayer
 {
-    weak var dataProvider : TLSDataProvider!
+    weak var dataProvider : TLSDataProvider?
     var protocolVersion: TLSProtocolVersion
+    var isClient : Bool
     
-    private var securityParameters : TLSSecurityParameters!
-    private var encryptor : CCCryptorRef!
-    private var decryptor : CCCryptorRef!
-    
-    func activateSecurityParameters(securityParameters : TLSSecurityParameters)
-    {
-        self.securityParameters = securityParameters
-        
-        let s = securityParameters
-        
-        var numberOfKeyMaterialBytes = 2 * (s.macKeyLength + s.encodeKeyLength + s.fixedIVLength)
-        var keyBlock = PRF(secret: s.masterSecret!, label: TLSKeyExpansionLabel, seed: s.serverRandom! + s.clientRandom!, outputLength: numberOfKeyMaterialBytes)
-        
-        println("key block: \(hex(keyBlock))")
-        
-        var index = 0
-        self.clientWriteMACKey = [UInt8](keyBlock[index..<index + s.macKeyLength])
-        index += s.macKeyLength
-        
-        self.serverWriteMACKey = [UInt8](keyBlock[index..<index + s.macKeyLength])
-        index += s.macKeyLength
-        
-        self.clientWriteKey = [UInt8](keyBlock[index..<index + s.encodeKeyLength])
-        index += s.encodeKeyLength
-        
-        self.serverWriteKey = [UInt8](keyBlock[index..<index + s.encodeKeyLength])
-        index += s.encodeKeyLength
-        
-        self.clientWriteIV = [UInt8](keyBlock[index..<index + s.fixedIVLength])
-        index += s.fixedIVLength
-        
-        self.serverWriteIV = [UInt8](keyBlock[index..<index + s.fixedIVLength])
-        index += s.fixedIVLength
+    private var currentReadEncryptionParameters : EncryptionParameters?
+    private var pendingReadEncryptionParameters : EncryptionParameters?
+    private var currentWriteEncryptionParameters : EncryptionParameters?
+    private var pendingWriteEncryptionParameters : EncryptionParameters?
+
+    var pendingSecurityParameters  : TLSSecurityParameters? {
+        didSet {
+            if let s = pendingSecurityParameters {
+                
+                var numberOfKeyMaterialBytes = 2 * (s.macKeyLength + s.encodeKeyLength + s.fixedIVLength)
+                var keyBlock = PRF(secret: s.masterSecret!, label: TLSKeyExpansionLabel, seed: s.serverRandom! + s.clientRandom!, outputLength: numberOfKeyMaterialBytes)
+                
+                var index = 0
+                var clientWriteMACKey = [UInt8](keyBlock[index..<index + s.macKeyLength])
+                index += s.macKeyLength
+                
+                var serverWriteMACKey = [UInt8](keyBlock[index..<index + s.macKeyLength])
+                index += s.macKeyLength
+                
+                var clientWriteKey = [UInt8](keyBlock[index..<index + s.encodeKeyLength])
+                index += s.encodeKeyLength
+                
+                var serverWriteKey = [UInt8](keyBlock[index..<index + s.encodeKeyLength])
+                index += s.encodeKeyLength
+                
+                var clientWriteIV = [UInt8](keyBlock[index..<index + s.fixedIVLength])
+                index += s.fixedIVLength
+                
+                var serverWriteIV = [UInt8](keyBlock[index..<index + s.fixedIVLength])
+                index += s.fixedIVLength
+                
+                var readEncryptionParameters  : EncryptionParameters
+                var writeEncryptionParameters : EncryptionParameters
+                
+                if self.isClient {
+                    readEncryptionParameters  = EncryptionParameters(macAlgorithm: s.macAlgorithm!,
+                        MACKey: serverWriteMACKey,
+                        bulkCipherAlgorithm: s.bulkCipherAlgorithm!,
+                        bulkKey: serverWriteKey,
+                        blockLength: s.blockLength,
+                        IV: serverWriteIV)
+                    
+                    writeEncryptionParameters = EncryptionParameters(macAlgorithm: s.macAlgorithm!,
+                        MACKey: clientWriteMACKey,
+                        bulkCipherAlgorithm: s.bulkCipherAlgorithm!,
+                        bulkKey: clientWriteKey,
+                        blockLength: s.blockLength,
+                        IV: clientWriteIV)
+                }
+                else {
+                    readEncryptionParameters  = EncryptionParameters(macAlgorithm: s.macAlgorithm!,
+                        MACKey: clientWriteMACKey,
+                        bulkCipherAlgorithm: s.bulkCipherAlgorithm!,
+                        bulkKey: clientWriteKey,
+                        blockLength: s.blockLength,
+                        IV: clientWriteIV)
+                    writeEncryptionParameters = EncryptionParameters(macAlgorithm: s.macAlgorithm!,
+                        MACKey: serverWriteMACKey,
+                        bulkCipherAlgorithm: s.bulkCipherAlgorithm!,
+                        bulkKey: serverWriteKey,
+                        blockLength: s.blockLength,
+                        IV: serverWriteIV)
+                }
+                
+                self.pendingWriteEncryptionParameters = writeEncryptionParameters
+                self.pendingReadEncryptionParameters  = readEncryptionParameters
+            }
+        }
     }
 
-    var clientWriteMACKey : [UInt8]?
-    var serverWriteMACKey : [UInt8]?
-    var clientWriteKey : [UInt8]?
-    var serverWriteKey : [UInt8]?
-    var clientWriteIV : [UInt8]?
-    var serverWriteIV : [UInt8]?
-    var clientWriteSequenceNumber : UInt64 = 0
-    var serverWriteSequenceNumber : UInt64 = 0
-    
-    init(protocolVersion: TLSProtocolVersion, dataProvider: TLSDataProvider)
+    private var encryptor : CCCryptorRef?
+    private var decryptor : CCCryptorRef?
+
+    func activateReadEncryptionParameters()
+    {
+        self.currentReadEncryptionParameters = self.pendingReadEncryptionParameters
+        self.pendingReadEncryptionParameters = nil
+    }
+
+    func activateWriteEncryptionParameters()
+    {
+        self.currentWriteEncryptionParameters = self.pendingWriteEncryptionParameters
+        self.pendingWriteEncryptionParameters = nil
+    }
+
+    init(protocolVersion: TLSProtocolVersion, dataProvider: TLSDataProvider, isClient : Bool)
     {
         self.protocolVersion = protocolVersion
         self.dataProvider = dataProvider
+        self.isClient = isClient
     }
     
     
@@ -78,15 +143,15 @@ class TLSRecordLayer
             }
         }
         
-        if self.securityParameters != nil {
-            var secret = self.securityParameters.connectionEnd == .Client ? self.clientWriteMACKey! : self.serverWriteMACKey!
+        if let encryptionParameters = self.currentWriteEncryptionParameters {
+            var secret = encryptionParameters.MACKey
 
-            if let MAC = calculateMessageMAC(secret: secret, contentType: message.contentType, messageData: messageData) {
+            if let MAC = calculateMessageMAC(secret: secret, contentType: message.contentType, messageData: messageData, isRead: false) {
             
                 var plainTextRecordData = messageData + MAC
-                var blockLength = self.securityParameters.blockLength
+                var blockLength = encryptionParameters.blockLength
                 if blockLength > 0 {
-                    var paddingLength = blockLength - ((plainTextRecordData.count + TLS_RecordHeaderLength) % blockLength)
+                    var paddingLength = blockLength - ((plainTextRecordData.count) % blockLength)
                     if paddingLength != 0 {
                         var padding = [UInt8](count: paddingLength, repeatedValue: UInt8(paddingLength - 1))
                         
@@ -95,6 +160,7 @@ class TLSRecordLayer
                 }
                 
                 var cipherText : [UInt8]
+                println("plain text record data: \(hex(plainTextRecordData))")
                 if let b = encrypt(plainTextRecordData) {
                     cipherText = b
                 }
@@ -105,15 +171,15 @@ class TLSRecordLayer
                     return
                 }
                 
-                self.clientWriteSequenceNumber += 1
+                encryptionParameters.sequenceNumber += 1
                 var record = TLSRecord(contentType: contentType, protocolVersion: self.protocolVersion, body: cipherText)
-                self.dataProvider.writeData(DataBuffer(record).buffer, completionBlock: completionBlock)
+                self.dataProvider?.writeData(DataBuffer(record).buffer, completionBlock: completionBlock)
             }
         }
         else {
             // no security parameters have been negotiated yet
             var record = TLSRecord(contentType: contentType, protocolVersion: self.protocolVersion, body: messageData)
-            self.dataProvider.writeData(DataBuffer(record).buffer, completionBlock: completionBlock)
+            self.dataProvider?.writeData(DataBuffer(record).buffer, completionBlock: completionBlock)
         }
     }
 
@@ -123,7 +189,7 @@ class TLSRecordLayer
     {
         let headerProbeLength = TLSRecord.headerProbeLength
         
-        self.dataProvider.readData(count: headerProbeLength) { (data, error) -> () in
+        self.dataProvider?.readData(count: headerProbeLength) { (data, error) -> () in
             
             if let header = data {
                 if let (contentType, bodyLength) = TLSRecord.probeHeader(header) {
@@ -138,25 +204,38 @@ class TLSRecordLayer
                             
                             if body.count < bodyLength {
                                 var rest = bodyLength - body.count
-                                self.dataProvider.readData(count:rest , completionBlock: recursiveBlock)
+                                self.dataProvider?.readData(count:rest , completionBlock: recursiveBlock)
                                 return
                             }
                             else {
-                                if let record = TLSRecord(inputStream: BinaryInputStream(data: header + body)) {
+                                var messageBody : [UInt8]
+                                if let encryptionParameters = self.currentReadEncryptionParameters {
+                                    if let decryptedMessage = self.decryptAndVerifyMAC(body) {
+                                        messageBody = decryptedMessage
+                                    }
+                                    else {
+                                        fatalError("Could not decrypt")
+                                    }
+                                }
+                                else {
+                                    messageBody = body
+                                }
+
+                                if let record = TLSRecord(inputStream: BinaryInputStream(data: header + messageBody)) {
                                     switch (record.contentType)
                                     {
                                     case .ChangeCipherSpec:
-                                        var changeCipherSpec = TLSChangeCipherSpec(inputStream: BinaryInputStream(data: body))
+                                        var changeCipherSpec = TLSChangeCipherSpec(inputStream: BinaryInputStream(data: messageBody))
                                         completionBlock(message: changeCipherSpec)
                                         break
                                         
                                     case .Alert:
-                                        var alert = TLSAlert.alertFromData(body)
+                                        var alert = TLSAlert.alertFromData(messageBody)
                                         completionBlock(message: alert)
                                         break
                                         
                                     case .Handshake:
-                                        var handshakeMessage = TLSHandshakeMessage.handshakeMessageFromData(body)
+                                        var handshakeMessage = TLSHandshakeMessage.handshakeMessageFromData(messageBody)
                                         completionBlock(message: handshakeMessage)
                                         break
                                         
@@ -170,7 +249,7 @@ class TLSRecordLayer
                     }
                     recursiveBlock = readBlock
                     
-                    self.dataProvider.readData(count: bodyLength, completionBlock: readBlock)
+                    self.dataProvider?.readData(count: bodyLength, completionBlock: readBlock)
                 }
                 else {
                     fatalError("Probe failed")
@@ -179,24 +258,28 @@ class TLSRecordLayer
         }
     }
 
-    private func calculateMessageMAC(#secret: [UInt8], contentType : ContentType, messageData : [UInt8]) -> [UInt8]?
+    private func calculateMessageMAC(#secret: [UInt8], contentType : ContentType, messageData : [UInt8], isRead : Bool) -> [UInt8]?
     {
-        var macData = DataBuffer()
-        write(macData, self.clientWriteSequenceNumber)
-        write(macData, contentType.rawValue)
-        write(macData, self.protocolVersion.rawValue)
-        write(macData, UInt16(messageData.count))
-        write(macData, messageData)
+        if let encryptionParameters = self.currentWriteEncryptionParameters {
+            var macData = DataBuffer()
+            write(macData, encryptionParameters.sequenceNumber)
+            write(macData, contentType.rawValue)
+            write(macData, self.protocolVersion.rawValue)
+            write(macData, UInt16(messageData.count))
+            write(macData, messageData)
+            
+            println("mac data: \(hex(macData.buffer))")
+            
+            return self.calculateMAC(secret: secret, data: macData.buffer, isRead: isRead)
+        }
         
-        println("mac data: \(hex(macData.buffer))")
-        
-        return self.calculateMAC(secret: secret, data: macData.buffer)
+        return nil
     }
     
-    private func calculateMAC(#secret : [UInt8], var data : [UInt8]) -> [UInt8]?
+    private func calculateMAC(#secret : [UInt8], var data : [UInt8], isRead : Bool) -> [UInt8]?
     {
         var HMAC : (secret : [UInt8], data : [UInt8]) -> [UInt8]
-        if let algorithm = self.securityParameters.macAlgorithm {
+        if let algorithm = isRead ? self.currentReadEncryptionParameters?.macAlgorithm : self.currentWriteEncryptionParameters?.macAlgorithm {
             switch (algorithm)
             {
             case .HMAC_MD5:
@@ -223,34 +306,43 @@ class TLSRecordLayer
         return HMAC(secret: secret, data: data)
     }
     
+    private func CCCipherAlgorithmForCipherAlgorithm(cipherAlgorithm : CipherAlgorithm) -> CCAlgorithm?
+    {
+        switch (cipherAlgorithm)
+        {
+        case .AES:
+            return CCAlgorithm(kCCAlgorithmAES)
+            
+        case .TRIPLE_DES:
+            return CCAlgorithm(kCCAlgorithm3DES)
+            
+        case .NULL:
+            return nil
+        }
+        
+        return nil
+    }
+
     private func encrypt(var data : [UInt8]) -> [UInt8]?
     {
-        if self.securityParameters == nil {
+        if self.currentWriteEncryptionParameters == nil {
             return nil
         }
     
-        var algorithm : CCAlgorithm?
-        switch (self.securityParameters.bulkCipherAlgorithm!)
+        var encryptionParameters = self.currentWriteEncryptionParameters!
+        
+        var algorithm = self.CCCipherAlgorithmForCipherAlgorithm(encryptionParameters.bulkCipherAlgorithm)
+        if self.encryptor == nil
         {
-        case .AES:
-            algorithm = CCAlgorithm(kCCAlgorithmAES)
-            
-        case .TRIPLE_DES:
-            algorithm = CCAlgorithm(kCCAlgorithm3DES)
-            
-        case .NULL:
-            algorithm = nil
-        }
-
-        if let encryptor = self.encryptor {
-        }
-        else {
             if algorithm == nil {
                 return data
             }
             
+            var key = encryptionParameters.bulkKey
+            var IV  = encryptionParameters.IV
             var encryptor = CCCryptorRef()
-            var status = Int(CCCryptorCreate(CCOperation(kCCEncrypt), algorithm!, 0, &self.clientWriteKey!, self.clientWriteKey!.count, &self.clientWriteIV!, &encryptor))
+
+            var status = Int(CCCryptorCreate(CCOperation(kCCEncrypt), algorithm!, 0, &key, key.count, &IV, &encryptor))
             if status != kCCSuccess {
                 println("Error: Could not create encryptor")
                 return nil
@@ -259,12 +351,12 @@ class TLSRecordLayer
             self.encryptor = encryptor
         }
         
-        var outputLength : Int = CCCryptorGetOutputLength(self.encryptor, data.count, false)
+        var outputLength : Int = CCCryptorGetOutputLength(self.encryptor!, data.count, false)
         var outputData = [UInt8](count: outputLength, repeatedValue: 0)
         
         var status = outputData.withUnsafeMutableBufferPointer { (inout outputBuffer : UnsafeMutableBufferPointer<UInt8>) -> Int in
             var outputDataWritten : Int = 0
-            var status = Int(CCCryptorUpdate(self.encryptor, data, data.count, outputBuffer.baseAddress, outputLength, &outputDataWritten))
+            var status = Int(CCCryptorUpdate(self.encryptor!, data, data.count, outputBuffer.baseAddress, outputLength, &outputDataWritten))
             assert(outputDataWritten == outputLength)
             return status
         }
@@ -275,5 +367,60 @@ class TLSRecordLayer
         }
         
         return outputData
+    }
+
+    private func decrypt(var data : [UInt8]) -> [UInt8]?
+    {
+        if self.currentReadEncryptionParameters == nil {
+            return nil
+        }
+        
+        var encryptionParameters = self.currentReadEncryptionParameters!
+        
+        var algorithm = self.CCCipherAlgorithmForCipherAlgorithm(encryptionParameters.bulkCipherAlgorithm)
+        if self.decryptor == nil
+        {
+            if algorithm == nil {
+                return data
+            }
+            
+            var key = encryptionParameters.bulkKey
+            var IV  = encryptionParameters.IV
+            var decryptor = CCCryptorRef()
+            
+            var status = Int(CCCryptorCreate(CCOperation(kCCDecrypt), algorithm!, 0, &key, key.count, &IV, &decryptor))
+            if status != kCCSuccess {
+                println("Error: Could not create encryptor")
+                return nil
+            }
+            
+            self.decryptor = decryptor
+        }
+        
+        var outputLength : Int = CCCryptorGetOutputLength(self.decryptor!, data.count, false)
+        var outputData = [UInt8](count: outputLength, repeatedValue: 0)
+        
+        var status = outputData.withUnsafeMutableBufferPointer { (inout outputBuffer : UnsafeMutableBufferPointer<UInt8>) -> Int in
+            var outputDataWritten : Int = 0
+            var status = Int(CCCryptorUpdate(self.decryptor!, data, data.count, outputBuffer.baseAddress, outputLength, &outputDataWritten))
+            assert(outputDataWritten == outputLength)
+            return status
+        }
+        
+        if status != kCCSuccess {
+            println("Error: Could not encrypt data")
+            return nil
+        }
+        
+        return outputData
+    }
+
+    private func decryptAndVerifyMAC(var data : [UInt8]) -> [UInt8]?
+    {
+        if let decryptedMessage = decrypt(data) {
+            return decryptedMessage
+        }
+        
+        return nil
     }
 }

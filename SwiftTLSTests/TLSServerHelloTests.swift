@@ -23,7 +23,7 @@ class TLSServerHelloTests: XCTestCase {
         var buffer = DataBuffer()
         clientHello.writeTo(&buffer)
         
-        var expectedData = [UInt8]([TLSHandshakeType.ClientHello.rawValue, 0, 0, 38, 3, 1])
+        var expectedData = [UInt8]([TLSHandshakeType.ServerHello.rawValue, 0, 0, 38, 3, 1])
         var randomData = DataBuffer()
         random.writeTo(&randomData)
         expectedData.extend(randomData.buffer)

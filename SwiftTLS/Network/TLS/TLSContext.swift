@@ -154,10 +154,12 @@ class TLSContext
     
     var recordLayer : TLSRecordLayer
     
+    private var connectionEstablishedCompletionBlock : ((error : TLSContextError?) -> ())?
+    
     init(protocolVersion: TLSProtocolVersion, dataProvider : TLSDataProvider, isClient : Bool = true)
     {
         self.protocolVersion = protocolVersion
-        self.recordLayer = TLSRecordLayer(protocolVersion: protocolVersion, dataProvider: dataProvider)
+        self.recordLayer = TLSRecordLayer(protocolVersion: protocolVersion, dataProvider: dataProvider, isClient: isClient)
         self.isClient = true
         self.handshakeMessages = []
         
@@ -167,6 +169,7 @@ class TLSContext
     
     func startConnection(completionBlock : (error : TLSContextError?) -> ())
     {
+        self.connectionEstablishedCompletionBlock = completionBlock
         
         self.sendClientHello()
         self.state = .ClientHelloSent
@@ -207,6 +210,7 @@ class TLSContext
         switch (message.type)
         {
         case .ChangeCipherSpec:
+            self.recordLayer.activateReadEncryptionParameters()
             break
             
         case .Handshake(let handshakeType):
@@ -257,23 +261,9 @@ class TLSContext
                     self.recordLayer.protocolVersion = version
                     
                     self.pendingSecurityParameters.serverRandom = DataBuffer(serverHello.random).buffer
-                    var cipherSuiteDescriptor = TLSCipherSuiteDescriptorForCipherSuite(serverHello.cipherSuite)
-                    if let cipherDescriptor = cipherSuiteDescriptor?.bulkCipherAlgorithm {
-                        self.pendingSecurityParameters.bulkCipherAlgorithm  = cipherDescriptor.algorithm
-                        self.pendingSecurityParameters.encodeKeyLength      = cipherDescriptor.keySize
-                        self.pendingSecurityParameters.blockLength          = cipherDescriptor.blockSize
-                        self.pendingSecurityParameters.fixedIVLength        = cipherDescriptor.blockSize
-                        self.pendingSecurityParameters.recordIVLength       = cipherDescriptor.blockSize
-
-                        if let hmacDescriptor = cipherSuiteDescriptor?.hmacDescriptor {
-                            self.pendingSecurityParameters.macAlgorithm     = hmacDescriptor.algorithm
-                            self.pendingSecurityParameters.macKeyLength     = hmacDescriptor.size
-                            self.pendingSecurityParameters.macLength        = hmacDescriptor.size
-                        }
-                    }
-                    else {
-                        fatalError("security parameters not set after server hello was received")
-                    }
+                    self.preMasterSecret = DataBuffer(PreMasterSecret(clientVersion: self.protocolVersion)).buffer
+                    self.setPendingSecurityParametersForCipherSuite(serverHello.cipherSuite)
+                    self.recordLayer.pendingSecurityParameters = self.pendingSecurityParameters
                 }
                 
             case .Certificate:
@@ -289,6 +279,9 @@ class TLSContext
             case .Finished:
                 if (self.verifyFinishedMessage(message as! TLSFinished, isClient: !self.isClient)) {
                     println("Finished verified.")
+                    if let connectionEstablishedBlock = self.connectionEstablishedCompletionBlock {
+                        connectionEstablishedBlock(error: nil)
+                    }
                 }
                 else {
                     println("Error: could not verify Finished message.")
@@ -323,8 +316,8 @@ class TLSContext
             clientVersion: self.protocolVersion,
             random: clientHelloRandom,
             sessionID: nil,
-//            cipherSuites: [.TLS_RSA_WITH_AES_256_CBC_SHA],
-            cipherSuites: [.TLS_RSA_WITH_NULL_SHA],
+            cipherSuites: [.TLS_RSA_WITH_AES_256_CBC_SHA],
+//            cipherSuites: [.TLS_RSA_WITH_NULL_SHA],
             compressionMethods: [.NULL])
         
         self.pendingSecurityParameters.clientRandom = DataBuffer(clientHelloRandom).buffer
@@ -334,10 +327,7 @@ class TLSContext
     private func sendClientKeyExchange()
     {
         if let serverKey = self.serverKey {
-            var preMasterSecret = PreMasterSecret(clientVersion: self.protocolVersion)
-            var message = TLSClientKeyExchange(preMasterSecret: preMasterSecret, publicKey: serverKey)
-
-            self.preMasterSecret = DataBuffer(preMasterSecret).buffer
+            var message = TLSClientKeyExchange(preMasterSecret: self.preMasterSecret!, publicKey: serverKey)
             self.sendHandshakeMessage(message)
         }
     }
@@ -348,16 +338,10 @@ class TLSContext
         
         self.sendMessage(message)
         
-        self.pendingSecurityParameters.calculateMasterSecret(self.preMasterSecret!)
-        
         self.currentSecurityParameters = self.pendingSecurityParameters
         self.pendingSecurityParameters = TLSSecurityParameters()
         
-        println("client random:\n \(hex(self.currentSecurityParameters.clientRandom!))")
-        println("server random:\n \(hex(self.currentSecurityParameters.serverRandom!))")
-        println("pre master secret:\n \(hex(self.preMasterSecret!))")
-        
-        self.recordLayer.activateSecurityParameters(self.currentSecurityParameters)
+        self.recordLayer.activateWriteEncryptionParameters()
     }
 
     private func sendFinished()
@@ -414,5 +398,28 @@ class TLSContext
     private func readTLSMessage(completionBlock: (message : TLSMessage?) -> ())
     {
         self.recordLayer.readMessage(completionBlock: completionBlock)
+    }
+    
+    private func setPendingSecurityParametersForCipherSuite(cipherSuite : CipherSuite)
+    {
+        var cipherSuiteDescriptor = TLSCipherSuiteDescriptorForCipherSuite(cipherSuite)
+        if let cipherDescriptor = cipherSuiteDescriptor?.bulkCipherAlgorithm {
+            self.pendingSecurityParameters.bulkCipherAlgorithm  = cipherDescriptor.algorithm
+            self.pendingSecurityParameters.encodeKeyLength      = cipherDescriptor.keySize
+            self.pendingSecurityParameters.blockLength          = cipherDescriptor.blockSize
+            self.pendingSecurityParameters.fixedIVLength        = cipherDescriptor.blockSize
+            self.pendingSecurityParameters.recordIVLength       = cipherDescriptor.blockSize
+            
+            if let hmacDescriptor = cipherSuiteDescriptor?.hmacDescriptor {
+                self.pendingSecurityParameters.macAlgorithm     = hmacDescriptor.algorithm
+                self.pendingSecurityParameters.macKeyLength     = hmacDescriptor.size
+                self.pendingSecurityParameters.macLength        = hmacDescriptor.size
+            }
+        }
+        else {
+            fatalError("security parameters not set after server hello was received")
+        }
+        
+        self.pendingSecurityParameters.calculateMasterSecret(self.preMasterSecret!)
     }
 }
