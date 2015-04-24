@@ -116,9 +116,7 @@ class TLSSecurityParameters
     var                     blockLength : Int = 0
     var                     fixedIVLength : Int = 0
     var                     recordIVLength : Int = 0
-    var                     macAlgorithm : MACAlgorithm? = nil
-    var                     macLength : Int = 0
-    var                     macKeyLength : Int = 0
+    var                     hmacDescriptor : HMACDescriptor? = nil
     var                     masterSecret : [UInt8]? = nil
     var                     clientRandom : [UInt8]? = nil
     var                     serverRandom : [UInt8]? = nil
@@ -216,6 +214,7 @@ class TLSContext
         {
         case .ChangeCipherSpec:
             self.recordLayer.activateReadEncryptionParameters()
+            self.receiveNextTLSMessage(completionBlock)
             break
             
         case .Handshake(let handshakeType):
@@ -248,13 +247,11 @@ class TLSContext
             {
             case .ClientHello:
                 self.pendingSecurityParameters.clientRandom = DataBuffer((message as! TLSClientHello).random).buffer
-                
+
             case .ServerHello:
                 if self.state != .ClientHelloSent {
                     if let block = tlsConnectCompletionBlock {
                         block(TLSContextError.Error)
-
-                        break SWITCH
                     }
                 }
                 else {
@@ -291,17 +288,18 @@ class TLSContext
                 else {
                     println("Error: could not verify Finished message.")
                 }
-                break SWITCH
                 
             default:
                 println("unsupported handshake \(handshakeType.rawValue)")
                 if let block = tlsConnectCompletionBlock {
                     block(TLSContextError.Error)
-
-                    break SWITCH
                 }
             }
             
+            if handshakeType != .Finished {
+                self.receiveNextTLSMessage(tlsConnectCompletionBlock)
+            }
+
         default:
             println("unsupported handshake \(message.type)")
             if let block = tlsConnectCompletionBlock {
@@ -389,18 +387,21 @@ class TLSContext
     {
         let tlsConnectCompletionBlock = completionBlock
         
-        self.readTLSMessage {
+        self._readTLSMessage {
             (message : TLSMessage?) -> () in
             
             if let m = message {
                 self._didReceiveMessage(m, completionBlock: completionBlock)
             }
-            
-            self.receiveNextTLSMessage(tlsConnectCompletionBlock)
         }
     }
+
+    func readTLSMessage(completionBlock: (message : TLSMessage?) -> ())
+    {
+        self._readTLSMessage(completionBlock)
+    }
     
-    private func readTLSMessage(completionBlock: (message : TLSMessage?) -> ())
+    private func _readTLSMessage(completionBlock: (message : TLSMessage?) -> ())
     {
         self.recordLayer.readMessage(completionBlock: completionBlock)
     }
@@ -416,9 +417,7 @@ class TLSContext
             self.pendingSecurityParameters.recordIVLength       = cipherDescriptor.blockSize
             
             if let hmacDescriptor = cipherSuiteDescriptor?.hmacDescriptor {
-                self.pendingSecurityParameters.macAlgorithm     = hmacDescriptor.algorithm
-                self.pendingSecurityParameters.macKeyLength     = hmacDescriptor.size
-                self.pendingSecurityParameters.macLength        = hmacDescriptor.size
+                self.pendingSecurityParameters.hmacDescriptor     = hmacDescriptor
             }
         }
         else {

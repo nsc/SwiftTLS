@@ -65,6 +65,8 @@
 		0394D2921AD65F40005DC3C4 /* TLSUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0394D2901AD65F40005DC3C4 /* TLSUtilities.swift */; };
 		03A4BF011AC4851F00CEB7A3 /* TLSAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03A4BF001AC4851F00CEB7A3 /* TLSAlert.swift */; };
 		03A4BF021AC4851F00CEB7A3 /* TLSAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03A4BF001AC4851F00CEB7A3 /* TLSAlert.swift */; };
+		03D0BDDE1AEAA16600BFE004 /* TLSApplicationData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03D0BDDD1AEAA16600BFE004 /* TLSApplicationData.swift */; };
+		03D0BDDF1AEAA16600BFE004 /* TLSApplicationData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03D0BDDD1AEAA16600BFE004 /* TLSApplicationData.swift */; };
 		03DDB64A1AC60DAD000B5726 /* certificate.cer in Resources */ = {isa = PBXBuildFile; fileRef = 03DDB6491AC60DAD000B5726 /* certificate.cer */; };
 		03DDB64C1AC60DE5000B5726 /* TLSCertificateMessageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03DDB64B1AC60DE5000B5726 /* TLSCertificateMessageTests.swift */; };
 		03DDB64E1AC61468000B5726 /* TLSClientKeyExchangeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03DDB64D1AC61468000B5726 /* TLSClientKeyExchangeTests.swift */; };
@@ -122,6 +124,7 @@
 		0394D28D1AD65F09005DC3C4 /* TLSRecordLayer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSRecordLayer.swift; sourceTree = "<group>"; };
 		0394D2901AD65F40005DC3C4 /* TLSUtilities.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSUtilities.swift; sourceTree = "<group>"; };
 		03A4BF001AC4851F00CEB7A3 /* TLSAlert.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSAlert.swift; sourceTree = "<group>"; };
+		03D0BDDD1AEAA16600BFE004 /* TLSApplicationData.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSApplicationData.swift; sourceTree = "<group>"; };
 		03DDB6491AC60DAD000B5726 /* certificate.cer */ = {isa = PBXFileReference; lastKnownFileType = file; path = certificate.cer; sourceTree = "<group>"; };
 		03DDB64B1AC60DE5000B5726 /* TLSCertificateMessageTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSCertificateMessageTests.swift; sourceTree = "<group>"; };
 		03DDB64D1AC61468000B5726 /* TLSClientKeyExchangeTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSClientKeyExchangeTests.swift; sourceTree = "<group>"; };
@@ -237,6 +240,7 @@
 				0394D28D1AD65F09005DC3C4 /* TLSRecordLayer.swift */,
 				033AC3991AC474430004EEC1 /* TLSHandshake.swift */,
 				033AC39A1AC474430004EEC1 /* TLSMessage.swift */,
+				03D0BDDD1AEAA16600BFE004 /* TLSApplicationData.swift */,
 				03A4BF001AC4851F00CEB7A3 /* TLSAlert.swift */,
 				033AC39B1AC474430004EEC1 /* TLSRecord.swift */,
 				033AC39E1AC474430004EEC1 /* TLSSocket.swift */,
@@ -358,6 +362,7 @@
 				033AC3AD1AC474430004EEC1 /* TLSContext.swift in Sources */,
 				033AC3A51AC474430004EEC1 /* TLSCertificateMessage.swift in Sources */,
 				033AC3B11AC474430004EEC1 /* TLSMessage.swift in Sources */,
+				03D0BDDE1AEAA16600BFE004 /* TLSApplicationData.swift in Sources */,
 				033AC3A71AC474430004EEC1 /* TLSChangeCipherSpec.swift in Sources */,
 				03A4BF011AC4851F00CEB7A3 /* TLSAlert.swift in Sources */,
 				033AC38A1AC474350004EEC1 /* IPAddress.swift in Sources */,
@@ -402,6 +407,7 @@
 				033AC37F1AC473980004EEC1 /* TLSClientHelloTests.swift in Sources */,
 				033AC3B81AC474430004EEC1 /* TLSServerHelloDone.swift in Sources */,
 				033AC3B01AC474430004EEC1 /* TLSHandshake.swift in Sources */,
+				03D0BDDF1AEAA16600BFE004 /* TLSApplicationData.swift in Sources */,
 				033AC3AA1AC474430004EEC1 /* TLSClientHello.swift in Sources */,
 				033AC3A61AC474430004EEC1 /* TLSCertificateMessage.swift in Sources */,
 				033AC3BA1AC474430004EEC1 /* TLSSocket.swift in Sources */,

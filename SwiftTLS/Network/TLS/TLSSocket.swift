@@ -192,6 +192,8 @@ class TLSSocket : TCPSocket, TLSDataProvider
         self.context = TLSContext(protocolVersion: protocolVersion, dataProvider: self)
     }
     
+    // add connect method that takes a domain name rather than an IP
+    // so we can check the server certificate against that name
     func connect(address: IPAddress, completionBlock: ((TLSSocketError?) -> ())?) {
         let tlsConnectCompletionBlock = completionBlock
 
@@ -203,6 +205,34 @@ class TLSSocket : TCPSocket, TLSDataProvider
                 })
             }
         })
+    }
+    
+    override func read(#count: Int, completionBlock: ((data: [UInt8]?, error: SocketError?) -> ()))
+    {
+        self.context.readTLSMessage { (message) -> () in
+            if let message = message
+            {
+                switch message.type
+                {
+                case .ApplicationData:
+                    var applicationData = (message as! TLSApplicationData).applicationData
+            
+                    if applicationData.count == 0 {
+                        self.read(count: count, completionBlock: completionBlock)
+                    }
+                    else {
+                        completionBlock(data: applicationData, error: nil)
+                    }
+                    
+                default:
+                    println("Error: unhandled message \(message)")
+                    break
+                }
+            }
+            else {
+                println("No TLS message read.")
+            }
+        }
     }
     
     func readData(#count: Int, completionBlock: ((data: [UInt8]?, error: TLSDataProviderError?) -> ()))

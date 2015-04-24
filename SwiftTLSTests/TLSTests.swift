@@ -29,14 +29,17 @@ class TSLTests: XCTestCase {
         
         var socket = TLSSocket(protocolVersion: TLSProtocolVersion.TLS_v1_0)
 //        var host = "195.50.155.66"
-//        var host = "85.13.137.205" // nschmidt.name
-        var host = "127.0.0.1"
-        var port = 4433
-//        var port = 443
+        var host = "85.13.137.205" // nschmidt.name
+//        var host = "127.0.0.1"
+//        var port = 4433
+        var port = 443
         
         socket.connect(IPAddress.addressWithString(host, port: port)!, completionBlock: { (error : TLSSocketError?) -> () in
-            socket.write([UInt8]("hello\n".utf8), completionBlock: { (error : SocketError?) -> () in
-                expectation.fulfill()
+            socket.write([UInt8]("GET / HTTP/1.1\r\nHost: nschmidt.name\r\n\r\n".utf8), completionBlock: { (error : SocketError?) -> () in
+                socket.read(count: 1024, completionBlock: { (data, error) -> () in
+                    println("\(NSString(bytes: data!, length: data!.count, encoding: NSUTF8StringEncoding)!)")
+                    expectation.fulfill()
+                })
             })
             
             return

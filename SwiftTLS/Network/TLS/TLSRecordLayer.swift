@@ -11,7 +11,7 @@ import Foundation
 let TLSKeyExpansionLabel = [UInt8]("key expansion".utf8)
 
 class EncryptionParameters {
-    var macAlgorithm : MACAlgorithm
+    var hmacDescriptor : HMACDescriptor
     var bulkCipherAlgorithm : CipherAlgorithm
     var MACKey  : [UInt8]
     var bulkKey : [UInt8]
@@ -19,9 +19,9 @@ class EncryptionParameters {
     var IV      : [UInt8]
     var sequenceNumber : UInt64
     
-    init(macAlgorithm : MACAlgorithm, MACKey: [UInt8], bulkCipherAlgorithm: CipherAlgorithm, bulkKey: [UInt8], blockLength: Int, IV: [UInt8], sequenceNumber: UInt64 = UInt64(0))
+    init(hmacDescriptor : HMACDescriptor, MACKey: [UInt8], bulkCipherAlgorithm: CipherAlgorithm, bulkKey: [UInt8], blockLength: Int, IV: [UInt8], sequenceNumber: UInt64 = UInt64(0))
     {
-        self.macAlgorithm = macAlgorithm
+        self.hmacDescriptor = hmacDescriptor
         self.bulkCipherAlgorithm = bulkCipherAlgorithm
         self.MACKey = MACKey
         self.bulkKey = bulkKey
@@ -45,17 +45,17 @@ class TLSRecordLayer
 
     var pendingSecurityParameters  : TLSSecurityParameters? {
         didSet {
-            if let s = pendingSecurityParameters {
+            if let s = pendingSecurityParameters, hmacDescriptor = s.hmacDescriptor {
                 
-                var numberOfKeyMaterialBytes = 2 * (s.macKeyLength + s.encodeKeyLength + s.fixedIVLength)
+                var numberOfKeyMaterialBytes = 2 * (hmacDescriptor.size + s.encodeKeyLength + s.fixedIVLength)
                 var keyBlock = PRF(secret: s.masterSecret!, label: TLSKeyExpansionLabel, seed: s.serverRandom! + s.clientRandom!, outputLength: numberOfKeyMaterialBytes)
                 
                 var index = 0
-                var clientWriteMACKey = [UInt8](keyBlock[index..<index + s.macKeyLength])
-                index += s.macKeyLength
+                var clientWriteMACKey = [UInt8](keyBlock[index..<index + hmacDescriptor.size])
+                index += hmacDescriptor.size
                 
-                var serverWriteMACKey = [UInt8](keyBlock[index..<index + s.macKeyLength])
-                index += s.macKeyLength
+                var serverWriteMACKey = [UInt8](keyBlock[index..<index + hmacDescriptor.size])
+                index += hmacDescriptor.size
                 
                 var clientWriteKey = [UInt8](keyBlock[index..<index + s.encodeKeyLength])
                 index += s.encodeKeyLength
@@ -73,14 +73,14 @@ class TLSRecordLayer
                 var writeEncryptionParameters : EncryptionParameters
                 
                 if self.isClient {
-                    readEncryptionParameters  = EncryptionParameters(macAlgorithm: s.macAlgorithm!,
+                    readEncryptionParameters  = EncryptionParameters(hmacDescriptor: hmacDescriptor,
                         MACKey: serverWriteMACKey,
                         bulkCipherAlgorithm: s.bulkCipherAlgorithm!,
                         bulkKey: serverWriteKey,
                         blockLength: s.blockLength,
                         IV: serverWriteIV)
                     
-                    writeEncryptionParameters = EncryptionParameters(macAlgorithm: s.macAlgorithm!,
+                    writeEncryptionParameters = EncryptionParameters(hmacDescriptor: hmacDescriptor,
                         MACKey: clientWriteMACKey,
                         bulkCipherAlgorithm: s.bulkCipherAlgorithm!,
                         bulkKey: clientWriteKey,
@@ -88,13 +88,13 @@ class TLSRecordLayer
                         IV: clientWriteIV)
                 }
                 else {
-                    readEncryptionParameters  = EncryptionParameters(macAlgorithm: s.macAlgorithm!,
+                    readEncryptionParameters  = EncryptionParameters(hmacDescriptor: hmacDescriptor,
                         MACKey: clientWriteMACKey,
                         bulkCipherAlgorithm: s.bulkCipherAlgorithm!,
                         bulkKey: clientWriteKey,
                         blockLength: s.blockLength,
                         IV: clientWriteIV)
-                    writeEncryptionParameters = EncryptionParameters(macAlgorithm: s.macAlgorithm!,
+                    writeEncryptionParameters = EncryptionParameters(hmacDescriptor: hmacDescriptor,
                         MACKey: serverWriteMACKey,
                         bulkCipherAlgorithm: s.bulkCipherAlgorithm!,
                         bulkKey: serverWriteKey,
@@ -215,38 +215,38 @@ class TLSRecordLayer
                             else {
                                 var messageBody : [UInt8]
                                 if let encryptionParameters = self.currentReadEncryptionParameters {
-                                    if let decryptedMessage = self.decryptAndVerifyMAC(body) {
+                                    if let decryptedMessage = self.decryptAndVerifyMAC(contentType: contentType, data: body) {
                                         messageBody = decryptedMessage
                                     }
                                     else {
                                         fatalError("Could not decrypt")
                                     }
+                                    encryptionParameters.sequenceNumber += 1
                                 }
                                 else {
                                     messageBody = body
                                 }
 
-                                if let record = TLSRecord(inputStream: BinaryInputStream(data: header + messageBody)) {
-                                    switch (record.contentType)
-                                    {
-                                    case .ChangeCipherSpec:
-                                        var changeCipherSpec = TLSChangeCipherSpec(inputStream: BinaryInputStream(data: messageBody))
-                                        completionBlock(message: changeCipherSpec)
-                                        break
-                                        
-                                    case .Alert:
-                                        var alert = TLSAlert.alertFromData(messageBody)
-                                        completionBlock(message: alert)
-                                        break
-                                        
-                                    case .Handshake:
-                                        var handshakeMessage = TLSHandshakeMessage.handshakeMessageFromData(messageBody)
-                                        completionBlock(message: handshakeMessage)
-                                        break
-                                        
-                                    case .ApplicationData:
-                                        break
-                                    }
+                                switch (contentType)
+                                {
+                                case .ChangeCipherSpec:
+                                    var changeCipherSpec = TLSChangeCipherSpec(inputStream: BinaryInputStream(data: messageBody))
+                                    completionBlock(message: changeCipherSpec)
+                                    break
+                                    
+                                case .Alert:
+                                    var alert = TLSAlert.alertFromData(messageBody)
+                                    completionBlock(message: alert)
+                                    break
+                                    
+                                case .Handshake:
+                                    var handshakeMessage = TLSHandshakeMessage.handshakeMessageFromData(messageBody)
+                                    completionBlock(message: handshakeMessage)
+                                    break
+                                    
+                                case .ApplicationData:
+                                    completionBlock(message: TLSApplicationData(applicationData: messageBody))
+                                    break
                                 }
                             }
                         }
@@ -265,7 +265,7 @@ class TLSRecordLayer
 
     private func calculateMessageMAC(#secret: [UInt8], contentType : ContentType, data : [UInt8], isRead : Bool) -> [UInt8]?
     {
-        if let encryptionParameters = self.currentWriteEncryptionParameters {
+        if let encryptionParameters = isRead ? self.currentReadEncryptionParameters : self.currentWriteEncryptionParameters {
             var macData = DataBuffer()
             write(macData, encryptionParameters.sequenceNumber)
             write(macData, contentType.rawValue)
@@ -284,7 +284,7 @@ class TLSRecordLayer
     private func calculateMAC(#secret : [UInt8], var data : [UInt8], isRead : Bool) -> [UInt8]?
     {
         var HMAC : (secret : [UInt8], data : [UInt8]) -> [UInt8]
-        if let algorithm = isRead ? self.currentReadEncryptionParameters?.macAlgorithm : self.currentWriteEncryptionParameters?.macAlgorithm {
+        if let algorithm = isRead ? self.currentReadEncryptionParameters?.hmacDescriptor.algorithm : self.currentWriteEncryptionParameters?.hmacDescriptor.algorithm {
             switch (algorithm)
             {
             case .HMAC_MD5:
@@ -420,10 +420,30 @@ class TLSRecordLayer
         return outputData
     }
 
-    private func decryptAndVerifyMAC(var data : [UInt8]) -> [UInt8]?
+    private func decryptAndVerifyMAC(#contentType : ContentType, var data : [UInt8]) -> [UInt8]?
     {
         if let decryptedMessage = decrypt(data) {
-            return decryptedMessage
+            
+            if let encryptionParameters = self.currentReadEncryptionParameters
+            {
+                var hmacLength = encryptionParameters.hmacDescriptor.size
+                var messageLength = decryptedMessage.count - hmacLength
+                
+                if encryptionParameters.blockLength > 0 {
+                    var paddingLength = Int(decryptedMessage.last!) + 1
+                    messageLength -= paddingLength
+                }
+                
+                var messageContent = [UInt8](decryptedMessage[0..<messageLength])
+                
+                var MAC = [UInt8](decryptedMessage[messageLength..<messageLength + hmacLength])
+                
+                var messageMAC = self.calculateMessageMAC(secret: encryptionParameters.MACKey, contentType: contentType, data: messageContent, isRead: true)
+                
+                if let messageMAC = messageMAC where MAC == messageMAC {
+                    return messageContent
+                }
+            }
         }
         
         return nil

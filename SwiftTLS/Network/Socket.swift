@@ -226,6 +226,7 @@ class Socket
         
         if let socketReadSource = _socketReadSource {
             dispatch_async(Socket.socketQueue) {
+
                 self._readRequests.append(ReadRequest(count: count, completionBlock: completionBlock))
                 
                 self.resumeReadSource()
