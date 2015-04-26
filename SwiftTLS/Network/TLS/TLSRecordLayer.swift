@@ -235,7 +235,7 @@ class TLSRecordLayer
                                     break
                                     
                                 case .Alert:
-                                    var alert = TLSAlert.alertFromData(messageBody)
+                                    var alert = TLSAlertMessage.alertFromData(messageBody)
                                     completionBlock(message: alert)
                                     break
                                     

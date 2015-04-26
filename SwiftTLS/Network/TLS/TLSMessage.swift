@@ -25,7 +25,7 @@ enum TLSMessageType
 {
     case ChangeCipherSpec
     case Handshake(TLSHandshakeType)
-    case Alert(TLSAlertLevel, TLSAlertDescription)
+    case Alert(TLSAlertLevel, TLSAlert)
     case ApplicationData
 }
 

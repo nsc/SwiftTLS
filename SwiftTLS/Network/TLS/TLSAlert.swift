@@ -14,7 +14,7 @@ enum TLSAlertLevel : UInt8
     case Fatal = 2
 }
 
-enum TLSAlertDescription : UInt8
+enum TLSAlert : UInt8
 {
     case CloseNotify = 0
     case UnexpectedMessage = 10
@@ -42,39 +42,45 @@ enum TLSAlertDescription : UInt8
     case NoRenegotiation = 100
 }
 
-class TLSAlert : TLSMessage
+class TLSAlertMessage : TLSMessage
 {
     let alertLevel : TLSAlertLevel
-    let alertDescription : TLSAlertDescription
+    let alert : TLSAlert
     
-    init(alertLevel: TLSAlertLevel, alertDescription: TLSAlertDescription)
+    init(alert: TLSAlert, alertLevel: TLSAlertLevel)
     {
         self.alertLevel = alertLevel
-        self.alertDescription = alertDescription
+        self.alert = alert
         
-        super.init(type: .Alert(alertLevel, alertDescription))
+        super.init(type: .Alert(alertLevel, alert))
     }
 
     required init?(inputStream: InputStreamType)
     {
         if  let level : UInt8 = read(inputStream),
             alertLevel = TLSAlertLevel(rawValue: level),
-            let description : UInt8 = read(inputStream),
-            alertDescription = TLSAlertDescription(rawValue: description)
+            let rawAlert : UInt8 = read(inputStream),
+            alert = TLSAlert(rawValue: rawAlert)
         {
             self.alertLevel = alertLevel
-            self.alertDescription = alertDescription
+            self.alert = alert
         }
         else {
             self.alertLevel = .Warning
-            self.alertDescription = .CloseNotify
+            self.alert = .CloseNotify
         }
         
-        super.init(type: .Alert(self.alertLevel, self.alertDescription))
+        super.init(type: .Alert(self.alertLevel, self.alert))
     }
 
-    class func alertFromData(data : [UInt8]) -> TLSAlert?
+    override func writeTo<Target : OutputStreamType>(inout target: Target)
     {
-        return TLSAlert(inputStream: BinaryInputStream(data: data))
+        var data = [alertLevel.rawValue, alert.rawValue]
+        target.write(data)
+    }
+
+    class func alertFromData(data : [UInt8]) -> TLSAlertMessage?
+    {
+        return TLSAlertMessage(inputStream: BinaryInputStream(data: data))
     }
 }

@@ -207,6 +207,15 @@ class TLSSocket : TCPSocket, TLSDataProvider
         })
     }
     
+    override func close()
+    {
+        self.context.sendAlert(.CloseNotify, alertLevel: .Warning) { (error : TLSDataProviderError?) -> () in
+            // When the send is done, close the underlying socket
+            // We might want to have an option to wait for the peer to send *its* closeNotify if it wants to
+            super.close()
+        }
+    }
+    
     override func read(#count: Int, completionBlock: ((data: [UInt8]?, error: SocketError?) -> ()))
     {
         self.context.readTLSMessage { (message) -> () in

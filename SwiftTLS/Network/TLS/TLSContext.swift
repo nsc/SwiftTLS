@@ -186,7 +186,13 @@ class TLSContext
         self.didSendMessage(message)
     }
     
-    func sendHandshakeMessage(message : TLSHandshakeMessage, completionBlock : ((TLSDataProviderError?) -> ())? = nil)
+    func sendAlert(alert : TLSAlert, alertLevel : TLSAlertLevel, completionBlock : ((TLSDataProviderError?) -> ())? = nil)
+    {
+        var alertMessage = TLSAlertMessage(alert: alert, alertLevel: alertLevel)
+        self.recordLayer.sendMessage(alertMessage, completionBlock: completionBlock)
+    }
+    
+    private func sendHandshakeMessage(message : TLSHandshakeMessage, completionBlock : ((TLSDataProviderError?) -> ())? = nil)
     {
         self.sendMessage(message, completionBlock: completionBlock)
         
