@@ -30,13 +30,24 @@ enum TLSContextState
 {
     case Idle
     case ClientHelloSent
+    case ClientHelloReceived
+    case ServerHelloSent
     case ServerHelloReceived
+    case ServerCertificateSent
     case ServerCertificateReceived
-    case ServerHelloFinished
-    case FinishSent
-    case FinishReceived
+    case ServerHelloDoneSent
+    case ServerHelloDoneReceived
+    case ClientCertificateSent
+    case ClientCertificateReceived
+    case ClientKeyExchangeSent
+    case ClientKeyExchangeReceived
+    case ChangeCipherSpecSent
+    case ChangeCipherSpecReceived
+    case FinishedSent
+    case FinishedReceived
     case Connected
     case CloseSent
+    case CloseReceived
 }
 
 
@@ -136,7 +147,13 @@ class TLSContext
     var protocolVersion : TLSProtocolVersion
     var negotiatedProtocolVersion : TLSProtocolVersion! = nil
     
-    var state : TLSContextState = .Idle
+    var state : TLSContextState = .Idle {
+        willSet {
+            if !checkStateTransition(newValue) {
+                fatalError("Illegal state transition")
+            }
+        }
+    }
     
     var serverKey : CryptoKey? = nil
     var clientKey : CryptoKey? = nil
@@ -226,7 +243,7 @@ class TLSContext
         case .Handshake(let handshakeType):
             var handshakeMessage = message as! TLSHandshakeMessage
             self._didReceiveHandshakeMessage(handshakeMessage, completionBlock: completionBlock)
-            
+
         case .Alert:
             break
             
@@ -276,15 +293,25 @@ class TLSContext
                 
             case .Certificate:
                 println("certificate")
+                self.state = isClient ? .ServerCertificateReceived : .ClientCertificateReceived
                 var certificate = message as! TLSCertificateMessage
                 self.serverKey = certificate.publicKey
                 
             case .ServerHelloDone:
+                self.state = .ServerHelloDoneReceived
+
                 self.sendClientKeyExchange()
+                self.state = .ClientKeyExchangeSent
+                
                 self.sendChangeCipherSpec()
+                self.state = .ChangeCipherSpecSent
+
                 self.sendFinished()
+                self.state = .FinishedSent
                 
             case .Finished:
+                self.state = .FinishedReceived
+
                 if (self.verifyFinishedMessage(message as! TLSFinished, isClient: !self.isClient)) {
                     println("Finished verified.")
                     if let connectionEstablishedBlock = self.connectionEstablishedCompletionBlock {
@@ -302,10 +329,6 @@ class TLSContext
                 }
             }
             
-            if handshakeType != .Finished {
-                self.receiveNextTLSMessage(tlsConnectCompletionBlock)
-            }
-
         default:
             println("unsupported handshake \(message.type)")
             if let block = tlsConnectCompletionBlock {
@@ -316,9 +339,20 @@ class TLSContext
         }
         
         self.didReceiveHandshakeMessage(message)
+        
+        switch (message.type)
+        {
+        case .Handshake(let handshakeType):
+            if handshakeType != .Finished {
+                self.receiveNextTLSMessage(completionBlock)
+            }
+            
+        default:
+            break
+        }
     }
     
-    private func sendClientHello()
+    func sendClientHello()
     {
         var clientHelloRandom = Random()
         var clientHello = TLSClientHello(
@@ -333,7 +367,7 @@ class TLSContext
         self.sendHandshakeMessage(clientHello)
     }
     
-    private func sendClientKeyExchange()
+    func sendClientKeyExchange()
     {
         if let serverKey = self.serverKey {
             var message = TLSClientKeyExchange(preMasterSecret: self.preMasterSecret!, publicKey: serverKey)
@@ -341,7 +375,7 @@ class TLSContext
         }
     }
 
-    private func sendChangeCipherSpec()
+    func sendChangeCipherSpec()
     {
         var message = TLSChangeCipherSpec()
         
@@ -353,7 +387,7 @@ class TLSContext
         self.recordLayer.activateWriteEncryptionParameters()
     }
 
-    private func sendFinished()
+    func sendFinished()
     {
         var verifyData = self.verifyDataForFinishedMessage(isClient: self.isClient)
         self.sendHandshakeMessage(TLSFinished(verifyData: verifyData), completionBlock: nil)
@@ -431,5 +465,64 @@ class TLSContext
         }
         
         self.pendingSecurityParameters.calculateMasterSecret(self.preMasterSecret!)
+    }
+    
+    func advanceState(state : TLSContextState) -> Bool
+    {
+        if checkStateTransition(state) {
+            self.state = state
+            
+            return true
+        }
+        
+        return false
+    }
+    
+    func checkStateTransition(state : TLSContextState) -> Bool
+    {
+        if self.isClient {
+            switch (self.state)
+            {
+            case .Idle where state == .ClientHelloSent:
+                return true
+                
+            case .ClientHelloSent where state == .ServerHelloReceived:
+                return true
+
+            case .ServerHelloReceived where state == .ServerCertificateReceived:
+                return true
+
+            case .ServerCertificateReceived where state == .ServerHelloDoneReceived:
+                return true
+                
+            case .ServerHelloDoneReceived where state == .ClientKeyExchangeSent:
+                return true
+                
+            case .ClientKeyExchangeSent where state == .ChangeCipherSpecSent:
+                return true
+                
+            case .ChangeCipherSpecSent where state == .FinishedSent:
+                return true
+                
+            case .FinishedSent where state == .FinishedReceived:
+                return true
+                
+            case .FinishedReceived where state == .Connected:
+                return true
+                
+            case .Connected where (state == .CloseReceived || state == .CloseSent):
+                return true
+                
+            default:
+                return false
+            }
+        }
+        else {
+            switch (self.state)
+            {
+            default:
+                return false
+            }
+        }
     }
 }

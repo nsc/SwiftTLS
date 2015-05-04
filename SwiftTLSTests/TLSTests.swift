@@ -11,20 +11,22 @@ import XCTest
 
 class TSLTests: XCTestCase {
 
+    var opensslServer : NSTask?
+    
     override func setUp() {
         super.setUp()
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+        opensslServer = NSTask.launchedTaskWithLaunchPath("/usr/bin/openssl", arguments: ["s_server",  "-cert", "SwiftTLSTests/mycert.pem", "-www",  "-debug", "-cipher", "ALL:NULL" ])
     }
     
     override func tearDown() {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
         super.tearDown()
+        opensslServer?.terminate()
     }
 
     func test_connectTLS() {
         var expectation = self.expectationWithDescription("successfully connected")
-        var task = NSTask.launchedTaskWithLaunchPath("/usr/bin/openssl", arguments: ["s_server",  "-cert", "SwiftTLSTests/mycert.pem", "-www",  "-debug", "-cipher", "ALL:NULL" ])
 
+        // wait for server to be up
         sleep(1)
         
         var socket = TLSSocket(protocolVersion: TLSProtocolVersion.TLS_v1_0)
@@ -39,7 +41,7 @@ class TSLTests: XCTestCase {
                 socket.read(count: 4096, completionBlock: { (data, error) -> () in
                     println("\(NSString(bytes: data!, length: data!.count, encoding: NSUTF8StringEncoding)!)")
                     socket.close()
-//                    expectation.fulfill()
+                    expectation.fulfill()
                 })
             })
             
@@ -47,8 +49,38 @@ class TSLTests: XCTestCase {
         })
         
         self.waitForExpectationsWithTimeout(50.0, handler: { (error : NSError!) -> Void in
-            task.terminate()
         })
     }
+    
+    
+    
+//    func test_sendDoubleClientHello__triggersAlert()
+//    {
+//        class MyContext : TLSContext
+//        {
+//            override func _didReceiveHandshakeMessage(message : TLSHandshakeMessage, completionBlock: ((TLSContextError?) -> ())?)
+//            {
+//                if message.handshakeType == .Certificate {
+//                    self.sendClientHello()
+//                }
+//            }
+//        }
+//        
+//        var version = TLSProtocolVersion.TLS_v1_0
+//        
+//        var socket = TLSSocket(protocolVersion: version)
+//        var myContext = MyContext(protocolVersion: version, dataProvider: socket, isClient: true)
+//        socket.context = myContext
+//        var host = "127.0.0.1"
+//        var port = 4433
+//        
+//        socket.connect(IPAddress.addressWithString(host, port: port)!) { (error : TLSSocketError?) -> () in
+//        }
+//        
+//        var expectation = self.expectationWithDescription("successfully connected")
+//        self.waitForExpectationsWithTimeout(50.0, handler: { (error : NSError!) -> Void in
+//        })
+//
+//    }
 
 }

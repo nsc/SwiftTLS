@@ -52,8 +52,14 @@ class Socket
     deinit {
         self.close()
     }
+
+    func connect(address : IPAddress, completionBlock : ((SocketError?) -> ())?)
+    {
+        self._connect(address, completionBlock: completionBlock)
+    }
     
-    func connect(address : IPAddress, completionBlock : ((SocketError?) -> ())?) {
+    func _connect(address : IPAddress, completionBlock : ((SocketError?) -> ())?)
+    {
         if (socketDescriptor == nil) {
             socketDescriptor = createSocket(address.unsafeSockAddrPointer.memory.sa_family)
             if (socketDescriptor == nil) {

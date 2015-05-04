@@ -197,7 +197,7 @@ class TLSSocket : TCPSocket, TLSDataProvider
     func connect(address: IPAddress, completionBlock: ((TLSSocketError?) -> ())?) {
         let tlsConnectCompletionBlock = completionBlock
 
-        super.connect(address, completionBlock: { (error : SocketError?) -> () in
+        self._connect(address, completionBlock: { (error : SocketError?) -> () in
             if error == nil {
                 self.context.startConnection({ (error : TLSContextError?) -> () in
                     // TODO: map context errors to socket provider errors
