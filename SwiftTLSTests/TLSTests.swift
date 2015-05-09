@@ -36,7 +36,7 @@ class TSLTests: XCTestCase {
         var port = 4433
 //        var port = 443
         
-        socket.connect(IPAddress.addressWithString(host, port: port)!, completionBlock: { (error : TLSSocketError?) -> () in
+        socket.connect(IPAddress.addressWithString(host, port: port)!, completionBlock: { (error : SocketError?) -> () in
             socket.write([UInt8]("GET / HTTP/1.1\r\nHost: nschmidt.name\r\n\r\n".utf8), completionBlock: { (error : SocketError?) -> () in
                 socket.read(count: 4096, completionBlock: { (data, error) -> () in
                     println("\(NSString(bytes: data!, length: data!.count, encoding: NSUTF8StringEncoding)!)")

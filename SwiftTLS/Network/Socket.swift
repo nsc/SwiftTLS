@@ -22,7 +22,16 @@ enum SocketError : Printable {
     }
 }
 
-class Socket
+protocol SocketProtocol
+{
+    func connect(address : IPAddress, completionBlock : ((SocketError?) -> ())?)
+    func listen(address : IPAddress, acceptBlock : (clientSocket : Socket?, error : SocketError?) -> ())
+    func read(#count : Int, completionBlock : ((data : [UInt8]?, error : SocketError?) -> ()))
+    func write(data : [UInt8], completionBlock : ((SocketError?) -> ())?)
+    func close()
+}
+
+class Socket : SocketProtocol
 {
     private static var socketQueue : dispatch_queue_t = {
         return dispatch_queue_create("com.savoysoftware.socketQueue", DISPATCH_QUEUE_SERIAL)
@@ -37,12 +46,22 @@ class Socket
     var _readBuffer : [UInt8] = [UInt8](count: 64 * 1024, repeatedValue: 0)
     
     var _socketConnectSource : dispatch_source_t?
+    var _socketAcceptSource : dispatch_source_t?
     var _socketReadSource : dispatch_source_t?
     var _socketWriteSource : dispatch_source_t?
 
     var socketDescriptor : Int32?
     
     var isReadSourceRunning : Bool = false
+    
+    init()
+    {
+    }
+    
+    required init(socketDescriptor : Int32)
+    {
+        self.socketDescriptor = socketDescriptor
+    }
     
     func createSocket(protocolFamily : sa_family_t) -> Int32?
     {
@@ -142,6 +161,31 @@ class Socket
             }
             
             dispatch_resume(socketConnectSource)
+        }
+    }
+    
+    func listen(address : IPAddress, acceptBlock : (clientSocket : Socket?, error : SocketError?) -> ())
+    {
+        self.socketDescriptor = createSocket(address.unsafeSockAddrPointer.memory.sa_family)
+        
+        if let socket = self.socketDescriptor {
+            Darwin.bind(socket, address.unsafeSockAddrPointer, socklen_t(address.unsafeSockAddrPointer.memory.sa_len))
+            Darwin.listen(socket, 5)
+            _socketAcceptSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_READ, UInt(socket), 0, Socket.socketQueue)
+            if let acceptSource = _socketAcceptSource {
+                dispatch_source_set_event_handler(acceptSource) {
+                    var clientSocket = Darwin.accept(socket, nil, nil)
+                    if clientSocket == Int32(-1) {
+                        acceptBlock(clientSocket: nil, error: SocketError.PosixError(errno: errno))
+                        return
+                    }
+                    
+                    var socket = self.dynamicType(socketDescriptor: clientSocket)
+                    acceptBlock(clientSocket: socket, error: nil)
+                }
+                
+                dispatch_resume(acceptSource)
+            }
         }
     }
     

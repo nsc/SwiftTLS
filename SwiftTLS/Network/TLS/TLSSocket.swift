@@ -181,23 +181,26 @@ class Random : Streamable
     }
 }
 
-class TLSSocket : TCPSocket, TLSDataProvider
+class TLSSocket : SocketProtocol, TLSDataProvider
 {
     var context : TLSContext!
+    
+    var socket : TCPSocket?
     
     init(protocolVersion : TLSProtocolVersion)
     {
         self.context = nil
-        super.init()
         self.context = TLSContext(protocolVersion: protocolVersion, dataProvider: self)
     }
     
     // add connect method that takes a domain name rather than an IP
     // so we can check the server certificate against that name
-    func connect(address: IPAddress, completionBlock: ((TLSSocketError?) -> ())?) {
+    func connect(address: IPAddress, completionBlock: ((SocketError?) -> ())?) {
         let tlsConnectCompletionBlock = completionBlock
 
-        self._connect(address, completionBlock: { (error : SocketError?) -> () in
+        self.socket = TCPSocket()
+        
+        self.socket?.connect(address, completionBlock: { (error : SocketError?) -> () in
             if error == nil {
                 self.context.startConnection({ (error : TLSContextError?) -> () in
                     // TODO: map context errors to socket provider errors
@@ -207,16 +210,20 @@ class TLSSocket : TCPSocket, TLSDataProvider
         })
     }
     
-    override func close()
+    func listen(address : IPAddress, acceptBlock : (clientSocket : Socket?, error : SocketError?) -> ())
+    {
+    }
+    
+    func close()
     {
         self.context.sendAlert(.CloseNotify, alertLevel: .Warning) { (error : TLSDataProviderError?) -> () in
             // When the send is done, close the underlying socket
             // We might want to have an option to wait for the peer to send *its* closeNotify if it wants to
-            super.close()
+            self.socket?.close()
         }
     }
     
-    override func read(#count: Int, completionBlock: ((data: [UInt8]?, error: SocketError?) -> ()))
+    func read(#count: Int, completionBlock: ((data: [UInt8]?, error: SocketError?) -> ()))
     {
         self.context.readTLSMessage { (message) -> () in
             if let message = message
@@ -246,7 +253,7 @@ class TLSSocket : TCPSocket, TLSDataProvider
     
     func readData(#count: Int, completionBlock: ((data: [UInt8]?, error: TLSDataProviderError?) -> ()))
     {
-        self._read(count: count) { (data, error) -> () in
+        self.socket?.read(count: count) { (data, error) -> () in
             // TODO: map socket errors to data provider errors
             completionBlock(data: data, error: nil)
         }
@@ -254,13 +261,13 @@ class TLSSocket : TCPSocket, TLSDataProvider
     
     func writeData(data: [UInt8], completionBlock: ((TLSDataProviderError?) -> ())?)
     {
-        self._write(data) { (error: SocketError?) -> () in
+        self.socket?.write(data) { (error: SocketError?) -> () in
             // TODO: map socket errors to data provider errors
             completionBlock?(nil)
         }
     }
     
-    override func write(data: [UInt8], completionBlock: ((SocketError?) -> ())?)
+    func write(data: [UInt8], completionBlock: ((SocketError?) -> ())?)
     {
         self.context.sendApplicationData(data, completionBlock: { (error : TLSDataProviderError?) -> () in
             // TODO: map socket errors to data provider errors

@@ -13,3 +13,20 @@ func f(ints:Int...) -> String {
 }
 
 f(1,2,3,4)
+
+
+class Base
+{
+    required init(a : Int)
+    {
+    }
+}
+
+class Derived : Base
+{
+}
+
+var d = Derived(a:1)
+let type = d.dynamicType
+type(a: 2)
+
