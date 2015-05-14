@@ -47,7 +47,6 @@ class CryptoKey
         }
     }
     
-
     
     func encryptCBC(var data : [UInt8], IV : [UInt8]) -> [UInt8]?
     {
@@ -76,12 +75,37 @@ class CryptoKey
         return nil
     }
 
+    private func createTransform(#encrypt : Bool) -> SecTransform?
+    {
+        switch encrypt
+        {
+        case true:
+            return SecEncryptTransformCreate(self.key, nil).takeRetainedValue()
+
+        case false:
+            return SecDecryptTransformCreate(self.key, nil).takeRetainedValue()
+        
+        default:
+            return nil
+        }
+    }
+    
     func encrypt(var data : [UInt8]) -> [UInt8]?
+    {
+        return crypt(encrypt: true, data: data)
+    }
+    
+    func decrypt(var data : [UInt8]) -> [UInt8]?
+    {
+        return crypt(encrypt: false, data: data)
+    }
+    
+    private func crypt(#encrypt: Bool, var data : [UInt8]) -> [UInt8]?
     {
         let data = NSData(bytesNoCopy: &data, length: data.count, freeWhenDone: false)
 
-        if let t = SecEncryptTransformCreate(self.key, nil) {
-            var transform: SecTransform = t.takeRetainedValue()
+        if let transform: SecTransform = createTransform(encrypt: encrypt)
+        {
             var success : Bool = false
             success = SecTransformSetAttribute(transform, kSecTransformInputAttributeName, data, nil) != 0
             
@@ -103,4 +127,5 @@ class CryptoKey
         
         return nil
     }
+
 }

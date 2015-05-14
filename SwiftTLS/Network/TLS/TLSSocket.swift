@@ -187,10 +187,23 @@ class TLSSocket : SocketProtocol, TLSDataProvider
     
     var socket : TCPSocket?
     
-    init(protocolVersion : TLSProtocolVersion)
+    init(protocolVersion : TLSProtocolVersion, isClient: Bool = true)
     {
         self.context = nil
-        self.context = TLSContext(protocolVersion: protocolVersion, dataProvider: self)
+        self.context = TLSContext(protocolVersion: protocolVersion, dataProvider: self, isClient: isClient)
+    }
+    
+    init(protocolVersion : TLSProtocolVersion, isClient: Bool, identity : Identity)
+    {
+        self.context = nil
+        self.context = TLSContext(protocolVersion: protocolVersion, dataProvider: self, isClient: isClient)
+
+        if isClient {
+            self.context.identity = identity
+        }
+        else {
+            self.context.identity = identity
+        }
     }
     
     // add connect method that takes a domain name rather than an IP
@@ -210,8 +223,32 @@ class TLSSocket : SocketProtocol, TLSDataProvider
         })
     }
     
-    func listen(address : IPAddress, acceptBlock : (clientSocket : Socket?, error : SocketError?) -> ())
+    func listen(address : IPAddress, acceptBlock : (clientSocket : SocketProtocol?, error : SocketError?) -> ())
     {
+        self.socket = TCPSocket()
+        
+        let tlsAcceptBlock = acceptBlock
+        
+        self.socket?.listen(address, acceptBlock: { (clientSocket, error) -> () in
+            if let error = error {
+                tlsAcceptBlock(clientSocket: nil, error: error)
+                return
+            }
+            
+            var clientTLSSocket = TLSSocket(protocolVersion: self.context.protocolVersion, isClient: false)
+            clientTLSSocket.socket = clientSocket as? TCPSocket
+            clientTLSSocket.context = self.context.copy()
+            clientTLSSocket.context.recordLayer.dataProvider = clientTLSSocket
+            
+            clientTLSSocket.context.acceptConnection { (error : TLSContextError?) -> () in
+                if error != nil {
+                    tlsAcceptBlock(clientSocket: clientTLSSocket, error: nil)
+                }
+                else {
+                    fatalError("Error: \(error)")
+                }
+            }
+        })
     }
     
     func close()

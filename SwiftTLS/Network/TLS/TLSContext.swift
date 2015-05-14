@@ -48,6 +48,7 @@ enum TLSContextState
     case Connected
     case CloseSent
     case CloseReceived
+    case Error
 }
 
 
@@ -146,6 +147,10 @@ class TLSContext
 {
     var protocolVersion : TLSProtocolVersion
     var negotiatedProtocolVersion : TLSProtocolVersion! = nil
+    var cipherSuites : [CipherSuite]?
+    var clientCipherSuites : [CipherSuite]?
+    
+    var cipherSuite : CipherSuite?
     
     var state : TLSContextState = .Idle {
         willSet {
@@ -155,8 +160,13 @@ class TLSContext
         }
     }
     
-    var serverKey : CryptoKey? = nil
-    var clientKey : CryptoKey? = nil
+    var serverKey : CryptoKey?
+    var clientKey : CryptoKey?
+    
+    var identity : Identity?
+    
+    var serverCertificates : [Certificate]?
+    var clientCertificates : [Certificate]?
     
     var preMasterSecret     : [UInt8]? = nil
 
@@ -175,11 +185,39 @@ class TLSContext
     {
         self.protocolVersion = protocolVersion
         self.recordLayer = TLSRecordLayer(protocolVersion: protocolVersion, dataProvider: dataProvider, isClient: isClient)
-        self.isClient = true
+        self.isClient = isClient
         self.handshakeMessages = []
         
         self.currentSecurityParameters = TLSSecurityParameters()
         self.pendingSecurityParameters = TLSSecurityParameters()
+        
+        self.cipherSuites = [.TLS_RSA_WITH_AES_256_CBC_SHA]
+    }
+    
+    func copy() -> TLSContext
+    {
+        var context = TLSContext(protocolVersion: self.protocolVersion, dataProvider: self.recordLayer.dataProvider!, isClient: self.isClient)
+        
+        context.cipherSuites = self.cipherSuites
+        context.clientCipherSuites = self.clientCipherSuites
+        context.cipherSuite = self.cipherSuite
+        
+        context.serverKey = self.serverKey
+        context.clientKey = self.clientKey
+        context.identity = self.identity
+        
+        context.serverCertificates = self.serverCertificates
+        context.clientCertificates = self.clientCertificates
+        
+        
+        context.preMasterSecret = self.preMasterSecret
+        
+        context.currentSecurityParameters = self.currentSecurityParameters
+        context.pendingSecurityParameters = self.pendingSecurityParameters
+        
+        context.handshakeMessages = self.handshakeMessages
+
+        return context
     }
     
     func startConnection(completionBlock : (error : TLSContextError?) -> ())
@@ -189,6 +227,11 @@ class TLSContext
         self.sendClientHello()
         self.state = .ClientHelloSent
         
+        self.receiveNextTLSMessage(completionBlock)
+    }
+    
+    func acceptConnection(completionBlock : (error : TLSContextError?) -> ())
+    {
         self.receiveNextTLSMessage(completionBlock)
     }
     
@@ -236,6 +279,8 @@ class TLSContext
         switch (message.type)
         {
         case .ChangeCipherSpec:
+            self.state = .ChangeCipherSpecReceived
+
             self.recordLayer.activateReadEncryptionParameters()
             self.receiveNextTLSMessage(completionBlock)
             break
@@ -269,33 +314,45 @@ class TLSContext
             switch (handshakeType)
             {
             case .ClientHello:
-                self.pendingSecurityParameters.clientRandom = DataBuffer((message as! TLSClientHello).random).buffer
-
-            case .ServerHello:
-                if self.state != .ClientHelloSent {
-                    if let block = tlsConnectCompletionBlock {
-                        block(TLSContextError.Error)
-                    }
+                var clientHello = (message as! TLSClientHello)
+                self.pendingSecurityParameters.clientRandom = DataBuffer(clientHello.random).buffer
+                self.clientCipherSuites = clientHello.cipherSuites
+                
+                self.cipherSuite = self.selectCipherSuite()
+                
+                if let cipherSuite = self.cipherSuite {
+                    self.sendServerHello()
+                    self.state = .ServerHelloSent
+                    
+                    self.sendCertificate()
+                    self.state = .ServerCertificateSent
+                    
+                    self.sendServerHelloDone()
+                    self.state = .ServerHelloDoneSent
                 }
                 else {
-                    self.state = .ServerHelloReceived
-                    var serverHello = message as! TLSServerHello
-                    let version = serverHello.version
-                    println("Server wants to speak \(version)")
-                    
-                    self.recordLayer.protocolVersion = version
-                    
-                    self.pendingSecurityParameters.serverRandom = DataBuffer(serverHello.random).buffer
-                    self.preMasterSecret = DataBuffer(PreMasterSecret(clientVersion: self.protocolVersion)).buffer
-                    self.setPendingSecurityParametersForCipherSuite(serverHello.cipherSuite)
-                    self.recordLayer.pendingSecurityParameters = self.pendingSecurityParameters
+                    self.sendAlert(.HandshakeFailure, alertLevel: .Fatal, completionBlock: nil)
                 }
+
+            case .ServerHello:
+                self.state = .ServerHelloReceived
+                var serverHello = message as! TLSServerHello
+                let version = serverHello.version
+                println("Server wants to speak \(version)")
                 
+                self.recordLayer.protocolVersion = version
+                
+                self.pendingSecurityParameters.serverRandom = DataBuffer(serverHello.random).buffer
+                self.preMasterSecret = DataBuffer(PreMasterSecret(clientVersion: self.protocolVersion)).buffer
+                self.setPendingSecurityParametersForCipherSuite(serverHello.cipherSuite)
+                self.recordLayer.pendingSecurityParameters = self.pendingSecurityParameters
+            
             case .Certificate:
                 println("certificate")
                 self.state = isClient ? .ServerCertificateReceived : .ClientCertificateReceived
-                var certificate = message as! TLSCertificateMessage
-                self.serverKey = certificate.publicKey
+                var certificateMessage = message as! TLSCertificateMessage
+                self.serverCertificates = certificateMessage.certificates
+                self.serverKey = certificateMessage.publicKey
                 
             case .ServerHelloDone:
                 self.state = .ServerHelloDoneReceived
@@ -308,6 +365,13 @@ class TLSContext
 
                 self.sendFinished()
                 self.state = .FinishedSent
+                
+            case .ClientKeyExchange:
+                self.state = .ClientKeyExchangeReceived
+                
+                var clientKeyExchange = message as! TLSClientKeyExchange
+                var encryptedPreMasterSecret = clientKeyExchange.encryptedPreMasterSecret
+                self.identity!.privateKey.decrypt(encryptedPreMasterSecret)
                 
             case .Finished:
                 self.state = .FinishedReceived
@@ -359,12 +423,39 @@ class TLSContext
             clientVersion: self.protocolVersion,
             random: clientHelloRandom,
             sessionID: nil,
-            cipherSuites: [.TLS_RSA_WITH_AES_256_CBC_SHA],
+            cipherSuites: self.cipherSuites!,
 //            cipherSuites: [.TLS_RSA_WITH_NULL_SHA],
             compressionMethods: [.NULL])
         
         self.pendingSecurityParameters.clientRandom = DataBuffer(clientHelloRandom).buffer
         self.sendHandshakeMessage(clientHello)
+    }
+    
+    func sendServerHello()
+    {
+        var serverHelloRandom = Random()
+        var serverHello = TLSServerHello(
+            serverVersion: self.protocolVersion,
+            random: serverHelloRandom,
+            sessionID: nil,
+            cipherSuite: self.cipherSuite!,
+            compressionMethod: .NULL)
+        
+        self.pendingSecurityParameters.serverRandom = DataBuffer(serverHelloRandom).buffer
+        self.sendHandshakeMessage(serverHello)
+    }
+    
+    func sendCertificate()
+    {
+        var certificate = self.identity!.certificate
+        var certificateMessage = TLSCertificateMessage(certificates: [certificate])
+        
+        self.sendHandshakeMessage(certificateMessage);
+    }
+    
+    func sendServerHelloDone()
+    {
+        self.sendHandshakeMessage(TLSServerHelloDone())
     }
     
     func sendClientKeyExchange()
@@ -478,51 +569,90 @@ class TLSContext
         return false
     }
     
+    
+    func checkClientStateTransition(state : TLSContextState) -> Bool
+    {
+        switch (self.state)
+        {
+        case .Idle where state == .ClientHelloSent:
+            return true
+            
+        case .ClientHelloSent where state == .ServerHelloReceived:
+            return true
+            
+        case .ServerHelloReceived where state == .ServerCertificateReceived:
+            return true
+            
+        case .ServerCertificateReceived where state == .ServerHelloDoneReceived:
+            return true
+            
+        case .ServerHelloDoneReceived where state == .ClientKeyExchangeSent:
+            return true
+            
+        case .ClientKeyExchangeSent where state == .ChangeCipherSpecSent:
+            return true
+            
+        case .ChangeCipherSpecSent where state == .FinishedSent:
+            return true
+            
+        case .FinishedSent where state == .FinishedReceived:
+            return true
+            
+        case .FinishedReceived where state == .Connected:
+            return true
+            
+        case .Connected where (state == .CloseReceived || state == .CloseSent):
+            return true
+            
+        default:
+            return false
+        }
+    }
+    
+    func checkServerStateTransition(state : TLSContextState) -> Bool
+    {
+        switch (self.state)
+        {
+        case .Idle where state == .ServerHelloSent:
+            return true
+
+        case .ServerHelloSent where state == .ServerCertificateSent:
+            return true
+
+        case .ServerCertificateSent where state == .ServerHelloDoneSent:
+            return true
+
+        case .ServerHelloDoneSent where state == .ClientKeyExchangeReceived:
+            return true
+
+        case .ClientKeyExchangeReceived where state == .ChangeCipherSpecReceived:
+            return true
+
+        default:
+            return false
+        }
+    }
+    
     func checkStateTransition(state : TLSContextState) -> Bool
     {
         if self.isClient {
-            switch (self.state)
-            {
-            case .Idle where state == .ClientHelloSent:
-                return true
-                
-            case .ClientHelloSent where state == .ServerHelloReceived:
-                return true
-
-            case .ServerHelloReceived where state == .ServerCertificateReceived:
-                return true
-
-            case .ServerCertificateReceived where state == .ServerHelloDoneReceived:
-                return true
-                
-            case .ServerHelloDoneReceived where state == .ClientKeyExchangeSent:
-                return true
-                
-            case .ClientKeyExchangeSent where state == .ChangeCipherSpecSent:
-                return true
-                
-            case .ChangeCipherSpecSent where state == .FinishedSent:
-                return true
-                
-            case .FinishedSent where state == .FinishedReceived:
-                return true
-                
-            case .FinishedReceived where state == .Connected:
-                return true
-                
-            case .Connected where (state == .CloseReceived || state == .CloseSent):
-                return true
-                
-            default:
-                return false
-            }
+            return checkClientStateTransition(state)
         }
         else {
-            switch (self.state)
-            {
-            default:
-                return false
+            return checkServerStateTransition(state)
+        }
+    }
+    
+    func selectCipherSuite() -> CipherSuite?
+    {
+        for clientCipherSuite in self.clientCipherSuites! {
+            for myCipherSuite in self.cipherSuites! {
+                if clientCipherSuite == myCipherSuite {
+                    return myCipherSuite
+                }
             }
         }
+        
+        return nil
     }
 }

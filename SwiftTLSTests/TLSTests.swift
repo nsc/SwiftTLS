@@ -15,7 +15,7 @@ class TSLTests: XCTestCase {
     
     override func setUp() {
         super.setUp()
-        opensslServer = NSTask.launchedTaskWithLaunchPath("/usr/bin/openssl", arguments: ["s_server",  "-cert", "SwiftTLSTests/mycert.pem", "-www",  "-debug", "-cipher", "ALL:NULL" ])
+//        opensslServer = NSTask.launchedTaskWithLaunchPath("/usr/bin/openssl", arguments: ["s_server",  "-cert", "SwiftTLSTests/mycert.pem", "-www",  "-debug", "-cipher", "ALL:NULL" ])
     }
     
     override func tearDown() {
@@ -52,7 +52,33 @@ class TSLTests: XCTestCase {
         })
     }
     
-    
+    func test_listen_whenClientConnects_callsAcceptBlock()
+    {
+        var serverIdentity = Identity(name: "Internet Widgits Pty Ltd")
+
+        var server = TLSSocket(protocolVersion: .TLS_v1_2, isClient: false, identity: serverIdentity!)
+        var address = IPv4Address.localAddress()
+        address.port = UInt16(12345)
+        
+        let expectation = self.expectationWithDescription("accept connection successfully")
+        server.listen(address, acceptBlock: { (clientSocket, error) -> () in
+            if clientSocket != nil {
+                expectation.fulfill()
+            }
+            else {
+                XCTFail("Connect failed")
+            }
+        })
+        
+        var client = TLSSocket(protocolVersion: .TLS_v1_2)
+        client.connect(address, completionBlock: { (error: SocketError?) -> () in
+            println("\(error)")
+        })
+        
+        self.waitForExpectationsWithTimeout(50.0, handler: { (error : NSError!) -> Void in
+        })
+        
+    }
     
 //    func test_sendDoubleClientHello__triggersAlert()
 //    {

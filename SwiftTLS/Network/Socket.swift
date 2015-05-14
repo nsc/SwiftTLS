@@ -25,7 +25,7 @@ enum SocketError : Printable {
 protocol SocketProtocol
 {
     func connect(address : IPAddress, completionBlock : ((SocketError?) -> ())?)
-    func listen(address : IPAddress, acceptBlock : (clientSocket : Socket?, error : SocketError?) -> ())
+    func listen(address : IPAddress, acceptBlock : (clientSocket : SocketProtocol?, error : SocketError?) -> ())
     func read(#count : Int, completionBlock : ((data : [UInt8]?, error : SocketError?) -> ()))
     func write(data : [UInt8], completionBlock : ((SocketError?) -> ())?)
     func close()
@@ -164,13 +164,23 @@ class Socket : SocketProtocol
         }
     }
     
-    func listen(address : IPAddress, acceptBlock : (clientSocket : Socket?, error : SocketError?) -> ())
+    func listen(address : IPAddress, acceptBlock : (clientSocket : SocketProtocol?, error : SocketError?) -> ())
     {
         self.socketDescriptor = createSocket(address.unsafeSockAddrPointer.memory.sa_family)
         
         if let socket = self.socketDescriptor {
-            Darwin.bind(socket, address.unsafeSockAddrPointer, socklen_t(address.unsafeSockAddrPointer.memory.sa_len))
-            Darwin.listen(socket, 5)
+            var result = Darwin.bind(socket, address.unsafeSockAddrPointer, socklen_t(address.unsafeSockAddrPointer.memory.sa_len))
+            if result < 0 {
+                acceptBlock(clientSocket: nil, error: SocketError.PosixError(errno: errno))
+                return
+            }
+
+            result = Darwin.listen(socket, 5)
+            if result < 0 {
+                acceptBlock(clientSocket: nil, error: SocketError.PosixError(errno: errno))
+                return
+            }
+
             _socketAcceptSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_READ, UInt(socket), 0, Socket.socketQueue)
             if let acceptSource = _socketAcceptSource {
                 dispatch_source_set_event_handler(acceptSource) {
@@ -389,11 +399,13 @@ class TCPSocket : Socket
         
         var yes : Int32 = 1
         setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &yes, socklen_t(sizeof(Int32.self)))
+        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, socklen_t(sizeof(Int32.self)))
         
 //        var action = sigaction()
 //        action.sa_handler = 1
 //        sigaction(SIGPIPE, &action, nil)
         
+        setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &yes, socklen_t(sizeof(Int32.self)))
         setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &yes, socklen_t(sizeof(Int32.self)))
         
         return fd
