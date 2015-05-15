@@ -241,7 +241,7 @@ class TLSSocket : SocketProtocol, TLSDataProvider
             clientTLSSocket.context.recordLayer.dataProvider = clientTLSSocket
             
             clientTLSSocket.context.acceptConnection { (error : TLSContextError?) -> () in
-                if error != nil {
+                if error == nil {
                     tlsAcceptBlock(clientSocket: clientTLSSocket, error: nil)
                 }
                 else {
