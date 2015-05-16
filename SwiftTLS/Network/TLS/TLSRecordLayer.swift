@@ -134,12 +134,6 @@ class TLSRecordLayer
     func sendData(#contentType: ContentType, data: [UInt8], completionBlock : ((TLSDataProviderError?) -> ())? = nil)
     {
         
-        if contentType == ContentType.Handshake {
-            if let handshake = TLSHandshakeMessage.handshakeMessageFromData(data) {
-                println("\(handshake)")
-            }
-        }
-        
         if let encryptionParameters = self.currentWriteEncryptionParameters {
             var secret = encryptionParameters.MACKey
             

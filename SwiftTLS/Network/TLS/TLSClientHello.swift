@@ -63,7 +63,12 @@ class TLSClientHello : TLSHandshakeMessage
                 if  let cipherSuitesSize : UInt16 = read(inputStream),
                     let rawCipherSuites : [UInt16] = read(inputStream, Int(cipherSuitesSize) / sizeof(UInt16))
                 {
-                    cipherSuites = rawCipherSuites.map {CipherSuite(rawValue: $0)!}
+                    cipherSuites = [CipherSuite]()
+                    for rawCipherSuite in rawCipherSuites {
+                        if let cipherSuite = CipherSuite(rawValue: rawCipherSuite) {
+                            cipherSuites!.append(cipherSuite)
+                        }
+                    }
                 }
                 
                 if  let compressionMethodsSize : UInt8 = read(inputStream),

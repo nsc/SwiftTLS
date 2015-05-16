@@ -10,21 +10,19 @@ import Cocoa
 import XCTest
 
 class TSLTests: XCTestCase {
-
-    var opensslServer : NSTask?
     
     override func setUp() {
         super.setUp()
-        opensslServer = NSTask.launchedTaskWithLaunchPath("/usr/bin/openssl", arguments: ["s_server",  "-cert", "SwiftTLSTests/mycert.pem", "-www",  "-debug", "-cipher", "ALL:NULL" ])
     }
     
     override func tearDown() {
         super.tearDown()
-        opensslServer?.terminate()
     }
 
     func test_connectTLS() {
         var expectation = self.expectationWithDescription("successfully connected")
+
+        var opensslServer = NSTask.launchedTaskWithLaunchPath("/usr/bin/openssl", arguments: ["s_server",  "-cert", "SwiftTLSTests/mycert.pem", "-www",  "-debug", "-cipher", "ALL:NULL" ])
 
         // wait for server to be up
         sleep(1)
@@ -50,35 +48,91 @@ class TSLTests: XCTestCase {
         
         self.waitForExpectationsWithTimeout(50.0, handler: { (error : NSError!) -> Void in
         })
+        
+        opensslServer.terminate()
     }
     
     func test_listen_whenClientConnects_callsAcceptBlock()
     {
         var serverIdentity = Identity(name: "Internet Widgits Pty Ltd")
 
-        var server = TLSSocket(protocolVersion: .TLS_v1_2, isClient: false, identity: serverIdentity!)
+        var server = TLSSocket(protocolVersion: .TLS_v1_0, isClient: false, identity: serverIdentity!)
         var address = IPv4Address.localAddress()
         address.port = UInt16(12345)
         
+        var client = TLSSocket(protocolVersion: .TLS_v1_0)
+
         let expectation = self.expectationWithDescription("accept connection successfully")
         server.listen(address, acceptBlock: { (clientSocket, error) -> () in
             if clientSocket != nil {
                 expectation.fulfill()
+                client.close()
+                server.close()
             }
             else {
                 XCTFail("Connect failed")
             }
         })
         
-        var client = TLSSocket(protocolVersion: .TLS_v1_2)
-        client.connect(address, completionBlock: { (error: SocketError?) -> () in
-            println("\(error)")
-        })
+        client.connect(address) {
+            (error: SocketError?) -> () in
+            
+            if error != nil {
+                println("\(error)")
+            }
+        }
         
-        self.waitForExpectationsWithTimeout(50.0, handler: { (error : NSError!) -> Void in
-        })
+        self.waitForExpectationsWithTimeout(2.0) {
+            (error : NSError!) -> Void in
+        }
+    }
+    
+    func test_write_withDataSentOverEncryptedConnection_yieldsThatSameDataOnTheOtherEnd()
+    {
+        var serverIdentity = Identity(name: "Internet Widgits Pty Ltd")
+        
+        var server = TLSSocket(protocolVersion: .TLS_v1_0, isClient: false, identity: serverIdentity!)
+        var address = IPv4Address.localAddress()
+        address.port = UInt16(12345)
+        
+        var sentData = [UInt8]("12345678".utf8)
+        var receivedData : [UInt8]? = nil
+        
+        let expectation = self.expectationWithDescription("receive data")
+        server.listen(address) {
+            (clientSocket, error) -> () in
+            
+            if clientSocket != nil {
+                clientSocket?.read(count: 8) {
+                    (data, error) -> () in
+                    
+                    if data != nil {
+                        receivedData = data
+                    }
+                    
+                    expectation.fulfill()
+                }
+            }
+        }
+        
+        var client = TLSSocket(protocolVersion: .TLS_v1_0)
+        client.connect(address) { (error: SocketError?) -> () in
+            client.write(sentData)
+        }
+        
+        self.waitForExpectationsWithTimeout(5.0) {
+            (error : NSError!) -> Void in
+            
+            if let receivedData = receivedData {
+                XCTAssertEqual(receivedData, sentData)
+            }
+            else {
+                XCTFail("did not received data")
+            }
+        }
         
     }
+
     
 //    func test_sendDoubleClientHello__triggersAlert()
 //    {
