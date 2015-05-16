@@ -29,6 +29,11 @@ class SocketTests: XCTestCase {
         
         let expectation = self.expectationWithDescription("accept connection successfully")
         server.listen(address, acceptBlock: { (clientSocket, error) -> () in
+            if error != nil {
+                println("\(error)")
+                return
+            }
+            
             if clientSocket != nil {
                 expectation.fulfill()
             }
@@ -42,5 +47,7 @@ class SocketTests: XCTestCase {
         self.waitForExpectationsWithTimeout(50.0, handler: { (error : NSError!) -> Void in
         })
 
+        server.close()
+        client.close()
     }
 }

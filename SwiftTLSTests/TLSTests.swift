@@ -15,7 +15,7 @@ class TSLTests: XCTestCase {
     
     override func setUp() {
         super.setUp()
-//        opensslServer = NSTask.launchedTaskWithLaunchPath("/usr/bin/openssl", arguments: ["s_server",  "-cert", "SwiftTLSTests/mycert.pem", "-www",  "-debug", "-cipher", "ALL:NULL" ])
+        opensslServer = NSTask.launchedTaskWithLaunchPath("/usr/bin/openssl", arguments: ["s_server",  "-cert", "SwiftTLSTests/mycert.pem", "-www",  "-debug", "-cipher", "ALL:NULL" ])
     }
     
     override func tearDown() {

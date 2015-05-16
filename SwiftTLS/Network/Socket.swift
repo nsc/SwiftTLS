@@ -301,7 +301,13 @@ class Socket : SocketProtocol
     internal func _close()
     {
         if let socket = socketDescriptor {
+            _socketAcceptSource = nil
+            _socketConnectSource = nil
+            _socketReadSource = nil
+            _socketWriteSource = nil
+            
             Darwin.close(socket)
+            
             socketDescriptor = nil
         }
     }
