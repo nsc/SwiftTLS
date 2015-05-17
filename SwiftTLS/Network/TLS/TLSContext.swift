@@ -537,10 +537,15 @@ class TLSContext
         
         var handshakeData = [UInt8]()
         for message in self.handshakeMessages {
-            var messageBuffer = DataBuffer()
-            message.writeTo(&messageBuffer)
-            
-            handshakeData.extend(messageBuffer.buffer)
+            if let messageData = message.rawHandshakeMessageData {
+                handshakeData.extend(messageData)
+            }
+            else {
+                var messageBuffer = DataBuffer()
+                message.writeTo(&messageBuffer)
+                
+                handshakeData.extend(messageBuffer.buffer)
+            }
         }
         
         var clientHandshakeMD5  = Hash_MD5(handshakeData)

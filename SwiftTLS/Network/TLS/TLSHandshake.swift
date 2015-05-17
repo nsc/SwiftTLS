@@ -10,6 +10,8 @@ import Foundation
 
 class TLSHandshakeMessage : TLSMessage
 {
+    var rawHandshakeMessageData : [UInt8]?
+    
     var handshakeType : TLSHandshakeType {
         get {
             switch (self.type)
@@ -29,28 +31,35 @@ class TLSHandshakeMessage : TLSMessage
         if  let type = handshakeType,
             let length = bodyLength
         {
+            var message : TLSHandshakeMessage? = nil
+            
             switch (type)
             {
             case .ClientHello:
-                return TLSClientHello(inputStream: BinaryInputStream(data: data))
+                message = TLSClientHello(inputStream: BinaryInputStream(data: data))
 
             case .ServerHello:
-                return TLSServerHello(inputStream: BinaryInputStream(data: data))
+                message = TLSServerHello(inputStream: BinaryInputStream(data: data))
 
             case .Certificate:
-                return TLSCertificateMessage(inputStream: BinaryInputStream(data: data))
+                message = TLSCertificateMessage(inputStream: BinaryInputStream(data: data))
                 
             case .ServerHelloDone:
-                return TLSServerHelloDone(inputStream: BinaryInputStream(data: data))
+                message = TLSServerHelloDone(inputStream: BinaryInputStream(data: data))
 
             case .ClientKeyExchange:
-                return TLSClientKeyExchange(inputStream: BinaryInputStream(data: data))
+                message = TLSClientKeyExchange(inputStream: BinaryInputStream(data: data))
                 
             case .Finished:
-                return TLSFinished(inputStream: BinaryInputStream(data: data))
+                message = TLSFinished(inputStream: BinaryInputStream(data: data))
                 
             default:
                 fatalError("Unsupported handshake message")
+            }
+            
+            if let message = message {
+                message.rawHandshakeMessageData = data
+                return message
             }
         }
         

@@ -37,8 +37,9 @@ server.listen(address) {
         let readBlock = {
             (data : [UInt8]?, error : SocketError?) -> () in
             
-            if data != nil {
-                clientSocket?.write(data!, completionBlock: nil)
+            if var data = data {
+                println(NSString(bytesNoCopy: &data, length: data.count, encoding: NSUTF8StringEncoding, freeWhenDone: false)!)
+                clientSocket?.write(data, completionBlock: nil)
             }
             
             clientSocket?.read(count: 1024, completionBlock: recursiveBlock)

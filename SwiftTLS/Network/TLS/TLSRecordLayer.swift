@@ -151,7 +151,6 @@ class TLSRecordLayer
                 }
                 
                 var cipherText : [UInt8]
-                println("plain text record data: \(hex(plainTextRecordData))")
                 if let b = encrypt(plainTextRecordData) {
                     cipherText = b
                 }
@@ -266,9 +265,7 @@ class TLSRecordLayer
             write(macData, self.protocolVersion.rawValue)
             write(macData, UInt16(data.count))
             write(macData, data)
-            
-            println("mac data: \(hex(macData.buffer))")
-            
+                        
             return self.calculateMAC(secret: secret, data: macData.buffer, isRead: isRead)
         }
         
