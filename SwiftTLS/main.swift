@@ -10,23 +10,42 @@ import Foundation
 
 var serverIdentity = Identity(name: "Internet Widgits Pty Ltd")
 
+var port = 12345
+if Process.arguments.count >= 2 {
+    let portString = Process.arguments[1]
+    if let portNumber = portString.toInt() {
+        port = portNumber
+    }
+}
+
+println("Listening on port \(port)")
+
 var server = TLSSocket(protocolVersion: .TLS_v1_0, isClient: false, identity: serverIdentity!)
 var address = IPv4Address.localAddress()
-address.port = UInt16(12345)
+address.port = UInt16(port)
 
 server.listen(address) {
     (clientSocket, error) -> () in
     
+    if error != nil {
+        println("Error: \(error)")
+        exit(-1)
+    }
+    
     if clientSocket != nil {
-        while true {
-            clientSocket?.read(count: 1024) {
-                (data, error) -> () in
-                
-                if data != nil {
-                    clientSocket?.write(data!, completionBlock: nil)
-                }
+        var recursiveBlock : ((data : [UInt8]?, error : SocketError?) -> ())!
+        let readBlock = {
+            (data : [UInt8]?, error : SocketError?) -> () in
+            
+            if data != nil {
+                clientSocket?.write(data!, completionBlock: nil)
             }
+            
+            clientSocket?.read(count: 1024, completionBlock: recursiveBlock)
+
         }
+        recursiveBlock = readBlock
+        clientSocket?.read(count: 1024, completionBlock: readBlock)
     }
 }
 

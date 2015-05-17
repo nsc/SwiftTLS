@@ -291,24 +291,32 @@ class TLSSocket : SocketProtocol, TLSDataProvider
     func readData(#count: Int, completionBlock: ((data: [UInt8]?, error: TLSDataProviderError?) -> ()))
     {
         self.socket?.read(count: count) { (data, error) -> () in
-            // TODO: map socket errors to data provider errors
-            completionBlock(data: data, error: nil)
+            completionBlock(data: data, error: TLSDataProviderError(socketError: error))
         }
     }
     
     func writeData(data: [UInt8], completionBlock: ((TLSDataProviderError?) -> ())? = nil)
     {
         self.socket?.write(data) { (error: SocketError?) -> () in
-            // TODO: map socket errors to data provider errors
-            completionBlock?(nil)
+            completionBlock?(TLSDataProviderError(socketError: error))
         }
     }
     
     func write(data: [UInt8], completionBlock: ((SocketError?) -> ())? = nil)
     {
-        self.context.sendApplicationData(data, completionBlock: { (error : TLSDataProviderError?) -> () in
-            // TODO: map socket errors to data provider errors
-            completionBlock?(nil)
-        })
+        self.context.sendApplicationData(data) { (error : TLSDataProviderError?) -> () in
+            var socketError : SocketError? = nil
+            if let error = error {
+                switch error {
+                case .PosixError(errno):
+                    socketError = SocketError.PosixError(errno: errno)
+
+                default:
+                    break
+                }
+            }
+            
+            completionBlock?(socketError)
+        }
     }
 }

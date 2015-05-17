@@ -13,7 +13,24 @@ class TLSClientHello : TLSHandshakeMessage
     var clientVersion : TLSProtocolVersion
     var random : Random
     var sessionID : SessionID?
-    var cipherSuites : [CipherSuite]
+    var rawCipherSuites : [UInt16]
+    var cipherSuites : [CipherSuite] {
+        get {
+            var cipherSuites = [CipherSuite]()
+            for rawCipherSuite in rawCipherSuites {
+                if let cipherSuite = CipherSuite(rawValue: rawCipherSuite) {
+                    cipherSuites.append(cipherSuite)
+                }
+            }
+            
+            return cipherSuites
+        }
+        
+        set {
+            rawCipherSuites = newValue.map {$0.rawValue}
+        }
+    }
+    
     var compressionMethods : [CompressionMethod]
     
     init(clientVersion : TLSProtocolVersion, random : Random, sessionID : SessionID?, cipherSuites : [CipherSuite], compressionMethods : [CompressionMethod])
@@ -21,10 +38,12 @@ class TLSClientHello : TLSHandshakeMessage
         self.clientVersion = clientVersion
         self.random = random
         self.sessionID = sessionID
-        self.cipherSuites = cipherSuites
+        self.rawCipherSuites = []
         self.compressionMethods = compressionMethods
         
         super.init(type: .Handshake(.ClientHello))
+        
+        self.cipherSuites = cipherSuites
     }
     
     required init?(inputStream : InputStreamType)
@@ -32,7 +51,7 @@ class TLSClientHello : TLSHandshakeMessage
         var clientVersion : TLSProtocolVersion?
         var random : Random?
         var sessionID : SessionID?
-        var cipherSuites : [CipherSuite]?
+        var rawCipherSuites : [UInt16]?
         var compressionMethods : [CompressionMethod]?
         
         let (type, bodyLength) = TLSHandshakeMessage.readHeader(inputStream)
@@ -61,14 +80,9 @@ class TLSClientHello : TLSHandshakeMessage
                 }
                 
                 if  let cipherSuitesSize : UInt16 = read(inputStream),
-                    let rawCipherSuites : [UInt16] = read(inputStream, Int(cipherSuitesSize) / sizeof(UInt16))
+                    let rawCipherSuitesRead : [UInt16] = read(inputStream, Int(cipherSuitesSize) / sizeof(UInt16))
                 {
-                    cipherSuites = [CipherSuite]()
-                    for rawCipherSuite in rawCipherSuites {
-                        if let cipherSuite = CipherSuite(rawValue: rawCipherSuite) {
-                            cipherSuites!.append(cipherSuite)
-                        }
-                    }
+                    rawCipherSuites = rawCipherSuitesRead
                 }
                 
                 if  let compressionMethodsSize : UInt8 = read(inputStream),
@@ -81,13 +95,13 @@ class TLSClientHello : TLSHandshakeMessage
         
         if  let cv = clientVersion,
             let r = random,
-            let cs = cipherSuites,
+            let cs = rawCipherSuites,
             let cm = compressionMethods
         {
             self.clientVersion = cv
             self.random = r
             self.sessionID = sessionID
-            self.cipherSuites = cs
+            self.rawCipherSuites = cs
             self.compressionMethods = cm
             
             super.init(type: .Handshake(.ClientHello))
@@ -96,7 +110,7 @@ class TLSClientHello : TLSHandshakeMessage
             self.clientVersion = TLSProtocolVersion.TLS_v1_0
             self.random = Random()
             self.sessionID = nil
-            self.cipherSuites = []
+            self.rawCipherSuites = []
             self.compressionMethods = []
             
             super.init(type: .Handshake(.ClientHello))
@@ -120,8 +134,8 @@ class TLSClientHello : TLSHandshakeMessage
             write(buffer, UInt8(0))
         }
         
-        write(buffer, UInt16(cipherSuites.count * sizeof(UInt16)))
-        write(buffer, cipherSuites.map { $0.rawValue})
+        write(buffer, UInt16(rawCipherSuites.count * sizeof(UInt16)))
+        write(buffer, rawCipherSuites)
         
         write(buffer, UInt8(compressionMethods.count))
         write(buffer, compressionMethods.map { $0.rawValue})

@@ -97,7 +97,9 @@ class TSLTests: XCTestCase {
         
         var sentData = [UInt8]("12345678".utf8)
         var receivedData : [UInt8]? = nil
-        
+
+        var client = TLSSocket(protocolVersion: .TLS_v1_0)
+
         let expectation = self.expectationWithDescription("receive data")
         server.listen(address) {
             (clientSocket, error) -> () in
@@ -111,11 +113,13 @@ class TSLTests: XCTestCase {
                     }
                     
                     expectation.fulfill()
+                    
+                    client.close()
+                    server.close()
                 }
             }
         }
         
-        var client = TLSSocket(protocolVersion: .TLS_v1_0)
         client.connect(address) { (error: SocketError?) -> () in
             client.write(sentData)
         }

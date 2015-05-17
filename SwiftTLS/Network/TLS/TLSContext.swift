@@ -60,8 +60,37 @@ enum TLSContextError
 
 
 
-enum TLSDataProviderError
+enum TLSDataProviderError : Printable
 {
+    init?(socketError : SocketError?)
+    {
+        var tlsError : TLSDataProviderError? = nil
+        
+        if let error = socketError {
+            switch error {
+            case .PosixError(let errno):
+                self = TLSDataProviderError.PosixError(errno: errno)
+
+            default:
+                return nil
+            }
+        }
+        else {
+            return nil
+        }
+    }
+    
+    case PosixError(errno : Int32)
+    
+    var description : String {
+        get {
+            switch (self)
+            {
+            case let .PosixError(errno : Int32):
+                return String.fromCString(strerror(errno))!
+            }
+        }
+    }
 }
 
 
