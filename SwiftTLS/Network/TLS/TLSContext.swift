@@ -11,13 +11,15 @@ import Foundation
 enum CipherSuite : UInt16 {
     case TLS_RSA_WITH_NULL_MD5 = 1
     case TLS_RSA_WITH_NULL_SHA = 2
-    case TLS_RSA_EXPORT_WITH_RC4_40_MD5 = 3
     case TLS_RSA_WITH_RC4_128_MD5 = 4
     case TLS_RSA_WITH_RC4_128_SHA = 5
     case TLS_RSA_WITH_AES_256_CBC_SHA = 0x35
     case TLS_RSA_WITH_AES_256_CBC_SHA256 = 0x3d
+    case TLS_DHE_RSA_WITH_AES_256_CBC_SHA256 = 0x6b
+  
+    // mandatory cipher suite to be TLS compliant as of RFC 2246
+//    case TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA
 }
-
 
 
 enum CompressionMethod : UInt8 {
@@ -135,10 +137,17 @@ enum CipherAlgorithm
     case AES
 }
 
-enum CertificateCipherAlgorithm
+enum SigningCipherAlgorithm
 {
     case RSA
     case DSS
+}
+
+enum KeyExchangeAlgorithm
+{
+    case NULL
+    case DH
+    case DHE
 }
 
 enum PRFAlgorithm {

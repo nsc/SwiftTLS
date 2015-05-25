@@ -315,8 +315,6 @@ class TLSRecordLayer
         case .NULL:
             return nil
         }
-        
-        return nil
     }
 
     private func encrypt(var data : [UInt8]) -> [UInt8]?
