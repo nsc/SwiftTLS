@@ -73,6 +73,79 @@ class ASN1Tests: XCTestCase {
         }
     }
 
+    func test_parseObject_withAnOneByteIntegerEncoded_givesCorrectResult() {
+        if let value = ASN1Parser(data: [0x02, 0x01, 0x03]).parseObject() as? ASN1Integer {
+            XCTAssertTrue(value.value[0] == UInt8(3))
+            return
+        }
+        else {
+            XCTFail()
+        }
+    }
+    
+    func test_parseObject_withAnOneByteBEREncodedEncoded_givesCorrectResult() {
+        if let value = ASN1Parser(data: [0x02, 0x81, 0x01, 0x03]).parseObject() as? ASN1Integer {
+            XCTAssertTrue(value.value[0] == UInt8(3))
+            return
+        }
+        else {
+            XCTFail()
+        }
+    }
+    
+    func test_parseObject_withDEREncodedBitString1_givesCorrectResult() {
+        if let value = ASN1Parser(data: [0x03, 0x04, 0x06, 0x6e, 0x5d, 0xc0]).parseObject() as? ASN1BitString {
+            XCTAssertTrue(value.unusedBits == 6)
+            XCTAssertTrue(value.bitValue[0] == 0b011011100101110111)
+            return
+        }
+        else {
+            XCTFail()
+        }
+    }
+    
+    func test_parseObject_withDEREncodedBitString2_givesCorrectResult() {
+        if let value = ASN1Parser(data: [0x03, 0x0b, 0x01, 0x27, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x27]).parseObject() as? ASN1BitString {
+            XCTAssertTrue(value.unusedBits == 1)
+            var bitValue = value.bitValue
+            XCTAssertTrue(bitValue[0] == 0x1391)
+            XCTAssertTrue(UInt64(bitValue[1]) == 0x9191919191919193 as UInt64)
+            return
+        }
+        else {
+            XCTFail()
+        }
+    }
+
+    func test_parseObject_withDEREncodedBitString3_givesCorrectResult() {
+        if let value = ASN1Parser(data: [0x03, 0x11, 0x00, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf1, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x12]).parseObject() as? ASN1BitString {
+            XCTAssertTrue(value.unusedBits == 0)
+            var bitValue = value.bitValue
+            XCTAssertTrue(bitValue[0] == 0x123456789abcdef1)
+            XCTAssertTrue(bitValue[1] == 0x23456789abcdef12)
+            return
+        }
+        else {
+            XCTFail()
+        }
+    }
+
+    func test_parseObject_withBERConstructedEncodedBitString_givesCorrectResult() {
+        if let value = ASN1Parser(data: [0x03, 0x11, 0x00, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf1, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x12]).parseObject() as? ASN1BitString {
+            XCTAssertTrue(value.unusedBits == 0)
+            var bitValue = value.bitValue
+            XCTAssertTrue(bitValue[0] == 0x123456789abcdef1)
+            XCTAssertTrue(bitValue[1] == 0x23456789abcdef12)
+            return
+        }
+        else {
+            XCTFail()
+        }
+    }
+
+
+
+
     func testPerformanceExample() {
         // This is an example of a performance test case.
         self.measureBlock() {

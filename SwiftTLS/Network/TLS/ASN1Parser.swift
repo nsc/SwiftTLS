@@ -82,6 +82,37 @@ class ASN1BitString : ASN1Object
     var unusedBits : Int
     var value : [UInt8]
     
+    var bitValue : [UInt] {
+        let size = sizeof(UInt)
+        var values : [UInt] = []
+        
+        var unusedBits : UInt = UInt(self.unusedBits)
+        let lowerBitsMask : UInt = (1 << unusedBits) - 1
+        let numValues = self.value.count
+        var v : UInt = 0
+        var lengthOfMostSignificantValueInBytes = self.value.count % size
+        
+        var i : Int
+        for i = 0; i < numValues;  ++i {
+            var b = UInt(self.value[i])
+            v += b >> unusedBits
+            
+            if (i + 1) % size == lengthOfMostSignificantValueInBytes {
+                values.append(v)
+                v = 0
+            }
+            v = v << 8
+            v += (b & lowerBitsMask) << (8 - unusedBits)
+            
+        }
+
+        if i % size != lengthOfMostSignificantValueInBytes {
+            values.append(v)
+        }
+        
+        return values
+    }
+    
     init(unusedBits: Int, data : [UInt8])
     {
         self.unusedBits = unusedBits

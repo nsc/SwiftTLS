@@ -64,4 +64,5 @@ class BigIntTests: XCTestCase {
         
         XCTAssert(c == BigInt([0x7de6f837e28f8dbb, 0xf7264917def73efd], negative: true))
     }
+    
 }
