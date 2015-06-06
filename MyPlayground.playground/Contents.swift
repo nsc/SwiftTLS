@@ -30,3 +30,29 @@ var d = Derived(a:1)
 let type = d.dynamicType
 type(a: 2)
 
+
+var n0 = UInt64(0x123456789abcdef0)
+var n = n0 + n0
+
+
+class A
+{
+    var a : Int64
+    
+    init(_ a : Int64)
+    {
+        self.a = a
+    }
+    
+    init<T where T : IntegerType>(_ a : T)
+    {
+        self.a = a.toIntMax()
+    }
+}
+
+func ==(lhs : A, rhs : A) -> Bool
+{
+    return lhs.a == rhs.a
+}
+
+A(1) == A(1)

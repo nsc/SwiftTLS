@@ -25,14 +25,14 @@ struct BigInt {
         sign = a < 0
     }
 
-    init(_ a : UInt) {
+    init<T where T : UnsignedIntegerType>(_ a : T) {
         if a == 0 {
             parts = []
             sign = false
             return
         }
         
-        parts = [PrimitiveType(a)]
+        parts = [PrimitiveType(a.toUIntMax())]
         sign = false
     }
 
@@ -42,10 +42,57 @@ struct BigInt {
         sign = false
     }
     
-    init(_ parts : [PrimitiveType], negative: Bool = false) {
-        self.parts = parts
+    init<T where T : UnsignedIntegerType>(_ parts : [T], negative: Bool = false)
+    {
+        let numberInPrimitiveType = sizeof(PrimitiveType)/sizeof(T)
+        
+        if numberInPrimitiveType == 1 {
+            self.parts = unsafeBitCast(parts, [PrimitiveType].self)
+            self.sign = negative
+            return
+        }
+        
+        var number = [PrimitiveType](count: parts.count / numberInPrimitiveType + ((parts.count % sizeof(PrimitiveType) == 0) ? 0 : 1), repeatedValue: 0)
+        var index = 0
+        var numberIndex = 0
+        var n : PrimitiveType = 0
+        var a : T
+        
+        var numberOfFirstParts = parts.count % numberInPrimitiveType
+        
+        for a in parts
+        {
+            n = n << PrimitiveType(sizeof(T) * 8)
+            n = n + a.toUIntMax()
+            
+            if numberOfFirstParts != 0 && (index + 1) == numberOfFirstParts
+            {
+                number[numberIndex] = n
+                index = 0
+                n = 0
+                numberOfFirstParts = 0
+                numberIndex += 1
+            }
+            else if index + 1 % numberInPrimitiveType == 0
+            {
+                number[numberIndex] = n
+                index = 0
+                n = 0
+                numberIndex += 1
+            }
+            else {
+                index += 1
+            }
+        }
+        
+        if n != 0 {
+            number[numberIndex] = n
+        }
+        
+        self.parts = number
         sign = negative
     }
+    
 }
 
 func +(var a : BigInt, var b : BigInt) -> BigInt
