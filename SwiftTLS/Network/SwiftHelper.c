@@ -16,4 +16,3 @@ int NSC_setFileFlags(int fd, int flags) {
 int NSC_getFileFlags(int fd) {
     return fcntl(fd, F_GETFL, 0);
 }
-

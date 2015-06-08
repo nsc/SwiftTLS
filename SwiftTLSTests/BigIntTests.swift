@@ -69,22 +69,94 @@ class BigIntTests: XCTestCase {
     
         var a = BigInt([UInt8]([0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0, 0x21, 0x34]))
         
-        XCTAssert(a == BigInt([0x1234, 0x56789abcdef02134] as [UInt64]))
+        XCTAssert(a == BigInt(hexString: "123456789abcdef02134")!)
     }
     
     func test_init_withUInt16Array_givesCorrectResult() {
         
         var a = BigInt([UInt16]([0x1234, 0x5678, 0x9abc, 0xdef0, 0x2134]))
         
-        XCTAssert(a == BigInt([0x1234, 0x56789abcdef02134] as [UInt64]))
+        XCTAssert(a == BigInt(hexString: "123456789abcdef02134")!)
     }
 
     func test_init_withUInt32Array_givesCorrectResult() {
         
         var a = BigInt([UInt32]([0x1234, 0x56789abc, 0xdef02134]))
         
-        XCTAssert(a == BigInt([0x1234, 0x56789abcdef02134] as [UInt64]))
+        XCTAssert(a == BigInt(hexString: "123456789abcdef02134")!)
+    }
+
+    func test_init_withUInt64Array_givesCorrectResult() {
+        
+        var a = BigInt([UInt64]([0x1234, 0x56789abcdef02134]))
+        
+        XCTAssert(a == BigInt(hexString: "123456789abcdef02134")!)
+    }
+
+    func test_init_withHexString_givesCorrectResult() {
+        
+        var a = BigInt(hexString: "1234567890abcdefABCDEF")
+        
+        XCTAssert(a! == BigInt([0x123456, 0x7890abcdefABCDEF] as [UInt64]))
+    }
+
+    func test_init_withSomeHexString_givesCorrectResult() {
+        
+        var a = BigInt(hexString: "ffffffff12365981274ffffff1231265123ff")
+        
+        XCTAssert(a! == BigInt([0xfffff, 0xfff12365981274ff, 0xffff1231265123ff] as [UInt64]))
     }
 
     
+    func test_toString__givesCorrectResult()
+    {
+        var hexString = "1234567890abcdefABCDEF"
+        var a = BigInt(hexString: hexString)!
+        
+        XCTAssert(hexString.lowercaseString == toString(a).lowercaseString)
+    }
+    
+    func BIGNUM_multiply(var a : String, var _ b : String) -> String
+    {
+        var an = BN_new()
+        BN_hex2bn(&an, a)
+
+        var bn = BN_new()
+        BN_hex2bn(&bn, b)
+
+        var context = BN_CTX_new()
+        var result = BN_new()
+        var r = BN_mul(result, an, bn, context)
+        
+        return String.fromCString(BN_bn2hex(result))!
+    }
+    
+    func test_multiply_aNumberWithItself_givesCorrectResult()
+    {
+        var hexString = "123456789abcdef02134"
+        var n = BigInt(hexString: hexString)!
+        var nSquared = n * n
+        
+        var s = BIGNUM_multiply(hexString, hexString)
+        
+        var nString = nSquared.toString()
+        
+        XCTAssert(nString.lowercaseString == s.lowercaseString)
+    }
+    
+    func test_multiply_twoNumbers_givesCorrectResult()
+    {
+        var aHex = "ffffffff12365981274ffffff1231265123ff"
+        var bHex = "ffffffff26265235ffffff232323f23f23f232323f3243243f"
+        var a = BigInt(hexString: aHex)!
+        var b = BigInt(hexString: bHex)!
+        var product = a * b
+        
+        var s = BIGNUM_multiply(aHex, bHex)
+        
+        var productHex = product.toString()
+        
+        XCTAssert(productHex.lowercaseString == s.lowercaseString)
+    }
+
 }

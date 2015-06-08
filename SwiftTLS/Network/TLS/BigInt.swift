@@ -36,6 +36,12 @@ struct BigInt {
         sign = false
     }
 
+    init(count: Int)
+    {
+        parts = [PrimitiveType](count:count, repeatedValue: 0)
+        sign = false
+    }
+    
     init(capacity: Int) {
         parts = [PrimitiveType]()
         parts.reserveCapacity(capacity)
@@ -73,7 +79,7 @@ struct BigInt {
                 numberOfFirstParts = 0
                 numberIndex += 1
             }
-            else if index + 1 % numberInPrimitiveType == 0
+            else if (index + 1) % numberInPrimitiveType == 0
             {
                 number[numberIndex] = n
                 index = 0
@@ -93,6 +99,72 @@ struct BigInt {
         sign = negative
     }
     
+    init?(var hexString : String)
+    {
+        var bytes = [UInt8]()
+        var bytesLeft = count(hexString.utf8)
+        var byte : UInt8 = 0
+        for c in hexString.utf8
+        {
+            var a : UInt8
+            switch (c)
+            {
+            case 0x30...0x39: // '0'...'9'
+                a = c - 0x30
+                
+            case 0x41...0x46: // 'A'...'F'
+                a = c - 0x41 + 0x0a
+
+            case 0x61...0x66: // 'a'...'f'
+                a = c - 0x61 + 0x0a
+
+            default:
+                return nil
+            }
+            
+            byte = byte << 4 + a
+            
+            if bytesLeft & 0x1 == 1 {
+                bytes.append(byte)
+            }
+            
+            bytesLeft -= 1
+        }
+        
+        self.init(bytes)
+    }
+    
+    func toString() -> String
+    {
+        var s = ""
+        var onlyZeroesYet = true
+        for part in self.parts
+        {
+            var c : UInt8
+            
+            var mask = 0xff00000000000000 as UInt64
+            var shift = 56
+            for var i = 0; i < 8; ++i
+            {
+                c = UInt8((part & mask) >> UInt64(shift))
+                if !onlyZeroesYet || c != 0 {
+                    s += hexString(c)
+                    onlyZeroesYet = false
+                }
+                
+                mask = mask >> 8
+                shift = shift - 8
+            }
+        }
+        
+        return s
+    }
+
+}
+
+func toString(x : BigInt) -> String
+{
+    return x.toString()
 }
 
 func +(var a : BigInt, var b : BigInt) -> BigInt
@@ -204,52 +276,55 @@ func -(var a : BigInt, var b : BigInt) -> BigInt
     return v
 }
 
-//func *(var a : BigInt, var b : BigInt) -> BigInt
-//{
-//    var carry  = BigInt(0);
-//    var result = BigInt(0);
-//    
-//    let aCount = a.parts.count;
-//    let bCount = b.parts.count;
-//    for var i = 0; i < aCount; ++i {
-//       
-//        var carry       : UInt64 = 0
-//        var overflow    : Bool
-//        
-//        for var j = 0; j < bCount; ++j {
-//
-//            var lo      : UInt64 = 0
-//            var hi      : UInt64 = 0
-//
-//            if carry != 0 {
-//                carry = 0
-//                (result.parts[i + j], overflow) = BigInt.PrimitiveType.addWithOverflow(result.parts[i + j], carry)
-//            }
-//            
-//            NSC_multiply64(UInt64(a.parts[i]), UInt64(b.parts[j]), &lo, &hi)
-//            
-//            if lo == 0 && hi == 0 {
-//                continue
-//            }
-//            
-//            (result.parts[i + j], overflow) = BigInt.PrimitiveType.addWithOverflow(result.parts[i + j], lo)
-//
-//            if overflow {
-//                (hi, overflow) = BigInt.PrimitiveType.addWithOverflow(hi, 1)
-//                if overflow {
-//                    carry = 1
-//                }
-//                else {
-//                    (result.parts[i + j + 1], overflow) = BigInt.PrimitiveType.addWithOverflow(result.parts[i + j + 1], hi)
-//                    if overflow {
-//                        carry = 1
-//                    }
-//                }
-//            }
-//        }
-//    }
-//    
-//}
+func *(var a : BigInt, var b : BigInt) -> BigInt
+{
+    var carry  = BigInt(0);
+    
+    let aCount = a.parts.count;
+    let bCount = b.parts.count;
+    let resultCount = aCount + bCount
+
+    var result = BigInt(count: resultCount)
+    
+    for var i = aCount - 1; i >= 0; --i {
+       
+        var overflow    : Bool
+        
+        for var j = bCount - 1; j >= 0; --j {
+
+            var lo      : UInt64 = 0
+            var hi      : UInt64 = 0
+
+            NSC_multiply64(UInt64(a.parts[i]), UInt64(b.parts[j]), &lo, &hi)
+            
+            if lo == 0 && hi == 0 {
+                continue
+            }
+            
+            (result.parts[i + j + 1], overflow) = BigInt.PrimitiveType.addWithOverflow(result.parts[i + j + 1], lo)
+
+            if overflow {
+                hi += 1
+            }
+            
+            var temp = hi
+            var index = i + j
+            while true {
+                (result.parts[index], overflow) = BigInt.PrimitiveType.addWithOverflow(result.parts[index], temp)
+                if overflow {
+                    temp = 1
+                    index -= 1
+                }
+                else {
+                    break
+                }
+            }
+        }
+    }
+
+    return result
+}
+
 
 func ==(lhs : BigInt, rhs : BigInt) -> Bool
 {

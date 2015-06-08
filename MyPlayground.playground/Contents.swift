@@ -56,3 +56,10 @@ func ==(lhs : A, rhs : A) -> Bool
 }
 
 A(1) == A(1)
+
+
+var s = "0123456789abcdef"
+
+for c in s.utf8 {
+    c
+}

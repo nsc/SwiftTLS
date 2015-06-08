@@ -10,4 +10,6 @@
 #import <sys/socket.h>
 #import <CommonCrypto/CommonCrypto.h>
 
+#import "openssl/bn.h"
+
 #import "SwiftHelper.h"

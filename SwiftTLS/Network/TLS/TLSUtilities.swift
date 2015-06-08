@@ -8,6 +8,53 @@
 
 import Foundation
 
+func hexDigit(d : UInt8) -> String
+{
+    switch (d & 0xf)
+    {
+    case 0:
+        return "0"
+    case 1:
+        return "1"
+    case 2:
+        return "2"
+    case 3:
+        return "3"
+    case 4:
+        return "4"
+    case 5:
+        return "5"
+    case 6:
+        return "6"
+    case 7:
+        return "7"
+    case 8:
+        return "8"
+    case 9:
+        return "9"
+    case 0xa:
+        return "A"
+    case 0xb:
+        return "B"
+    case 0xc:
+        return "C"
+    case 0xd:
+        return "D"
+    case 0xe:
+        return "E"
+    case 0xf:
+        return "F"
+        
+    default:
+        return "0"
+    }
+}
+
+func hexString(c : UInt8) -> String
+{
+    return hexDigit((c & 0xf0) >> 4) + hexDigit(c & 0xf)
+}
+
 func hex(data : [UInt8]) -> String
 {
     var s = ""
