@@ -86,15 +86,15 @@ class ASN1BitString : ASN1Object
         let size = sizeof(UInt)
         var values : [UInt] = []
         
-        var unusedBits : UInt = UInt(self.unusedBits)
+        let unusedBits : UInt = UInt(self.unusedBits)
         let lowerBitsMask : UInt = (1 << unusedBits) - 1
         let numValues = self.value.count
         var v : UInt = 0
-        var lengthOfMostSignificantValueInBytes = self.value.count % size
+        let lengthOfMostSignificantValueInBytes = self.value.count % size
         
         var i : Int
         for i = 0; i < numValues;  ++i {
-            var b = UInt(self.value[i])
+            let b = UInt(self.value[i])
             v += b >> unusedBits
             
             if (i + 1) % size == lengthOfMostSignificantValueInBytes {
@@ -194,21 +194,22 @@ class ASN1Parser
     
     init?(PEMFile : String)
     {
-        if let base64string = NSString(contentsOfFile: PEMFile, encoding: NSUTF8StringEncoding, error: nil) {
+        do {
+            let base64string = try NSString(contentsOfFile: PEMFile, encoding: NSUTF8StringEncoding)
             var range = base64string.rangeOfString("-----BEGIN")
             var rangeOfBase64Block = NSRange()
             if range.location != NSNotFound {
-                var eol = base64string.rangeOfString("\n", options: NSStringCompareOptions(0), range: NSRange(location: range.location, length: base64string.length - range.location))
+                let eol = base64string.rangeOfString("\n", options: NSStringCompareOptions(rawValue: 0), range: NSRange(location: range.location, length: base64string.length - range.location))
                 rangeOfBase64Block.location = eol.location + 1
                 
                 range = base64string.rangeOfString("-----END",
-                    options: NSStringCompareOptions(0),
+                    options: NSStringCompareOptions(rawValue: 0),
                     range: NSRange(location: rangeOfBase64Block.location, length: base64string.length - rangeOfBase64Block.location))
                 
                 if range.location != NSNotFound {
                     rangeOfBase64Block.length = range.location - 1 - rangeOfBase64Block.location
                     
-                    var base64 = base64string.substringWithRange(rangeOfBase64Block)
+                    let base64 = base64string.substringWithRange(rangeOfBase64Block)
                     if let data = NSData(base64EncodedString:base64, options: .IgnoreUnknownCharacters) {
                         
                         self.data = [UInt8](UnsafeBufferPointer<UInt8>(start: UnsafePointer<UInt8>(data.bytes), count: data.length))
@@ -217,6 +218,7 @@ class ASN1Parser
                     }
                 }
             }
+        } catch _ {
         }
         
         self.data = []
@@ -239,12 +241,11 @@ class ASN1Parser
     
     func parseObject() -> ASN1Object?
     {
-        var object : ASN1Object? = nil
         if let t = self._data(cursor..<cursor+1) {
             var type = t[0]
             cursor += 1
             
-            let constructed = type & ASN1_CONSTRUCTED != 0
+//            let constructed = type & ASN1_CONSTRUCTED != 0
             let contextSpecific = (type & ASN1_CLASS_MASK) == ASN1Class.CONTEXT_SPECIFIC.rawValue
             
             type = type & ASN1_LOW_TAG_TYPE_MASK
@@ -319,8 +320,8 @@ class ASN1Parser
                     case .OBJECT_IDENTIFIER:
                         if let data = self._data(cursor..<cursor + contentLength) {
                             var identifier = [Int]()
-                            var v1 = Int(data[0]) % 40
-                            var v0 = (Int(data[0]) - v1) / 40
+                            let v1 = Int(data[0]) % 40
+                            let v0 = (Int(data[0]) - v1) / 40
                             identifier.append(v0)
                             identifier.append(v1)
                             
@@ -342,7 +343,7 @@ class ASN1Parser
                         
                     case .SEQUENCE:
                         var objects : [ASN1Object] = []
-                        var end = self.cursor + contentLength
+                        let end = self.cursor + contentLength
                         while true {
                             if self.cursor == end {
                                 break
@@ -359,7 +360,7 @@ class ASN1Parser
                      
                     case .SET:
                         var objects : [ASN1Object] = []
-                        var end = self.cursor + contentLength
+                        let end = self.cursor + contentLength
                         while true {
                             if self.cursor == end {
                                 break
@@ -400,13 +401,13 @@ class ASN1Parser
                         object = ASN1Object()
                         self.cursor += contentLength
                         
-                        println("Error: unhandled ASN1 tag \(type)")
+                        print("Error: unhandled ASN1 tag \(type)")
                     }
                     
                     return object
                 }
                 else {
-                    println("Error: unknown ASN1 tag \(type)")
+                    print("Error: unknown ASN1 tag \(type)")
                     return nil
                 }
             }
@@ -417,67 +418,67 @@ class ASN1Parser
 
 }
 
-func ASN1_print_recursive(object: ASN1Object, var depth : Int = 0)
+func ASN1_print_recursive(object: ASN1Object, depth : Int = 0)
 {
     for var i = 0; i < depth; ++i {
-        print("    ")
+        print("    ", appendNewline: false)
     }
     
     switch object
     {
     case let object as ASN1TaggedObject:
         
-        print("[\(object.tag)]")
+        print("[\(object.tag)]", appendNewline: false)
         ASN1_print_recursive(object.taggedObject, depth: depth + 1)
 
     case let object as ASN1Boolean:
-        println("BOOLEAN " + (object.value ? "true" : "false"))
+        print("BOOLEAN " + (object.value ? "true" : "false"))
 
     case let object as ASN1Integer:
-        println("INTEGER (\(hex(object.value)))")
+        print("INTEGER (\(hex(object.value)))")
 
     case let object as ASN1BitString:
-        println("BIT STRING (\(hex(object.value)))")
+        print("BIT STRING (\(hex(object.value)))")
 
     case let object as ASN1OctetString:
-        println("OCTET STRING (\(hex(object.value)))")
+        print("OCTET STRING (\(hex(object.value)))")
 
     case let object as ASN1Null:
-        println("NULL")
+        print("NULL")
         
     case let object as ASN1ObjectIdentifier:
         
-        print("OBJECT IDENTIFIER ")
+        print("OBJECT IDENTIFIER ", appendNewline: false)
         for var i = 0; i < object.identifier.count; ++i {
             if i != object.identifier.count - 1 {
-                print("\(object.identifier[i]).")
+                print("\(object.identifier[i]).", appendNewline: false)
             }
             else {
-                print("\(object.identifier[i])")
+                print("\(object.identifier[i])", appendNewline: false)
             }
         }
-        println()
+        print("")
 
     case let object as ASN1PrintableString:
-        println("PrintableString \(object.string)")
+        print("PrintableString \(object.string)")
 
     case let object as ASN1Sequence:
-        println("SEQUENCE (\(object.objects.count) objects)")
+        print("SEQUENCE (\(object.objects.count) objects)")
         for o in object.objects {
             ASN1_print_recursive(o, depth: depth + 1)
         }
 
     case let object as ASN1Set:
-        println("SET (\(object.objects.count) objects)")
+        print("SET (\(object.objects.count) objects)")
         for o in object.objects {
             ASN1_print_recursive(o, depth: depth + 1)
         }
 
     case let object as ASN1UTCTime:
-        println("UTCTIME \(object.string)")
+        print("UTCTIME \(object.string)")
         
     default:
-        println()
+        print("")
         break
     }
 }

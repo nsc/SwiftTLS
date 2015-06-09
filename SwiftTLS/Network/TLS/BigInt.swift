@@ -62,7 +62,6 @@ struct BigInt {
         var index = 0
         var numberIndex = 0
         var n : PrimitiveType = 0
-        var a : T
         
         var numberOfFirstParts = parts.count % numberInPrimitiveType
         
@@ -99,10 +98,10 @@ struct BigInt {
         sign = negative
     }
     
-    init?(var hexString : String)
+    init?(hexString : String)
     {
         var bytes = [UInt8]()
-        var bytesLeft = count(hexString.utf8)
+        var bytesLeft = hexString.utf8.count
         var byte : UInt8 = 0
         for c in hexString.utf8
         {
@@ -178,7 +177,7 @@ func +(var a : BigInt, var b : BigInt) -> BigInt
         }
     }
     
-    var count = max(a.parts.count, b.parts.count)
+    let count = max(a.parts.count, b.parts.count)
     var v = BigInt(capacity: count)
     v.sign = a.sign
     
@@ -235,7 +234,7 @@ func -(var a : BigInt, var b : BigInt) -> BigInt
         return -(b - a)
     }
     
-    var count = max(a.parts.count, b.parts.count)
+    let count = max(a.parts.count, b.parts.count)
     var v = BigInt(capacity: count)
 
     var carry : BigInt.PrimitiveType = 0
@@ -278,8 +277,6 @@ func -(var a : BigInt, var b : BigInt) -> BigInt
 
 func *(var a : BigInt, var b : BigInt) -> BigInt
 {
-    var carry  = BigInt(0);
-    
     let aCount = a.parts.count;
     let bCount = b.parts.count;
     let resultCount = aCount + bCount

@@ -23,14 +23,14 @@ class SocketTests: XCTestCase {
 
     func test_listen_whenClientConnects_callsAcceptBlock()
     {
-        var server = TCPSocket()
-        var address = IPv4Address.localAddress()
+        let server = TCPSocket()
+        let address = IPv4Address.localAddress()
         address.port = UInt16(12345)
         
         let expectation = self.expectationWithDescription("accept connection successfully")
         server.listen(address, acceptBlock: { (clientSocket, error) -> () in
             if error != nil {
-                println("\(error)")
+                print("\(error)")
                 return
             }
             
@@ -39,12 +39,12 @@ class SocketTests: XCTestCase {
             }
         })
         
-        var client = TCPSocket()
+        let client = TCPSocket()
         client.connect(address, completionBlock: { (error: SocketError?) -> () in
-            println("\(error)")
+            print("\(error)")
         })
         
-        self.waitForExpectationsWithTimeout(50.0, handler: { (error : NSError!) -> Void in
+        self.waitForExpectationsWithTimeout(50.0, handler: { (error : NSError?) -> Void in
         })
 
         server.close()

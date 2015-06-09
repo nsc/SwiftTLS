@@ -14,7 +14,7 @@ class Certificate
     
     var data : [UInt8] {
         get {
-            var data = SecCertificateCopyData(self.certificate).takeRetainedValue() as NSData
+            let data = SecCertificateCopyData(self.certificate).takeRetainedValue() as NSData
             var buffer = [UInt8](count: data.length, repeatedValue: 0)
             data.getBytes(&buffer, length: data.length)
             
@@ -25,13 +25,13 @@ class Certificate
     var commonName : String? {
         get {
             var ptr : Unmanaged<CFString>? = nil
-            var status = SecCertificateCopyCommonName(certificate, &ptr)
+            let status = SecCertificateCopyCommonName(certificate, &ptr)
             if status != noErr {
                 return nil
             }
 
             if let commonName = ptr?.takeRetainedValue() {
-                return commonName as? String
+                return commonName as String
             }
             
             return nil
@@ -42,13 +42,13 @@ class Certificate
         get {
             
             var err : OSStatus = 0
-            var publicKeyFromTrust : SecKey? = nil
+            var publicKeyFromTrust : SecKey?
             
             var ptr : Unmanaged<SecKey>? = nil
 
-            var status = SecCertificateCopyPublicKey(self.certificate, &ptr)
+            SecCertificateCopyPublicKey(self.certificate, &ptr)
             
-            var policy = SecPolicyCreateBasicX509().takeRetainedValue()
+            let policy = SecPolicyCreateBasicX509().takeRetainedValue()
             
             var trustPtr : Unmanaged<SecTrust>? = nil
             
@@ -83,9 +83,9 @@ class Certificate
         self.certificate = certificate
     }
     
-    init?(var certificateData : NSData)
+    init?(certificateData : NSData)
     {
-        var unmanagedCert = SecCertificateCreateWithData(kCFAllocatorDefault, certificateData)
+        let unmanagedCert = SecCertificateCreateWithData(kCFAllocatorDefault, certificateData)
         if let cert = unmanagedCert?.takeRetainedValue() {
             self.certificate = cert
         }
@@ -97,7 +97,7 @@ class Certificate
 
     convenience init?(var certificateData : [UInt8])
     {
-        var data = NSData(bytesNoCopy: &certificateData, length: certificateData.count, freeWhenDone: false)
+        let data = NSData(bytesNoCopy: &certificateData, length: certificateData.count, freeWhenDone: false)
         self.init(certificateData: data)
     }
 }

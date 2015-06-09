@@ -20,7 +20,7 @@ class TLSCertificateMessage : TLSHandshakeMessage
             }
             
             let certificate = certificates[0]
-            println("\(certificate.commonName)")
+            print("\(certificate.commonName)")
             return certificate.publicKey
         }
     }
@@ -36,32 +36,32 @@ class TLSCertificateMessage : TLSHandshakeMessage
     {
         var certificates : [Certificate]?
         
-        let (type, bodyLength) = TLSHandshakeMessage.readHeader(inputStream)
+        let (type, _) = TLSHandshakeMessage.readHeader(inputStream)
         
         if let t = type {
             if t == TLSHandshakeType.Certificate {
-                if let header : [UInt8] = read(inputStream, 3) {
-                    var a = header[0]
-                    var b = header[1]
-                    var c = header[2]
-                    var bytesForCertificates = Int(UInt32(a) << 16 + UInt32(b) << 8 + UInt32(c))
+                if let header : [UInt8] = read(inputStream, length: 3) {
+                    let a = UInt32(header[0])
+                    let b = UInt32(header[1])
+                    let c = UInt32(header[2])
+                    let bytesForCertificates = Int(a << 16 + b << 8 + c)
                     
                     certificates = []
                     
                     while bytesForCertificates > 0 {
-                        if let certHeader : [UInt8] = read(inputStream, 3) {
-                            var a = certHeader[0]
-                            var b = certHeader[1]
-                            var c = certHeader[2]
-                            var bytesForCertificate = Int(UInt32(a) << 16 + UInt32(b) << 8 + UInt32(c))
+                        if let certHeader : [UInt8] = read(inputStream, length: 3) {
+                            let a = UInt32(certHeader[0])
+                            let b = UInt32(certHeader[1])
+                            let c = UInt32(certHeader[2])
+                            var bytesForCertificate = Int(a << 16 + b << 8 + c)
                         
-                            var data : [UInt8]? = read(inputStream, bytesForCertificate)
+                            let data : [UInt8]? = read(inputStream, length: bytesForCertificate)
                             
                             if let d = data {
-                                var certificate = Certificate(certificateData: d)
+                                let certificate = Certificate(certificateData: d)
                                 if let cert = certificate {
                                     certificates!.append(cert)
-                                    println("common name: \(cert.commonName)")
+                                    print("common name: \(cert.commonName)")
                                 }
                             }
                             
@@ -91,19 +91,19 @@ class TLSCertificateMessage : TLSHandshakeMessage
 
     override func writeTo<Target : OutputStreamType>(inout target: Target)
     {
-        var buffer = DataBuffer()
+        let buffer = DataBuffer()
         
         for certificate in self.certificates {
-            var certificateData = certificate.data
-            writeUInt24(buffer, certificateData.count)
-            write(buffer, certificateData)
+            let certificateData = certificate.data
+            writeUInt24(buffer, value: certificateData.count)
+            write(buffer, data: certificateData)
         }
         
-        var data = buffer.buffer
+        let data = buffer.buffer
 
         let bodyLength = data.count + 3 // add 3 bytes for the 24 bit length of the certifacte data below
         self.writeHeader(type: .Certificate, bodyLength: bodyLength, target: &target)
-        writeUInt24(target, data.count)
-        write(target, data)
+        writeUInt24(target, value: data.count)
+        write(target, data: data)
     }
 }

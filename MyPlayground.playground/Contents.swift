@@ -1,8 +1,9 @@
 //: Playground - noun: a place where people can play
+//: Playground - noun: a place where people can play
 
 import Cocoa
 
-var data = NSData(base64EncodedString: "ZMOP1NFa5VKTQ8I2awGXDjzKP+686eujiangAgf5N+Q=", options: NSDataBase64DecodingOptions(0))
+var data = NSData(base64EncodedString: "ZMOP1NFa5VKTQ8I2awGXDjzKP+686eujiangAgf5N+Q=", options: NSDataBase64DecodingOptions(rawValue: 0))
 
 var a = [UInt8](count: data!.length, repeatedValue: 0)
 data?.getBytes(&a, length: a.count)
@@ -55,11 +56,4 @@ func ==(lhs : A, rhs : A) -> Bool
     return lhs.a == rhs.a
 }
 
-A(1) == A(1)
-
-
-var s = "0123456789abcdef"
-
-for c in s.utf8 {
-    c
-}
+A(1) =

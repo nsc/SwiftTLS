@@ -54,7 +54,7 @@ class TLSClientHello : TLSHandshakeMessage
         var rawCipherSuites : [UInt16]?
         var compressionMethods : [CompressionMethod]?
         
-        let (type, bodyLength) = TLSHandshakeMessage.readHeader(inputStream)
+        let (type, _) = TLSHandshakeMessage.readHeader(inputStream)
         
         if let t = type {
             if t == TLSHandshakeType.ClientHello {
@@ -73,20 +73,20 @@ class TLSClientHello : TLSHandshakeMessage
                 
                 if  let sessionIDSize : UInt8 = read(inputStream) {
                     if sessionIDSize > 0 {
-                        if let rawSessionID : [UInt8] = read(inputStream, Int(sessionIDSize)) {
+                        if let rawSessionID : [UInt8] = read(inputStream, length: Int(sessionIDSize)) {
                             sessionID = SessionID(sessionID: rawSessionID)
                         }
                     }
                 }
                 
                 if  let cipherSuitesSize : UInt16 = read(inputStream),
-                    let rawCipherSuitesRead : [UInt16] = read(inputStream, Int(cipherSuitesSize) / sizeof(UInt16))
+                    let rawCipherSuitesRead : [UInt16] = read(inputStream, length: Int(cipherSuitesSize) / sizeof(UInt16))
                 {
                     rawCipherSuites = rawCipherSuitesRead
                 }
                 
                 if  let compressionMethodsSize : UInt8 = read(inputStream),
-                    let rawCompressionMethods : [UInt8] = read(inputStream, Int(compressionMethodsSize))
+                    let rawCompressionMethods : [UInt8] = read(inputStream, length: Int(compressionMethodsSize))
                 {
                     compressionMethods = rawCompressionMethods.map {CompressionMethod(rawValue: $0)!}
                 }
@@ -123,7 +123,7 @@ class TLSClientHello : TLSHandshakeMessage
     {
         var buffer = DataBuffer()
         
-        write(buffer, clientVersion.rawValue)
+        write(buffer, data: clientVersion.rawValue)
         
         random.writeTo(&buffer)
         
@@ -131,18 +131,18 @@ class TLSClientHello : TLSHandshakeMessage
             session_id.writeTo(&buffer)
         }
         else {
-            write(buffer, UInt8(0))
+            write(buffer, data: UInt8(0))
         }
         
-        write(buffer, UInt16(rawCipherSuites.count * sizeof(UInt16)))
-        write(buffer, rawCipherSuites)
+        write(buffer, data: UInt16(rawCipherSuites.count * sizeof(UInt16)))
+        write(buffer, data: rawCipherSuites)
         
-        write(buffer, UInt8(compressionMethods.count))
-        write(buffer, compressionMethods.map { $0.rawValue})
+        write(buffer, data: UInt8(compressionMethods.count))
+        write(buffer, data: compressionMethods.map { $0.rawValue})
         
-        var data = buffer.buffer
+        let data = buffer.buffer
         
         self.writeHeader(type: .ClientHello, bodyLength: data.count, target: &target)
-        write(target, data)
+        write(target, data: data)
     }
 }

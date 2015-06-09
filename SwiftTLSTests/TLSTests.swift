@@ -20,24 +20,24 @@ class TSLTests: XCTestCase {
     }
 
     func test_connectTLS() {
-        var expectation = self.expectationWithDescription("successfully connected")
+        let expectation = self.expectationWithDescription("successfully connected")
 
-        var opensslServer = NSTask.launchedTaskWithLaunchPath("/usr/bin/openssl", arguments: ["s_server",  "-cert", "SwiftTLSTests/mycert.pem", "-www",  "-debug", "-cipher", "ALL:NULL" ])
+        let opensslServer = NSTask.launchedTaskWithLaunchPath("/usr/bin/openssl", arguments: ["s_server",  "-cert", "SwiftTLSTests/mycert.pem", "-www",  "-debug", "-cipher", "ALL:NULL" ])
 
         // wait for server to be up
         sleep(1)
         
-        var socket = TLSSocket(protocolVersion: TLSProtocolVersion.TLS_v1_0)
+        let socket = TLSSocket(protocolVersion: TLSProtocolVersion.TLS_v1_0)
 //        var host = "195.50.155.66"
 //        var host = "85.13.137.205" // nschmidt.name
-        var host = "127.0.0.1"
-        var port = 4433
+        let host = "127.0.0.1"
+        let port = 4433
 //        var port = 443
         
         socket.connect(IPAddress.addressWithString(host, port: port)!, completionBlock: { (error : SocketError?) -> () in
             socket.write([UInt8]("GET / HTTP/1.1\r\nHost: nschmidt.name\r\n\r\n".utf8), completionBlock: { (error : SocketError?) -> () in
                 socket.read(count: 4096, completionBlock: { (data, error) -> () in
-                    println("\(NSString(bytes: data!, length: data!.count, encoding: NSUTF8StringEncoding)!)")
+                    print("\(NSString(bytes: data!, length: data!.count, encoding: NSUTF8StringEncoding)!)")
                     socket.close()
                     expectation.fulfill()
                 })
@@ -46,7 +46,7 @@ class TSLTests: XCTestCase {
             return
         })
         
-        self.waitForExpectationsWithTimeout(50.0, handler: { (error : NSError!) -> Void in
+        self.waitForExpectationsWithTimeout(50.0, handler: { (error : NSError?) -> Void in
         })
         
         opensslServer.terminate()
@@ -54,13 +54,13 @@ class TSLTests: XCTestCase {
     
     func test_listen_whenClientConnects_callsAcceptBlock()
     {
-        var serverIdentity = Identity(name: "Internet Widgits Pty Ltd")
+        let serverIdentity = Identity(name: "Internet Widgits Pty Ltd")
 
-        var server = TLSSocket(protocolVersion: .TLS_v1_0, isClient: false, identity: serverIdentity!)
-        var address = IPv4Address.localAddress()
+        let server = TLSSocket(protocolVersion: .TLS_v1_0, isClient: false, identity: serverIdentity!)
+        let address = IPv4Address.localAddress()
         address.port = UInt16(12345)
         
-        var client = TLSSocket(protocolVersion: .TLS_v1_0)
+        let client = TLSSocket(protocolVersion: .TLS_v1_0)
 
         let expectation = self.expectationWithDescription("accept connection successfully")
         server.listen(address, acceptBlock: { (clientSocket, error) -> () in
@@ -78,27 +78,27 @@ class TSLTests: XCTestCase {
             (error: SocketError?) -> () in
             
             if error != nil {
-                println("\(error)")
+                print("\(error)")
             }
         }
         
         self.waitForExpectationsWithTimeout(2.0) {
-            (error : NSError!) -> Void in
+            (error : NSError?) -> Void in
         }
     }
     
     func test_write_withDataSentOverEncryptedConnection_yieldsThatSameDataOnTheOtherEnd()
     {
-        var serverIdentity = Identity(name: "Internet Widgits Pty Ltd")
+        let serverIdentity = Identity(name: "Internet Widgits Pty Ltd")
         
-        var server = TLSSocket(protocolVersion: .TLS_v1_0, isClient: false, identity: serverIdentity!)
-        var address = IPv4Address.localAddress()
+        let server = TLSSocket(protocolVersion: .TLS_v1_0, isClient: false, identity: serverIdentity!)
+        let address = IPv4Address.localAddress()
         address.port = UInt16(12345)
         
-        var sentData = [UInt8]("12345678".utf8)
+        let sentData = [UInt8]("12345678".utf8)
         var receivedData : [UInt8]? = nil
 
-        var client = TLSSocket(protocolVersion: .TLS_v1_0)
+        let client = TLSSocket(protocolVersion: .TLS_v1_0)
 
         let expectation = self.expectationWithDescription("receive data")
         server.listen(address) {
@@ -125,7 +125,7 @@ class TSLTests: XCTestCase {
         }
         
         self.waitForExpectationsWithTimeout(5.0) {
-            (error : NSError!) -> Void in
+            (error : NSError?) -> Void in
             
             if let receivedData = receivedData {
                 XCTAssertEqual(receivedData, sentData)

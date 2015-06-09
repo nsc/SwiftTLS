@@ -28,13 +28,13 @@ class TLSServerKeyExchange : TLSHandshakeMessage
     
     required init?(inputStream : InputStreamType)
     {
-        let (type, bodyLength) = TLSHandshakeMessage.readHeader(inputStream)
+        let (type, _) = TLSHandshakeMessage.readHeader(inputStream)
         
         // TODO: check consistency of body length and the data following
         if let t = type {
             if t == TLSHandshakeType.ServerKeyExchange {
                 if let length : UInt16 = read(inputStream) {
-                    if let data : [UInt8] = read(inputStream, Int(length)) {
+                    if let data : [UInt8] = read(inputStream, length: Int(length)) {
                         self.encryptedPreMasterSecret = data
                         super.init(type: .Handshake(.ServerKeyExchange))
                         
@@ -53,7 +53,7 @@ class TLSServerKeyExchange : TLSHandshakeMessage
     override func writeTo<Target : OutputStreamType>(inout target: Target)
     {
         self.writeHeader(type: .ServerKeyExchange, bodyLength: self.encryptedPreMasterSecret.count + 2, target: &target)
-        write(target, UInt16(self.encryptedPreMasterSecret.count))
-        write(target, self.encryptedPreMasterSecret)
+        write(target, data: UInt16(self.encryptedPreMasterSecret.count))
+        write(target, data: self.encryptedPreMasterSecret)
     }
 }

@@ -75,7 +75,7 @@ class TLSAlertMessage : TLSMessage
 
     override func writeTo<Target : OutputStreamType>(inout target: Target)
     {
-        var data = [alertLevel.rawValue, alert.rawValue]
+        let data = [alertLevel.rawValue, alert.rawValue]
         target.write(data)
     }
 

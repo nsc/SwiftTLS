@@ -26,10 +26,9 @@ class TLSHandshakeMessage : TLSMessage
     }
     
     class func handshakeMessageFromData(data : [UInt8]) -> TLSHandshakeMessage? {
-        let (handshakeType, bodyLength) = readHeader(BinaryInputStream(data: data))
+        let (handshakeType, _) = readHeader(BinaryInputStream(data: data))
             
-        if  let type = handshakeType,
-            let length = bodyLength
+        if  let type = handshakeType
         {
             var message : TLSHandshakeMessage? = nil
             
@@ -66,13 +65,13 @@ class TLSHandshakeMessage : TLSMessage
         return nil
     }
     
-    internal func writeHeader<Target : OutputStreamType>(#type : TLSHandshakeType, bodyLength: Int, inout target: Target)
+    internal func writeHeader<Target : OutputStreamType>(type type : TLSHandshakeType, bodyLength: Int, inout target: Target)
     {
-        write(target, type.rawValue)
+        write(target, data: type.rawValue)
     
-        write(target, UInt8((bodyLength >> 16) & 0xff))
-        write(target, UInt8((bodyLength >>  8) & 0xff))
-        write(target, UInt8((bodyLength >>  0) & 0xff))
+        write(target, data: UInt8((bodyLength >> 16) & 0xff))
+        write(target, data: UInt8((bodyLength >>  8) & 0xff))
+        write(target, data: UInt8((bodyLength >>  0) & 0xff))
     }
     
     internal class func readHeader(inputStream : InputStreamType) -> (type: TLSHandshakeType?, bodyLength: Int?) {
@@ -104,7 +103,7 @@ class SessionID : Streamable
     required init?(inputStream : InputStreamType)
     {
         if let length : UInt8 = read(inputStream) {
-            if let sessionID : [UInt8] = read(inputStream, Int(length)) {
+            if let sessionID : [UInt8] = read(inputStream, length: Int(length)) {
                 self.sessionID = sessionID
                 return
             }
@@ -115,8 +114,8 @@ class SessionID : Streamable
     }
     
     func writeTo<Target : OutputStreamType>(inout target: Target) {
-        write(target, UInt8(sessionID.count))
-        write(target, sessionID)
+        write(target, data: UInt8(sessionID.count))
+        write(target, data: sessionID)
     }
 }
 

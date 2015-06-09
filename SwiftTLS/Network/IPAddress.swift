@@ -28,7 +28,7 @@ class IPAddress
     }
     
     class func localAddress() -> IPAddress {
-        var localAddress = IPv6Address()
+        let localAddress = IPv6Address()
 
         var ipv6address = sockaddr_in6()
         memset(&ipv6address, 0, sizeof(sockaddr_in6))
@@ -104,7 +104,7 @@ class IPv4Address : IPAddress
         {
         get {
             var buffer = Array<CChar>(count: Int(INET_ADDRSTRLEN), repeatedValue: 0)
-            var result = inet_ntop(AF_INET,
+            let result = inet_ntop(AF_INET,
                 &socketAddress.sin_addr,
                 &buffer,
                 socklen_t(INET_ADDRSTRLEN))
@@ -167,7 +167,7 @@ class IPv6Address : IPAddress
     {
         get {
             var buffer = Array<CChar>(count: Int(INET6_ADDRSTRLEN), repeatedValue: 0)
-            var result = inet_ntop(AF_INET6,
+            let result = inet_ntop(AF_INET6,
                 &socketAddress.sin6_addr,
                 &buffer,
                 socklen_t(INET6_ADDRSTRLEN))

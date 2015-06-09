@@ -13,12 +13,12 @@ var serverIdentity = Identity(name: "Internet Widgits Pty Ltd")
 var port = 12345
 if Process.arguments.count >= 2 {
     let portString = Process.arguments[1]
-    if let portNumber = portString.toInt() {
+    if let portNumber = Int(portString) {
         port = portNumber
     }
 }
 
-println("Listening on port \(port)")
+print("Listening on port \(port)")
 
 var server = TLSSocket(protocolVersion: .TLS_v1_0, isClient: false, identity: serverIdentity!)
 var address = IPv4Address.localAddress()
@@ -28,7 +28,7 @@ server.listen(address) {
     (clientSocket, error) -> () in
     
     if error != nil {
-        println("Error: \(error)")
+        print("Error: \(error)")
         exit(-1)
     }
     
@@ -38,7 +38,7 @@ server.listen(address) {
             (data : [UInt8]?, error : SocketError?) -> () in
             
             if var data = data {
-                println(NSString(bytesNoCopy: &data, length: data.count, encoding: NSUTF8StringEncoding, freeWhenDone: false)!)
+                print(NSString(bytesNoCopy: &data, length: data.count, encoding: NSUTF8StringEncoding, freeWhenDone: false)!)
                 clientSocket?.write(data, completionBlock: nil)
             }
             

@@ -12,8 +12,8 @@ import XCTest
 class TLSClientHelloTests: XCTestCase {
 
     func test_writeTo__givesCorrectBinaryRepresentation() {
-        var random = Random()
-        var clientHello = TLSClientHello(
+        let random = Random()
+        let clientHello = TLSClientHello(
             clientVersion: TLSProtocolVersion.TLS_v1_0,
             random: random,
             sessionID: nil,
@@ -33,8 +33,11 @@ class TLSClientHelloTests: XCTestCase {
     
     var testClientHelloData : [UInt8] {
         get {
-            var rc4_md5  = CipherSuite.TLS_RSA_WITH_RC4_128_MD5.rawValue
-            var rc4_sha1 = CipherSuite.TLS_RSA_WITH_RC4_128_SHA.rawValue
+            let rc4_md5  = CipherSuite.TLS_RSA_WITH_RC4_128_MD5.rawValue
+            let rc4_sha1 = CipherSuite.TLS_RSA_WITH_RC4_128_SHA.rawValue
+            
+            let (rc4_md5_hi,  rc4_md5_lo)  = (UInt8((rc4_md5)  >> 8), UInt8(rc4_md5  & 0xff))
+            let (rc4_sha1_hi, rc4_sha1_lo) = (UInt8((rc4_sha1) >> 8), UInt8(rc4_sha1 & 0xff))
             
             return [UInt8]([TLSHandshakeType.ClientHello.rawValue, 0, 0, 41, 3, 1,
                 // random
@@ -45,33 +48,33 @@ class TLSClientHelloTests: XCTestCase {
                 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,
                 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
                 // cipher suites
-                0, 4, UInt8((rc4_md5) >> 8), UInt8(rc4_md5 & 0xff), UInt8((rc4_sha1) >> 8), UInt8(rc4_sha1 & 0xff),
+                0, 4, rc4_md5_hi, rc4_md5_lo, rc4_sha1_hi, rc4_sha1_lo,
                 // compression methods
                 1, 0])
         }
     }
     
     func test_initWithBinaryInputStream_givesClientHello() {
-        var clientHello = TLSClientHello(inputStream: BinaryInputStream(data: self.testClientHelloData))
+        let clientHello = TLSClientHello(inputStream: BinaryInputStream(data: self.testClientHelloData))
         
         XCTAssert(clientHello != nil)
     }
 
     func test_initWithBinaryInputStream_hasCorrectRandom() {
-        var clientHello = TLSClientHello(inputStream: BinaryInputStream(data: self.testClientHelloData))
+        let clientHello = TLSClientHello(inputStream: BinaryInputStream(data: self.testClientHelloData))
         
-        var expectedRandom = Random(inputStream: BinaryInputStream(data: [UInt8]([1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,
+        let expectedRandom = Random(inputStream: BinaryInputStream(data: [UInt8]([1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,
             17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32])))!
         
-        var random = clientHello!.random
+        let random = clientHello!.random
         
         XCTAssert(random.randomBytes == expectedRandom.randomBytes && random.gmtUnixTime == expectedRandom.gmtUnixTime)
     }
 
     func test_initWithBinaryInputStream_hasCorrectCipherSuites() {
-        var clientHello = TLSClientHello(inputStream: BinaryInputStream(data: self.testClientHelloData))
+        let clientHello = TLSClientHello(inputStream: BinaryInputStream(data: self.testClientHelloData))
         
-        var expectedCiperSuites = [CipherSuite.TLS_RSA_WITH_RC4_128_MD5, CipherSuite.TLS_RSA_WITH_RC4_128_SHA]
+        let expectedCiperSuites = [CipherSuite.TLS_RSA_WITH_RC4_128_MD5, CipherSuite.TLS_RSA_WITH_RC4_128_SHA]
         
         XCTAssert(clientHello!.cipherSuites == expectedCiperSuites)
     }

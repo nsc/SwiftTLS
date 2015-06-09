@@ -12,7 +12,7 @@ enum TLSSocketError {
     case Error
 }
 
-enum TLSProtocolVersion : UInt16, Printable {
+enum TLSProtocolVersion : UInt16, CustomStringConvertible {
     init?(major : UInt8, minor : UInt8)
     {
         self.init(rawValue: (UInt16(major) << 8) + UInt16(minor))
@@ -41,7 +41,7 @@ enum TLSProtocolVersion : UInt16, Printable {
 
 protocol OutputStreamType
 {
-    mutating func write(data : [UInt8])
+    func write(data : [UInt8])
 }
 
 protocol InputStreamType
@@ -55,36 +55,36 @@ protocol Streamable
     func writeTo<Target : OutputStreamType>(inout target: Target)
 }
 
-func write(var target : OutputStreamType, data : [UInt8]) {
+func write(target : OutputStreamType, data : [UInt8]) {
     target.write(data)
 }
 
-func write(var target : OutputStreamType, data : [UInt16]) {
+func write(target : OutputStreamType, data : [UInt16]) {
     for a in data {
         target.write([UInt8(a >> 8), UInt8(a & 0xff)])
     }
 }
 
-func write(var target : OutputStreamType, data : UInt8) {
+func write(target : OutputStreamType, data : UInt8) {
     target.write([data])
 }
 
-func write(var target : OutputStreamType, data : UInt16) {
+func write(target : OutputStreamType, data : UInt16) {
     target.write([UInt8(data >> 8), UInt8(data & 0xff)])
 }
 
-func write(var target : OutputStreamType, data : UInt32) {
+func write(target : OutputStreamType, data : UInt32) {
     target.write([UInt8((data >> 24) & 0xff), UInt8((data >> 16) & 0xff), UInt8((data >>  8) & 0xff), UInt8((data >>  0) & 0xff)])
 }
 
-func write(var target : OutputStreamType, data : UInt64) {
+func write(target : OutputStreamType, data : UInt64) {
     target.write([
         UInt8((data >> 56) & 0xff), UInt8((data >> 48) & 0xff), UInt8((data >> 40) & 0xff), UInt8((data >> 32) & 0xff),
         UInt8((data >> 24) & 0xff), UInt8((data >> 16) & 0xff), UInt8((data >>  8) & 0xff), UInt8((data >>  0) & 0xff)
         ])
 }
 
-func writeUInt24(var target : OutputStreamType, value : Int)
+func writeUInt24(target : OutputStreamType, value : Int)
 {
     target.write([UInt8((value >> 16) & 0xff), UInt8((value >>  8) & 0xff), UInt8((value >>  0) & 0xff)])
 }
@@ -115,7 +115,13 @@ func read(stream : InputStreamType) -> UInt16?
 func read(stream : InputStreamType) -> UInt32?
 {
     if let s : [UInt8] = stream.read(4) {
-        return UInt32(s[0]) << 24 + UInt32(s[1]) << 16 + UInt32(s[2]) << 8 + UInt32(s[3])
+        
+        let a = UInt32(s[0])
+        let b = UInt32(s[1])
+        let c = UInt32(s[2])
+        let d = UInt32(s[3])
+        
+        return a << 24 + b << 16 + c << 8 + d
     }
     
     return nil
@@ -137,7 +143,7 @@ func read(stream : InputStreamType, length: Int) -> [UInt16]?
 
 func readUInt24(inputStream : InputStreamType) -> Int?
 {
-    if  let a : [UInt8] = read(inputStream, 3)
+    if  let a : [UInt8] = read(inputStream, length: 3)
     {
         return Int(a[0]) << 16 + Int(a[1]) << 8 + Int(a[2])
     }
@@ -162,7 +168,7 @@ class Random : Streamable
     required init?(inputStream : InputStreamType)
     {
         if  let time : UInt32 = read(inputStream),
-            let bytes : [UInt8] = read(inputStream, Random.NumberOfRandomBytes)
+            let bytes : [UInt8] = read(inputStream, length: Random.NumberOfRandomBytes)
         {
             self.gmtUnixTime = time
             self.randomBytes = bytes
@@ -176,8 +182,8 @@ class Random : Streamable
     }
     
     func writeTo<Target : OutputStreamType>(inout target: Target) {
-        write(target, gmtUnixTime)
-        write(target, randomBytes)
+        write(target, data: gmtUnixTime)
+        write(target, data: randomBytes)
     }
 }
 
@@ -235,7 +241,7 @@ class TLSSocket : SocketProtocol, TLSDataProvider
                 return
             }
             
-            var clientTLSSocket = TLSSocket(protocolVersion: self.context.protocolVersion, isClient: false)
+            let clientTLSSocket = TLSSocket(protocolVersion: self.context.protocolVersion, isClient: false)
             clientTLSSocket.socket = clientSocket as? TCPSocket
             clientTLSSocket.context = self.context.copy()
             clientTLSSocket.context.recordLayer.dataProvider = clientTLSSocket
@@ -260,7 +266,7 @@ class TLSSocket : SocketProtocol, TLSDataProvider
         }
     }
     
-    func read(#count: Int, completionBlock: ((data: [UInt8]?, error: SocketError?) -> ()))
+    func read(count count: Int, completionBlock: ((data: [UInt8]?, error: SocketError?) -> ()))
     {
         self.context.readTLSMessage { (message) -> () in
             if let message = message
@@ -268,7 +274,7 @@ class TLSSocket : SocketProtocol, TLSDataProvider
                 switch message.type
                 {
                 case .ApplicationData:
-                    var applicationData = (message as! TLSApplicationData).applicationData
+                    let applicationData = (message as! TLSApplicationData).applicationData
             
                     if applicationData.count == 0 {
                         self.read(count: count, completionBlock: completionBlock)
@@ -278,17 +284,17 @@ class TLSSocket : SocketProtocol, TLSDataProvider
                     }
                     
                 default:
-                    println("Error: unhandled message \(message)")
+                    print("Error: unhandled message \(message)")
                     break
                 }
             }
             else {
-                println("No TLS message read.")
+                print("No TLS message read.")
             }
         }
     }
     
-    func readData(#count: Int, completionBlock: ((data: [UInt8]?, error: TLSDataProviderError?) -> ()))
+    func readData(count count: Int, completionBlock: ((data: [UInt8]?, error: TLSDataProviderError?) -> ()))
     {
         self.socket?.read(count: count) { (data, error) -> () in
             completionBlock(data: data, error: TLSDataProviderError(socketError: error))

@@ -59,7 +59,7 @@ func hex(data : [UInt8]) -> String
 {
     var s = ""
     for var i = 0; i < data.count; ++i {
-        var c = data[i]
+        let c = data[i]
         if (i % 16 == 0 && i != 0) {
             s += "\n"
         }
@@ -71,7 +71,7 @@ func hex(data : [UInt8]) -> String
 
 /// P_hash function as defined in RFC 2246, section 5, p. 11
 typealias HashFunction = (secret : [UInt8], data : [UInt8]) -> [UInt8]
-func P_hash(hashFunction : HashFunction, #secret : [UInt8], #seed : [UInt8], var #outputLength : Int) -> [UInt8]
+func P_hash(hashFunction : HashFunction, secret : [UInt8], seed : [UInt8], outputLength : Int) -> [UInt8]
 {
     var outputData = [UInt8]()
     var A : [UInt8] = seed
@@ -80,7 +80,7 @@ func P_hash(hashFunction : HashFunction, #secret : [UInt8], #seed : [UInt8], var
     {
         A = hashFunction(secret: secret, data: A)
         var output = hashFunction(secret: secret, data: A + seed)
-        var bytesFromOutput = min(bytesLeftToWrite, output.count)
+        let bytesFromOutput = min(bytesLeftToWrite, output.count)
         outputData.extend(output[0..<bytesFromOutput])
         
         bytesLeftToWrite -= bytesFromOutput
@@ -92,9 +92,9 @@ func P_hash(hashFunction : HashFunction, #secret : [UInt8], #seed : [UInt8], var
 
 
 /// PRF function as defined in RFC 2246, section 5, p. 12
-func PRF(#secret : [UInt8], #label : [UInt8], #seed : [UInt8], var #outputLength : Int) -> [UInt8]
+func PRF(secret secret : [UInt8], label : [UInt8], seed : [UInt8], outputLength : Int) -> [UInt8]
 {
-    var halfSecretLength = secret.count / 2
+    let halfSecretLength = secret.count / 2
     var S1 : [UInt8]
     var S2 : [UInt8]
     if (secret.count % 2 == 0) {
@@ -123,7 +123,7 @@ func PRF(#secret : [UInt8], #label : [UInt8], #seed : [UInt8], var #outputLength
 
 
 
-func HMAC_MD5(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
+func HMAC_MD5(secret : [UInt8], data : [UInt8]) -> [UInt8]
 {
     var output = [UInt8](count: Int(CC_MD5_DIGEST_LENGTH), repeatedValue: 0)
     output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
@@ -135,7 +135,7 @@ func HMAC_MD5(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
 
 
 
-func HMAC_SHA1(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
+func HMAC_SHA1(secret : [UInt8], data : [UInt8]) -> [UInt8]
 {
     var output = [UInt8](count: Int(CC_SHA1_DIGEST_LENGTH), repeatedValue: 0)
     output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
@@ -147,7 +147,7 @@ func HMAC_SHA1(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
 
 
 
-func HMAC_SHA256(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
+func HMAC_SHA256(secret : [UInt8], data : [UInt8]) -> [UInt8]
 {
     var output = [UInt8](count: Int(CC_SHA256_DIGEST_LENGTH), repeatedValue: 0)
     output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
@@ -159,7 +159,7 @@ func HMAC_SHA256(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
 
 
 
-func HMAC_SHA384(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
+func HMAC_SHA384(secret : [UInt8], data : [UInt8]) -> [UInt8]
 {
     var output = [UInt8](count: Int(CC_SHA384_DIGEST_LENGTH), repeatedValue: 0)
     output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
@@ -171,7 +171,7 @@ func HMAC_SHA384(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
 
 
 
-func HMAC_SHA512(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
+func HMAC_SHA512(secret : [UInt8], data : [UInt8]) -> [UInt8]
 {
     var output = [UInt8](count: Int(CC_SHA512_DIGEST_LENGTH), repeatedValue: 0)
     output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
@@ -183,7 +183,7 @@ func HMAC_SHA512(var secret : [UInt8], var data : [UInt8]) -> [UInt8]
 
 
 
-func Hash_MD5(var data : [UInt8]) -> [UInt8]
+func Hash_MD5(data : [UInt8]) -> [UInt8]
 {
     var output = [UInt8](count: Int(CC_MD5_DIGEST_LENGTH), repeatedValue: 0)
     output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
@@ -195,7 +195,7 @@ func Hash_MD5(var data : [UInt8]) -> [UInt8]
 
 
 
-func Hash_SHA1(var data : [UInt8]) -> [UInt8]
+func Hash_SHA1(data : [UInt8]) -> [UInt8]
 {
     var output = [UInt8](count: Int(CC_SHA1_DIGEST_LENGTH), repeatedValue: 0)
     output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
@@ -207,7 +207,7 @@ func Hash_SHA1(var data : [UInt8]) -> [UInt8]
 
 
 
-func Hash_SHA256(var data : [UInt8]) -> [UInt8]
+func Hash_SHA256(data : [UInt8]) -> [UInt8]
 {
     var output = [UInt8](count: Int(CC_SHA256_DIGEST_LENGTH), repeatedValue: 0)
     output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
@@ -219,7 +219,7 @@ func Hash_SHA256(var data : [UInt8]) -> [UInt8]
 
 
 
-func Hash_SHA384(var data : [UInt8]) -> [UInt8]
+func Hash_SHA384(data : [UInt8]) -> [UInt8]
 {
     var output = [UInt8](count: Int(CC_SHA384_DIGEST_LENGTH), repeatedValue: 0)
     output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
@@ -231,7 +231,7 @@ func Hash_SHA384(var data : [UInt8]) -> [UInt8]
 
 
 
-func Hash_SHA512(var data : [UInt8]) -> [UInt8]
+func Hash_SHA512(data : [UInt8]) -> [UInt8]
 {
     var output = [UInt8](count: Int(CC_SHA512_DIGEST_LENGTH), repeatedValue: 0)
     output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in

@@ -44,7 +44,7 @@ class BinaryInputStream : InputStreamType
 
     func read(length: Int) -> [UInt8]? {
         if index + length <= self.length {
-            var s = data[index..<index + length]
+            let s = data[index..<index + length]
             index += length
             
             return [UInt8](s)

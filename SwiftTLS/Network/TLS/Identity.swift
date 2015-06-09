@@ -19,7 +19,7 @@ class Identity
     {
         self.name = name
         
-        var query : [String:AnyObject] = [
+        let query : [String:AnyObject] = [
             kSecClass as String     : kSecClassCertificate as String,
             kSecReturnRef as String : kCFBooleanTrue,
             kSecMatchLimit as String : kSecMatchLimitAll,
@@ -27,10 +27,10 @@ class Identity
         ]
         
         var result : Unmanaged<CFTypeRef>? = nil
-        var error : OSStatus = SecItemCopyMatching(query, &result)
+        let error : OSStatus = SecItemCopyMatching(query, &result)
         
         if (error != noErr) {
-            println("Error: could not find identity \(name)")
+            print("Error: could not find identity \(name)")
             return nil
         }
         else {
@@ -38,16 +38,16 @@ class Identity
             if let certificates = result!.takeRetainedValue() as? Array<SecCertificate> {
                 
                 if certificates.count > 1 {
-                    println("Error: more than one certificates are matching \"\(name)\"")
+                    print("Error: more than one certificates are matching \"\(name)\"")
                 }
                 
-                var certificate = certificates[0]
+                let certificate = certificates[0]
                 
                 var identity : Unmanaged<SecIdentity>? = nil
                 var status = SecIdentityCreateWithCertificate(nil, certificate, &identity)
                 
                 if status != noErr {
-                    println("Error: Could not create identity for certificate matching \(name)")
+                    print("Error: Could not create identity for certificate matching \(name)")
                     return nil
                 }
                 
@@ -57,7 +57,7 @@ class Identity
                     status = SecIdentityCopyPrivateKey(identity, &privateKey)
                     
                     if status != noErr {
-                        println("Error: Could not get private key for certificate matching \(name)")
+                        print("Error: Could not get private key for certificate matching \(name)")
                         return nil
                     }
                     

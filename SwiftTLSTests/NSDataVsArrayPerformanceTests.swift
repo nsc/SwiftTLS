@@ -23,7 +23,7 @@ class NSDataVsArrayPerformanceTests: XCTestCase {
 
     func test_appendToNSData()
     {
-        var data = NSMutableData()
+        let data = NSMutableData()
         
         self.measureBlock() {
             var bytes : [UInt8] = [1,2,3,4,5]
@@ -38,7 +38,7 @@ class NSDataVsArrayPerformanceTests: XCTestCase {
         var data = [UInt8]()
         
         self.measureBlock() {
-            var bytes : [UInt8] = [1,2,3,4,5]
+            let bytes : [UInt8] = [1,2,3,4,5]
             for var i = 0; i < 100000; ++i {
                 data.extend(bytes)
             }

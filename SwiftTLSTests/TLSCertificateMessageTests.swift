@@ -23,14 +23,14 @@ class TLSCertificateMessageTests: XCTestCase {
 
     func test_writeTo_withOneCertificate_givesDataFromWhichTheSameMessageCanBeConstructed()
     {
-        var certificateURL = NSBundle(forClass: self.dynamicType).URLForResource("certificate", withExtension: "cer")!
+        let certificateURL = NSBundle(forClass: self.dynamicType).URLForResource("certificate", withExtension: "cer")!
         let certificateData = NSData(contentsOfURL:certificateURL)!
-        var certificate = Certificate(certificateData: certificateData)!
-        var sut = TLSCertificateMessage(certificates: [certificate])
+        let certificate = Certificate(certificateData: certificateData)!
+        let sut = TLSCertificateMessage(certificates: [certificate])
 
         var data = DataBuffer()
         sut.writeTo(&data)
-        var cert2Message = TLSCertificateMessage(inputStream: BinaryInputStream(data: data.buffer))!
+        let cert2Message = TLSCertificateMessage(inputStream: BinaryInputStream(data: data.buffer))!
         var data2 = DataBuffer()
         cert2Message.writeTo(&data2)
         
