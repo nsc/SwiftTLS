@@ -40,7 +40,7 @@ class TLSCertificateMessage : TLSHandshakeMessage
         
         if let t = type {
             if t == TLSHandshakeType.Certificate {
-                if let header : [UInt8] = read(inputStream, length: 3) {
+                if let header : [UInt8] = inputStream.read(count: 3) {
                     let a = UInt32(header[0])
                     let b = UInt32(header[1])
                     let c = UInt32(header[2])
@@ -49,13 +49,13 @@ class TLSCertificateMessage : TLSHandshakeMessage
                     certificates = []
                     
                     while bytesForCertificates > 0 {
-                        if let certHeader : [UInt8] = read(inputStream, length: 3) {
+                        if let certHeader : [UInt8] = inputStream.read(count: 3) {
                             let a = UInt32(certHeader[0])
                             let b = UInt32(certHeader[1])
                             let c = UInt32(certHeader[2])
                             var bytesForCertificate = Int(a << 16 + b << 8 + c)
                         
-                            let data : [UInt8]? = read(inputStream, length: bytesForCertificate)
+                            let data : [UInt8]? = inputStream.read(count: bytesForCertificate)
                             
                             if let d = data {
                                 let certificate = Certificate(certificateData: d)
@@ -95,15 +95,15 @@ class TLSCertificateMessage : TLSHandshakeMessage
         
         for certificate in self.certificates {
             let certificateData = certificate.data
-            writeUInt24(buffer, value: certificateData.count)
-            write(buffer, data: certificateData)
+            buffer.writeUInt24(certificateData.count)
+            buffer.write(certificateData)
         }
         
         let data = buffer.buffer
 
         let bodyLength = data.count + 3 // add 3 bytes for the 24 bit length of the certifacte data below
         self.writeHeader(type: .Certificate, bodyLength: bodyLength, target: &target)
-        writeUInt24(target, value: data.count)
-        write(target, data: data)
+        target.writeUInt24(data.count)
+        target.write(data)
     }
 }

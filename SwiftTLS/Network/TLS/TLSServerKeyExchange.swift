@@ -33,8 +33,8 @@ class TLSServerKeyExchange : TLSHandshakeMessage
         // TODO: check consistency of body length and the data following
         if let t = type {
             if t == TLSHandshakeType.ServerKeyExchange {
-                if let length : UInt16 = read(inputStream) {
-                    if let data : [UInt8] = read(inputStream, length: Int(length)) {
+                if let length : UInt16 = inputStream.read() {
+                    if let data : [UInt8] = inputStream.read(count: Int(length)) {
                         self.encryptedPreMasterSecret = data
                         super.init(type: .Handshake(.ServerKeyExchange))
                         
@@ -53,7 +53,7 @@ class TLSServerKeyExchange : TLSHandshakeMessage
     override func writeTo<Target : OutputStreamType>(inout target: Target)
     {
         self.writeHeader(type: .ServerKeyExchange, bodyLength: self.encryptedPreMasterSecret.count + 2, target: &target)
-        write(target, data: UInt16(self.encryptedPreMasterSecret.count))
-        write(target, data: self.encryptedPreMasterSecret)
+        target.write(UInt16(self.encryptedPreMasterSecret.count))
+        target.write(self.encryptedPreMasterSecret)
     }
 }

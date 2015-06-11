@@ -57,9 +57,9 @@ class TLSAlertMessage : TLSMessage
 
     required init?(inputStream: InputStreamType)
     {
-        if  let level : UInt8 = read(inputStream),
+        if  let level : UInt8 = inputStream.read(),
             alertLevel = TLSAlertLevel(rawValue: level),
-            let rawAlert : UInt8 = read(inputStream),
+            let rawAlert : UInt8 = inputStream.read(),
             alert = TLSAlert(rawValue: rawAlert)
         {
             self.alertLevel = alertLevel

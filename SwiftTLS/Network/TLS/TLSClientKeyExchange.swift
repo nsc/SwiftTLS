@@ -26,9 +26,9 @@ class PreMasterSecret : Streamable
     
     required init?(inputStream : InputStreamType)
     {
-        if  let major : UInt8 = read(inputStream),
-            let minor : UInt8 = read(inputStream),
-            let bytes : [UInt8] = read(inputStream, length: Random.NumberOfRandomBytes)
+        if  let major : UInt8 = inputStream.read(),
+            let minor : UInt8 = inputStream.read(),
+            let bytes : [UInt8] = inputStream.read(count: Random.NumberOfRandomBytes)
         {
             if let version = TLSProtocolVersion(major: major, minor: minor) {
                 self.clientVersion = version
@@ -45,8 +45,8 @@ class PreMasterSecret : Streamable
     }
     
     func writeTo<Target : OutputStreamType>(inout target: Target) {
-        write(target, data: self.clientVersion.rawValue)
-        write(target, data: random)
+        target.write(self.clientVersion.rawValue)
+        target.write(random)
     }
 }
 
@@ -75,8 +75,8 @@ class TLSClientKeyExchange : TLSHandshakeMessage
         // TODO: check consistency of body length and the data following
         if let t = type {
             if t == TLSHandshakeType.ClientKeyExchange {
-                if let length : UInt16 = read(inputStream) {
-                    if let data : [UInt8] = read(inputStream, length: Int(length)) {
+                if let length : UInt16 = inputStream.read() {
+                    if let data : [UInt8] = inputStream.read(count: Int(length)) {
                         self.encryptedPreMasterSecret = data
                         super.init(type: .Handshake(.ClientKeyExchange))
                         
@@ -95,7 +95,7 @@ class TLSClientKeyExchange : TLSHandshakeMessage
     override func writeTo<Target : OutputStreamType>(inout target: Target)
     {
         self.writeHeader(type: .ClientKeyExchange, bodyLength: self.encryptedPreMasterSecret.count + 2, target: &target)
-        write(target, data: UInt16(self.encryptedPreMasterSecret.count))
-        write(target, data: self.encryptedPreMasterSecret)
+        target.write(UInt16(self.encryptedPreMasterSecret.count))
+        target.write(self.encryptedPreMasterSecret)
     }
 }

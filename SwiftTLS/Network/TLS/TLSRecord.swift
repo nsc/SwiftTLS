@@ -28,21 +28,21 @@ class TLSRecord : Streamable {
         var protocolVersion : TLSProtocolVersion?
         var body : [UInt8]?
         
-        if let c : UInt8 = read(inputStream) {
+        if let c : UInt8 = inputStream.read() {
             if let ct = ContentType(rawValue: c) {
                 contentType = ct
             }
         }
         
-        if let major : UInt8? = read(inputStream),
-            minor : UInt8? = read(inputStream),
+        if let major : UInt8? = inputStream.read(),
+            minor : UInt8? = inputStream.read(),
             v = TLSProtocolVersion(major: major!, minor: minor!)
         {
             protocolVersion = v
         }
         
-        if let bodyLength : UInt16 = read(inputStream) {
-            body = read(inputStream, length: Int(bodyLength))
+        if let bodyLength : UInt16 = inputStream.read() {
+            body = inputStream.read(count: Int(bodyLength))
         }
 
         if  let c = contentType,
@@ -92,14 +92,14 @@ class TLSRecord : Streamable {
     
     class func writeRecordHeader<Target : OutputStreamType>(inout target: Target, contentType: ContentType, protocolVersion : TLSProtocolVersion, contentLength : Int)
     {
-        write(target, data: contentType.rawValue)
-        write(target, data: protocolVersion.rawValue)
-        write(target, data: UInt16(contentLength))
+        target.write(contentType.rawValue)
+        target.write(protocolVersion.rawValue)
+        target.write(UInt16(contentLength))
     }
     
     func writeTo<Target : OutputStreamType>(inout target: Target)
     {
         self.dynamicType.writeRecordHeader(&target, contentType: self.contentType, protocolVersion: self.protocolVersion, contentLength: self.body.count)
-        write(target, data: self.body)
+        target.write(self.body)
     }
 }

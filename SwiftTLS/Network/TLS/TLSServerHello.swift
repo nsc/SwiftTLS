@@ -40,8 +40,8 @@ class TLSServerHello : TLSHandshakeMessage
         if let t = type {
             if t == TLSHandshakeType.ServerHello {
                 
-                if let major : UInt8? = read(inputStream),
-                    minor : UInt8? = read(inputStream),
+                if let major : UInt8? = inputStream.read(),
+                    minor : UInt8? = inputStream.read(),
                     cv = TLSProtocolVersion(major: major!, minor: minor!)
                 {
                     clientVersion = cv
@@ -52,18 +52,18 @@ class TLSServerHello : TLSHandshakeMessage
                     random = r
                 }
                 
-                if  let sessionIDSize : UInt8 = read(inputStream),
-                    let rawSessionID : [UInt8] = read(inputStream, length: Int(sessionIDSize))
+                if  let sessionIDSize : UInt8 = inputStream.read(),
+                    let rawSessionID : [UInt8] = inputStream.read(count: Int(sessionIDSize))
                 {
                     sessionID = SessionID(sessionID: rawSessionID)
                 }
                 
-                if  let rawCiperSuite : UInt16 = read(inputStream)
+                if  let rawCiperSuite : UInt16 = inputStream.read()
                 {
                     cipherSuite = CipherSuite(rawValue: rawCiperSuite)
                 }
                 
-                if  let rawCompressionMethod : UInt8 = read(inputStream)
+                if  let rawCompressionMethod : UInt8 = inputStream.read()
                 {
                     compressionMethod = CompressionMethod(rawValue: rawCompressionMethod)
                 }
@@ -100,7 +100,7 @@ class TLSServerHello : TLSHandshakeMessage
     {
         var buffer = DataBuffer()
         
-        write(buffer, data: self.version.rawValue)
+        buffer.write(self.version.rawValue)
         
         random.writeTo(&buffer)
         
@@ -108,16 +108,16 @@ class TLSServerHello : TLSHandshakeMessage
             session_id.writeTo(&buffer)
         }
         else {
-            write(buffer, data: UInt8(0))
+            buffer.write(UInt8(0))
         }
         
-        write(buffer, data: self.cipherSuite.rawValue)
+        buffer.write(self.cipherSuite.rawValue)
         
-        write(buffer, data: self.compressionMethod.rawValue)
+        buffer.write(self.compressionMethod.rawValue)
         
         let data = buffer.buffer
         
         self.writeHeader(type: .ServerHello, bodyLength: data.count, target: &target)
-        write(target, data: data)
+        target.write(data)
     }
 }

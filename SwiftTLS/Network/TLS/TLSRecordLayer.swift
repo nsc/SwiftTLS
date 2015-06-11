@@ -260,11 +260,11 @@ class TLSRecordLayer
     {
         if let encryptionParameters = isRead ? self.currentReadEncryptionParameters : self.currentWriteEncryptionParameters {
             let macData = DataBuffer()
-            write(macData, data: encryptionParameters.sequenceNumber)
-            write(macData, data: contentType.rawValue)
-            write(macData, data: self.protocolVersion.rawValue)
-            write(macData, data: UInt16(data.count))
-            write(macData, data: data)
+            macData.write(encryptionParameters.sequenceNumber)
+            macData.write(contentType.rawValue)
+            macData.write(self.protocolVersion.rawValue)
+            macData.write(UInt16(data.count))
+            macData.write(data)
                         
             return self.calculateMAC(secret: secret, data: macData.buffer, isRead: isRead)
         }

@@ -67,17 +67,17 @@ class TLSHandshakeMessage : TLSMessage
     
     internal func writeHeader<Target : OutputStreamType>(type type : TLSHandshakeType, bodyLength: Int, inout target: Target)
     {
-        write(target, data: type.rawValue)
+        target.write(type.rawValue)
     
-        write(target, data: UInt8((bodyLength >> 16) & 0xff))
-        write(target, data: UInt8((bodyLength >>  8) & 0xff))
-        write(target, data: UInt8((bodyLength >>  0) & 0xff))
+        target.write(UInt8((bodyLength >> 16) & 0xff))
+        target.write(UInt8((bodyLength >>  8) & 0xff))
+        target.write(UInt8((bodyLength >>  0) & 0xff))
     }
     
     internal class func readHeader(inputStream : InputStreamType) -> (type: TLSHandshakeType?, bodyLength: Int?) {
-        if  let type : UInt8 = read(inputStream),
+        if  let type : UInt8 = inputStream.read(),
             handshakeType = TLSHandshakeType(rawValue: type),
-            let bodyLength = readUInt24(inputStream)
+            let bodyLength = inputStream.readUInt24()
         {
             return (handshakeType, bodyLength)
         }
@@ -102,8 +102,8 @@ class SessionID : Streamable
     
     required init?(inputStream : InputStreamType)
     {
-        if let length : UInt8 = read(inputStream) {
-            if let sessionID : [UInt8] = read(inputStream, length: Int(length)) {
+        if let length : UInt8 = inputStream.read() {
+            if let sessionID : [UInt8] = inputStream.read(count: Int(length)) {
                 self.sessionID = sessionID
                 return
             }
@@ -114,8 +114,8 @@ class SessionID : Streamable
     }
     
     func writeTo<Target : OutputStreamType>(inout target: Target) {
-        write(target, data: UInt8(sessionID.count))
-        write(target, data: sessionID)
+        target.write(UInt8(sessionID.count))
+        target.write(sessionID)
     }
 }
 

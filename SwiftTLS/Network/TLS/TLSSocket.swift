@@ -8,7 +8,7 @@
 
 import Foundation
 
-enum TLSSocketError {
+enum TLSSocketError : ErrorType {
     case Error
 }
 
@@ -46,7 +46,7 @@ protocol OutputStreamType
 
 protocol InputStreamType
 {
-    func read(length : Int) -> [UInt8]?
+    func read(count count : Int) -> [UInt8]?
 }
 
 protocol Streamable
@@ -55,100 +55,97 @@ protocol Streamable
     func writeTo<Target : OutputStreamType>(inout target: Target)
 }
 
-func write(target : OutputStreamType, data : [UInt8]) {
-    target.write(data)
-}
-
-func write(target : OutputStreamType, data : [UInt16]) {
-    for a in data {
-        target.write([UInt8(a >> 8), UInt8(a & 0xff)])
+extension OutputStreamType
+{
+    func write(data : [UInt16]) {
+        for a in data {
+            self.write([UInt8(a >> 8), UInt8(a & 0xff)])
+        }
     }
-}
 
-func write(target : OutputStreamType, data : UInt8) {
-    target.write([data])
-}
-
-func write(target : OutputStreamType, data : UInt16) {
-    target.write([UInt8(data >> 8), UInt8(data & 0xff)])
-}
-
-func write(target : OutputStreamType, data : UInt32) {
-    target.write([UInt8((data >> 24) & 0xff), UInt8((data >> 16) & 0xff), UInt8((data >>  8) & 0xff), UInt8((data >>  0) & 0xff)])
-}
-
-func write(target : OutputStreamType, data : UInt64) {
-    target.write([
-        UInt8((data >> 56) & 0xff), UInt8((data >> 48) & 0xff), UInt8((data >> 40) & 0xff), UInt8((data >> 32) & 0xff),
-        UInt8((data >> 24) & 0xff), UInt8((data >> 16) & 0xff), UInt8((data >>  8) & 0xff), UInt8((data >>  0) & 0xff)
-        ])
-}
-
-func writeUInt24(target : OutputStreamType, value : Int)
-{
-    target.write([UInt8((value >> 16) & 0xff), UInt8((value >>  8) & 0xff), UInt8((value >>  0) & 0xff)])
-}
-
-func read(stream : InputStreamType, length: Int) -> [UInt8]?
-{
-    return stream.read(length)
-}
-
-func read(stream : InputStreamType) -> UInt8?
-{
-    if let a : [UInt8] = stream.read(1) {
-        return a[0]
+    func write(data : UInt8) {
+        self.write([data])
     }
     
-    return nil
-}
-
-func read(stream : InputStreamType) -> UInt16?
-{
-    if let s : [UInt8] = stream.read(2) {
-        return UInt16(s[0]) << 8 + UInt16(s[1])
+    func write(data : UInt16) {
+        self.write([UInt8(data >> 8), UInt8(data & 0xff)])
     }
     
-    return nil
-}
-
-func read(stream : InputStreamType) -> UInt32?
-{
-    if let s : [UInt8] = stream.read(4) {
-        
-        let a = UInt32(s[0])
-        let b = UInt32(s[1])
-        let c = UInt32(s[2])
-        let d = UInt32(s[3])
-        
-        return a << 24 + b << 16 + c << 8 + d
+    func write(data : UInt32) {
+        self.write([UInt8((data >> 24) & 0xff), UInt8((data >> 16) & 0xff), UInt8((data >>  8) & 0xff), UInt8((data >>  0) & 0xff)])
     }
     
-    return nil
+    func write(data : UInt64) {
+        self.write([
+            UInt8((data >> 56) & 0xff), UInt8((data >> 48) & 0xff), UInt8((data >> 40) & 0xff), UInt8((data >> 32) & 0xff),
+            UInt8((data >> 24) & 0xff), UInt8((data >> 16) & 0xff), UInt8((data >>  8) & 0xff), UInt8((data >>  0) & 0xff)
+            ])
+    }
+    
+    func writeUInt24(value : Int)
+    {
+        self.write([UInt8((value >> 16) & 0xff), UInt8((value >>  8) & 0xff), UInt8((value >>  0) & 0xff)])
+    }
 }
 
-func read(stream : InputStreamType, length: Int) -> [UInt16]?
+extension InputStreamType
 {
-    if let s : [UInt8] = stream.read(length * 2) {
-        var buffer = [UInt16](count:length, repeatedValue: 0)
-        for var i = 0; i < length; ++i {
-            buffer[i] = UInt16(s[2 * i]) << 8 + UInt16(s[2 * i + 1])
+    func read() -> UInt8?
+    {
+        if let a : [UInt8] = self.read(count: 1) {
+            return a[0]
         }
         
-        return buffer
+        return nil
     }
     
-    return nil
-}
-
-func readUInt24(inputStream : InputStreamType) -> Int?
-{
-    if  let a : [UInt8] = read(inputStream, length: 3)
+    func read() -> UInt16?
     {
-        return Int(a[0]) << 16 + Int(a[1]) << 8 + Int(a[2])
+        if let s : [UInt8] = self.read(count: 2) {
+            return UInt16(s[0]) << 8 + UInt16(s[1])
+        }
+        
+        return nil
     }
     
-    return nil
+    func read() -> UInt32?
+    {
+        if let s : [UInt8] = self.read(count: 4) {
+            
+            let a = UInt32(s[0])
+            let b = UInt32(s[1])
+            let c = UInt32(s[2])
+            let d = UInt32(s[3])
+            
+            return a << 24 + b << 16 + c << 8 + d
+        }
+        
+        return nil
+    }
+    
+    func read(count count: Int) -> [UInt16]?
+    {
+        if let s : [UInt8] = self.read(count: count * 2) {
+            var buffer = [UInt16](count: count, repeatedValue: 0)
+            for var i = 0; i < count; ++i {
+                buffer[i] = UInt16(s[2 * i]) << 8 + UInt16(s[2 * i + 1])
+            }
+            
+            return buffer
+        }
+        
+        return nil
+    }
+    
+    func readUInt24() -> Int?
+    {
+        if  let a : [UInt8] = self.read(count: 3)
+        {
+            return Int(a[0]) << 16 + Int(a[1]) << 8 + Int(a[2])
+        }
+        
+        return nil
+    }
 }
 
 class Random : Streamable
@@ -167,8 +164,8 @@ class Random : Streamable
     
     required init?(inputStream : InputStreamType)
     {
-        if  let time : UInt32 = read(inputStream),
-            let bytes : [UInt8] = read(inputStream, length: Random.NumberOfRandomBytes)
+        if  let time : UInt32 = inputStream.read(),
+            let bytes : [UInt8] = inputStream.read(count: Random.NumberOfRandomBytes)
         {
             self.gmtUnixTime = time
             self.randomBytes = bytes
@@ -182,8 +179,8 @@ class Random : Streamable
     }
     
     func writeTo<Target : OutputStreamType>(inout target: Target) {
-        write(target, data: gmtUnixTime)
-        write(target, data: randomBytes)
+        target.write(gmtUnixTime)
+        target.write(randomBytes)
     }
 }
 

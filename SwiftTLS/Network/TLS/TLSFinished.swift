@@ -25,7 +25,7 @@ class TLSFinished : TLSHandshakeMessage
         
         if let t = type {
             if t == TLSHandshakeType.Finished {
-                if let verifyData : [UInt8] = read(inputStream, length: 12) {
+                if let verifyData : [UInt8] = inputStream.read(count: 12) {
                     self.verifyData = verifyData
                     super.init(type: .Handshake(.Finished))
                     return
@@ -40,7 +40,7 @@ class TLSFinished : TLSHandshakeMessage
     override func writeTo<Target : OutputStreamType>(inout target: Target)
     {
         let data = DataBuffer()
-        write(data, data: self.verifyData)
+        data.write(self.verifyData)
         
         self.writeHeader(type: .Finished, bodyLength: data.buffer.count, target: &target)
         target.write(data.buffer)

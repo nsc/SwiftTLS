@@ -30,6 +30,13 @@ class DataBuffer : OutputStreamType
     
 }
 
+extension ExtensibleCollectionType where Generator.Element == UInt8
+{
+    mutating func write(data : [UInt8]) {
+        self.extend(data)
+    }
+}
+
 class BinaryInputStream : InputStreamType
 {
     private var index = 0
@@ -42,10 +49,10 @@ class BinaryInputStream : InputStreamType
         self.length = data.count
     }
 
-    func read(length: Int) -> [UInt8]? {
-        if index + length <= self.length {
-            let s = data[index..<index + length]
-            index += length
+    func read(count count: Int) -> [UInt8]? {
+        if index + count <= self.length {
+            let s = data[index..<index + count]
+            index += count
             
             return [UInt8](s)
         }

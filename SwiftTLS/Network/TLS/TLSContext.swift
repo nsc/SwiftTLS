@@ -101,8 +101,6 @@ protocol TLSDataProvider : class
     func readData(count count : Int, completionBlock : ((data : [UInt8]?, error : TLSDataProviderError?) -> ()))
 }
 
-
-
 let TLSClientFinishedLabel = [UInt8]("client finished".utf8)
 let TLSServerFinishedLabel = [UInt8]("server finished".utf8)
 

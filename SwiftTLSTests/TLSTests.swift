@@ -22,8 +22,9 @@ class TSLTests: XCTestCase {
     func test_connectTLS() {
         let expectation = self.expectationWithDescription("successfully connected")
 
-        let opensslServer = NSTask.launchedTaskWithLaunchPath("/usr/bin/openssl", arguments: ["s_server",  "-cert", "SwiftTLSTests/mycert.pem", "-www",  "-debug", "-cipher", "ALL:NULL" ])
-
+        let certificatePath = NSBundle(forClass: self.dynamicType).URLForResource("mycert.pem", withExtension: nil)!.path!
+        let opensslServer = NSTask.launchedTaskWithLaunchPath("/usr/bin/openssl", arguments: ["s_server",  "-cert", certificatePath, "-www",  "-debug", "-cipher", "ALL:NULL" ])
+        
         // wait for server to be up
         sleep(1)
         
@@ -74,6 +75,8 @@ class TSLTests: XCTestCase {
             }
         })
         
+        sleep(1)
+        
         client.connect(address) {
             (error: SocketError?) -> () in
             
@@ -119,6 +122,8 @@ class TSLTests: XCTestCase {
                 }
             }
         }
+        
+        sleep(1)
         
         client.connect(address) { (error: SocketError?) -> () in
             client.write(sentData)

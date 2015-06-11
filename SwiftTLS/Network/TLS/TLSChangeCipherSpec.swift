@@ -16,7 +16,7 @@ class TLSChangeCipherSpec : TLSMessage
     }
     
     required init?(inputStream: InputStreamType) {
-        if let type : UInt8? = read(inputStream) {
+        if let type : UInt8? = inputStream.read() {
             if type == 1 {
                 super.init(type: .ChangeCipherSpec)
                 return
@@ -28,6 +28,6 @@ class TLSChangeCipherSpec : TLSMessage
     }
     
     override func writeTo<Target : OutputStreamType>(inout target: Target) {
-        write(target, data: TLSChangeCipherSpecType.ChangeCipherSpec.rawValue)
+        target.write(TLSChangeCipherSpecType.ChangeCipherSpec.rawValue)
     }
 }
