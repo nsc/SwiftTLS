@@ -8,6 +8,7 @@
 
 import Cocoa
 import XCTest
+@testable import swifttls
 
 class TLSServerHelloTests: XCTestCase {
     

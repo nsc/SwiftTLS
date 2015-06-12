@@ -190,7 +190,7 @@ class Socket : SocketProtocol
                         return
                     }
                     
-                    let socket = self.dynamicType(socketDescriptor: clientSocket)
+                    let socket = self.dynamicType.init(socketDescriptor: clientSocket)
                     acceptBlock(clientSocket: socket, error: nil)
                 }
                 

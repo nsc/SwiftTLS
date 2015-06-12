@@ -141,6 +141,16 @@
 		03DDB64E1AC61468000B5726 /* TLSClientKeyExchangeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03DDB64D1AC61468000B5726 /* TLSClientKeyExchangeTests.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		034B70431B49A7C000A8D59D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 033AC34E1AC473730004EEC1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 03657D051B07BDEF00293CE3;
+			remoteInfo = swifttls;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXCopyFilesBuildPhase section */
 		03657D041B07BDEF00293CE3 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
@@ -358,6 +368,7 @@
 		033AC36B1AC473730004EEC1 /* SwiftTLSTests */ = {
 			isa = PBXGroup;
 			children = (
+				033AC37C1AC473980004EEC1 /* BigIntTests.swift */,
 				03BF8C8F1B11CF9200332087 /* dhparams.pem */,
 				03DDB6491AC60DAD000B5726 /* certificate.cer */,
 				031868E51ADD7D9800CB51E1 /* mycert.pem */,
@@ -370,7 +381,6 @@
 				03DDB64D1AC61468000B5726 /* TLSClientKeyExchangeTests.swift */,
 				03BF8C8D1B11CF6E00332087 /* ASN1Tests.swift */,
 				03974A6F1AFE04D600248702 /* SocketTests.swift */,
-				033AC37C1AC473980004EEC1 /* BigIntTests.swift */,
 				036C47401AC70BEB007C5501 /* NSDataVsArrayPerformanceTests.swift */,
 				033AC36C1AC473730004EEC1 /* Supporting Files */,
 			);
@@ -401,9 +411,9 @@
 		033AC3901AC474430004EEC1 /* TLS */ = {
 			isa = PBXGroup;
 			children = (
+				033AC3911AC474430004EEC1 /* BigInt.swift */,
 				0394D2901AD65F40005DC3C4 /* TLSUtilities.swift */,
 				038AEE761ADAC06100DDFA8F /* TLSCipherSuiteDescriptions.swift */,
-				033AC3911AC474430004EEC1 /* BigInt.swift */,
 				033AC3981AC474430004EEC1 /* TLSContext.swift */,
 				0394D28D1AD65F09005DC3C4 /* TLSRecordLayer.swift */,
 				033AC3991AC474430004EEC1 /* TLSHandshake.swift */,
@@ -662,6 +672,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				034B70441B49A7C000A8D59D /* PBXTargetDependency */,
 			);
 			name = SwiftTLSTests;
 			productName = SwiftTLSTests;
@@ -692,7 +703,7 @@
 			isa = PBXProject;
 			attributes = {
 				LastSwiftUpdateCheck = 0700;
-				LastUpgradeCheck = 0620;
+				LastUpgradeCheck = 0700;
 				ORGANIZATIONNAME = "Nico Schmidt";
 				TargetAttributes = {
 					033AC3671AC473730004EEC1 = {
@@ -880,6 +891,14 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		034B70441B49A7C000A8D59D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 03657D051B07BDEF00293CE3 /* swifttls */;
+			targetProxy = 034B70431B49A7C000A8D59D /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
 		033AC3701AC473730004EEC1 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -901,6 +920,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				COPY_PHASE_STRIP = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -977,6 +997,7 @@
 				);
 				INFOPLIST_FILE = SwiftTLSTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.savoysoftware.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "SwiftTLS/SwiftTLS-Bridging-Header.h";
 			};
@@ -997,6 +1018,7 @@
 				);
 				INFOPLIST_FILE = SwiftTLSTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.savoysoftware.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "SwiftTLS/SwiftTLS-Bridging-Header.h";
 			};

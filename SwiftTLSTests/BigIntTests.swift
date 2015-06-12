@@ -8,6 +8,7 @@
 
 import Cocoa
 import XCTest
+@testable import swifttls
 
 class BigIntTests: XCTestCase {
 
@@ -65,46 +66,113 @@ class BigIntTests: XCTestCase {
         XCTAssert(c == BigInt([0x7de6f837e28f8dbb, 0xf7264917def73efd] as [UInt64], negative: true))
     }
     
+    func test_subtract()
+    {
+        let abValues : [([UInt8], [UInt8])] = [
+            ([248, 197, 122, 25, 35, 101, 23, 247, 212, 141, 27, 187, 109], [148, 70, 148, 108, 221, 70, 154, 29, 242, 127, 187, 109]),
+        ([247, 107, 148, 172, 81, 75, 136, 52, 61, 240, 165, 216, 64, 195, 160, 76, 212, 136, 242, 108, 227, 114, 77], [136, 60, 228, 253, 68, 33, 223, 190, 37, 174, 127, 153, 17, 116, 88, 225, 177, 222, 127, 122, 68, 23, 77])
+        ]
+        
+        for (aa, bb) in abValues
+        {
+            let a = BigInt(aa)
+            let b = BigInt(bb)
+            let c = a - b
+            
+            let d = c + b
+            
+            XCTAssert(a == d, "Wrong result for \(a) - \(b)")
+        }
+    }
+    
+    func test_lessThan__givesCorrectResult()
+    {
+        let abValues : [([UInt8], [UInt8], Bool)] = [
+            ([37, 46, 7, 91, 243, 78], [224, 96, 49, 120, 243, 78], true),
+            ([224, 96, 49, 120, 243, 78], [37, 46, 7, 91, 243, 78], false),
+            ([37, 46, 7, 91, 243], [224, 96, 49, 120, 243, 78], true),
+            ([1, 2, 3], [1, 2], false),
+            ([224, 96, 49, 120, 243, 78], [224, 96, 49, 120, 243, 78], false),
+        ]
+        
+        for (aa, bb, result) in abValues
+        {
+            let a = BigInt(aa)
+            let b = BigInt(bb)
+            let lessThan = a < b
+            
+            XCTAssert(lessThan == result, "Wrong result for \(a) < \(b)")
+        }
+    }
+    
+    func test_greaterThan__givesCorrectResult()
+    {
+        let abValues : [([UInt8], [UInt8], Bool)] = [
+            ([37, 46, 7, 91, 243, 78], [224, 96, 49, 120, 243, 78], false),
+            ([224, 96, 49, 120, 243, 78], [37, 46, 7, 91, 243, 78], true),
+            ([37, 46, 7, 91, 243], [224, 96, 49, 120, 243, 78], false),
+            ([1, 2, 3], [1, 2], true),
+            ([224, 96, 49, 120, 243, 78], [224, 96, 49, 120, 243, 78], false),
+        ]
+        
+        for (a, b, result) in abValues
+        {
+            let aa = BigInt(a)
+            let bb = BigInt(b)
+            let greaterThan = aa > bb
+            
+            XCTAssert(greaterThan == result, "Wrong result for \(aa) > \(bb)")
+        }
+    }
+
     func test_init_withUInt8Array_givesCorrectResult() {
     
         let a = BigInt([UInt8]([0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0, 0x21, 0x34]))
-        
-        XCTAssert(a == BigInt(hexString: "123456789abcdef02134")!)
+
+        XCTAssert(a == BigInt(hexString: "3421f0debc9a78563412")!)
     }
     
     func test_init_withUInt16Array_givesCorrectResult() {
         
         let a = BigInt([UInt16]([0x1234, 0x5678, 0x9abc, 0xdef0, 0x2134]))
         
-        XCTAssert(a == BigInt(hexString: "123456789abcdef02134")!)
+        XCTAssert(a == BigInt(hexString: "2134def09abc56781234")!)
     }
 
     func test_init_withUInt32Array_givesCorrectResult() {
         
-        let a = BigInt([UInt32]([0x1234, 0x56789abc, 0xdef02134]))
+        let a = BigInt([UInt32]([0x56789abc, 0xdef02134, 0x1234]))
         
-        XCTAssert(a == BigInt(hexString: "123456789abcdef02134")!)
+        XCTAssert(a == BigInt(hexString: "1234def0213456789abc")!)
     }
 
     func test_init_withUInt64Array_givesCorrectResult() {
         
-        let a = BigInt([UInt64]([0x1234, 0x56789abcdef02134]))
+        let a = BigInt([UInt64]([0x56789abcdef02134, 0x1234]))
         
         XCTAssert(a == BigInt(hexString: "123456789abcdef02134")!)
+    }
+
+    func test_BigInt32init_withUInt64Array_givesCorrectResult() {
+        
+        let a = BigIntImpl<UInt32>([UInt64]([0x56789abcdef02134, 0x1234]))
+        let expectedResult = BigIntImpl<UInt32>(hexString: "123456789abcdef02134")!
+
+        XCTAssert(a == expectedResult)
     }
 
     func test_init_withHexString_givesCorrectResult() {
         
         let a = BigInt(hexString: "1234567890abcdefABCDEF")
         
-        XCTAssert(a! == BigInt([0x123456, 0x7890abcdefABCDEF] as [UInt64]))
+        XCTAssert(a! == BigInt([0x7890abcdefABCDEF, 0x123456] as [UInt64]))
     }
 
     func test_init_withSomeHexString_givesCorrectResult() {
         
         let a = BigInt(hexString: "ffffffff12365981274ffffff1231265123ff")
         
-        XCTAssert(a! == BigInt([0xfffff, 0xfff12365981274ff, 0xffff1231265123ff] as [UInt64]))
+        XCTAssert(a! == BigInt([0xffff1231265123ff, 0xfff12365981274ff, 0xfffff] as [UInt64]))
     }
 
     
@@ -126,11 +194,26 @@ class BigIntTests: XCTestCase {
 
         let context = BN_CTX_new()
         let result = BN_new()
-        var r = BN_mul(result, an, bn, context)
+        BN_mul(result, an, bn, context)
         
         return String.fromCString(BN_bn2hex(result))!
     }
     
+    func BIGNUM_divide(a : String, _ b : String) -> String
+    {
+        var an = BN_new()
+        BN_hex2bn(&an, a)
+        
+        var bn = BN_new()
+        BN_hex2bn(&bn, b)
+        
+        let context = BN_CTX_new()
+        let result = BN_new()
+        BN_div(result, nil, an, bn, context)
+        
+        return String.fromCString(BN_bn2hex(result))!
+    }
+
     func test_multiply_aNumberWithItself_givesCorrectResult()
     {
         let hexString = "123456789abcdef02134"
@@ -159,4 +242,94 @@ class BigIntTests: XCTestCase {
         XCTAssert(productHex.lowercaseString == s.lowercaseString)
     }
 
+    func test_bla()
+    {
+        let a = BigIntImpl<UInt8>(1)
+        let b = BigIntImpl<UInt8>([255, 255] as [UInt8])
+        
+        print("\(a * b)")
+        
+        let c = BigIntImpl<UInt8>(b)
+        
+        print("\(c)")
+    }
+
+    func randomBigInt() -> BigInt
+    {
+        var parts = [UInt8]()
+        let min = sizeof(BigInt.PrimitiveType.self)
+        let max = min * 256
+        repeat {
+            let n = Int(arc4random()) % max + min
+            parts = [UInt8]()
+            
+            for var i = 0; i < n; ++i
+            {
+                parts.append(UInt8(arc4random() & 0xff))
+            }
+            
+            while parts.last != nil && parts.last! == 0 {
+                parts.removeLast()
+            }
+        
+        } while parts.count < min
+        
+        return BigInt(parts)
+    }
+    
+    func test_divide_twoNumbers_givesCorrectResult()
+    {
+//        let uvValues : [(String, String)] = [
+//            ("8fae", "e0"),
+//            ("10000", "ffff"),
+//            ("1000000", "ffff"),
+//            ("100000", "10ff"),
+//            ("100000000000000000000000000000000", "ff000000000000000"),
+//            
+//            ("ffffffff26265235ffffff232323f23f23f232323f3243243f", "ffffffff12365981274ffffff1231265123ff"),
+//            ("A4F9B770F1A0A93F2880E44D1835EE3668B066401982AFA7BC44F3EA4A71D3594CA74BF7071B864106C7C1C862EE928336592C1F0C0C850F3A40E394C6BB71AE70461EE5C31F0D71E220FDFD755B3E921E1C32", "71FD484EBA7FBD7394"),
+//            ("27C09B9E53EF44A877700C820071920F3287AC25BE1CCB9D857394AF862952A8CE6C73796A311E991A57B03324E3B1D298860A3FC41C28F218CB1F5A86C417DA44CEC597A2", "F10598D35D96090AD286A071DBA6BB324FFCDF1952E56C332B093F3C1786016509BBA6D229EB824A6A893BB5"),
+//            ("D5B460CF20599FC4F81F", "7D2D049494FC")
+//        ]
+        
+//        for (uHex, vHex) in uvValues {
+//           var u = BigInt(hexString: uHex)!
+//           var v = BigInt(hexString: vHex)!
+        
+        for var i = 0; i < 100; ++i
+        {
+            var u = randomBigInt()
+            var v = randomBigInt()
+
+            if u < v {
+                swap(&u, &v)
+            }
+            
+            let div = u / v
+            
+            let s = BIGNUM_divide(u.toString(), v.toString())
+            
+            let divHex = div.toString()
+            
+            if divHex.lowercaseString != s.lowercaseString {
+                print("\(i):")
+                print("Wrong division result for \(u.toString()) / \(v.toString())")
+                print("    Should be       \(s)\n" +
+                      "    but is actually \(divHex)")
+            }
+//            
+//            XCTAssert(divHex.lowercaseString == s.lowercaseString, "Wrong division result for \(u) / \(v)")
+        }
+    }
+
+    func test_divideNumbers_numbersTriggerNegativeCaseInDivision_givesCorrectResult()
+    {
+        let u = BigInt([0xc5, 0x01, 0xbf] as [UInt8])
+        let v = BigInt([0x5f, 0xb1, 0x0e] as [UInt8])
+
+        let q = division(u, v)
+        
+        
+        XCTAssert(q == BigInt(0xc))
+    }
 }

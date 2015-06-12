@@ -8,9 +8,15 @@
 
 import Foundation
 
-struct BigInt {
+typealias BigInt = BigIntImpl<UInt32>
 
-    typealias PrimitiveType = UInt64
+/// BigInt represents arbitrary precision integers
+///
+/// They use largest primitive possible (usually UInt64)
+/// and are stored in little endian order, i.e. n = parts[0] + parts[1] * 2^64 + parts[2] * 2 ^ 128 ...
+struct BigIntImpl<U where U : UnsignedIntegerType> {
+
+    typealias PrimitiveType = U
     var parts: [PrimitiveType]
     var sign : Bool
     
@@ -21,7 +27,7 @@ struct BigInt {
             return
         }
 
-        parts = [PrimitiveType(abs(a))]
+        parts = [PrimitiveType(UIntMax(abs(a)))]
         sign = a < 0
     }
 
@@ -48,54 +54,83 @@ struct BigInt {
         sign = false
     }
     
+    init<T where T : UnsignedIntegerType>(_ bigInt : BigIntImpl<T>)
+    {
+        self.init(bigInt.parts, negative: bigInt.sign)
+    }
+    
+    /// parts are given in little endian order
     init<T where T : UnsignedIntegerType>(_ parts : [T], negative: Bool = false)
     {
         let numberInPrimitiveType = sizeof(PrimitiveType)/sizeof(T)
         
-        if numberInPrimitiveType == 1 {
-            self.parts = unsafeBitCast(parts, [PrimitiveType].self)
-            self.sign = negative
-            return
-        }
+//        if numberInPrimitiveType == 1 {
+//            self.parts = unsafeBitCast(parts, [PrimitiveType].self)
+//            self.sign = negative
+//            return
+//        }
         
-        var number = [PrimitiveType](count: parts.count / numberInPrimitiveType + ((parts.count % sizeof(PrimitiveType) == 0) ? 0 : 1), repeatedValue: 0)
-        var index = 0
-        var numberIndex = 0
-        var n : PrimitiveType = 0
-        
-        var numberOfFirstParts = parts.count % numberInPrimitiveType
-        
-        for a in parts
-        {
-            n = n << PrimitiveType(sizeof(T) * 8)
-            n = n + a.toUIntMax()
+        if numberInPrimitiveType > 0 {
             
-            if numberOfFirstParts != 0 && (index + 1) == numberOfFirstParts
+            var number = [PrimitiveType](count: parts.count / numberInPrimitiveType + ((parts.count % sizeof(PrimitiveType) == 0) ? 0 : 1), repeatedValue: 0)
+            var index = 0
+            var numberIndex = 0
+            var n : UIntMax = 0
+            var shift = UIntMax(0)
+            
+            for a in parts
             {
-                number[numberIndex] = n
-                index = 0
-                n = 0
-                numberOfFirstParts = 0
-                numberIndex += 1
+                n = n + a.toUIntMax() << shift
+                shift = shift + UIntMax(sizeof(T) * 8)
+                
+                if (index + 1) % numberInPrimitiveType == 0
+                {
+                    number[numberIndex] = PrimitiveType(n)
+                    index = 0
+                    n = 0
+                    shift = 0
+                    numberIndex += 1
+                }
+                else {
+                    index += 1
+                }
             }
-            else if (index + 1) % numberInPrimitiveType == 0
+            
+            if n != 0 {
+                number[numberIndex] = PrimitiveType(n)
+            }
+            self.parts = number
+        }
+        else {
+            // T is a larger type than PrimitiveType
+            let n = sizeof(T)/sizeof(PrimitiveType)
+            var number = [PrimitiveType]()
+            
+            for a in parts
             {
-                number[numberIndex] = n
-                index = 0
-                n = 0
-                numberIndex += 1
+                let shift : UIntMax = UIntMax(8 * sizeof(PrimitiveType))
+                var mask : UIntMax = (0xffffffffffffffff >> UIntMax(64 - shift))
+                for var i = 0; i < n; ++i
+                {
+                    let part : PrimitiveType = PrimitiveType((a.toUIntMax() & mask) >> (UIntMax(i) * shift))
+                    number.append(part)
+                    mask = mask << shift
+                }
             }
-            else {
-                index += 1
+            
+            while number.last != nil && number.last! == 0 {
+                number.removeLast()
             }
+            
+            self.parts = number
         }
-        
-        if n != 0 {
-            number[numberIndex] = n
-        }
-        
-        self.parts = number
-        sign = negative
+            
+        self.sign = negative
+    }
+    
+    init<T where T : UnsignedIntegerType>(_ parts : ArraySlice<T>, negative: Bool = false)
+    {
+        self.init([T](parts), negative: negative)
     }
     
     init?(hexString : String)
@@ -130,22 +165,24 @@ struct BigInt {
             bytesLeft -= 1
         }
         
-        self.init(bytes)
+        self.init(bytes.reverse())
     }
     
     func toString() -> String
     {
         var s = ""
         var onlyZeroesYet = true
-        for part in self.parts
+        let count = Int(parts.count)
+        for var i = count - 1; i >= 0; --i
         {
+            let part = self.parts[i].toUIntMax()
             var c : UInt8
             
-            var mask = 0xff00000000000000 as UInt64
-            var shift = 56
-            for var i = 0; i < 8; ++i
+            var shift = (sizeof(PrimitiveType) - 1) * 8
+            var mask : UIntMax = UIntMax(0xff) << UIntMax(shift)
+            for var j = 0; j < sizeof(PrimitiveType); ++j
             {
-                c = UInt8((part & mask) >> UInt64(shift))
+                c = UInt8((part & mask) >> UIntMax(shift))
                 if !onlyZeroesYet || c != 0 {
                     s += hexString(c)
                     onlyZeroesYet = false
@@ -159,14 +196,26 @@ struct BigInt {
         return s
     }
 
+    mutating func normalize()
+    {
+        while parts.last != nil && parts.last! == 0 {
+            parts.removeLast()
+        }
+    }
+    
+    var isZero : Bool {
+        get {
+            return parts.count == 0 || (parts.count == 1 && parts[0] == 0)
+        }
+    }
 }
 
-func toString(x : BigInt) -> String
+func toString<U>(x : BigIntImpl<U>) -> String
 {
     return x.toString()
 }
 
-func +(var a : BigInt, var b : BigInt) -> BigInt
+func +<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>
 {
     if a.sign != b.sign {
         if a.sign {
@@ -178,17 +227,17 @@ func +(var a : BigInt, var b : BigInt) -> BigInt
     }
     
     let count = max(a.parts.count, b.parts.count)
-    var v = BigInt(capacity: count)
+    var v = BigIntImpl<U>(capacity: count)
     v.sign = a.sign
     
-    var carry : BigInt.PrimitiveType = 0
+    var carry : BigIntImpl<U>.PrimitiveType = 0
     for var i=0; i < count; ++i {
-        var sum : BigInt.PrimitiveType = carry
+        var sum : BigIntImpl<U>.PrimitiveType = carry
         var overflow : Bool
         carry = 0
         
         if i < a.parts.count {
-            (sum, overflow) = BigInt.PrimitiveType.addWithOverflow(sum, a.parts[i])
+            (sum, overflow) = BigIntImpl<U>.PrimitiveType.addWithOverflow(sum, a.parts[i])
 
             if overflow {
                 carry = 1
@@ -196,7 +245,7 @@ func +(var a : BigInt, var b : BigInt) -> BigInt
         }
 
         if i < b.parts.count {
-            (sum, overflow) = BigInt.PrimitiveType.addWithOverflow(sum, b.parts[i])
+            (sum, overflow) = BigIntImpl<U>.PrimitiveType.addWithOverflow(sum, b.parts[i])
 
             if overflow {
                 carry = 1
@@ -213,8 +262,11 @@ func +(var a : BigInt, var b : BigInt) -> BigInt
     return v
 }
 
-func -(var a : BigInt, var b : BigInt) -> BigInt
+func -<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>
 {
+    a.normalize()
+    b.normalize()
+    
     if a.sign != b.sign {
         if a.sign {
             return -((-a) + b)
@@ -235,16 +287,16 @@ func -(var a : BigInt, var b : BigInt) -> BigInt
     }
     
     let count = max(a.parts.count, b.parts.count)
-    var v = BigInt(capacity: count)
+    var v = BigIntImpl<U>(capacity: count)
 
-    var carry : BigInt.PrimitiveType = 0
+    var carry = U(0)
     for var i=0; i < count; ++i {
-        var difference : BigInt.PrimitiveType = carry
+        var difference : U = carry
         var overflow : Bool
         carry = 0
         
         if i < a.parts.count {
-            (difference, overflow) = BigInt.PrimitiveType.subtractWithOverflow(a.parts[i], difference)
+            (difference, overflow) = U.subtractWithOverflow(a.parts[i], difference)
             
             if overflow {
                 carry = 1
@@ -252,65 +304,66 @@ func -(var a : BigInt, var b : BigInt) -> BigInt
         }
         
         if i < b.parts.count {
-            (difference, overflow) = BigInt.PrimitiveType.subtractWithOverflow(difference, b.parts[i])
+            (difference, overflow) = U.subtractWithOverflow(difference, b.parts[i])
             
             if overflow {
                 carry = 1
             }
         }
         
-        if difference != 0 {
-            v.parts.append(difference)
-        }
+        v.parts.append(difference)
     }
     
     assert(carry == 0)
     
-    for var i = v.parts.count - 1; i >= 0; --i {
-        if v.parts[i] == 0 {
-            v.parts.removeLast()
-        }
-    }
+    v.normalize()
     
     return v
 }
 
-func *(var a : BigInt, var b : BigInt) -> BigInt
+func *<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>
 {
     let aCount = a.parts.count;
     let bCount = b.parts.count;
     let resultCount = aCount + bCount
 
-    var result = BigInt(count: resultCount)
+    var result = BigIntImpl<U>(count: resultCount)
     
-    for var i = aCount - 1; i >= 0; --i {
+    for var i = 0; i < aCount; ++i {
        
         var overflow    : Bool
         
-        for var j = bCount - 1; j >= 0; --j {
+        for var j = 0; j < bCount; ++j {
 
             var lo      : UInt64 = 0
             var hi      : UInt64 = 0
 
-            NSC_multiply64(UInt64(a.parts[i]), UInt64(b.parts[j]), &lo, &hi)
+            NSC_multiply64(a.parts[i].toUIntMax(), b.parts[j].toUIntMax(), &lo, &hi)
             
             if lo == 0 && hi == 0 {
                 continue
             }
             
-            (result.parts[i + j + 1], overflow) = BigInt.PrimitiveType.addWithOverflow(result.parts[i + j + 1], lo)
-
+            if sizeof(U) < sizeof(UIntMax) {
+                let shift : UIntMax = UIntMax(8 * sizeof(U))
+                let mask : UIntMax = (0xffffffffffffffff >> UIntMax(64 - shift))
+                hi = (lo & (mask << shift)) >> shift
+                lo = lo & mask
+            }
+            
+            (result.parts[i + j], overflow) = U.addWithOverflow(result.parts[i + j], U(lo.toUIntMax()))
+            
             if overflow {
                 hi += 1
             }
             
             var temp = hi
-            var index = i + j
+            var index = i + j + 1
             while true {
-                (result.parts[index], overflow) = BigInt.PrimitiveType.addWithOverflow(result.parts[index], temp)
+                (result.parts[index], overflow) = U.addWithOverflow(result.parts[index], U(temp.toUIntMax()))
                 if overflow {
                     temp = 1
-                    index -= 1
+                    index += 1
                 }
                 else {
                     break
@@ -319,23 +372,227 @@ func *(var a : BigInt, var b : BigInt) -> BigInt
         }
     }
 
+    result.normalize()
+    
     return result
 }
 
+// short division
+func /<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, v : UIntN) -> BigIntImpl<UIntN>
+{
+    let UIntNShift = UIntMax(sizeof(UIntN) * 8)
+    let b = UIntMax(UIntMax(1) << UIntNShift)
+    var r = UIntMax(0)
+    let n = u.parts.count
+    let vv = v.toUIntMax()
+    
+    var result = BigIntImpl<UIntN>(count: n)
+    for var i = n - 1; i >= 0; --i {
+        let t = r * b + u.parts[i].toUIntMax()
+        
+        let q = t / vv
+        r = t % vv
+        
+        result.parts[i] = UIntN(q)
+    }
+    
+    result.normalize()
+    
+    if u.sign == (v < 0) {
+        result.sign = true
+    }
+    
+    return result
+}
 
-func ==(lhs : BigInt, rhs : BigInt) -> Bool
+protocol KnowsLargerIntType : UnsignedIntegerType {
+    typealias LargerIntType : UnsignedIntegerType
+}
+
+extension UInt8 : KnowsLargerIntType {
+    typealias LargerIntType = UInt16
+}
+
+extension UInt16 : KnowsLargerIntType {
+    typealias LargerIntType = UInt32
+}
+
+extension UInt32 : KnowsLargerIntType {
+    typealias LargerIntType = UInt64
+}
+
+func division<UIntN : KnowsLargerIntType>(uu : BigIntImpl<UIntN>, _ vv : BigIntImpl<UIntN>) -> BigIntImpl<UIntN>
+{
+    typealias BigIntType = BigIntImpl<UIntN>
+    typealias UIntN2 = UIntN.LargerIntType
+    typealias LargerBigIntType = BigIntImpl<UIntN2>
+    
+    // This is an implementation of Algorithm D in
+    // "The Art of Computer Programming" by Donald E. Knuth, Volume 2, Seminumerical Algorithms, 3rd edition, p. 272
+    if vv.isZero {
+        // handle error
+        return BigIntType(0)
+    }
+    
+    if uu.isZero {
+        return BigIntType(0)
+    }
+    
+    let n = vv.parts.count
+    let m = uu.parts.count - vv.parts.count
+    
+    if m < 0 {
+        return BigIntType(0)
+    }
+    
+    if n == 1 && m == 0 {
+        return BigIntType(uu.parts[0]/vv.parts[0])
+    }
+    else if n == 1 {
+        return uu / vv.parts[0]
+    }
+
+    let UIntNShift = UIntMax(sizeof(UIntN) * 8)
+    let b = UIntN2(UIntMax(1) << UIntNShift)
+    var u = BigIntType(uu.parts)
+    var v = BigIntType(vv.parts)
+    
+    var result = BigIntType(count: m + 1)
+    
+    // normalize, so that v[0] >= base/2 (i.e. 2^31 in our case)
+    let shift = UIntMax((sizeof(BigIntType.PrimitiveType.self) * 8) - 1)
+    let highestBitMask : UIntMax = 1 << shift
+    var hi = v.parts[n - 1].toUIntMax()
+    var d = 1
+    while (UIntN(hi) & UIntN(highestBitMask)) == 0
+    {
+        hi = hi << 1
+        d  = d  << 1
+    }
+
+    if d != 1 {
+        u = u * BigIntType(d)
+        v = v * BigIntType(d)
+    }
+    
+    if u.parts.count < m + n + 1 {
+        u.parts.append(0)
+    }
+
+//    print("u = \(u)")
+//    print("v = \(v)")
+    
+    for var j = m; j >= 0; --j
+    {
+        // D3. Calculate q
+//        print("\(u.parts[j + n].toUIntMax())")
+//        print("\(u.parts[j + n].toUIntMax() << UIntNShift)")
+//        print("\(u.parts[j + n].toUIntMax() << UIntNShift + u.parts[j + n - 1].toUIntMax())")
+        let dividend = UIntN2(u.parts[j + n].toUIntMax() << UIntNShift + u.parts[j + n - 1].toUIntMax())
+        let denominator = UIntN2(v.parts[n - 1].toUIntMax())
+        var q : UIntN2 = dividend / denominator
+        var r : UIntN2 = dividend % denominator
+        
+        if q != 0 {
+//            print("q * UIntN2(v.parts[n - 2]) = \(q * UIntN2(v.parts[n - 2].toUIntMax()))")
+//            print("\(String(q, radix: 16))")
+            if q == b || (q.toUIntMax() * v.parts[n - 2].toUIntMax() > (r.toUIntMax() << UIntNShift + u.parts[j + n - 2].toUIntMax())) {
+                q = q - 1
+                r = r + denominator
+            }
+            
+//            print("\(q), \(r)")
+            
+            // D4. Multiply and subtract
+            var vtemp = v
+            vtemp.parts.append(0)
+//            print(BigIntType(u.parts[j...j+n]))
+//            print(vtemp * BigIntType(q))
+            var temp = BigIntType(u.parts[j...j+n]) - vtemp * BigIntType(q)
+
+//            print("\(temp.toString())")
+            
+            // D6. handle negative case
+            if temp.sign {
+                // handle negative case
+                temp = temp + vtemp
+                q = q - 1
+                
+                print("-", appendNewline: false)
+            }
+            
+//            print("\(u.parts.count), \(temp.parts.count)")
+            let count = temp.parts.count
+            for var i = 0; i < n; ++i {
+                u.parts[j + i] = i < count ? temp.parts[i] : 0
+            }
+        }
+        
+//        print("\(String(q, radix: 16))")
+        result.parts[j] = UIntN(q.toUIntMax())
+        
+    }
+
+    return BigIntType(result.parts, negative: uu.sign != vv.sign)
+}
+
+func /<U : UnsignedIntegerType where U : KnowsLargerIntType>(var u : BigIntImpl<U>, var v : BigIntImpl<U>) -> BigIntImpl<U>
+{
+    // This is an implementation of Algorithm D in
+    // "The Art of Computer Programming" by Donald E. Knuth, Volume 2, Seminumerical Algorithms, 3rd edition, p. 272
+    if v == BigIntImpl<U>(0) {
+        // handle error
+        return BigIntImpl<U>(0)
+    }
+    
+    let n = v.parts.count
+    let m = u.parts.count - v.parts.count
+    
+    if m < 0 {
+        return BigIntImpl<U>(0)
+    }
+    
+    if n == 1 && m == 0 {
+        return BigIntImpl<U>(u.parts[0]/v.parts[0])
+    }
+    else if n == 1 {
+        return u / v.parts[0]
+    }
+    
+    if U.self == UInt64.self {
+        let uu = BigIntImpl<UInt32>(u.parts)
+        let vv = BigIntImpl<UInt32>(v.parts)
+        
+        let result = division(uu, vv)
+        
+        return BigIntImpl<U>(result)
+    }
+    
+    return division(u, v)
+}
+
+func == <U>(lhs : BigIntImpl<U>, rhs : BigIntImpl<U>) -> Bool
 {
     return lhs.parts == rhs.parts
 }
 
-func <(lhs : BigInt, rhs : BigInt) -> Bool
+func < <U>(lhs : BigIntImpl<U>, rhs : BigIntImpl<U>) -> Bool
 {
     if lhs.parts.count != rhs.parts.count {
         return lhs.parts.count < rhs.parts.count
     }
 
     if lhs.parts.count > 0 {
-        return lhs.parts.last! < rhs.parts.last!
+        for var i = lhs.parts.count - 1; i >= 0; --i
+        {
+            if lhs.parts[i] == rhs.parts[i] {
+                continue
+            }
+
+            return lhs.parts[i] < rhs.parts[i]
+        }
+        
+        return false
     }
 
     assert(lhs.parts.count == 0 && rhs.parts.count == 0)
@@ -343,14 +600,23 @@ func <(lhs : BigInt, rhs : BigInt) -> Bool
     return false
 }
 
-func >(lhs : BigInt, rhs : BigInt) -> Bool
+func > <U>(lhs : BigIntImpl<U>, rhs : BigIntImpl<U>) -> Bool
 {
     if lhs.parts.count != rhs.parts.count {
         return lhs.parts.count > rhs.parts.count
     }
     
     if lhs.parts.count > 0 {
-        return lhs.parts.last! > rhs.parts.last!
+        for var i = lhs.parts.count - 1; i >= 0; --i
+        {
+            if lhs.parts[i] == rhs.parts[i] {
+                continue
+            }
+            
+            return lhs.parts[i] > rhs.parts[i]
+        }
+        
+        return false
     }
     
     assert(lhs.parts.count == 0 && rhs.parts.count == 0)
@@ -358,7 +624,7 @@ func >(lhs : BigInt, rhs : BigInt) -> Bool
     return false
 }
 
-prefix func -(var v : BigInt) -> BigInt {
+prefix func -<U>(var v : BigIntImpl<U>) -> BigIntImpl<U> {
     v.sign = !v.sign
     return v
 }

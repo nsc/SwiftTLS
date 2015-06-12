@@ -218,7 +218,7 @@ class TLSSocket : SocketProtocol, TLSDataProvider
         
         self.socket?.connect(address, completionBlock: { (error : SocketError?) -> () in
             if error == nil {
-                self.context.startConnection({ (error : TLSContextError?) -> () in
+                self.context.startConnection({ (error : TLSError?) -> () in
                     // TODO: map context errors to socket provider errors
                     tlsConnectCompletionBlock?(nil)
                 })
@@ -243,7 +243,7 @@ class TLSSocket : SocketProtocol, TLSDataProvider
             clientTLSSocket.context = self.context.copy()
             clientTLSSocket.context.recordLayer.dataProvider = clientTLSSocket
             
-            clientTLSSocket.context.acceptConnection { (error : TLSContextError?) -> () in
+            clientTLSSocket.context.acceptConnection { (error : TLSError?) -> () in
                 if error == nil {
                     tlsAcceptBlock(clientSocket: clientTLSSocket, error: nil)
                 }

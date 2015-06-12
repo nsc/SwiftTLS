@@ -55,14 +55,13 @@ enum TLSContextState
 
 
 
-enum TLSContextError
+enum TLSError : ErrorType
 {
     case Error
 }
 
 
-
-enum TLSDataProviderError : CustomStringConvertible
+enum TLSDataProviderError : ErrorType
 {
     init?(socketError : SocketError?)
     {
@@ -70,9 +69,6 @@ enum TLSDataProviderError : CustomStringConvertible
             switch error {
             case .PosixError(let errno):
                 self = TLSDataProviderError.PosixError(errno: errno)
-
-//            default:
-//                return nil
             }
         }
         else {
@@ -81,7 +77,10 @@ enum TLSDataProviderError : CustomStringConvertible
     }
     
     case PosixError(errno : Int32)
-    
+}
+
+extension TLSDataProviderError : CustomStringConvertible
+{
     var description : String {
         get {
             switch (self)
@@ -212,7 +211,7 @@ class TLSContext
     
     var recordLayer : TLSRecordLayer
     
-    private var connectionEstablishedCompletionBlock : ((error : TLSContextError?) -> ())?
+    private var connectionEstablishedCompletionBlock : ((error : TLSError?) -> ())?
     
     init(protocolVersion: TLSProtocolVersion, dataProvider : TLSDataProvider, isClient : Bool = true)
     {
@@ -251,7 +250,7 @@ class TLSContext
         return context
     }
     
-    func startConnection(completionBlock : (error : TLSContextError?) -> ())
+    func startConnection(completionBlock : (error : TLSError?) -> ())
     {
         self.connectionEstablishedCompletionBlock = completionBlock
         
@@ -261,7 +260,7 @@ class TLSContext
         self.receiveNextTLSMessage(completionBlock)
     }
     
-    func acceptConnection(completionBlock : (error : TLSContextError?) -> ())
+    func acceptConnection(completionBlock : (error : TLSError?) -> ())
     {
         self.connectionEstablishedCompletionBlock = completionBlock
 
@@ -305,7 +304,7 @@ class TLSContext
     {
     }
     
-    func _didReceiveMessage(message : TLSMessage, completionBlock: ((TLSContextError?) -> ())?)
+    func _didReceiveMessage(message : TLSMessage, completionBlock: ((TLSError?) -> ())?)
     {
         print((self.isClient ? "Client" : "Server" ) + ": did receive message \(TLSMessageNameForType(message.type))")
 
@@ -332,7 +331,7 @@ class TLSContext
         }
     }
 
-    func _didReceiveHandshakeMessage(message : TLSHandshakeMessage, completionBlock: ((TLSContextError?) -> ())?)
+    func _didReceiveHandshakeMessage(message : TLSHandshakeMessage, completionBlock: ((TLSError?) -> ())?)
     {
         let tlsConnectCompletionBlock = completionBlock
 
@@ -437,14 +436,14 @@ class TLSContext
             default:
                 print("unsupported handshake \(handshakeType.rawValue)")
                 if let block = tlsConnectCompletionBlock {
-                    block(TLSContextError.Error)
+                    block(TLSError.Error)
                 }
             }
             
         default:
             print("unsupported handshake \(message.type)")
             if let block = tlsConnectCompletionBlock {
-                block(TLSContextError.Error)
+                block(TLSError.Error)
 
                 break SWITCH
             }
@@ -564,7 +563,7 @@ class TLSContext
     }
     
     
-    private func receiveNextTLSMessage(completionBlock: ((TLSContextError?) -> ())?)
+    private func receiveNextTLSMessage(completionBlock: ((TLSError?) -> ())?)
     {
 //        let tlsConnectCompletionBlock = completionBlock
         

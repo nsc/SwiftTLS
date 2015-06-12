@@ -1,59 +1,62 @@
 //: Playground - noun: a place where people can play
 //: Playground - noun: a place where people can play
 
-import Cocoa
-
-var data = NSData(base64EncodedString: "ZMOP1NFa5VKTQ8I2awGXDjzKP+686eujiangAgf5N+Q=", options: NSDataBase64DecodingOptions(rawValue: 0))
-
-var a = [UInt8](count: data!.length, repeatedValue: 0)
-data?.getBytes(&a, length: a.count)
-a
-
-func f(ints:Int...) -> String {
-    return "\(ints)"
+func foo(var bytes : [UInt8]) -> Int
+{
+    return Int(Int(bytes[0]) << 16 + Int(bytes[1]) << 8 + Int(bytes[2]))
 }
 
-f(1,2,3,4)
+foo([1, 2, 3])
 
-
-class Base
-{
-    required init(a : Int)
-    {
-    }
+protocol KnowsLargerIntType : UnsignedIntegerType {
+    typealias LargerIntType : UnsignedIntegerType
 }
 
-class Derived : Base
-{
+extension UInt8 : KnowsLargerIntType {
+    typealias LargerIntType = UInt16
 }
 
-var d = Derived(a:1)
-let type = d.dynamicType
-type(a: 2)
+extension UInt16 : KnowsLargerIntType {
+    typealias LargerIntType = UInt32
+}
 
+extension UInt32 : KnowsLargerIntType {
+    typealias LargerIntType = UInt64
+}
 
-var n0 = UInt64(0x123456789abcdef0)
-var n = n0 + n0
-
-
-class A
+class BigInt<T : UnsignedIntegerType>
 {
-    var a : Int64
+    var parts : [T]? = nil
+}
+
+func f<T : UnsignedIntegerType where T : KnowsLargerIntType>(a : BigInt<T>, _ b : BigInt<T>) -> BigInt<T>
+{
+    print("\(a.parts), \(b.parts)")
     
-    init(_ a : Int64)
-    {
-        self.a = a
+    return a
+}
+
+func g<T : UnsignedIntegerType where T : KnowsLargerIntType>(a : BigInt<T>)
+{
+    if T.self == UInt64.self {
+        let b = BigInt<UInt32>()
+        
+        f(b, b)
     }
     
-    init<T where T : IntegerType>(_ a : T)
-    {
-        self.a = a.toIntMax()
-    }
+    f(a, a)
 }
 
-func ==(lhs : A, rhs : A) -> Bool
-{
-    return lhs.a == rhs.a
+var a = BigInt<UInt8>()
+a.parts = [1,2,3]
+
+g(a)
+
+var c : [UInt8] = []
+while c.last != nil && c.last! != 0 {
+    c.removeLast()
 }
 
-A(1) =
+
+
+
