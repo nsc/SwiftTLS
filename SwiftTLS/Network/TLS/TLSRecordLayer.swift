@@ -189,70 +189,69 @@ class TLSRecordLayer
         
         self.dataProvider?.readData(count: headerProbeLength) { (data, error) -> () in
             
-            if let header = data {
-                if let (contentType, bodyLength) = TLSRecord.probeHeader(header) {
+            guard
+                let header = data,
+                let (contentType, bodyLength) = TLSRecord.probeHeader(header) else {
+
+                    fatalError("Probe failed")
+            }
                     
-                    var body : [UInt8] = []
+            var body : [UInt8] = []
+            
+            var recursiveBlock : ((data : [UInt8]?, error : TLSDataProviderError?) -> ())!
+            let readBlock : (data : [UInt8]?, error : TLSDataProviderError?) -> () = { (data, error) -> () in
+                
+                if let d = data {
+                    body.extend(d)
                     
-                    var recursiveBlock : ((data : [UInt8]?, error : TLSDataProviderError?) -> ())!
-                    let readBlock : (data : [UInt8]?, error : TLSDataProviderError?) -> () = { (data, error) -> () in
-                        
-                        if let d = data {
-                            body.extend(d)
-                            
-                            if body.count < bodyLength {
-                                let rest = bodyLength - body.count
-                                self.dataProvider?.readData(count:rest , completionBlock: recursiveBlock)
-                                return
+                    if body.count < bodyLength {
+                        let rest = bodyLength - body.count
+                        self.dataProvider?.readData(count:rest , completionBlock: recursiveBlock)
+                        return
+                    }
+                    else {
+                        var messageBody : [UInt8]
+                        if let encryptionParameters = self.currentReadEncryptionParameters {
+                            if let decryptedMessage = self.decryptAndVerifyMAC(contentType: contentType, data: body) {
+                                messageBody = decryptedMessage
                             }
                             else {
-                                var messageBody : [UInt8]
-                                if let encryptionParameters = self.currentReadEncryptionParameters {
-                                    if let decryptedMessage = self.decryptAndVerifyMAC(contentType: contentType, data: body) {
-                                        messageBody = decryptedMessage
-                                    }
-                                    else {
-                                        fatalError("Could not decrypt")
-                                    }
-                                    encryptionParameters.sequenceNumber += 1
-                                }
-                                else {
-                                    messageBody = body
-                                }
-
-                                switch (contentType)
-                                {
-                                case .ChangeCipherSpec:
-                                    let changeCipherSpec = TLSChangeCipherSpec(inputStream: BinaryInputStream(data: messageBody))
-                                    completionBlock(message: changeCipherSpec)
-                                    break
-                                    
-                                case .Alert:
-                                    let alert = TLSAlertMessage.alertFromData(messageBody)
-                                    completionBlock(message: alert)
-                                    break
-                                    
-                                case .Handshake:
-                                    let handshakeMessage = TLSHandshakeMessage.handshakeMessageFromData(messageBody)
-                                    completionBlock(message: handshakeMessage)
-                                    break
-                                    
-                                case .ApplicationData:
-                                    completionBlock(message: TLSApplicationData(applicationData: messageBody))
-                                    break
-                                }
+                                fatalError("Could not decrypt")
                             }
+                            encryptionParameters.sequenceNumber += 1
+                        }
+                        else {
+                            messageBody = body
                         }
                         
+                        switch (contentType)
+                        {
+                        case .ChangeCipherSpec:
+                            let changeCipherSpec = TLSChangeCipherSpec(inputStream: BinaryInputStream(data: messageBody))
+                            completionBlock(message: changeCipherSpec)
+                            break
+                            
+                        case .Alert:
+                            let alert = TLSAlertMessage.alertFromData(messageBody)
+                            completionBlock(message: alert)
+                            break
+                            
+                        case .Handshake:
+                            let handshakeMessage = TLSHandshakeMessage.handshakeMessageFromData(messageBody)
+                            completionBlock(message: handshakeMessage)
+                            break
+                            
+                        case .ApplicationData:
+                            completionBlock(message: TLSApplicationData(applicationData: messageBody))
+                            break
+                        }
                     }
-                    recursiveBlock = readBlock
-                    
-                    self.dataProvider?.readData(count: bodyLength, completionBlock: readBlock)
                 }
-                else {
-                    fatalError("Probe failed")
-                }
+                
             }
+            recursiveBlock = readBlock
+            
+            self.dataProvider?.readData(count: bodyLength, completionBlock: readBlock)
         }
     }
 

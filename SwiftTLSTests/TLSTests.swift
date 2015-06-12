@@ -67,7 +67,6 @@ class TSLTests: XCTestCase {
         server.listen(address, acceptBlock: { (clientSocket, error) -> () in
             if clientSocket != nil {
                 expectation.fulfill()
-                client.close()
                 server.close()
             }
             else {
@@ -80,6 +79,7 @@ class TSLTests: XCTestCase {
         client.connect(address) {
             (error: SocketError?) -> () in
             
+            client.close()
             if error != nil {
                 print("\(error)")
             }
