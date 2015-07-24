@@ -26,7 +26,7 @@ class Identity
             kSecAttrLabel as String : name
         ]
         
-        var result : Unmanaged<CFTypeRef>? = nil
+        var result : CFTypeRef? = nil
         let error : OSStatus = SecItemCopyMatching(query, &result)
         
         if (error != noErr) {
@@ -35,7 +35,7 @@ class Identity
         }
         else {
 
-            if let certificates = result!.takeRetainedValue() as? Array<SecCertificate> {
+            if let certificates = result! as? Array<SecCertificate> {
                 
                 if certificates.count > 1 {
                     print("Error: more than one certificates are matching \"\(name)\"")
@@ -43,7 +43,7 @@ class Identity
                 
                 let certificate = certificates[0]
                 
-                var identity : Unmanaged<SecIdentity>? = nil
+                var identity : SecIdentity? = nil
                 var status = SecIdentityCreateWithCertificate(nil, certificate, &identity)
                 
                 if status != noErr {
@@ -51,9 +51,9 @@ class Identity
                     return nil
                 }
                 
-                if let identity = identity?.takeRetainedValue()
+                if let identity = identity
                 {
-                    var privateKey : Unmanaged<SecKey>? = nil
+                    var privateKey : SecKey? = nil
                     status = SecIdentityCopyPrivateKey(identity, &privateKey)
                     
                     if status != noErr {
@@ -61,7 +61,7 @@ class Identity
                         return nil
                     }
                     
-                    if let privateKey = privateKey?.takeRetainedValue()
+                    if let privateKey = privateKey
                     {
                         self.identity = identity
                         self.certificate = Certificate(certificate: certificate)

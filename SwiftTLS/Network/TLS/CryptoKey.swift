@@ -39,7 +39,7 @@ class CryptoKey
 
         let key = SecKeyCreateFromData(parameters as CFDictionary, data, &error)
         if let k = key {
-            self.key = k.takeRetainedValue()
+            self.key = k
         }
         else {
             self.key = nil
@@ -52,38 +52,36 @@ class CryptoKey
     {
         let data = NSData(bytesNoCopy: &data, length: data.count, freeWhenDone: false)
         
-        if let t = SecEncryptTransformCreate(self.key, nil) {
-            let transform: SecTransform = t.takeRetainedValue()
-            var success : Bool = false
-            success = SecTransformSetAttribute(transform, kSecTransformInputAttributeName, data, nil) != 0
-            success = SecTransformSetAttribute(transform, kSecModeCBCKey.takeUnretainedValue(), true, nil) != 0
+        let transform: SecTransform = SecEncryptTransformCreate(self.key, nil)
+        var success : Bool = false
+        success = SecTransformSetAttribute(transform, kSecTransformInputAttributeName, data, nil) != 0
+        success = SecTransformSetAttribute(transform, kSecModeCBCKey, true, nil) != 0
+        
+        if (success) {
+            var error : Unmanaged<CFErrorRef>? = nil
+            let resultData: SecTransform! = SecTransformExecute(transform, &error)
             
-            if (success) {
-                var error : Unmanaged<CFErrorRef>? = nil
-                let resultData: SecTransform! = SecTransformExecute(transform, &error)
-                
-                if resultData == nil {
-                    print("\(error?.takeUnretainedValue())")
-                }
-                
-                if let data = resultData as? NSData {
-                    return [UInt8](UnsafeBufferPointer<UInt8>(start: UnsafePointer<UInt8>(data.bytes), count: data.length))
-                }
+            if resultData == nil {
+                print("\(error?.takeUnretainedValue())")
+            }
+            
+            if let data = resultData as? NSData {
+                return [UInt8](UnsafeBufferPointer<UInt8>(start: UnsafePointer<UInt8>(data.bytes), count: data.length))
             }
         }
-        
+    
         return nil
     }
 
-    private func createTransform(encrypt encrypt : Bool) -> SecTransform?
+    private func createTransform(encrypt encrypt : Bool) -> SecTransform
     {
         switch encrypt
         {
         case true:
-            return SecEncryptTransformCreate(self.key, nil).takeRetainedValue()
+            return SecEncryptTransformCreate(self.key, nil)
 
         case false:
-            return SecDecryptTransformCreate(self.key, nil).takeRetainedValue()
+            return SecDecryptTransformCreate(self.key, nil)
         }
     }
     

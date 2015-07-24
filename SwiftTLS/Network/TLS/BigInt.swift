@@ -64,11 +64,11 @@ struct BigIntImpl<U where U : UnsignedIntegerType> {
     {
         let numberInPrimitiveType = sizeof(PrimitiveType)/sizeof(T)
         
-//        if numberInPrimitiveType == 1 {
-//            self.parts = unsafeBitCast(parts, [PrimitiveType].self)
-//            self.sign = negative
-//            return
-//        }
+        if numberInPrimitiveType == 1 {
+            self.parts = parts.map({PrimitiveType($0.toUIntMax())})
+            self.sign = negative
+            return
+        }
         
         if numberInPrimitiveType > 0 {
             
@@ -191,6 +191,10 @@ struct BigIntImpl<U where U : UnsignedIntegerType> {
                 mask = mask >> 8
                 shift = shift - 8
             }
+        }
+        
+        if onlyZeroesYet {
+            return "0"
         }
         
         return s
@@ -378,13 +382,18 @@ func *<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>
 }
 
 // short division
-func /<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, v : UIntN) -> BigIntImpl<UIntN>
+func /<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, v : UInt) -> BigIntImpl<UIntN>
+{
+    return u / Int(v)
+}
+
+func /<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, v : Int) -> BigIntImpl<UIntN>
 {
     let UIntNShift = UIntMax(sizeof(UIntN) * 8)
     let b = UIntMax(UIntMax(1) << UIntNShift)
     var r = UIntMax(0)
     let n = u.parts.count
-    let vv = v.toUIntMax()
+    let vv = UIntMax(v.toIntMax())
     
     var result = BigIntImpl<UIntN>(count: n)
     for var i = n - 1; i >= 0; --i {
@@ -398,7 +407,7 @@ func /<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, v : UIntN) -> BigIntIm
     
     result.normalize()
     
-    if u.sign == (v < 0) {
+    if u.sign != (v < 0) {
         result.sign = true
     }
     
@@ -421,7 +430,38 @@ extension UInt32 : KnowsLargerIntType {
     typealias LargerIntType = UInt64
 }
 
-func division<UIntN : KnowsLargerIntType>(uu : BigIntImpl<UIntN>, _ vv : BigIntImpl<UIntN>) -> BigIntImpl<UIntN>
+func division<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, _ v : Int, inout remainder : Int?) -> BigIntImpl<UIntN>
+{
+    let UIntNShift = UIntMax(sizeof(UIntN) * 8)
+    let b = UIntMax(UIntMax(1) << UIntNShift)
+    var r = UIntMax(0)
+    let n = u.parts.count
+    let vv = UIntMax(v.toIntMax())
+    
+    var result = BigIntImpl<UIntN>(count: n)
+    for var i = n - 1; i >= 0; --i {
+        let t = r * b + u.parts[i].toUIntMax()
+        
+        let q = t / vv
+        r = t % vv
+        
+        result.parts[i] = UIntN(q)
+    }
+    
+    result.normalize()
+    
+    if u.sign != (v < 0) {
+        result.sign = true
+    }
+    
+    if remainder != nil {
+        remainder = Int(r)
+    }
+    
+    return result
+}
+
+func division<UIntN : KnowsLargerIntType>(uu : BigIntImpl<UIntN>, _ vv : BigIntImpl<UIntN>, inout remainder : BigIntImpl<UIntN>?) -> BigIntImpl<UIntN>
 {
     typealias BigIntType = BigIntImpl<UIntN>
     typealias UIntN2 = UIntN.LargerIntType
@@ -446,10 +486,26 @@ func division<UIntN : KnowsLargerIntType>(uu : BigIntImpl<UIntN>, _ vv : BigIntI
     }
     
     if n == 1 && m == 0 {
-        return BigIntType(uu.parts[0]/vv.parts[0])
+        if remainder != nil {
+            remainder = BigIntType(uu.parts[0] % vv.parts[0])
+        }
+        
+        return BigIntType(uu.parts[0] / vv.parts[0])
     }
     else if n == 1 {
-        return uu / vv.parts[0]
+        var divisor = Int(vv.parts[0].toUIntMax())
+        if vv.sign {
+            divisor = -divisor
+        }
+
+        var rem : Int? = remainder == nil ? nil : 0
+        let result = division(uu, divisor, remainder: &rem)
+        
+        if remainder != nil {
+            remainder = BigIntImpl(rem!)
+        }
+        
+        return result
     }
 
     let UIntNShift = UIntMax(sizeof(UIntN) * 8)
@@ -479,61 +535,61 @@ func division<UIntN : KnowsLargerIntType>(uu : BigIntImpl<UIntN>, _ vv : BigIntI
         u.parts.append(0)
     }
 
-//    print("u = \(u)")
-//    print("v = \(v)")
-    
     for var j = m; j >= 0; --j
     {
         // D3. Calculate q
-//        print("\(u.parts[j + n].toUIntMax())")
-//        print("\(u.parts[j + n].toUIntMax() << UIntNShift)")
-//        print("\(u.parts[j + n].toUIntMax() << UIntNShift + u.parts[j + n - 1].toUIntMax())")
         let dividend = UIntN2(u.parts[j + n].toUIntMax() << UIntNShift + u.parts[j + n - 1].toUIntMax())
         let denominator = UIntN2(v.parts[n - 1].toUIntMax())
         var q : UIntN2 = dividend / denominator
         var r : UIntN2 = dividend % denominator
         
         if q != 0 {
-//            print("q * UIntN2(v.parts[n - 2]) = \(q * UIntN2(v.parts[n - 2].toUIntMax()))")
-//            print("\(String(q, radix: 16))")
-            if q == b || (q.toUIntMax() * v.parts[n - 2].toUIntMax() > (r.toUIntMax() << UIntNShift + u.parts[j + n - 2].toUIntMax())) {
+            var numIterationsThroughLoop = 0
+            while q == b || (q.toUIntMax() * v.parts[n - 2].toUIntMax() > (r.toUIntMax() << UIntNShift + u.parts[j + n - 2].toUIntMax())) {
+
                 q = q - 1
                 r = r + denominator
+                
+                if r > b {
+                    break
+                }
+                
+                ++numIterationsThroughLoop
+                
+                assert(numIterationsThroughLoop <= 2)
             }
             
-//            print("\(q), \(r)")
             
             // D4. Multiply and subtract
             var vtemp = v
             vtemp.parts.append(0)
-//            print(BigIntType(u.parts[j...j+n]))
-//            print(vtemp * BigIntType(q))
             var temp = BigIntType(u.parts[j...j+n]) - vtemp * BigIntType(q)
 
-//            print("\(temp.toString())")
-            
             // D6. handle negative case
             if temp.sign {
                 // handle negative case
                 temp = temp + vtemp
                 q = q - 1
-                
-                print("-", appendNewline: false)
             }
             
-//            print("\(u.parts.count), \(temp.parts.count)")
             let count = temp.parts.count
             for var i = 0; i < n; ++i {
                 u.parts[j + i] = i < count ? temp.parts[i] : 0
             }
         }
         
-//        print("\(String(q, radix: 16))")
         result.parts[j] = UIntN(q.toUIntMax())
         
     }
 
-    return BigIntType(result.parts, negative: uu.sign != vv.sign)
+    let q =  BigIntType(result.parts, negative: uu.sign != vv.sign)
+    if remainder != nil {
+        let uSlice = u.parts[0..<n]
+        let uParts = [UIntN](uSlice)
+        remainder = BigIntType(uParts) / d
+    }
+    
+    return q
 }
 
 func /<U : UnsignedIntegerType where U : KnowsLargerIntType>(var u : BigIntImpl<U>, var v : BigIntImpl<U>) -> BigIntImpl<U>
@@ -556,19 +612,34 @@ func /<U : UnsignedIntegerType where U : KnowsLargerIntType>(var u : BigIntImpl<
         return BigIntImpl<U>(u.parts[0]/v.parts[0])
     }
     else if n == 1 {
-        return u / v.parts[0]
+        var divisor = Int(v.parts[0].toUIntMax())
+        if v.sign {
+            divisor = -divisor
+        }
+        
+        return u / divisor
     }
     
     if U.self == UInt64.self {
         let uu = BigIntImpl<UInt32>(u.parts)
         let vv = BigIntImpl<UInt32>(v.parts)
         
-        let result = division(uu, vv)
+        var remainder : BigIntImpl<UInt32>? = nil
+        let result = division(uu, vv, remainder: &remainder)
         
         return BigIntImpl<U>(result)
     }
     
-    return division(u, v)
+    var remainder : BigIntImpl<U>? = nil
+    return division(u, v, remainder: &remainder)
+}
+
+func %<U : UnsignedIntegerType where U : KnowsLargerIntType>(u : BigIntImpl<U>, v : BigIntImpl<U>) -> BigIntImpl<U>
+{
+    var remainder : BigIntImpl<U>? = BigIntImpl<U>(0)
+    division(u, v, remainder: &remainder)
+    
+    return remainder!
 }
 
 func == <U>(lhs : BigIntImpl<U>, rhs : BigIntImpl<U>) -> Bool

@@ -30,7 +30,7 @@ class DataBuffer : OutputStreamType
     
 }
 
-extension ExtensibleCollectionType where Generator.Element == UInt8
+extension RangeReplaceableCollectionType where Generator.Element == UInt8
 {
     mutating func write(data : [UInt8]) {
         self.extend(data)

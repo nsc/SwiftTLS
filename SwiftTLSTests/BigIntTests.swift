@@ -214,6 +214,21 @@ class BigIntTests: XCTestCase {
         return String.fromCString(BN_bn2hex(result))!
     }
 
+    func BIGNUM_mod(a : String, _ b : String) -> String
+    {
+        var an = BN_new()
+        BN_hex2bn(&an, a)
+        
+        var bn = BN_new()
+        BN_hex2bn(&bn, b)
+        
+        let context = BN_CTX_new()
+        let result = BN_new()
+        BN_div(nil, result, an, bn, context)
+        
+        return String.fromCString(BN_bn2hex(result))!
+    }
+
     func test_multiply_aNumberWithItself_givesCorrectResult()
     {
         let hexString = "123456789abcdef02134"
@@ -300,14 +315,19 @@ class BigIntTests: XCTestCase {
         {
             var u = randomBigInt()
             var v = randomBigInt()
+            
+//            var u = BigInt([0x57, 0x36, 0xbe, 0xa7] as [UInt8])
+//            var v = BigInt([0xa4, 0xc3, 0xa7] as [UInt8])
+//            var u = BigInt([0xaedc2883, 0x8680a05d, 0x92a2bf7f, 0x0053c30c] as [UInt32])
+//            var v = BigInt([0x4884f56c, 0x0000e956] as [UInt32])
 
             if u < v {
                 swap(&u, &v)
             }
             
-            let div = u / v
-            
             let s = BIGNUM_divide(u.toString(), v.toString())
+
+            let div = u / v
             
             let divHex = div.toString()
             
@@ -317,8 +337,39 @@ class BigIntTests: XCTestCase {
                 print("    Should be       \(s)\n" +
                       "    but is actually \(divHex)")
             }
-//            
-//            XCTAssert(divHex.lowercaseString == s.lowercaseString, "Wrong division result for \(u) / \(v)")
+            
+            XCTAssert(divHex.lowercaseString == s.lowercaseString, "Wrong division result for \(u) / \(v)")
+        }
+    }
+
+    func test_mod_twoNumbers_givesCorrectResult()
+    {
+        for var i = 0; i < 100; ++i
+        {
+            var u = randomBigInt()
+            var v = randomBigInt()
+        
+//            var u = BigInt([0x57, 0x36, 0xbe, 0xa7] as [UInt8])
+//            var v = BigInt([0xa4, 0xc3, 0xa7] as [UInt8])
+        
+            if u < v {
+                swap(&u, &v)
+            }
+            
+            let s = BIGNUM_mod(u.toString(), v.toString())
+
+            let div = u % v
+            
+            let divHex = div.toString()
+            
+            if divHex.lowercaseString != s.lowercaseString {
+                print("\(i):")
+                print("Wrong mod result for \(u.toString()) % \(v.toString())")
+                print("    Should be       \(s)\n" +
+                    "    but is actually \(divHex)")
+            }
+           
+            XCTAssert(divHex.lowercaseString == s.lowercaseString, "Wrong division result for \(u) / \(v)")
         }
     }
 
@@ -327,7 +378,7 @@ class BigIntTests: XCTestCase {
         let u = BigInt([0xc5, 0x01, 0xbf] as [UInt8])
         let v = BigInt([0x5f, 0xb1, 0x0e] as [UInt8])
 
-        let q = division(u, v)
+        let q = u / v
         
         
         XCTAssert(q == BigInt(0xc))

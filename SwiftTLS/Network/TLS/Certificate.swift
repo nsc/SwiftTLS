@@ -14,7 +14,7 @@ class Certificate
     
     var data : [UInt8] {
         get {
-            let data = SecCertificateCopyData(self.certificate).takeRetainedValue() as NSData
+            let data = SecCertificateCopyData(self.certificate) as NSData
             var buffer = [UInt8](count: data.length, repeatedValue: 0)
             data.getBytes(&buffer, length: data.length)
             
@@ -24,13 +24,13 @@ class Certificate
     
     var commonName : String? {
         get {
-            var ptr : Unmanaged<CFString>? = nil
+            var ptr : CFString? = nil
             let status = SecCertificateCopyCommonName(certificate, &ptr)
             if status != noErr {
                 return nil
             }
 
-            if let commonName = ptr?.takeRetainedValue() {
+            if let commonName = ptr {
                 return commonName as String
             }
             
@@ -44,32 +44,32 @@ class Certificate
             var err : OSStatus = 0
             var publicKeyFromTrust : SecKey?
             
-            var ptr : Unmanaged<SecKey>? = nil
+            var ptr : SecKey? = nil
 
             SecCertificateCopyPublicKey(self.certificate, &ptr)
             
-            let policy = SecPolicyCreateBasicX509().takeRetainedValue()
+            let policy = SecPolicyCreateBasicX509()
             
-            var trustPtr : Unmanaged<SecTrust>? = nil
+            var trustPtr : SecTrust? = nil
             
             err = SecTrustCreateWithCertificates(self.certificate, policy, &trustPtr)
             assert(err == errSecSuccess)
             
-            if let trust = trustPtr?.takeRetainedValue() {
+            if let trust = trustPtr {
                 var trustResult = SecTrustResultType()
                 err = SecTrustEvaluate(trust, &trustResult)
                 assert(err == errSecSuccess)
                 
                 if let key = SecTrustCopyPublicKey(trust) {
                     
-                    publicKeyFromTrust = key.takeRetainedValue()
+                    publicKeyFromTrust = key
                 }
             }
 
-            var keyFromCertificate : Unmanaged<SecKey>? = nil
+            var keyFromCertificate : SecKey? = nil
             err = SecCertificateCopyPublicKey(self.certificate, &keyFromCertificate)
             if (err == errSecSuccess) {
-                if let k = keyFromCertificate?.takeUnretainedValue() {
+                if let k = keyFromCertificate {
                     return CryptoKey(key: k)
                 }
             }
@@ -86,7 +86,7 @@ class Certificate
     init?(certificateData : NSData)
     {
         let unmanagedCert = SecCertificateCreateWithData(kCFAllocatorDefault, certificateData)
-        if let cert = unmanagedCert?.takeRetainedValue() {
+        if let cert = unmanagedCert {
             self.certificate = cert
         }
         else {
