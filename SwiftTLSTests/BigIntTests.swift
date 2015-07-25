@@ -229,6 +229,39 @@ class BigIntTests: XCTestCase {
         return String.fromCString(BN_bn2hex(result))!
     }
 
+    func BIGNUM_pow(a : String, _ b : String) -> String
+    {
+        var an = BN_new()
+        BN_hex2bn(&an, a)
+        
+        var bn = BN_new()
+        BN_hex2bn(&bn, b)
+        
+        let context = BN_CTX_new()
+        let result = BN_new()
+        BN_exp(result, an, bn, context)
+        
+        return String.fromCString(BN_bn2hex(result))!
+    }
+
+    func BIGNUM_mod_pow(a : String, _ b : String, _ mod : String) -> String
+    {
+        var an = BN_new()
+        BN_hex2bn(&an, a)
+        
+        var bn = BN_new()
+        BN_hex2bn(&bn, b)
+
+        var modn = BN_new()
+        BN_hex2bn(&modn, mod)
+
+        let context = BN_CTX_new()
+        let result = BN_new()
+        BN_mod_exp(result, an, bn, modn, context)
+        
+        return String.fromCString(BN_bn2hex(result))!
+    }
+
     func test_multiply_aNumberWithItself_givesCorrectResult()
     {
         let hexString = "123456789abcdef02134"
@@ -257,23 +290,11 @@ class BigIntTests: XCTestCase {
         XCTAssert(productHex.lowercaseString == s.lowercaseString)
     }
 
-    func test_bla()
-    {
-        let a = BigIntImpl<UInt8>(1)
-        let b = BigIntImpl<UInt8>([255, 255] as [UInt8])
-        
-        print("\(a * b)")
-        
-        let c = BigIntImpl<UInt8>(b)
-        
-        print("\(c)")
-    }
-
     func randomBigInt() -> BigInt
     {
         var parts = [UInt8]()
         let min = sizeof(BigInt.PrimitiveType.self)
-        let max = min * 256
+        let max = min * 5
         repeat {
             let n = Int(arc4random()) % max + min
             parts = [UInt8]()
@@ -370,6 +391,31 @@ class BigIntTests: XCTestCase {
             }
            
             XCTAssert(divHex.lowercaseString == s.lowercaseString, "Wrong division result for \(u) / \(v)")
+        }
+    }
+
+    func test_mod_pow_withTwoRandomNumbers_givesCorrectResult()
+    {
+        for var i = 0; i < 100; ++i
+        {
+            let u = randomBigInt()
+            let mod = randomBigInt()
+            let n = Int(arc4random() % 10000)
+            
+            let s = BIGNUM_mod_pow(u.toString(), String(n, radix: 16), mod.toString())
+            
+            let result = modular_pow(u, n, mod)
+            
+            let divHex = result.toString()
+            
+            if divHex.lowercaseString != s.lowercaseString {
+                print("\(i):")
+                print("Wrong mod_pow result for \(u.toString()) % \(n)")
+                print("    Should be       \(s)\n" +
+                    "    but is actually \(divHex)")
+            }
+            
+            XCTAssert(divHex.lowercaseString == s.lowercaseString, "Wrong mod_pow result for \(u) ^ \(n) % \(mod)")
         }
     }
 

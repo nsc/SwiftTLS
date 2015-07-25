@@ -468,6 +468,10 @@ func division<UIntN : KnowsLargerIntType>(uu : BigIntImpl<UIntN>, _ vv : BigIntI
     let m = uu.parts.count - vv.parts.count
     
     if m < 0 {
+        if remainder != nil {
+            remainder = uu
+        }
+
         return BigIntType(0)
     }
     
@@ -685,3 +689,45 @@ prefix func -<U>(var v : BigIntImpl<U>) -> BigIntImpl<U> {
     v.sign = !v.sign
     return v
 }
+
+func modular_multiply<U : UnsignedIntegerType where U : KnowsLargerIntType>(a : BigIntImpl<U>, b : BigIntImpl<U>, mod : BigIntImpl<U>) -> BigIntImpl<U>
+{
+    return ((a % mod) * (b % mod)) % mod
+}
+
+func pow<U : UnsignedIntegerType where U : KnowsLargerIntType>(base : BigIntImpl<U>, _ exponent : Int) -> BigIntImpl<U>
+{
+    let numBits = sizeof(Int) * 8
+    
+    var result = BigIntImpl<U>(1)
+    var r = base
+    for var i = 0; i < numBits; ++i
+    {
+        if (exponent & (1 << i)) != 0 {
+            result = result * r
+        }
+        
+        r = r * r
+    }
+    
+    return result
+}
+
+func modular_pow<U : UnsignedIntegerType where U : KnowsLargerIntType>(base : BigIntImpl<U>, _ exponent : Int, _ mod : BigIntImpl<U>) -> BigIntImpl<U>
+{
+    let numBits = sizeof(Int) * 8
+    
+    var result = BigIntImpl<U>(1)
+    var r = base % mod
+    for var i = 0; i < numBits; ++i
+    {
+        if (exponent & (1 << i)) != 0 {
+            result = (result * r) % mod
+        }
+        
+        r = (r * r) % mod
+    }
+    
+    return result
+}
+
