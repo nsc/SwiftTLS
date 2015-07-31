@@ -21,25 +21,11 @@ struct BigIntImpl<U where U : UnsignedIntegerType> {
     var sign : Bool
     
     init(_ a : Int) {
-        if a == 0 {
-            parts = []
-            sign = false
-            return
-        }
-
-        parts = [PrimitiveType(UIntMax(abs(a)))]
-        sign = a < 0
+        self.init([UInt(abs(a))], negative: a < 0)
     }
 
     init<T where T : UnsignedIntegerType>(_ a : T) {
-        if a == 0 {
-            parts = []
-            sign = false
-            return
-        }
-        
-        parts = [PrimitiveType(a.toUIntMax())]
-        sign = false
+        self.init([a])
     }
 
     init(count: Int)
