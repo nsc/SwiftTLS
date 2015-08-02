@@ -9,31 +9,7 @@
 /* Begin PBXBuildFile section */
 		031868E61ADD7D9800CB51E1 /* mycert.pem in Resources */ = {isa = PBXBuildFile; fileRef = 031868E51ADD7D9800CB51E1 /* mycert.pem */; };
 		031868E81ADD873D00CB51E1 /* TLSUtilitiesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 031868E71ADD873D00CB51E1 /* TLSUtilitiesTests.swift */; };
-		033423921B0E6AE000D2964A /* TLSServerKeyExchange.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033423911B0E6AE000D2964A /* TLSServerKeyExchange.swift */; };
 		033423931B0E6AE000D2964A /* TLSServerKeyExchange.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033423911B0E6AE000D2964A /* TLSServerKeyExchange.swift */; };
-		033AC37D1AC473980004EEC1 /* TLSTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3781AC473980004EEC1 /* TLSTests.swift */; };
-		033AC37E1AC473980004EEC1 /* TLSRecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3791AC473980004EEC1 /* TLSRecordTests.swift */; };
-		033AC37F1AC473980004EEC1 /* TLSClientHelloTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC37A1AC473980004EEC1 /* TLSClientHelloTests.swift */; };
-		033AC3801AC473980004EEC1 /* TLSServerHelloTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC37B1AC473980004EEC1 /* TLSServerHelloTests.swift */; };
-		033AC3811AC473980004EEC1 /* BigIntTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC37C1AC473980004EEC1 /* BigIntTests.swift */; };
-		033AC3891AC474350004EEC1 /* DataBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3831AC474350004EEC1 /* DataBuffer.swift */; };
-		033AC38B1AC474350004EEC1 /* IPAddress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3841AC474350004EEC1 /* IPAddress.swift */; };
-		033AC38D1AC474350004EEC1 /* Socket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3851AC474350004EEC1 /* Socket.swift */; };
-		033AC38F1AC474350004EEC1 /* SwiftHelper.c in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3861AC474350004EEC1 /* SwiftHelper.c */; };
-		033AC3A01AC474430004EEC1 /* BigInt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3911AC474430004EEC1 /* BigInt.swift */; };
-		033AC3A21AC474430004EEC1 /* Certificate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3921AC474430004EEC1 /* Certificate.swift */; };
-		033AC3A41AC474430004EEC1 /* CryptoKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3931AC474430004EEC1 /* CryptoKey.swift */; };
-		033AC3A61AC474430004EEC1 /* TLSCertificateMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3941AC474430004EEC1 /* TLSCertificateMessage.swift */; };
-		033AC3A81AC474430004EEC1 /* TLSChangeCipherSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3951AC474430004EEC1 /* TLSChangeCipherSpec.swift */; };
-		033AC3AA1AC474430004EEC1 /* TLSClientHello.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3961AC474430004EEC1 /* TLSClientHello.swift */; };
-		033AC3AC1AC474430004EEC1 /* TLSClientKeyExchange.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3971AC474430004EEC1 /* TLSClientKeyExchange.swift */; };
-		033AC3AE1AC474430004EEC1 /* TLSContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3981AC474430004EEC1 /* TLSContext.swift */; };
-		033AC3B01AC474430004EEC1 /* TLSHandshake.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3991AC474430004EEC1 /* TLSHandshake.swift */; };
-		033AC3B21AC474430004EEC1 /* TLSMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC39A1AC474430004EEC1 /* TLSMessage.swift */; };
-		033AC3B41AC474430004EEC1 /* TLSRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC39B1AC474430004EEC1 /* TLSRecord.swift */; };
-		033AC3B61AC474430004EEC1 /* TLSServerHello.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC39C1AC474430004EEC1 /* TLSServerHello.swift */; };
-		033AC3B81AC474430004EEC1 /* TLSServerHelloDone.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC39D1AC474430004EEC1 /* TLSServerHelloDone.swift */; };
-		033AC3BA1AC474430004EEC1 /* TLSSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC39E1AC474430004EEC1 /* TLSSocket.swift */; };
 		033B643C1B2348190019F3FA /* bf_ecb.c in Sources */ = {isa = PBXBuildFile; fileRef = 033B63C31B2348190019F3FA /* bf_ecb.c */; };
 		033B643E1B2348190019F3FA /* bf_enc.c in Sources */ = {isa = PBXBuildFile; fileRef = 033B63C41B2348190019F3FA /* bf_enc.c */; };
 		033B64401B2348190019F3FA /* bf_skey.c in Sources */ = {isa = PBXBuildFile; fileRef = 033B63C71B2348190019F3FA /* bf_skey.c */; };
@@ -96,7 +72,42 @@
 		033B64C91B2348190019F3FA /* rsa_ssl.c in Sources */ = {isa = PBXBuildFile; fileRef = 033B64391B2348190019F3FA /* rsa_ssl.c */; };
 		033B64CB1B2348190019F3FA /* stack.c in Sources */ = {isa = PBXBuildFile; fileRef = 033B643B1B2348190019F3FA /* stack.c */; };
 		033B64CE1B234A460019F3FA /* openssl_utils.c in Sources */ = {isa = PBXBuildFile; fileRef = 033B64CD1B234A460019F3FA /* openssl_utils.c */; };
-		03471E781AD59D6D004E0F5E /* TLSFinished.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03471E761AD59D6D004E0F5E /* TLSFinished.swift */; };
+		035481151B6E8A3500D7891E /* BigInt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3911AC474430004EEC1 /* BigInt.swift */; };
+		035481161B6E8A3500D7891E /* TLSUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0394D2901AD65F40005DC3C4 /* TLSUtilities.swift */; };
+		035481171B6E8A3500D7891E /* TLSCipherSuiteDescriptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 038AEE761ADAC06100DDFA8F /* TLSCipherSuiteDescriptions.swift */; };
+		035481181B6E8A3500D7891E /* TLSContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3981AC474430004EEC1 /* TLSContext.swift */; };
+		035481191B6E8A3500D7891E /* DiffieHellmanKeyExchange.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0374FE3C1B6E42E8003DD557 /* DiffieHellmanKeyExchange.swift */; };
+		0354811A1B6E8A3500D7891E /* TLSRecordLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0394D28D1AD65F09005DC3C4 /* TLSRecordLayer.swift */; };
+		0354811B1B6E8A3500D7891E /* TLSHandshake.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3991AC474430004EEC1 /* TLSHandshake.swift */; };
+		0354811C1B6E8A3500D7891E /* TLSMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC39A1AC474430004EEC1 /* TLSMessage.swift */; };
+		0354811D1B6E8A3500D7891E /* TLSApplicationData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03D0BDDD1AEAA16600BFE004 /* TLSApplicationData.swift */; };
+		0354811E1B6E8A3500D7891E /* TLSAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03A4BF001AC4851F00CEB7A3 /* TLSAlert.swift */; };
+		0354811F1B6E8A3500D7891E /* TLSRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC39B1AC474430004EEC1 /* TLSRecord.swift */; };
+		035481201B6E8A3500D7891E /* TLSSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC39E1AC474430004EEC1 /* TLSSocket.swift */; };
+		035481211B6E8A3500D7891E /* Identity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 039363261B04E2BF0020F857 /* Identity.swift */; };
+		035481221B6E8A3500D7891E /* Certificate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3921AC474430004EEC1 /* Certificate.swift */; };
+		035481231B6E8A3500D7891E /* CryptoKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3931AC474430004EEC1 /* CryptoKey.swift */; };
+		035481241B6E8A3500D7891E /* ASN1Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03BF8C8A1B11C2E800332087 /* ASN1Parser.swift */; };
+		035481251B6E8A3500D7891E /* TLSClientHello.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3961AC474430004EEC1 /* TLSClientHello.swift */; };
+		035481261B6E8A3500D7891E /* TLSServerHello.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC39C1AC474430004EEC1 /* TLSServerHello.swift */; };
+		035481271B6E8A3500D7891E /* TLSServerHelloDone.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC39D1AC474430004EEC1 /* TLSServerHelloDone.swift */; };
+		035481281B6E8A3500D7891E /* TLSClientKeyExchange.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3971AC474430004EEC1 /* TLSClientKeyExchange.swift */; };
+		035481291B6E8A3500D7891E /* TLSServerKeyExchange.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033423911B0E6AE000D2964A /* TLSServerKeyExchange.swift */; };
+		0354812A1B6E8A3500D7891E /* TLSCertificateMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3941AC474430004EEC1 /* TLSCertificateMessage.swift */; };
+		0354812B1B6E8A3500D7891E /* TLSFinished.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03471E761AD59D6D004E0F5E /* TLSFinished.swift */; };
+		0354812C1B6E8A3500D7891E /* TLSChangeCipherSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3951AC474430004EEC1 /* TLSChangeCipherSpec.swift */; };
+		0354812D1B6E8A4300D7891E /* DataBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3831AC474350004EEC1 /* DataBuffer.swift */; };
+		0354812E1B6E8A4300D7891E /* IPAddress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3841AC474350004EEC1 /* IPAddress.swift */; };
+		0354812F1B6E8A4300D7891E /* Socket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3851AC474350004EEC1 /* Socket.swift */; };
+		035481301B6E8A4300D7891E /* SwiftHelper.c in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3861AC474350004EEC1 /* SwiftHelper.c */; };
+		035481311B6E8A7000D7891E /* BigIntTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC37C1AC473980004EEC1 /* BigIntTests.swift */; };
+		035481321B6E8A7000D7891E /* TLSTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3781AC473980004EEC1 /* TLSTests.swift */; };
+		035481331B6E8A7000D7891E /* TLSRecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3791AC473980004EEC1 /* TLSRecordTests.swift */; };
+		035481341B6E8A7000D7891E /* TLSClientHelloTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC37A1AC473980004EEC1 /* TLSClientHelloTests.swift */; };
+		035481351B6E8A9500D7891E /* TLSServerHelloTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC37B1AC473980004EEC1 /* TLSServerHelloTests.swift */; };
+		035481361B6E8A9500D7891E /* TLSCertificateMessageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03DDB64B1AC60DE5000B5726 /* TLSCertificateMessageTests.swift */; };
+		035481371B6E8A9500D7891E /* ASN1Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03BF8C8D1B11CF6E00332087 /* ASN1Tests.swift */; };
+		035481381B6E8A9500D7891E /* SocketTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03974A6F1AFE04D600248702 /* SocketTests.swift */; };
 		03657D091B07BDEF00293CE3 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03657D081B07BDEF00293CE3 /* main.swift */; };
 		036A7BFA1B07C17D00AE46F8 /* TLSUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0394D2901AD65F40005DC3C4 /* TLSUtilities.swift */; };
 		036A7BFB1B07C17D00AE46F8 /* TLSCipherSuiteDescriptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 038AEE761ADAC06100DDFA8F /* TLSCipherSuiteDescriptions.swift */; };
@@ -124,21 +135,10 @@
 		036A7C111B07C18500AE46F8 /* Socket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3851AC474350004EEC1 /* Socket.swift */; };
 		036A7C121B07C18500AE46F8 /* SwiftHelper.c in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3861AC474350004EEC1 /* SwiftHelper.c */; };
 		036A7C141B07C26800AE46F8 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 036A7C131B07C26800AE46F8 /* Security.framework */; };
-		036C47411AC70BEB007C5501 /* NSDataVsArrayPerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 036C47401AC70BEB007C5501 /* NSDataVsArrayPerformanceTests.swift */; };
-		038AEE781ADAC06100DDFA8F /* TLSCipherSuiteDescriptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 038AEE761ADAC06100DDFA8F /* TLSCipherSuiteDescriptions.swift */; };
-		039363281B04E7660020F857 /* Identity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 039363261B04E2BF0020F857 /* Identity.swift */; };
-		0394D28F1AD65F09005DC3C4 /* TLSRecordLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0394D28D1AD65F09005DC3C4 /* TLSRecordLayer.swift */; };
-		0394D2921AD65F40005DC3C4 /* TLSUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0394D2901AD65F40005DC3C4 /* TLSUtilities.swift */; };
-		03974A701AFE04D600248702 /* SocketTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03974A6F1AFE04D600248702 /* SocketTests.swift */; };
-		03A4BF021AC4851F00CEB7A3 /* TLSAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03A4BF001AC4851F00CEB7A3 /* TLSAlert.swift */; };
-		03BF8C8B1B11C2E800332087 /* ASN1Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03BF8C8A1B11C2E800332087 /* ASN1Parser.swift */; };
+		0374FE3D1B6E42E8003DD557 /* DiffieHellmanKeyExchange.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0374FE3C1B6E42E8003DD557 /* DiffieHellmanKeyExchange.swift */; };
 		03BF8C8C1B11C2E800332087 /* ASN1Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03BF8C8A1B11C2E800332087 /* ASN1Parser.swift */; };
-		03BF8C8E1B11CF6E00332087 /* ASN1Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03BF8C8D1B11CF6E00332087 /* ASN1Tests.swift */; };
 		03BF8C901B11CF9200332087 /* dhparams.pem in Resources */ = {isa = PBXBuildFile; fileRef = 03BF8C8F1B11CF9200332087 /* dhparams.pem */; };
-		03D0BDDF1AEAA16600BFE004 /* TLSApplicationData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03D0BDDD1AEAA16600BFE004 /* TLSApplicationData.swift */; };
 		03DDB64A1AC60DAD000B5726 /* certificate.cer in Resources */ = {isa = PBXBuildFile; fileRef = 03DDB6491AC60DAD000B5726 /* certificate.cer */; };
-		03DDB64C1AC60DE5000B5726 /* TLSCertificateMessageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03DDB64B1AC60DE5000B5726 /* TLSCertificateMessageTests.swift */; };
-		03DDB64E1AC61468000B5726 /* TLSClientKeyExchangeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03DDB64D1AC61468000B5726 /* TLSClientKeyExchangeTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -299,6 +299,7 @@
 		03657D081B07BDEF00293CE3 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		036A7C131B07C26800AE46F8 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		036C47401AC70BEB007C5501 /* NSDataVsArrayPerformanceTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NSDataVsArrayPerformanceTests.swift; sourceTree = "<group>"; };
+		0374FE3C1B6E42E8003DD557 /* DiffieHellmanKeyExchange.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DiffieHellmanKeyExchange.swift; sourceTree = "<group>"; };
 		038AEE761ADAC06100DDFA8F /* TLSCipherSuiteDescriptions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSCipherSuiteDescriptions.swift; sourceTree = "<group>"; };
 		039363261B04E2BF0020F857 /* Identity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Identity.swift; sourceTree = "<group>"; };
 		0394D28D1AD65F09005DC3C4 /* TLSRecordLayer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSRecordLayer.swift; sourceTree = "<group>"; };
@@ -415,6 +416,7 @@
 				0394D2901AD65F40005DC3C4 /* TLSUtilities.swift */,
 				038AEE761ADAC06100DDFA8F /* TLSCipherSuiteDescriptions.swift */,
 				033AC3981AC474430004EEC1 /* TLSContext.swift */,
+				0374FE3C1B6E42E8003DD557 /* DiffieHellmanKeyExchange.swift */,
 				0394D28D1AD65F09005DC3C4 /* TLSRecordLayer.swift */,
 				033AC3991AC474430004EEC1 /* TLSHandshake.swift */,
 				033AC39A1AC474430004EEC1 /* TLSMessage.swift */,
@@ -753,103 +755,102 @@
 			buildActionMask = 2147483647;
 			files = (
 				033B648A1B2348190019F3FA /* dh_key.c in Sources */,
+				0354812E1B6E8A4300D7891E /* IPAddress.swift in Sources */,
 				033B643C1B2348190019F3FA /* bf_ecb.c in Sources */,
+				035481171B6E8A3500D7891E /* TLSCipherSuiteDescriptions.swift in Sources */,
+				0354811F1B6E8A3500D7891E /* TLSRecord.swift in Sources */,
+				0354811D1B6E8A3500D7891E /* TLSApplicationData.swift in Sources */,
 				033B64541B2348190019F3FA /* bn_exp.c in Sources */,
 				033B648C1B2348190019F3FA /* dh_lib.c in Sources */,
+				035481211B6E8A3500D7891E /* Identity.swift in Sources */,
 				033B646E1B2348190019F3FA /* bn_word.c in Sources */,
 				033B64401B2348190019F3FA /* bf_skey.c in Sources */,
+				035481341B6E8A7000D7891E /* TLSClientHelloTests.swift in Sources */,
 				033B64A41B2348190019F3FA /* lhash.c in Sources */,
 				033B644A1B2348190019F3FA /* bn_asm.c in Sources */,
-				033AC3A41AC474430004EEC1 /* CryptoKey.swift in Sources */,
-				033AC38F1AC474350004EEC1 /* SwiftHelper.c in Sources */,
-				03DDB64C1AC60DE5000B5726 /* TLSCertificateMessageTests.swift in Sources */,
 				033B64901B2348190019F3FA /* dsa_err.c in Sources */,
+				035481281B6E8A3500D7891E /* TLSClientKeyExchange.swift in Sources */,
 				033B64981B2348190019F3FA /* dsa_ossl.c in Sources */,
-				033AC38D1AC474350004EEC1 /* Socket.swift in Sources */,
-				033AC3AC1AC474430004EEC1 /* TLSClientKeyExchange.swift in Sources */,
 				033B644E1B2348190019F3FA /* bn_ctx.c in Sources */,
-				033AC3B21AC474430004EEC1 /* TLSMessage.swift in Sources */,
+				035481361B6E8A9500D7891E /* TLSCertificateMessageTests.swift in Sources */,
 				033B645C1B2348190019F3FA /* bn_mont.c in Sources */,
-				033AC3801AC473980004EEC1 /* TLSServerHelloTests.swift in Sources */,
 				033B649C1B2348190019F3FA /* dsa_vrf.c in Sources */,
 				033B64481B2348190019F3FA /* bn_add.c in Sources */,
-				033AC3811AC473980004EEC1 /* BigIntTests.swift in Sources */,
-				033AC3A01AC474430004EEC1 /* BigInt.swift in Sources */,
-				033AC3B41AC474430004EEC1 /* TLSRecord.swift in Sources */,
-				036C47411AC70BEB007C5501 /* NSDataVsArrayPerformanceTests.swift in Sources */,
+				035481331B6E8A7000D7891E /* TLSRecordTests.swift in Sources */,
 				033B648E1B2348190019F3FA /* dsa_asn1.c in Sources */,
-				03BF8C8B1B11C2E800332087 /* ASN1Parser.swift in Sources */,
+				035481241B6E8A3500D7891E /* ASN1Parser.swift in Sources */,
 				033B64621B2348190019F3FA /* bn_prime.c in Sources */,
 				033B649A1B2348190019F3FA /* dsa_sign.c in Sources */,
+				035481291B6E8A3500D7891E /* TLSServerKeyExchange.swift in Sources */,
 				033B64661B2348190019F3FA /* bn_rand.c in Sources */,
+				0354811E1B6E8A3500D7891E /* TLSAlert.swift in Sources */,
+				035481301B6E8A4300D7891E /* SwiftHelper.c in Sources */,
 				033B64441B2348190019F3FA /* bio_lib.c in Sources */,
 				033B64861B2348190019F3FA /* dh_err.c in Sources */,
+				035481201B6E8A3500D7891E /* TLSSocket.swift in Sources */,
 				033B647E1B2348190019F3FA /* buf_err.c in Sources */,
-				033AC38B1AC474350004EEC1 /* IPAddress.swift in Sources */,
-				038AEE781ADAC06100DDFA8F /* TLSCipherSuiteDescriptions.swift in Sources */,
 				033B64B71B2348190019F3FA /* rsa_eay.c in Sources */,
 				033B64641B2348190019F3FA /* bn_print.c in Sources */,
 				033B64841B2348190019F3FA /* dh_check.c in Sources */,
-				033AC37F1AC473980004EEC1 /* TLSClientHelloTests.swift in Sources */,
-				03974A701AFE04D600248702 /* SocketTests.swift in Sources */,
 				033B64881B2348190019F3FA /* dh_gen.c in Sources */,
+				035481251B6E8A3500D7891E /* TLSClientHello.swift in Sources */,
+				035481221B6E8A3500D7891E /* Certificate.swift in Sources */,
 				033B64AB1B2348190019F3FA /* rc2_skey.c in Sources */,
 				033B64BF1B2348190019F3FA /* rsa_none.c in Sources */,
 				033B64B51B2348190019F3FA /* rsa_chk.c in Sources */,
+				0354812C1B6E8A3500D7891E /* TLSChangeCipherSpec.swift in Sources */,
+				035481181B6E8A3500D7891E /* TLSContext.swift in Sources */,
+				035481161B6E8A3500D7891E /* TLSUtilities.swift in Sources */,
+				0354812A1B6E8A3500D7891E /* TLSCertificateMessage.swift in Sources */,
 				033B64AF1B2348190019F3FA /* rc5_skey.c in Sources */,
 				033B64A71B2348190019F3FA /* mem.c in Sources */,
-				033AC3B81AC474430004EEC1 /* TLSServerHelloDone.swift in Sources */,
-				033AC3B01AC474430004EEC1 /* TLSHandshake.swift in Sources */,
-				03BF8C8E1B11CF6E00332087 /* ASN1Tests.swift in Sources */,
-				03D0BDDF1AEAA16600BFE004 /* TLSApplicationData.swift in Sources */,
 				033B64961B2348190019F3FA /* dsa_lib.c in Sources */,
 				033B64C91B2348190019F3FA /* rsa_ssl.c in Sources */,
+				035481351B6E8A9500D7891E /* TLSServerHelloTests.swift in Sources */,
 				033B644C1B2348190019F3FA /* bn_blind.c in Sources */,
 				033B64CB1B2348190019F3FA /* stack.c in Sources */,
+				035481261B6E8A3500D7891E /* TLSServerHello.swift in Sources */,
+				0354812B1B6E8A3500D7891E /* TLSFinished.swift in Sources */,
 				033B64A21B2348190019F3FA /* ex_data.c in Sources */,
 				033B64A91B2348190019F3FA /* rc2_cbc.c in Sources */,
 				033B646C1B2348190019F3FA /* bn_sqr.c in Sources */,
-				033AC3AA1AC474430004EEC1 /* TLSClientHello.swift in Sources */,
 				033B643E1B2348190019F3FA /* bf_enc.c in Sources */,
 				033B646A1B2348190019F3FA /* bn_shift.c in Sources */,
 				033B64CE1B234A460019F3FA /* openssl_utils.c in Sources */,
 				033B64821B2348190019F3FA /* cryptlib.c in Sources */,
 				033B64581B2348190019F3FA /* bn_gcd.c in Sources */,
-				033AC3A61AC474430004EEC1 /* TLSCertificateMessage.swift in Sources */,
-				033AC3BA1AC474430004EEC1 /* TLSSocket.swift in Sources */,
-				0394D2921AD65F40005DC3C4 /* TLSUtilities.swift in Sources */,
+				035481191B6E8A3500D7891E /* DiffieHellmanKeyExchange.swift in Sources */,
 				033B64461B2348190019F3FA /* bss_file.c in Sources */,
 				031868E81ADD873D00CB51E1 /* TLSUtilitiesTests.swift in Sources */,
-				033423921B0E6AE000D2964A /* TLSServerKeyExchange.swift in Sources */,
+				035481151B6E8A3500D7891E /* BigInt.swift in Sources */,
 				033B64941B2348190019F3FA /* dsa_key.c in Sources */,
 				033B64601B2348190019F3FA /* bn_mul.c in Sources */,
+				035481321B6E8A7000D7891E /* TLSTests.swift in Sources */,
 				033B64C31B2348190019F3FA /* rsa_pk1.c in Sources */,
 				033B64C11B2348190019F3FA /* rsa_null.c in Sources */,
-				0394D28F1AD65F09005DC3C4 /* TLSRecordLayer.swift in Sources */,
+				035481371B6E8A9500D7891E /* ASN1Tests.swift in Sources */,
 				033B64521B2348190019F3FA /* bn_err.c in Sources */,
 				033B64A01B2348190019F3FA /* err_prn.c in Sources */,
-				033AC3A21AC474430004EEC1 /* Certificate.swift in Sources */,
-				033AC3B61AC474430004EEC1 /* TLSServerHello.swift in Sources */,
+				035481271B6E8A3500D7891E /* TLSServerHelloDone.swift in Sources */,
 				033B64BB1B2348190019F3FA /* rsa_gen.c in Sources */,
 				033B645E1B2348190019F3FA /* bn_mpi.c in Sources */,
+				0354811C1B6E8A3500D7891E /* TLSMessage.swift in Sources */,
+				0354811B1B6E8A3500D7891E /* TLSHandshake.swift in Sources */,
 				033B64B91B2348190019F3FA /* rsa_err.c in Sources */,
 				033B64681B2348190019F3FA /* bn_recp.c in Sources */,
-				033AC37D1AC473980004EEC1 /* TLSTests.swift in Sources */,
+				035481311B6E8A7000D7891E /* BigIntTests.swift in Sources */,
+				035481231B6E8A3500D7891E /* CryptoKey.swift in Sources */,
 				033B64BD1B2348190019F3FA /* rsa_lib.c in Sources */,
 				033B64AD1B2348190019F3FA /* rc5_enc.c in Sources */,
-				039363281B04E7660020F857 /* Identity.swift in Sources */,
-				03471E781AD59D6D004E0F5E /* TLSFinished.swift in Sources */,
-				033AC37E1AC473980004EEC1 /* TLSRecordTests.swift in Sources */,
 				033B64561B2348190019F3FA /* bn_exp2.c in Sources */,
-				03A4BF021AC4851F00CEB7A3 /* TLSAlert.swift in Sources */,
+				0354812D1B6E8A4300D7891E /* DataBuffer.swift in Sources */,
+				0354811A1B6E8A3500D7891E /* TLSRecordLayer.swift in Sources */,
 				033B647C1B2348190019F3FA /* vms-helper.c in Sources */,
 				033B64501B2348190019F3FA /* bn_div.c in Sources */,
-				033AC3891AC474350004EEC1 /* DataBuffer.swift in Sources */,
+				0354812F1B6E8A4300D7891E /* Socket.swift in Sources */,
 				033B649E1B2348190019F3FA /* err.c in Sources */,
 				033B64801B2348190019F3FA /* buffer.c in Sources */,
-				03DDB64E1AC61468000B5726 /* TLSClientKeyExchangeTests.swift in Sources */,
-				033AC3A81AC474430004EEC1 /* TLSChangeCipherSpec.swift in Sources */,
-				033AC3AE1AC474430004EEC1 /* TLSContext.swift in Sources */,
+				035481381B6E8A9500D7891E /* SocketTests.swift in Sources */,
 				033B645A1B2348190019F3FA /* bn_lib.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -880,6 +881,7 @@
 				036A7C011B07C17D00AE46F8 /* TLSApplicationData.swift in Sources */,
 				036A7C101B07C18500AE46F8 /* IPAddress.swift in Sources */,
 				036A7C0F1B07C18500AE46F8 /* DataBuffer.swift in Sources */,
+				0374FE3D1B6E42E8003DD557 /* DiffieHellmanKeyExchange.swift in Sources */,
 				036A7C091B07C17D00AE46F8 /* TLSServerHello.swift in Sources */,
 				03BF8C8C1B11C2E800332087 /* ASN1Parser.swift in Sources */,
 				036A7BFA1B07C17D00AE46F8 /* TLSUtilities.swift in Sources */,
@@ -982,6 +984,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_TESTABILITY = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(DEVELOPER_FRAMEWORKS_DIR)",
 					"$(inherited)",
@@ -1028,6 +1031,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				GCC_GENERATE_TEST_COVERAGE_FILES = YES;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
@@ -1046,6 +1050,7 @@
 		03657D0C1B07BDEF00293CE3 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				GCC_GENERATE_TEST_COVERAGE_FILES = YES;
 				GCC_NO_COMMON_BLOCKS = YES;
 				HEADER_SEARCH_PATHS = (
 					external/openssl,

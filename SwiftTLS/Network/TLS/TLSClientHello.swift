@@ -48,65 +48,20 @@ class TLSClientHello : TLSHandshakeMessage
     
     required init?(inputStream : InputStreamType)
     {
-        var clientVersion : TLSProtocolVersion?
-        var random : Random?
-        var sessionID : SessionID?
-        var rawCipherSuites : [UInt16]?
-        var compressionMethods : [CompressionMethod]?
-        
-        let (type, _) = TLSHandshakeMessage.readHeader(inputStream)
-        
-        if let t = type {
-            if t == TLSHandshakeType.ClientHello {
-                
-                if let major : UInt8? = inputStream.read(),
-                    minor : UInt8? = inputStream.read(),
-                    cv = TLSProtocolVersion(major: major!, minor: minor!)
-                {
-                    clientVersion = cv
-                }
-                
-                if let r = Random(inputStream: inputStream)
-                {
-                    random = r
-                }
-                
-                if  let sessionIDSize : UInt8 = inputStream.read() {
-                    if sessionIDSize > 0 {
-                        if let rawSessionID : [UInt8] = inputStream.read(count: Int(sessionIDSize)) {
-                            sessionID = SessionID(sessionID: rawSessionID)
-                        }
-                    }
-                }
-                
-                if  let cipherSuitesSize : UInt16 = inputStream.read(),
-                    let rawCipherSuitesRead : [UInt16] = inputStream.read(count: Int(cipherSuitesSize) / sizeof(UInt16))
-                {
-                    rawCipherSuites = rawCipherSuitesRead
-                }
-                
-                if  let compressionMethodsSize : UInt8 = inputStream.read(),
-                    let rawCompressionMethods : [UInt8] = inputStream.read(count: Int(compressionMethodsSize))
-                {
-                    compressionMethods = rawCompressionMethods.map {CompressionMethod(rawValue: $0)!}
-                }
-            }
-        }
-        
-        if  let cv = clientVersion,
-            let r = random,
-            let cs = rawCipherSuites,
-            let cm = compressionMethods
-        {
-            self.clientVersion = cv
-            self.random = r
-            self.sessionID = sessionID
-            self.rawCipherSuites = cs
-            self.compressionMethods = cm
-            
-            super.init(type: .Handshake(.ClientHello))
-        }
+        guard
+            let (type, _) = TLSHandshakeMessage.readHeader(inputStream) where type == TLSHandshakeType.ClientHello,
+            let major : UInt8? = inputStream.read(),
+            let minor : UInt8? = inputStream.read(),
+            let clientVersion = TLSProtocolVersion(major: major!, minor: minor!),
+            let random = Random(inputStream: inputStream),
+            let sessionIDSize : UInt8 = inputStream.read() where sessionIDSize > 0,
+            let rawSessionID : [UInt8] = inputStream.read(count: Int(sessionIDSize)),
+            let cipherSuitesSize : UInt16 = inputStream.read(),
+            let rawCipherSuitesRead : [UInt16] = inputStream.read(count: Int(cipherSuitesSize) / sizeof(UInt16)),
+            let compressionMethodsSize : UInt8 = inputStream.read(),
+            let rawCompressionMethods : [UInt8] = inputStream.read(count: Int(compressionMethodsSize))
         else {
+            
             self.clientVersion = TLSProtocolVersion.TLS_v1_0
             self.random = Random()
             self.sessionID = nil
@@ -117,8 +72,17 @@ class TLSClientHello : TLSHandshakeMessage
             
             return nil
         }
+        
+        self.clientVersion = clientVersion
+        self.random = random
+        self.sessionID = SessionID(sessionID: rawSessionID)
+        
+        self.rawCipherSuites = rawCipherSuitesRead
+        self.compressionMethods = rawCompressionMethods.map {CompressionMethod(rawValue: $0)!}
+        
+        super.init(type: .Handshake(.ClientHello))
     }
-    
+
     override func writeTo<Target : OutputStreamType>(inout target: Target)
     {
         var buffer = DataBuffer()

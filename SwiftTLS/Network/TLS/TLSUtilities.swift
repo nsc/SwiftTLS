@@ -427,8 +427,11 @@ func TLSMessageNameForType(messageType : TLSMessageType) -> String
     return messageName
 }
 
-func TLSCipherSuiteDescriptorForCipherSuite(cipherSuite : CipherSuite) -> CipherSuiteDescriptor?
+func TLSCipherSuiteDescriptorForCipherSuite(cipherSuite : CipherSuite) -> CipherSuiteDescriptor
 {
-    return TLSCipherSuiteDescritions[cipherSuite]
+    guard let cipherSuiteDescriptor = TLSCipherSuiteDescritions[cipherSuite] else {
+        fatalError("Unknown cipher suite")
+    }
+    
+    return cipherSuiteDescriptor
 }
-

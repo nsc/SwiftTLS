@@ -419,6 +419,31 @@ class BigIntTests: XCTestCase {
         }
     }
 
+    func test_mod_pow_withRandomBigIntExponent_givesCorrectResult()
+    {
+        for var i = 0; i < 100; ++i
+        {
+            let u = BigInt(3)
+            let mod = randomBigInt()
+            let n = randomBigInt()
+            
+            let s = BIGNUM_mod_pow(u.toString(), n.toString(), mod.toString())
+            
+            let result = modular_pow(u, n, mod)
+            
+            let divHex = result.toString()
+            
+            if divHex.lowercaseString != s.lowercaseString {
+                print("\(i):")
+                print("Wrong mod_pow result for \(u.toString()) % \(n)")
+                print("    Should be       \(s)\n" +
+                    "    but is actually \(divHex)")
+            }
+            
+            XCTAssert(divHex.lowercaseString == s.lowercaseString, "Wrong mod_pow result for \(u) ^ \(n) % \(mod)")
+        }
+    }
+
     func test_divideNumbers_numbersTriggerNegativeCaseInDivision_givesCorrectResult()
     {
         let u = BigInt([0xc5, 0x01, 0xbf] as [UInt8])
@@ -428,5 +453,25 @@ class BigIntTests: XCTestCase {
         
         
         XCTAssert(q == BigInt(0xc))
+    }
+    
+    func test_isBitSet_someNumbers_givesCorrectResult()
+    {
+        let values : [(BigInt, Int, Bool)] = [
+            (BigInt(0), 0, false),
+            (BigInt(0x80), 7, true),
+            (BigInt([0x00, 0x00, 0x80] as [UInt8]), 23, true),
+            (BigInt([0x00, 0x00, 0x80] as [UInt8]), 22, false),
+            (BigInt([0x01, 0x00, 0x00, 0x00, 0x80] as [UInt8]), 0, true),
+            (BigInt([0x01, 0x00, 0x00, 0x00, 0x80] as [UInt8]), 39, true),
+            (BigInt([0x01, 0x00, 0x00, 0x00, 0x80] as [UInt8]), 40, false),
+        ]
+        
+        let shouldNot   = "should not"
+        let should      = "should"
+        for (n, bitNumber, isSet) in values
+        {
+            XCTAssert(n.isBitSet(bitNumber) == isSet, "isBitSet gives wrong result for \(n) where bit \(bitNumber) \(isSet ? should : shouldNot) be set.")
+        }
     }
 }

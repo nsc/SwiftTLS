@@ -226,7 +226,7 @@ class ASN1Parser
         return nil
     }
     
-    func _data(var range : Range<Int>) -> [UInt8]? {
+    func _data(range : Range<Int>) -> [UInt8]? {
         let length = self.data.count
         if  range.startIndex >= 0 &&
             range.startIndex <= length &&

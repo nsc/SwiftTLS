@@ -21,19 +21,16 @@ class TLSFinished : TLSHandshakeMessage
     
     required init?(inputStream : InputStreamType)
     {
-        let (type, _) = TLSHandshakeMessage.readHeader(inputStream)
-        
-        if let t = type {
-            if t == TLSHandshakeType.Finished {
-                if let verifyData : [UInt8] = inputStream.read(count: 12) {
-                    self.verifyData = verifyData
-                    super.init(type: .Handshake(.Finished))
-                    return
-                }
-            }
+        guard
+            let (type, _) = TLSHandshakeMessage.readHeader(inputStream) where type == TLSHandshakeType.Finished,
+            let verifyData : [UInt8] = inputStream.read(count: 12)
+        else {
+            self.verifyData = []
+            super.init(type: .Handshake(.Finished))
+            return nil
         }
         
-        self.verifyData = []
+        self.verifyData = verifyData
         super.init(type: .Handshake(.Finished))
     }
     

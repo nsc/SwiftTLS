@@ -29,61 +29,17 @@ class TLSServerHello : TLSHandshakeMessage
     
     required init?(inputStream : InputStreamType)
     {
-        var clientVersion : TLSProtocolVersion?
-        var random : Random?
-        var sessionID : SessionID?
-        var cipherSuite : CipherSuite?
-        var compressionMethod : CompressionMethod?
-        
-        let (type, _) = TLSHandshakeMessage.readHeader(inputStream)
-        
-        if let t = type {
-            if t == TLSHandshakeType.ServerHello {
-                
-                if let major : UInt8? = inputStream.read(),
-                    minor : UInt8? = inputStream.read(),
-                    cv = TLSProtocolVersion(major: major!, minor: minor!)
-                {
-                    clientVersion = cv
-                }
-                
-                if let r = Random(inputStream: inputStream)
-                {
-                    random = r
-                }
-                
-                if  let sessionIDSize : UInt8 = inputStream.read(),
-                    let rawSessionID : [UInt8] = inputStream.read(count: Int(sessionIDSize))
-                {
-                    sessionID = SessionID(sessionID: rawSessionID)
-                }
-                
-                if  let rawCiperSuite : UInt16 = inputStream.read()
-                {
-                    cipherSuite = CipherSuite(rawValue: rawCiperSuite)
-                }
-                
-                if  let rawCompressionMethod : UInt8 = inputStream.read()
-                {
-                    compressionMethod = CompressionMethod(rawValue: rawCompressionMethod)
-                }
-            }
-        }
-        
-        if  let cv = clientVersion,
-            let r = random,
-            let cs = cipherSuite,
-            let cm = compressionMethod
+        guard
+            let (type, _) = TLSHandshakeMessage.readHeader(inputStream) where type == TLSHandshakeType.ServerHello,
+            let major : UInt8 = inputStream.read(),
+            let minor : UInt8 = inputStream.read() where (TLSProtocolVersion(major: major, minor: minor) != nil),
+            let random = Random(inputStream: inputStream),
+            let sessionIDSize : UInt8 = inputStream.read(),
+            let rawSessionID : [UInt8] = inputStream.read(count: Int(sessionIDSize)),
+            let rawCiperSuite : UInt16 = inputStream.read() where (CipherSuite(rawValue: rawCiperSuite) != nil),
+            let rawCompressionMethod : UInt8 = inputStream.read() where (CompressionMethod(rawValue: rawCompressionMethod) != nil)
+        else
         {
-            self.version = cv
-            self.random = r
-            self.sessionID = sessionID
-            self.cipherSuite = cs
-            self.compressionMethod = cm
-            
-            super.init(type: .Handshake(.ServerHello))
-        }
-        else {
             self.version = TLSProtocolVersion.TLS_v1_0
             self.random = Random()
             self.sessionID = nil
@@ -94,6 +50,14 @@ class TLSServerHello : TLSHandshakeMessage
             
             return nil
         }
+        
+        self.version = TLSProtocolVersion(major: major, minor: minor)!
+        self.random = random
+        self.sessionID = SessionID(sessionID: rawSessionID)
+        self.cipherSuite = CipherSuite(rawValue: rawCiperSuite)!
+        self.compressionMethod = CompressionMethod(rawValue: rawCompressionMethod)!
+        
+        super.init(type: .Handshake(.ServerHello))
     }
     
     override func writeTo<Target : OutputStreamType>(inout target: Target)

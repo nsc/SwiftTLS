@@ -8,21 +8,39 @@
 
 import Foundation
     
-enum CipherSuite : UInt16 {
+public enum CipherSuite : UInt16 {
     case TLS_RSA_WITH_NULL_MD5 = 1
     case TLS_RSA_WITH_NULL_SHA = 2
     case TLS_RSA_WITH_RC4_128_MD5 = 4
     case TLS_RSA_WITH_RC4_128_SHA = 5
     case TLS_RSA_WITH_AES_256_CBC_SHA = 0x35
+    case TLS_DHE_RSA_WITH_AES_256_CBC_SHA = 0x39
+
     case TLS_RSA_WITH_AES_256_CBC_SHA256 = 0x3d
+    
+    // TLS 1.2
     case TLS_DHE_RSA_WITH_AES_256_CBC_SHA256 = 0x6b
   
     // mandatory cipher suite to be TLS compliant as of RFC 2246
 //    case TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA
+    
+    func needsServerKeyExchange() -> Bool {
+        
+        let keyExchangeAlgorithm = TLSCipherSuiteDescriptorForCipherSuite(self).keyExchangeAlgorithm
+
+        switch keyExchangeAlgorithm
+        {
+        case .DHE_RSA:
+            return true
+            
+        default:
+            return false
+        }
+    }
 }
 
 
-enum CompressionMethod : UInt8 {
+public enum CompressionMethod : UInt8 {
     case NULL = 0
 }
 
@@ -37,6 +55,8 @@ enum TLSContextState
     case ServerHelloReceived
     case ServerCertificateSent
     case ServerCertificateReceived
+    case ServerKeyExchangeSent
+    case ServerKeyExchangeReceived
     case ServerHelloDoneSent
     case ServerHelloDoneReceived
     case ClientCertificateSent
@@ -132,17 +152,10 @@ enum CipherAlgorithm
     case AES
 }
 
-enum SigningCipherAlgorithm
-{
-    case RSA
-    case DSS
-}
-
 enum KeyExchangeAlgorithm
 {
-    case NULL
-    case DH
-    case DHE
+    case RSA
+    case DHE_RSA
 }
 
 enum PRFAlgorithm {
@@ -176,12 +189,11 @@ class TLSSecurityParameters
 
 
 
-class TLSContext
+public class TLSContext
 {
     var protocolVersion : TLSProtocolVersion
     var negotiatedProtocolVersion : TLSProtocolVersion! = nil
-    var cipherSuites : [CipherSuite]?
-    var clientCipherSuites : [CipherSuite]?
+    public var cipherSuites : [CipherSuite]?
     
     var cipherSuite : CipherSuite?
     
@@ -201,7 +213,11 @@ class TLSContext
     var serverCertificates : [Certificate]?
     var clientCertificates : [Certificate]?
     
-    var preMasterSecret     : [UInt8]? = nil
+    var preMasterSecret     : [UInt8]? = nil {
+        didSet {
+            print("pre master secret = \(hex(preMasterSecret!))")
+        }
+    }
 
     var securityParameters  : TLSSecurityParameters
     
@@ -209,20 +225,24 @@ class TLSContext
     
     let isClient : Bool
     
-    var recordLayer : TLSRecordLayer
+    var recordLayer : TLSRecordLayer!
+    
+    var dhKeyExchange : DiffieHellmanKeyExchange?
     
     private var connectionEstablishedCompletionBlock : ((error : TLSError?) -> ())?
     
     init(protocolVersion: TLSProtocolVersion, dataProvider : TLSDataProvider, isClient : Bool = true)
     {
         self.protocolVersion = protocolVersion
-        self.recordLayer = TLSRecordLayer(protocolVersion: protocolVersion, dataProvider: dataProvider, isClient: isClient)
         self.isClient = isClient
+
         self.handshakeMessages = []
         
         self.securityParameters = TLSSecurityParameters()
         
         self.cipherSuites = [.TLS_RSA_WITH_AES_256_CBC_SHA]
+        
+        self.recordLayer = TLSRecordLayer(context: self, dataProvider: dataProvider)
     }
     
     func copy() -> TLSContext
@@ -230,7 +250,6 @@ class TLSContext
         let context = TLSContext(protocolVersion: self.protocolVersion, dataProvider: self.recordLayer.dataProvider!, isClient: self.isClient)
         
         context.cipherSuites = self.cipherSuites
-        context.clientCipherSuites = self.clientCipherSuites
         context.cipherSuite = self.cipherSuite
         
         context.serverKey = self.serverKey
@@ -350,9 +369,8 @@ class TLSContext
             case .ClientHello:
                 let clientHello = (message as! TLSClientHello)
                 self.securityParameters.clientRandom = DataBuffer(clientHello.random).buffer
-                self.clientCipherSuites = clientHello.cipherSuites
                 
-                self.cipherSuite = self.selectCipherSuite()
+                self.cipherSuite = self.selectCipherSuite(clientHello.cipherSuites)
                 
                 if let _ = self.cipherSuite {
                     self.sendServerHello()
@@ -376,17 +394,30 @@ class TLSContext
                 
                 self.recordLayer.protocolVersion = version
                 
+                self.cipherSuite = serverHello.cipherSuite
                 self.securityParameters.serverRandom = DataBuffer(serverHello.random).buffer
                 self.preMasterSecret = DataBuffer(PreMasterSecret(clientVersion: self.protocolVersion)).buffer
                 self.setPendingSecurityParametersForCipherSuite(serverHello.cipherSuite)
                 self.recordLayer.pendingSecurityParameters = self.securityParameters
             
             case .Certificate:
-                print("certificate")
                 self.state = isClient ? .ServerCertificateReceived : .ClientCertificateReceived
                 let certificateMessage = message as! TLSCertificateMessage
                 self.serverCertificates = certificateMessage.certificates
                 self.serverKey = certificateMessage.publicKey
+
+            case .ServerKeyExchange:
+                self.state = .ServerKeyExchangeReceived
+                
+                let keyExchangeMessage = message as! TLSServerKeyExchange
+                
+                let p = BigInt(keyExchangeMessage.dh_p.reverse())
+                let g = BigInt(keyExchangeMessage.dh_g.reverse())
+                let Ys = BigInt(keyExchangeMessage.dh_Ys.reverse())
+
+                let dhKeyExchange = DiffieHellmanKeyExchange(primeModulus: p, generator: g)
+                dhKeyExchange.peerPublicValue = Ys
+                self.dhKeyExchange = dhKeyExchange
                 
             case .ServerHelloDone:
                 self.state = .ServerHelloDoneReceived
@@ -404,8 +435,28 @@ class TLSContext
                 self.state = .ClientKeyExchangeReceived
                 
                 let clientKeyExchange = message as! TLSClientKeyExchange
-                let encryptedPreMasterSecret = clientKeyExchange.encryptedPreMasterSecret
-                self.preMasterSecret = self.identity!.privateKey.decrypt(encryptedPreMasterSecret)
+                if let dhKeyExchange = self.dhKeyExchange {
+                    // Diffie-Hellman
+                    if let diffieHellmanPublicValue = clientKeyExchange.diffieHellmanPublicValue {
+                        let secret = BigInt.random(dhKeyExchange.primeModulus)
+                        dhKeyExchange.peerPublicValue = BigInt(diffieHellmanPublicValue.reverse())
+                        self.preMasterSecret = BigIntImpl<UInt8>(dhKeyExchange.calculateSharedSecret(secret)!).parts.reverse()
+                    }
+                    else {
+                        fatalError("Client Key Exchange has no encrypted master secret")
+                    }
+                }
+                else {
+                    // RSA
+                    if let encryptedPreMasterSecret = clientKeyExchange.encryptedPreMasterSecret {
+                        self.preMasterSecret = self.identity!.privateKey.decrypt(encryptedPreMasterSecret)
+                    }
+                    else {
+                        fatalError("Client Key Exchange has no encrypted master secret")
+                    }
+                }
+                
+                
                 self.setPendingSecurityParametersForCipherSuite(self.cipherSuite!)
                 self.recordLayer.pendingSecurityParameters = self.securityParameters
 
@@ -507,9 +558,22 @@ class TLSContext
     
     func sendClientKeyExchange()
     {
-        if let serverKey = self.serverKey {
-            let message = TLSClientKeyExchange(preMasterSecret: self.preMasterSecret!, publicKey: serverKey)
+        if let diffieHellmanKeyExchange = self.dhKeyExchange {
+            // Diffie-Hellman
+            let secret = BigInt.random(diffieHellmanKeyExchange.primeModulus)
+            let publicValue = diffieHellmanKeyExchange.calculatePublicValue(secret)
+            let sharedSecret = diffieHellmanKeyExchange.calculateSharedSecret(secret)!
+            self.preMasterSecret = BigIntImpl<UInt8>(sharedSecret).parts.reverse()
+            
+            let message = TLSClientKeyExchange(diffieHellmanPublicValue: BigIntImpl<UInt8>(publicValue).parts.reverse())
             self.sendHandshakeMessage(message)
+        }
+        else {
+            if let serverKey = self.serverKey {
+                // RSA
+                let message = TLSClientKeyExchange(preMasterSecret: self.preMasterSecret!, publicKey: serverKey)
+                self.sendHandshakeMessage(message)
+            }
         }
     }
 
@@ -589,20 +653,14 @@ class TLSContext
     private func setPendingSecurityParametersForCipherSuite(cipherSuite : CipherSuite)
     {
         let cipherSuiteDescriptor = TLSCipherSuiteDescriptorForCipherSuite(cipherSuite)
-        if let cipherDescriptor = cipherSuiteDescriptor?.bulkCipherAlgorithm {
-            self.securityParameters.bulkCipherAlgorithm  = cipherDescriptor.algorithm
-            self.securityParameters.encodeKeyLength      = cipherDescriptor.keySize
-            self.securityParameters.blockLength          = cipherDescriptor.blockSize
-            self.securityParameters.fixedIVLength        = cipherDescriptor.blockSize
-            self.securityParameters.recordIVLength       = cipherDescriptor.blockSize
-            
-            if let hmacDescriptor = cipherSuiteDescriptor?.hmacDescriptor {
-                self.securityParameters.hmacDescriptor     = hmacDescriptor
-            }
-        }
-        else {
-            fatalError("security parameters not set after server hello was received")
-        }
+        let cipherAlgorithmDescriptor = cipherSuiteDescriptor.bulkCipherAlgorithm
+
+        self.securityParameters.bulkCipherAlgorithm  = cipherAlgorithmDescriptor.algorithm
+        self.securityParameters.encodeKeyLength      = cipherAlgorithmDescriptor.keySize
+        self.securityParameters.blockLength          = cipherAlgorithmDescriptor.blockSize
+        self.securityParameters.fixedIVLength        = cipherAlgorithmDescriptor.blockSize
+        self.securityParameters.recordIVLength       = cipherAlgorithmDescriptor.blockSize
+        self.securityParameters.hmacDescriptor       = cipherSuiteDescriptor.hmacDescriptor
         
         self.securityParameters.calculateMasterSecret(self.preMasterSecret!)
     }
@@ -632,7 +690,17 @@ class TLSContext
         case .ServerHelloReceived where state == .ServerCertificateReceived:
             return true
             
-        case .ServerCertificateReceived where state == .ServerHelloDoneReceived:
+        case .ServerCertificateReceived:
+            if self.cipherSuite!.needsServerKeyExchange() {
+                if state == .ServerKeyExchangeReceived {
+                    return true
+                }
+            }
+            else if state == .ServerHelloDoneReceived {
+                return true
+            }
+            
+        case .ServerKeyExchangeReceived where state == .ServerHelloDoneReceived:
             return true
             
         case .ServerHelloDoneReceived where state == .ClientKeyExchangeSent:
@@ -659,6 +727,8 @@ class TLSContext
         default:
             return false
         }
+        
+        return false
     }
     
     func checkServerStateTransition(state : TLSContextState) -> Bool
@@ -671,9 +741,19 @@ class TLSContext
         case .ServerHelloSent where state == .ServerCertificateSent:
             return true
 
-        case .ServerCertificateSent where state == .ServerHelloDoneSent:
-            return true
+        case .ServerCertificateSent:
+            if self.cipherSuite!.needsServerKeyExchange() {
+                if state == .ServerKeyExchangeSent {
+                    return true
+                }
+            }
+            else if state == .ServerHelloDoneSent {
+                return true
+            }
 
+        case .ServerKeyExchangeSent where state == .ServerHelloDoneSent:
+            return true
+            
         case .ServerHelloDoneSent where state == .ClientKeyExchangeReceived:
             return true
 
@@ -695,6 +775,8 @@ class TLSContext
         default:
             return false
         }
+        
+        return false
     }
     
     func checkStateTransition(state : TLSContextState) -> Bool
@@ -707,9 +789,9 @@ class TLSContext
         }
     }
     
-    func selectCipherSuite() -> CipherSuite?
+    func selectCipherSuite(cipherSuites : [CipherSuite]) -> CipherSuite?
     {
-        for clientCipherSuite in self.clientCipherSuites! {
+        for clientCipherSuite in cipherSuites {
             for myCipherSuite in self.cipherSuites! {
                 if clientCipherSuite == myCipherSuite {
                     return myCipherSuite

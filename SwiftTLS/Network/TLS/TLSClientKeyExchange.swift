@@ -52,7 +52,9 @@ class PreMasterSecret : Streamable
 
 class TLSClientKeyExchange : TLSHandshakeMessage
 {
-    var encryptedPreMasterSecret : [UInt8]
+    var encryptedPreMasterSecret : [UInt8]?
+    var diffieHellmanPublicValue : [UInt8]?
+    
     init(preMasterSecret : [UInt8], publicKey : CryptoKey)
     {
         if let crypttext = publicKey.encrypt(preMasterSecret) {
@@ -68,20 +70,36 @@ class TLSClientKeyExchange : TLSHandshakeMessage
         super.init(type: .Handshake(.ClientKeyExchange))
     }
     
-    required init?(inputStream : InputStreamType)
+    init(diffieHellmanPublicValue : [UInt8])
     {
-        let (type, _) = TLSHandshakeMessage.readHeader(inputStream)
+        self.diffieHellmanPublicValue = diffieHellmanPublicValue
+        
+        super.init(type: .Handshake(.ClientKeyExchange))
+    }
+
+    init?(inputStream : InputStreamType, context: TLSContext?)
+    {
+        guard let (type, _) = TLSHandshakeMessage.readHeader(inputStream) else {
+            super.init(type: .Handshake(.ClientKeyExchange))
+
+            return nil
+        }
         
         // TODO: check consistency of body length and the data following
-        if let t = type {
-            if t == TLSHandshakeType.ClientKeyExchange {
-                if let length : UInt16 = inputStream.read() {
-                    if let data : [UInt8] = inputStream.read(count: Int(length)) {
-                        self.encryptedPreMasterSecret = data
-                        super.init(type: .Handshake(.ClientKeyExchange))
-                        
-                        return
+        if type == TLSHandshakeType.ClientKeyExchange {
+            if let length : UInt16 = inputStream.read() {
+                if let data : [UInt8] = inputStream.read(count: Int(length)) {
+                    
+                    if context?.dhKeyExchange != nil {
+                        self.diffieHellmanPublicValue = data
                     }
+                    else {
+                        self.encryptedPreMasterSecret = data
+                    }
+                    
+                    super.init(type: .Handshake(.ClientKeyExchange))
+                    
+                    return
                 }
             }
         }
@@ -92,10 +110,23 @@ class TLSClientKeyExchange : TLSHandshakeMessage
         return nil        
     }
 
+    required convenience init?(inputStream : InputStreamType)
+    {
+        self.init(inputStream: inputStream, context: nil)
+    }
+
     override func writeTo<Target : OutputStreamType>(inout target: Target)
     {
-        self.writeHeader(type: .ClientKeyExchange, bodyLength: self.encryptedPreMasterSecret.count + 2, target: &target)
-        target.write(UInt16(self.encryptedPreMasterSecret.count))
-        target.write(self.encryptedPreMasterSecret)
+        if let encryptedPreMasterSecret = self.encryptedPreMasterSecret {
+            self.writeHeader(type: .ClientKeyExchange, bodyLength: encryptedPreMasterSecret.count + 2, target: &target)
+            target.write(UInt16(encryptedPreMasterSecret.count))
+            target.write(encryptedPreMasterSecret)
+        }
+        else if let diffieHellmanPublicValue = self.diffieHellmanPublicValue {
+            self.writeHeader(type: .ClientKeyExchange, bodyLength: diffieHellmanPublicValue.count + 2, target: &target)
+            target.write(UInt16(diffieHellmanPublicValue.count))
+            target.write(diffieHellmanPublicValue)
+        }
+
     }
 }

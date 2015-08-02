@@ -25,41 +25,43 @@ class TLSHandshakeMessage : TLSMessage
         }
     }
     
-    class func handshakeMessageFromData(data : [UInt8]) -> TLSHandshakeMessage? {
-        let (handshakeType, _) = readHeader(BinaryInputStream(data: data))
+    class func handshakeMessageFromData(data : [UInt8], context: TLSContext? = nil) -> TLSHandshakeMessage? {
+        guard let (handshakeType, _) = readHeader(BinaryInputStream(data: data)) else {
+            return nil
+        }
             
-        if  let type = handshakeType
+        var message : TLSHandshakeMessage? = nil
+        
+        switch (handshakeType)
         {
-            var message : TLSHandshakeMessage? = nil
+        case .ClientHello:
+            message = TLSClientHello(inputStream: BinaryInputStream(data: data))
             
-            switch (type)
-            {
-            case .ClientHello:
-                message = TLSClientHello(inputStream: BinaryInputStream(data: data))
-
-            case .ServerHello:
-                message = TLSServerHello(inputStream: BinaryInputStream(data: data))
-
-            case .Certificate:
-                message = TLSCertificateMessage(inputStream: BinaryInputStream(data: data))
-                
-            case .ServerHelloDone:
-                message = TLSServerHelloDone(inputStream: BinaryInputStream(data: data))
-
-            case .ClientKeyExchange:
-                message = TLSClientKeyExchange(inputStream: BinaryInputStream(data: data))
-                
-            case .Finished:
-                message = TLSFinished(inputStream: BinaryInputStream(data: data))
-                
-            default:
-                fatalError("Unsupported handshake message")
-            }
+        case .ServerHello:
+            message = TLSServerHello(inputStream: BinaryInputStream(data: data))
             
-            if let message = message {
-                message.rawHandshakeMessageData = data
-                return message
-            }
+        case .Certificate:
+            message = TLSCertificateMessage(inputStream: BinaryInputStream(data: data))
+            
+        case .ServerHelloDone:
+            message = TLSServerHelloDone(inputStream: BinaryInputStream(data: data))
+            
+        case .ServerKeyExchange:
+            message = TLSServerKeyExchange(inputStream: BinaryInputStream(data: data))
+            
+        case .ClientKeyExchange:
+            message = TLSClientKeyExchange(inputStream: BinaryInputStream(data: data), context: context)
+            
+        case .Finished:
+            message = TLSFinished(inputStream: BinaryInputStream(data: data))
+            
+        default:
+            fatalError("Unsupported handshake message")
+        }
+        
+        if let message = message {
+            message.rawHandshakeMessageData = data
+            return message
         }
         
         return nil
@@ -74,7 +76,7 @@ class TLSHandshakeMessage : TLSMessage
         target.write(UInt8((bodyLength >>  0) & 0xff))
     }
     
-    internal class func readHeader(inputStream : InputStreamType) -> (type: TLSHandshakeType?, bodyLength: Int?) {
+    class func readHeader(inputStream : InputStreamType) -> (type: TLSHandshakeType, bodyLength: Int)? {
         if  let type : UInt8 = inputStream.read(),
             handshakeType = TLSHandshakeType(rawValue: type),
             let bodyLength = inputStream.readUInt24()
@@ -82,7 +84,7 @@ class TLSHandshakeMessage : TLSMessage
             return (handshakeType, bodyLength)
         }
         
-        return (nil, nil)
+        return nil
     }
     
     override func writeTo<Target : OutputStreamType>(inout target: Target)

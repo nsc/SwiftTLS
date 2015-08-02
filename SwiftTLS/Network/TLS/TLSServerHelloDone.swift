@@ -17,15 +17,12 @@ class TLSServerHelloDone : TLSHandshakeMessage
     
     required init?(inputStream : InputStreamType)
     {
-        let (type, bodyLength) = TLSHandshakeMessage.readHeader(inputStream)
-        
-        if let t = type {
-            if t == TLSHandshakeType.ServerHelloDone {
-                if bodyLength > 0 {
-                    super.init(type: .Handshake(.ServerHelloDone))
-                    return nil
-                }
-            }
+        guard
+            let (type, bodyLength) = TLSHandshakeMessage.readHeader(inputStream) where type == TLSHandshakeType.ServerHelloDone && bodyLength == 0
+        else {
+            super.init(type: .Handshake(.ServerHelloDone))
+
+            return nil
         }
         
         super.init(type: .Handshake(.ServerHelloDone))

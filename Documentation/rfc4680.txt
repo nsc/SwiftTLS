@@ -1,0 +1,507 @@
+
+
+
+
+
+
+Network Working Group                                       S. Santesson
+Request for Comments: 4680                                     Microsoft
+Updates: 4346                                             September 2006
+Category: Standards Track
+
+
+              TLS Handshake Message for Supplemental Data
+
+Status of This Memo
+
+   This document specifies an Internet standards track protocol for the
+   Internet community, and requests discussion and suggestions for
+   improvements.  Please refer to the current edition of the "Internet
+   Official Protocol Standards" (STD 1) for the standardization state
+   and status of this protocol.  Distribution of this memo is unlimited.
+
+Copyright Notice
+
+   Copyright (C) The Internet Society (2006).
+
+Abstract
+
+   This specification defines a TLS handshake message for exchange of
+   supplemental application data.  TLS hello message extensions are used
+   to determine which supplemental data types are supported by both the
+   TLS client and the TLS server.  Then, the supplemental data handshake
+   message is used to exchange the data.  Other documents will define
+   the syntax of these extensions and the syntax of the associated
+   supplemental data types.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Santesson                   Standards Track                     [Page 1]
+
+RFC 4680      TLS Handshake Message for Supplemental Data September 2006
+
+
+1.  Introduction
+
+   Recent standards activities have proposed different mechanisms for
+   transmitting supplemental application data in the TLS handshake
+   message.  For example, recent proposals transfer data that is not
+   processed by the TLS protocol itself, but assist the TLS-protected
+   application in the authentication and authorization decisions.  One
+   proposal transfers user name hints for locating credentials, and
+   another proposal transfers attribute certificates and Security
+   Assertions Markup Language (SAML) assertions for authorization
+   checks.
+
+   In order to avoid definition of multiple handshake messages, one for
+   each new type of application-specific supplemental data, this
+   specification defines a new handshake message type that bundles
+   together all data objects that are to be delivered to the TLS-
+   protected application and sends them in a single handshake message.
+
+1.1.  Terminology
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+   document are to be interpreted as described in RFC 2119 [N1].
+
+   The syntax for the supplemental_data handshake message is defined
+   using the TLS Presentation Language, which is specified in Section 4
+   of [N2].
+
+2.  Supplemental Data Handshake Message
+
+   The new supplemental_data handshake message type is defined to
+   accommodate communication of supplemental data objects as agreed
+   during the exchange of extensions in the client and server hello
+   messages.  See RFC 2246 (TLS 1.0) [N2] and RFC 4346 (TLS 1.1) [N3]
+   for other handshake message types.
+
+   Information provided in a supplemental data object MUST be intended
+   to be used exclusively by applications and protocols above the TLS
+   protocol layer.  Any such data MUST NOT need to be processed by the
+   TLS protocol.
+
+
+
+
+
+
+
+
+
+
+
+Santesson                   Standards Track                     [Page 2]
+
+RFC 4680      TLS Handshake Message for Supplemental Data September 2006
+
+
+      enum {
+             supplemental_data(23), (255)
+         } HandshakeType;
+
+      struct {
+             HandshakeType msg_type;    /* handshake type */
+             uint24 length;             /* octets in message */
+             select (HandshakeType) {
+                    case supplemental_data:   SupplementalData;
+               } body;
+          } Handshake;
+
+      struct {
+            SupplementalDataEntry supp_data<1..2^24-1>;
+         } SupplementalData;
+
+      struct {
+            SupplementalDataType supp_data_type;
+            uint16 supp_data_length;
+            select(SupplementalDataType) { }
+         } SupplementalDataEntry;
+
+      enum {
+            (65535)
+        } SupplementalDataType;
+
+   supp_data_length
+      This field is the length (in bytes) of the data selected by
+      SupplementalDataType.
+
+   The client MUST NOT send more than one SupplementalData handshake
+   message, and the server MUST NOT send more than one SupplementalData
+   handshake message.  Receiving more than one SupplementalData
+   handshake message results in a fatal error, and the receiver MUST
+   close the connection with a fatal unexpected_message alert.
+
+   If present, the SupplementalData handshake message MUST contain a
+   non-empty SupplementalDataEntry structure carrying data associated
+   with at least one defined SupplementalDataType.  An explicit
+   agreement that governs presence of any supplemental data MUST be
+   concluded between client and server for each SupplementalDataType
+   using the TLS extensions [N4] in the client and server hello
+   messages.  Receiving an unexpected SupplementalData handshake message
+   results in a fatal error, and the receiver MUST close the connection
+   with a fatal unexpected_message alert.
+
+
+
+
+
+
+Santesson                   Standards Track                     [Page 3]
+
+RFC 4680      TLS Handshake Message for Supplemental Data September 2006
+
+
+   Other documents will define specific SupplementalDataTypes and their
+   associated data syntax and processing.  These same specifications
+   must also specify the client and server hello message extensions that
+   are used to negotiate the support for the specified supplemental data
+   type.  This document simply specifies the TLS Handshake Protocol
+   message that will carry the supplemental data objects.
+
+   Different situations require the transfer of supplemental data from
+   the client to the server, require the transfer of supplemental data
+   from the server to the client, or both ways.  All three situations
+   are fully supported.
+
+3.  Message Flow
+
+   The SupplementalData handshake message, if exchanged, MUST be sent as
+   the first handshake message as illustrated in Figure 1 below.
+
+     Client                                               Server
+
+     ClientHello (with extensions) -------->
+
+                                    ServerHello(with extensions)
+                                               SupplementalData*
+                                                    Certificate*
+                                              ServerKeyExchange*
+                                             CertificateRequest*
+                                  <--------      ServerHelloDone
+
+     SupplementalData*
+     Certificate*
+     ClientKeyExchange
+     CertificateVerify*
+     [ChangeCipherSpec]
+     Finished                     -------->
+                                              [ChangeCipherSpec]
+                                  <--------             Finished
+     Application Data             <------->     Application Data
+
+       *  Indicates optional or situation-dependent messages.
+
+               Figure 1.  Message Flow with SupplementalData
+
+
+
+
+
+
+
+
+
+
+Santesson                   Standards Track                     [Page 4]
+
+RFC 4680      TLS Handshake Message for Supplemental Data September 2006
+
+
+4.  Security Considerations
+
+   Each SupplementalDataType included in the handshake message defined
+   in this specification introduces its own unique set of security
+   properties and related considerations.  Security considerations must
+   therefore be defined in each document that defines a supplemental
+   data type.
+
+   In some cases, the SupplementalData information may be sensitive.
+   The double handshake technique can be used to provide protection for
+   the SupplementalData information.  Figure 2 illustrates the double
+   handshake, where the initial handshake does not include any
+   extensions, but it does result in protected communications.  Then, a
+   second handshake that includes the SupplementalData information is
+   performed using the protected communications.  In Figure 2, the
+   number on the right side indicates the amount of protection for the
+   TLS message on that line.  A zero (0) indicates that there is no
+   communication protection; a one (1) indicates that protection is
+   provided by the first TLS session; and a two (2) indicates that
+   protection is provided by both TLS sessions.
+
+   The placement of the SupplementalData message in the TLS Handshake
+   results in the server providing its SupplementalData information
+   before the client is authenticated.  In many situations, servers will
+   not want to provide authorization information until the client is
+   authenticated.  The double handshake illustrated in Figure 2 provides
+   a technique to ensure that the parties are mutually authenticated
+   before either party provides SupplementalData information.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Santesson                   Standards Track                     [Page 5]
+
+RFC 4680      TLS Handshake Message for Supplemental Data September 2006
+
+
+   Client                                                   Server
+
+   ClientHello (no extensions) -------->                            |0
+                                       ServerHello (no extensions)  |0
+                                                      Certificate*  |0
+                                                ServerKeyExchange*  |0
+                                               CertificateRequest*  |0
+                               <--------           ServerHelloDone  |0
+   Certificate*                                                     |0
+   ClientKeyExchange                                                |0
+   CertificateVerify*                                               |0
+   [ChangeCipherSpec]                                               |0
+   Finished                    -------->                            |1
+                                                [ChangeCipherSpec]  |0
+                               <--------                  Finished  |1
+   ClientHello (w/ extensions) -------->                            |1
+                                       ServerHello (w/ extensions)  |1
+                                                 SupplementalData*  |1
+                                                      Certificate*  |1
+                                                ServerKeyExchange*  |1
+                                               CertificateRequest*  |1
+                               <--------           ServerHelloDone  |1
+   SupplementalData*                                                |1
+   Certificate*                                                     |1
+   ClientKeyExchange                                                |1
+   CertificateVerify*                                               |1
+   [ChangeCipherSpec]                                               |1
+   Finished                    -------->                            |2
+                                                [ChangeCipherSpec]  |1
+                               <--------                  Finished  |2
+   Application Data            <------->          Application Data  |2
+
+   *  Indicates optional or situation-dependent messages.
+
+         Figure 2.  Double Handshake to Protect Supplemental Data
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Santesson                   Standards Track                     [Page 6]
+
+RFC 4680      TLS Handshake Message for Supplemental Data September 2006
+
+
+5.  IANA Considerations
+
+   IANA has taken the following actions:
+
+   1) Created an entry, supplemental_data(23), in the existing registry
+      for HandshakeType (defined in RFC 2246 [N2]).
+
+   2) Established a registry for TLS Supplemental Data Formats
+      (SupplementalDataType).  Values in the inclusive range 0-16385
+      (decimal) are assigned via RFC 2434 [N5] Standards Action.  Values
+      from the inclusive range 16386-65279 (decimal) are assigned via
+      RFC 2434 IETF Consensus.  Values from the inclusive range
+      65280-65535 (decimal) are reserved for RFC 2434 Private Use.
+
+6.  Normative References
+
+   [N1]   Bradner, S., "Key words for use in RFCs to Indicate
+          Requirement Levels", BCP 14, RFC 2119, March 1997.
+
+   [N2]   Dierks, T. and C. Allen, "The TLS Protocol Version 1.0", RFC
+          2246, January 1999.
+
+   [N3]   Dierks, T. and E. Rescorla, "The Transport Layer Security
+          (TLS) Protocol Version 1.1", RFC 4346, April 2006.
+
+   [N4]   Blake-Wilson, S., Nystrom, M., Hopwood, D., Mikkelsen, J., and
+          T. Wright, "Transport Layer Security (TLS) Extensions", RFC
+          4366, April 2006.
+
+   [N5]   Narten, T. and H. Alvestrand, "Guidelines for Writing an IANA
+          Considerations Section in RFCs", BCP 26, RFC 2434, October
+          1998.
+
+7.  Acknowledgements
+
+   The fundamental architectural idea for the supplemental data
+   handshake message was provided by Russ Housley and Eric Rescorla.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Santesson                   Standards Track                     [Page 7]
+
+RFC 4680      TLS Handshake Message for Supplemental Data September 2006
+
+
+Author's Address
+
+   Stefan Santesson
+   Microsoft
+   Finlandsgatan 30
+   164 93 KISTA
+   Sweden
+
+   EMail: stefans@microsoft.com
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Santesson                   Standards Track                     [Page 8]
+
+RFC 4680      TLS Handshake Message for Supplemental Data September 2006
+
+
+Full Copyright Statement
+
+   Copyright (C) The Internet Society (2006).
+
+   This document is subject to the rights, licenses and restrictions
+   contained in BCP 78, and except as set forth therein, the authors
+   retain all their rights.
+
+   This document and the information contained herein are provided on an
+   "AS IS" basis and THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS
+   OR IS SPONSORED BY (IF ANY), THE INTERNET SOCIETY AND THE INTERNET
+   ENGINEERING TASK FORCE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED,
+   INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
+   INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
+   WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+Intellectual Property
+
+   The IETF takes no position regarding the validity or scope of any
+   Intellectual Property Rights or other rights that might be claimed to
+   pertain to the implementation or use of the technology described in
+   this document or the extent to which any license under such rights
+   might or might not be available; nor does it represent that it has
+   made any independent effort to identify any such rights.  Information
+   on the procedures with respect to rights in RFC documents can be
+   found in BCP 78 and BCP 79.
+
+   Copies of IPR disclosures made to the IETF Secretariat and any
+   assurances of licenses to be made available, or the result of an
+   attempt made to obtain a general license or permission for the use of
+   such proprietary rights by implementers or users of this
+   specification can be obtained from the IETF on-line IPR repository at
+   http://www.ietf.org/ipr.
+
+   The IETF invites any interested party to bring to its attention any
+   copyrights, patents or patent applications, or other proprietary
+   rights that may cover technology that may be required to implement
+   this standard.  Please address the information to the IETF at
+   ietf-ipr@ietf.org.
+
+Acknowledgement
+
+   Funding for the RFC Editor function is provided by the IETF
+   Administrative Support Activity (IASA).
+
+
+
+
+
+
+
+Santesson                   Standards Track                     [Page 9]
+

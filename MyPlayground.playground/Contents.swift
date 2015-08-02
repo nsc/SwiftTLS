@@ -57,6 +57,22 @@ while c.last != nil && c.last! != 0 {
     c.removeLast()
 }
 
+struct A {
+    var a : Int
+}
+
+func returnOptionalTuple() -> (A, Int)?
+{
+    return (A(a: 1), 2)
+}
 
 
-
+outer: if true {
+    guard let (a, b) = returnOptionalTuple() where a.a == 1
+    else {
+        break outer
+    }
+    
+    print(a)
+    print(b)
+}

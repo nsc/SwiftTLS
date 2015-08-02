@@ -36,45 +36,47 @@ class TLSCertificateMessage : TLSHandshakeMessage
     {
         var certificates : [Certificate]?
         
-        let (type, _) = TLSHandshakeMessage.readHeader(inputStream)
+        guard let (type, _) = TLSHandshakeMessage.readHeader(inputStream) where type == TLSHandshakeType.Certificate
+        else {
+            self.certificates = []
+            super.init(type: .Handshake(.Certificate))
+            
+            return nil
+        }
         
-        if let t = type {
-            if t == TLSHandshakeType.Certificate {
-                if let header : [UInt8] = inputStream.read(count: 3) {
-                    let a = UInt32(header[0])
-                    let b = UInt32(header[1])
-                    let c = UInt32(header[2])
-                    let bytesForCertificates = Int(a << 16 + b << 8 + c)
+        if let header : [UInt8] = inputStream.read(count: 3) {
+            let a = UInt32(header[0])
+            let b = UInt32(header[1])
+            let c = UInt32(header[2])
+            let bytesForCertificates = Int(a << 16 + b << 8 + c)
+            
+            certificates = []
+            
+            while bytesForCertificates > 0 {
+                if let certHeader : [UInt8] = inputStream.read(count: 3) {
+                    let a = UInt32(certHeader[0])
+                    let b = UInt32(certHeader[1])
+                    let c = UInt32(certHeader[2])
+                    var bytesForCertificate = Int(a << 16 + b << 8 + c)
                     
-                    certificates = []
+                    let data : [UInt8]? = inputStream.read(count: bytesForCertificate)
                     
-                    while bytesForCertificates > 0 {
-                        if let certHeader : [UInt8] = inputStream.read(count: 3) {
-                            let a = UInt32(certHeader[0])
-                            let b = UInt32(certHeader[1])
-                            let c = UInt32(certHeader[2])
-                            var bytesForCertificate = Int(a << 16 + b << 8 + c)
-                        
-                            let data : [UInt8]? = inputStream.read(count: bytesForCertificate)
-                            
-                            if let d = data {
-                                let certificate = Certificate(certificateData: d)
-                                if let cert = certificate {
-                                    certificates!.append(cert)
-                                    print("common name: \(cert.commonName)")
-                                }
-                            }
-                            
-                            bytesForCertificate -= bytesForCertificate
-                        }
-                        else {
-                            break
+                    if let d = data {
+                        let certificate = Certificate(certificateData: d)
+                        if let cert = certificate {
+                            certificates!.append(cert)
+                            print("common name: \(cert.commonName)")
                         }
                     }
+                    
+                    bytesForCertificate -= bytesForCertificate
+                }
+                else {
+                    break
                 }
             }
         }
-        
+    
         if  let certs = certificates
         {
             self.certificates = certs

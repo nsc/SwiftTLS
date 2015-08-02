@@ -23,7 +23,6 @@ struct CipherSuiteDescriptor {
     var cipherSuite : CipherSuite
     
     var keyExchangeAlgorithm : KeyExchangeAlgorithm
-    var signingCipherAlgorithm : SigningCipherAlgorithm
     var bulkCipherAlgorithm : CipherAlgorithmDescriptor
     var cipherType : CipherType
     var blockCipherMode : BlockCipherMode?
@@ -33,8 +32,7 @@ struct CipherSuiteDescriptor {
 let TLSCipherSuiteDescritions : [CipherSuite:CipherSuiteDescriptor] = [
     CipherSuite.TLS_RSA_WITH_NULL_MD5: CipherSuiteDescriptor(
         cipherSuite: .TLS_RSA_WITH_NULL_MD5,
-        keyExchangeAlgorithm: .NULL,
-        signingCipherAlgorithm: .RSA,
+        keyExchangeAlgorithm: .RSA,
         bulkCipherAlgorithm: CipherAlgorithmDescriptor(algorithm: .NULL, keySize: 0, blockSize: 0),
         cipherType: .Stream,
         blockCipherMode: nil,
@@ -42,8 +40,7 @@ let TLSCipherSuiteDescritions : [CipherSuite:CipherSuiteDescriptor] = [
     
     .TLS_RSA_WITH_NULL_SHA: CipherSuiteDescriptor(
         cipherSuite: .TLS_RSA_WITH_NULL_SHA,
-        keyExchangeAlgorithm: .NULL,
-        signingCipherAlgorithm: .RSA,
+        keyExchangeAlgorithm: .RSA,
         bulkCipherAlgorithm: CipherAlgorithmDescriptor(algorithm: .NULL, keySize: 0, blockSize: 0),
         cipherType: .Stream,
         blockCipherMode: nil,
@@ -51,8 +48,7 @@ let TLSCipherSuiteDescritions : [CipherSuite:CipherSuiteDescriptor] = [
 
     .TLS_RSA_WITH_AES_256_CBC_SHA: CipherSuiteDescriptor(
         cipherSuite: .TLS_RSA_WITH_AES_256_CBC_SHA,
-        keyExchangeAlgorithm: .NULL,
-        signingCipherAlgorithm: .RSA,
+        keyExchangeAlgorithm: .RSA,
         bulkCipherAlgorithm: CipherAlgorithmDescriptor(algorithm: .AES, keySize: kCCKeySizeAES256, blockSize: kCCBlockSizeAES128),
         cipherType: .Stream,
         blockCipherMode: .CBC,
@@ -60,17 +56,23 @@ let TLSCipherSuiteDescritions : [CipherSuite:CipherSuiteDescriptor] = [
 
     .TLS_RSA_WITH_AES_256_CBC_SHA256: CipherSuiteDescriptor(
         cipherSuite: .TLS_RSA_WITH_AES_256_CBC_SHA256,
-        keyExchangeAlgorithm: .NULL,
-        signingCipherAlgorithm: .RSA,
+        keyExchangeAlgorithm: .RSA,
         bulkCipherAlgorithm: CipherAlgorithmDescriptor(algorithm: .AES, keySize: kCCKeySizeAES256, blockSize: kCCBlockSizeAES128),
         cipherType: .Stream,
         blockCipherMode: .CBC,
         hmacDescriptor: HMACDescriptor(algorithm: .HMAC_SHA256, size: Int(CC_SHA256_DIGEST_LENGTH))),
 
+    .TLS_DHE_RSA_WITH_AES_256_CBC_SHA: CipherSuiteDescriptor(
+        cipherSuite: .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
+        keyExchangeAlgorithm: .DHE_RSA,
+        bulkCipherAlgorithm: CipherAlgorithmDescriptor(algorithm: .AES, keySize: kCCKeySizeAES256, blockSize: kCCBlockSizeAES128),
+        cipherType: .Stream,
+        blockCipherMode: .CBC,
+        hmacDescriptor: HMACDescriptor(algorithm: .HMAC_SHA1, size: Int(CC_SHA1_DIGEST_LENGTH))),
+
     .TLS_DHE_RSA_WITH_AES_256_CBC_SHA256: CipherSuiteDescriptor(
         cipherSuite: .TLS_DHE_RSA_WITH_AES_256_CBC_SHA256,
-        keyExchangeAlgorithm: .DHE,
-        signingCipherAlgorithm: .RSA,
+        keyExchangeAlgorithm: .DHE_RSA,
         bulkCipherAlgorithm: CipherAlgorithmDescriptor(algorithm: .AES, keySize: kCCKeySizeAES256, blockSize: kCCBlockSizeAES128),
         cipherType: .Stream,
         blockCipherMode: .CBC,

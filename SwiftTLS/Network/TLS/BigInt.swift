@@ -198,6 +198,32 @@ struct BigIntImpl<U where U : UnsignedIntegerType> {
             return parts.count == 0 || (parts.count == 1 && parts[0] == 0)
         }
     }
+    
+    func isBitSet(bitNumber : Int) -> Bool
+    {
+        let partSize    = sizeof(PrimitiveType) * 8
+        let partNumber  = bitNumber / partSize
+        let bit         = bitNumber % partSize
+        
+        guard partNumber < self.parts.count else {
+            return false
+        }
+        
+        return (self.parts[partNumber].toUIntMax() & (UIntMax(1) << UIntMax(bit))) != 0
+    }
+    
+    static func random(max : BigIntImpl<U>) -> BigIntImpl<U>
+    {
+        let mask = UIntMax(1 << (sizeof(PrimitiveType) * 8) - 1)
+        let num = max.parts.count
+        var n = BigIntImpl<U>(capacity: num)
+        for var i = 0; i < num; ++i
+        {
+            n.parts.append(PrimitiveType(UIntMax(arc4random()) & mask))
+        }
+        
+        return n
+    }
 }
 
 func toString<U>(x : BigIntImpl<U>) -> String
@@ -722,6 +748,24 @@ func modular_pow<U : UnsignedIntegerType where U : KnowsLargerIntType>(base : Bi
     for var i = 0; i < numBits; ++i
     {
         if (exponent & (1 << i)) != 0 {
+            result = (result * r) % mod
+        }
+        
+        r = (r * r) % mod
+    }
+    
+    return result
+}
+
+func modular_pow<U : UnsignedIntegerType where U : KnowsLargerIntType>(base : BigIntImpl<U>, _ exponent : BigIntImpl<U>, _ mod : BigIntImpl<U>) -> BigIntImpl<U>
+{
+    let numBits = exponent.parts.count * sizeof(U) * 8
+    
+    var result = BigIntImpl<U>(1)
+    var r = base % mod
+    for var i = 0; i < numBits; ++i
+    {
+        if (exponent.isBitSet(i)) {
             result = (result * r) % mod
         }
         

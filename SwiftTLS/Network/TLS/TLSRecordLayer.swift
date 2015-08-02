@@ -35,6 +35,7 @@ class EncryptionParameters {
 class TLSRecordLayer
 {
     weak var dataProvider : TLSDataProvider?
+    weak var context : TLSContext?
     var protocolVersion: TLSProtocolVersion
     var isClient : Bool
     
@@ -123,11 +124,12 @@ class TLSRecordLayer
         self.pendingWriteEncryptionParameters = nil
     }
 
-    init(protocolVersion: TLSProtocolVersion, dataProvider: TLSDataProvider, isClient : Bool)
+    init(context: TLSContext, dataProvider: TLSDataProvider)
     {
-        self.protocolVersion = protocolVersion
+        self.context = context
+        self.protocolVersion = context.protocolVersion
         self.dataProvider = dataProvider
-        self.isClient = isClient
+        self.isClient = context.isClient
     }
     
     
@@ -237,7 +239,7 @@ class TLSRecordLayer
                             break
                             
                         case .Handshake:
-                            let handshakeMessage = TLSHandshakeMessage.handshakeMessageFromData(messageBody)
+                            let handshakeMessage = TLSHandshakeMessage.handshakeMessageFromData(messageBody, context: self.context)
                             completionBlock(message: handshakeMessage)
                             break
                             
