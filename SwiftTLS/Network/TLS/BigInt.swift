@@ -222,6 +222,14 @@ struct BigIntImpl<U where U : UnsignedIntegerType> {
             n.parts.append(PrimitiveType(UIntMax(arc4random()) & mask))
         }
         
+        var highest     = n.parts[num - 1]
+        let maxHighest  = max.parts[num - 1]
+        while highest > maxHighest
+        {
+           highest = U(highest.toUIntMax() >> UIntMax(1))
+        }
+        n.parts[num - 1] = highest
+        
         return n
     }
 }
@@ -765,6 +773,7 @@ func modular_pow<U : UnsignedIntegerType where U : KnowsLargerIntType>(base : Bi
     var r = base % mod
     for var i = 0; i < numBits; ++i
     {
+        print(i)
         if (exponent.isBitSet(i)) {
             result = (result * r) % mod
         }

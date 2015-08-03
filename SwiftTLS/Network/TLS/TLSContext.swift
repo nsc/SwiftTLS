@@ -396,9 +396,12 @@ public class TLSContext
                 
                 self.cipherSuite = serverHello.cipherSuite
                 self.securityParameters.serverRandom = DataBuffer(serverHello.random).buffer
-                self.preMasterSecret = DataBuffer(PreMasterSecret(clientVersion: self.protocolVersion)).buffer
-                self.setPendingSecurityParametersForCipherSuite(serverHello.cipherSuite)
-                self.recordLayer.pendingSecurityParameters = self.securityParameters
+                if !serverHello.cipherSuite.needsServerKeyExchange()
+                {
+                    self.preMasterSecret = DataBuffer(PreMasterSecret(clientVersion: self.protocolVersion)).buffer
+                    self.setPendingSecurityParametersForCipherSuite(serverHello.cipherSuite)
+                    self.recordLayer.pendingSecurityParameters = self.securityParameters
+                }
             
             case .Certificate:
                 self.state = isClient ? .ServerCertificateReceived : .ClientCertificateReceived
@@ -564,7 +567,9 @@ public class TLSContext
             let publicValue = diffieHellmanKeyExchange.calculatePublicValue(secret)
             let sharedSecret = diffieHellmanKeyExchange.calculateSharedSecret(secret)!
             self.preMasterSecret = BigIntImpl<UInt8>(sharedSecret).parts.reverse()
-            
+            self.setPendingSecurityParametersForCipherSuite(self.cipherSuite!)
+            self.recordLayer.pendingSecurityParameters = self.securityParameters
+
             let message = TLSClientKeyExchange(diffieHellmanPublicValue: BigIntImpl<UInt8>(publicValue).parts.reverse())
             self.sendHandshakeMessage(message)
         }
