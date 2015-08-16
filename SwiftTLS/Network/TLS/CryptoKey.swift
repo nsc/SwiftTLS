@@ -54,8 +54,8 @@ class CryptoKey
         
         let transform: SecTransform = SecEncryptTransformCreate(self.key, nil)
         var success : Bool = false
-        success = SecTransformSetAttribute(transform, kSecTransformInputAttributeName, data, nil) != 0
-        success = SecTransformSetAttribute(transform, kSecModeCBCKey, true, nil) != 0
+        success = SecTransformSetAttribute(transform, kSecTransformInputAttributeName, data, nil)
+        success = SecTransformSetAttribute(transform, kSecModeCBCKey, true, nil)
         
         if (success) {
             var error : Unmanaged<CFErrorRef>? = nil
@@ -102,7 +102,7 @@ class CryptoKey
         if let transform: SecTransform = createTransform(encrypt: encrypt)
         {
             var success : Bool = false
-            success = SecTransformSetAttribute(transform, kSecTransformInputAttributeName, data, nil) != 0
+            success = SecTransformSetAttribute(transform, kSecTransformInputAttributeName, data, nil)
             
             if (success) {
                 var error : Unmanaged<CFErrorRef>? = nil

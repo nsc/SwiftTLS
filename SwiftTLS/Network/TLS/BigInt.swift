@@ -773,7 +773,6 @@ func modular_pow<U : UnsignedIntegerType where U : KnowsLargerIntType>(base : Bi
     var r = base % mod
     for var i = 0; i < numBits; ++i
     {
-        print(i)
         if (exponent.isBitSet(i)) {
             result = (result * r) % mod
         }

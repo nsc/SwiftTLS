@@ -23,6 +23,10 @@ public class DiffieHellmanKeyExchange
     
     func calculatePublicValue(secret : BigInt) -> BigInt
     {
+        print("calculatePublicValue")
+        print("\(self.generator)")
+        print("\(secret)")
+        print("\(primeModulus)")
         return modular_pow(self.generator, secret, primeModulus)
     }
     
