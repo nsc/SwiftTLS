@@ -359,7 +359,6 @@
 		033AC3581AC473730004EEC1 /* SwiftTLS */ = {
 			isa = PBXGroup;
 			children = (
-				033B63C01B2348060019F3FA /* external */,
 				033AC3821AC473B70004EEC1 /* Network */,
 				03EEC8B31AC4752E00B92BD0 /* SwiftTLS-Bridging-Header.h */,
 			);
@@ -369,6 +368,7 @@
 		033AC36B1AC473730004EEC1 /* SwiftTLSTests */ = {
 			isa = PBXGroup;
 			children = (
+				033B63C01B2348060019F3FA /* external */,
 				033AC37C1AC473980004EEC1 /* BigIntTests.swift */,
 				03BF8C8F1B11CF9200332087 /* dhparams.pem */,
 				03DDB6491AC60DAD000B5726 /* certificate.cer */,
@@ -446,6 +446,7 @@
 				033B63C11B2348190019F3FA /* openssl */,
 			);
 			name = external;
+			path = ../SwiftTLS;
 			sourceTree = "<group>";
 		};
 		033B63C11B2348190019F3FA /* openssl */ = {
@@ -1024,6 +1025,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.savoysoftware.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "SwiftTLS/SwiftTLS-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
 			};
 			name = Release;
 		};
@@ -1031,7 +1033,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				GCC_GENERATE_TEST_COVERAGE_FILES = YES;
+				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
@@ -1044,6 +1046,7 @@
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "SwiftTLS/SwiftTLS-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
 		};
@@ -1051,8 +1054,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ENABLE_TESTABILITY = YES;
-				GCC_GENERATE_TEST_COVERAGE_FILES = YES;
+				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = fast;
 				HEADER_SEARCH_PATHS = (
 					external/openssl,
 					"$(inherited)",
@@ -1060,6 +1064,7 @@
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "SwiftTLS/SwiftTLS-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
 			};
 			name = Release;
 		};

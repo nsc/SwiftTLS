@@ -10,6 +10,12 @@ import Foundation
 
 typealias BigInt = BigIntImpl<UInt32>
 
+var addOperations : Int = 0
+var subOperations : Int = 0
+var mulOperations : Int = 0
+var divOperations : Int = 0
+var modOperations : Int = 0
+
 /// BigInt represents arbitrary precision integers
 ///
 /// They use largest primitive possible (usually UInt64)
@@ -262,6 +268,7 @@ func +<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>
         
         if i < a.parts.count {
             (sum, overflow) = BigIntImpl<U>.PrimitiveType.addWithOverflow(sum, a.parts[i])
+            addOperations++
 
             if overflow {
                 carry = 1
@@ -270,6 +277,7 @@ func +<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>
 
         if i < b.parts.count {
             (sum, overflow) = BigIntImpl<U>.PrimitiveType.addWithOverflow(sum, b.parts[i])
+            addOperations++
 
             if overflow {
                 carry = 1
@@ -321,6 +329,7 @@ func -<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>
         
         if i < a.parts.count {
             (difference, overflow) = U.subtractWithOverflow(a.parts[i], difference)
+            subOperations++
             
             if overflow {
                 carry = 1
@@ -329,7 +338,8 @@ func -<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>
         
         if i < b.parts.count {
             (difference, overflow) = U.subtractWithOverflow(difference, b.parts[i])
-            
+            subOperations++
+
             if overflow {
                 carry = 1
             }
@@ -363,6 +373,7 @@ func *<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>
             var hi      : UInt64 = 0
 
             NSC_multiply64(a.parts[i].toUIntMax(), b.parts[j].toUIntMax(), &lo, &hi)
+            mulOperations++
             
             if lo == 0 && hi == 0 {
                 continue
@@ -376,7 +387,8 @@ func *<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>
             }
             
             (result.parts[i + j], overflow) = U.addWithOverflow(result.parts[i + j], U(lo.toUIntMax()))
-            
+            addOperations++
+
             if overflow {
                 hi += 1
             }
@@ -385,6 +397,7 @@ func *<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>
             var index = i + j + 1
             while true {
                 (result.parts[index], overflow) = U.addWithOverflow(result.parts[index], U(temp.toUIntMax()))
+                addOperations++
                 if overflow {
                     temp = 1
                     index += 1
@@ -420,7 +433,10 @@ func /<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, v : Int) -> BigIntImpl
         let t = r * b + u.parts[i].toUIntMax()
         
         let q = t / vv
+        divOperations++
+        
         r = t % vv
+        modOperations++
         
         result.parts[i] = UIntN(q)
     }
@@ -461,9 +477,13 @@ func division<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, _ v : Int, inou
     var result = BigIntImpl<UIntN>(count: n)
     for var i = n - 1; i >= 0; --i {
         let t = r * b + u.parts[i].toUIntMax()
+        mulOperations++
+        addOperations++
         
         let q = t / vv
+        divOperations++
         r = t % vv
+        modOperations++
         
         result.parts[i] = UIntN(q)
     }
@@ -512,8 +532,10 @@ func division<UIntN : KnowsLargerIntType>(uu : BigIntImpl<UIntN>, _ vv : BigIntI
     if n == 1 && m == 0 {
         if remainder != nil {
             remainder = BigIntType(uu.parts[0] % vv.parts[0])
+            modOperations++
         }
         
+        divOperations++
         return BigIntType(uu.parts[0] / vv.parts[0])
     }
     else if n == 1 {
@@ -567,12 +589,17 @@ func division<UIntN : KnowsLargerIntType>(uu : BigIntImpl<UIntN>, _ vv : BigIntI
         var q : UIntN2 = dividend / denominator
         var r : UIntN2 = dividend % denominator
         
+        divOperations++
+        modOperations++
+        
         if q != 0 {
             var numIterationsThroughLoop = 0
             while q == b || (q.toUIntMax() * v.parts[n - 2].toUIntMax() > (r.toUIntMax() << UIntNShift + u.parts[j + n - 2].toUIntMax())) {
-
+                mulOperations++
+                
                 q = q - 1
                 r = r + denominator
+                addOperations++
                 
                 if r > b {
                     break
