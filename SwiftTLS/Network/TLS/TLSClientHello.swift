@@ -54,14 +54,31 @@ class TLSClientHello : TLSHandshakeMessage
             let minor : UInt8? = inputStream.read(),
             let clientVersion = TLSProtocolVersion(major: major!, minor: minor!),
             let random = Random(inputStream: inputStream),
-            let sessionIDSize : UInt8 = inputStream.read() where sessionIDSize > 0,
-            let rawSessionID : [UInt8] = inputStream.read(count: Int(sessionIDSize)),
+            let sessionIDSize : UInt8 = inputStream.read()
+        else {
+            
+            // FIXME: Once the compiler is smart enough, remove this pointless initialization
+            self.clientVersion = TLSProtocolVersion.TLS_v1_0
+            self.random = Random()
+            self.sessionID = nil
+            self.rawCipherSuites = []
+            self.compressionMethods = []
+            
+            super.init(type: .Handshake(.ClientHello))
+            
+            return nil
+        }
+        
+        let rawSessionID : [UInt8]? = sessionIDSize > 0 ? inputStream.read(count: Int(sessionIDSize)) : nil
+
+        guard
             let cipherSuitesSize : UInt16 = inputStream.read(),
             let rawCipherSuitesRead : [UInt16] = inputStream.read(count: Int(cipherSuitesSize) / sizeof(UInt16)),
             let compressionMethodsSize : UInt8 = inputStream.read(),
             let rawCompressionMethods : [UInt8] = inputStream.read(count: Int(compressionMethodsSize))
         else {
-            
+            // FIXME: Once the compiler is smart enough, remove this pointless initialization
+
             self.clientVersion = TLSProtocolVersion.TLS_v1_0
             self.random = Random()
             self.sessionID = nil
@@ -75,7 +92,10 @@ class TLSClientHello : TLSHandshakeMessage
         
         self.clientVersion = clientVersion
         self.random = random
-        self.sessionID = SessionID(sessionID: rawSessionID)
+        
+        if let rawSessionID = rawSessionID {
+            self.sessionID = SessionID(sessionID: rawSessionID)
+        }
         
         self.rawCipherSuites = rawCipherSuitesRead
         self.compressionMethods = rawCompressionMethods.map {CompressionMethod(rawValue: $0)!}

@@ -131,7 +131,9 @@ func testPerformance()
 }
 
 //client()
-testPerformance()
+//testPerformance()
+
+server()
 
 //test_BN_multiply_performance()
 
@@ -140,4 +142,4 @@ print("Sub operations: \(subOperations)")
 print("Mul operations: \(mulOperations)")
 print("Div operations: \(divOperations)")
 print("Mod operations: \(modOperations)")
-//dispatch_main()
+dispatch_main()
