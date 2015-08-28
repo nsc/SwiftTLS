@@ -25,7 +25,7 @@ class DataBuffer : OutputStreamType
     }
     
     func write(data : [UInt8]) {
-        buffer.extend(data)
+        buffer.appendContentsOf(data)
     }
     
 }
@@ -33,7 +33,7 @@ class DataBuffer : OutputStreamType
 extension RangeReplaceableCollectionType where Generator.Element == UInt8
 {
     mutating func write(data : [UInt8]) {
-        self.extend(data)
+        self.appendContentsOf(data)
     }
 }
 

@@ -27,8 +27,8 @@ class TLSServerHelloTests: XCTestCase {
         var expectedData = [UInt8]([TLSHandshakeType.ServerHello.rawValue, 0, 0, 38, 3, 1])
         var randomData = DataBuffer()
         random.writeTo(&randomData)
-        expectedData.extend(randomData.buffer)
-        expectedData.extend([0, 0, 5, 0])
+        expectedData.appendContentsOf(randomData.buffer)
+        expectedData.appendContentsOf([0, 0, 5, 0])
         XCTAssert(buffer.buffer == expectedData)
     }
     

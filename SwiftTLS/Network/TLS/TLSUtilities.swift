@@ -81,7 +81,7 @@ func P_hash(hashFunction : HashFunction, secret : [UInt8], seed : [UInt8], outpu
         A = hashFunction(secret: secret, data: A)
         var output = hashFunction(secret: secret, data: A + seed)
         let bytesFromOutput = min(bytesLeftToWrite, output.count)
-        outputData.extend(output[0..<bytesFromOutput])
+        outputData.appendContentsOf(output[0..<bytesFromOutput])
         
         bytesLeftToWrite -= bytesFromOutput
     }

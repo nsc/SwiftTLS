@@ -10,7 +10,7 @@ import Foundation
 
 func server()
 {
-    var serverIdentity = Identity(name: "Internet Widgits Pty Ltd")
+    let serverIdentity = Identity(name: "Internet Widgits Pty Ltd")
     
     var port = 12345
     if Process.arguments.count >= 2 {
@@ -22,8 +22,8 @@ func server()
     
     print("Listening on port \(port)")
     
-    var server = TLSSocket(protocolVersion: .TLS_v1_0, isClient: false, identity: serverIdentity!)
-    var address = IPv4Address.localAddress()
+    let server = TLSSocket(protocolVersion: .TLS_v1_0, isClient: false, identity: serverIdentity!)
+    let address = IPv4Address.localAddress()
     address.port = UInt16(port)
     
     server.listen(address) {
@@ -132,7 +132,6 @@ func testPerformance()
 
 //client()
 //testPerformance()
-
 server()
 
 //test_BN_multiply_performance()

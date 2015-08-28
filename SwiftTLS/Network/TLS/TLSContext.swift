@@ -636,7 +636,11 @@ public class TLSContext
     func didReceiveHandshakeMessage(message : TLSHandshakeMessage)
     {
         if let clientHello = message as? TLSClientHello {
-            print(clientHello.cipherSuites)
+            print("TLS version: \(clientHello.clientVersion)")
+            print("Supported Cipher Suites:")
+            for cipherSuite in clientHello.cipherSuites {
+                print("\(cipherSuite)")
+            }
         }
     }
     
@@ -928,13 +932,13 @@ public class TLSContext
         var handshakeData = [UInt8]()
         for message in self.handshakeMessages {
             if let messageData = message.rawHandshakeMessageData {
-                handshakeData.extend(messageData)
+                handshakeData.appendContentsOf(messageData)
             }
             else {
                 var messageBuffer = DataBuffer()
                 message.writeTo(&messageBuffer)
                 
-                handshakeData.extend(messageBuffer.buffer)
+                handshakeData.appendContentsOf(messageBuffer.buffer)
             }
         }
         

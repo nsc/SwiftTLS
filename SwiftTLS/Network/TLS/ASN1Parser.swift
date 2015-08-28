@@ -421,14 +421,14 @@ class ASN1Parser
 func ASN1_print_recursive(object: ASN1Object, depth : Int = 0)
 {
     for var i = 0; i < depth; ++i {
-        print("    ", appendNewline: false)
+        print("    ", terminator: "")
     }
     
     switch object
     {
     case let object as ASN1TaggedObject:
         
-        print("[\(object.tag)]", appendNewline: false)
+        print("[\(object.tag)]", terminator: "")
         ASN1_print_recursive(object.taggedObject, depth: depth + 1)
 
     case let object as ASN1Boolean:
@@ -448,13 +448,13 @@ func ASN1_print_recursive(object: ASN1Object, depth : Int = 0)
         
     case let object as ASN1ObjectIdentifier:
         
-        print("OBJECT IDENTIFIER ", appendNewline: false)
+        print("OBJECT IDENTIFIER ", terminator: "")
         for var i = 0; i < object.identifier.count; ++i {
             if i != object.identifier.count - 1 {
-                print("\(object.identifier[i]).", appendNewline: false)
+                print("\(object.identifier[i]).", terminator: "")
             }
             else {
-                print("\(object.identifier[i])", appendNewline: false)
+                print("\(object.identifier[i])", terminator: "")
             }
         }
         print("")

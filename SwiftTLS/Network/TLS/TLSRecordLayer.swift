@@ -148,7 +148,7 @@ class TLSRecordLayer
                     if paddingLength != 0 {
                         let padding = [UInt8](count: paddingLength, repeatedValue: UInt8(paddingLength - 1))
                         
-                        plainTextRecordData.extend(padding)
+                        plainTextRecordData.appendContentsOf(padding)
                     }
                 }
                 
@@ -204,7 +204,7 @@ class TLSRecordLayer
             let readBlock : (data : [UInt8]?, error : TLSDataProviderError?) -> () = { (data, error) -> () in
                 
                 if let d = data {
-                    body.extend(d)
+                    body.appendContentsOf(d)
                     
                     if body.count < bodyLength {
                         let rest = bodyLength - body.count
