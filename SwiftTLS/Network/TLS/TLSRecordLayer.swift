@@ -230,7 +230,7 @@ class TLSRecordLayer
                         switch (contentType)
                         {
                         case .ChangeCipherSpec:
-                            let changeCipherSpec = TLSChangeCipherSpec(inputStream: BinaryInputStream(data: messageBody))
+                            let changeCipherSpec = TLSChangeCipherSpec(inputStream: BinaryInputStream(messageBody))
                             completionBlock(message: changeCipherSpec)
                             break
                             

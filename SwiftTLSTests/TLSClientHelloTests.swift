@@ -56,15 +56,15 @@ class TLSClientHelloTests: XCTestCase {
     }
     
     func test_initWithBinaryInputStream_givesClientHello() {
-        let clientHello = TLSClientHello(inputStream: BinaryInputStream(data: self.testClientHelloData))
+        let clientHello = TLSClientHello(inputStream: BinaryInputStream(self.testClientHelloData))
         
         XCTAssert(clientHello != nil)
     }
 
     func test_initWithBinaryInputStream_hasCorrectRandom() {
-        let clientHello = TLSClientHello(inputStream: BinaryInputStream(data: self.testClientHelloData))
+        let clientHello = TLSClientHello(inputStream: BinaryInputStream(self.testClientHelloData))
         
-        let expectedRandom = Random(inputStream: BinaryInputStream(data: [UInt8]([1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,
+        let expectedRandom = Random(inputStream: BinaryInputStream([UInt8]([1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,
             17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32])))!
         
         let random = clientHello!.random
@@ -73,11 +73,49 @@ class TLSClientHelloTests: XCTestCase {
     }
 
     func test_initWithBinaryInputStream_hasCorrectCipherSuites() {
-        let clientHello = TLSClientHello(inputStream: BinaryInputStream(data: self.testClientHelloData))
+        let clientHello = TLSClientHello(inputStream: BinaryInputStream(self.testClientHelloData))
         
         let expectedCiperSuites = [CipherSuite.TLS_RSA_WITH_RC4_128_MD5, CipherSuite.TLS_RSA_WITH_RC4_128_SHA]
         
         XCTAssert(clientHello!.cipherSuites == expectedCiperSuites)
     }
+    
+    func test_init_withDataWrittenWithWriteTo_resultsInSameAsWeStartedWith()
+    {
+        let random = Random()
+        let clientHello = TLSClientHello(
+            clientVersion: TLSProtocolVersion.TLS_v1_0,
+            random: random,
+            sessionID: nil,
+            cipherSuites: [.TLS_RSA_WITH_RC4_128_SHA],
+            compressionMethods: [.NULL])
+        
+        clientHello.extensions = [TLSServerNameExtension(serverNames: ["www.example.com", "www.example2.com", "www.example3.com"])]
+
+        var buffer = DataBuffer()
+        clientHello.writeTo(&buffer)
+
+        if let newClientHello = TLSClientHello(inputStream: BinaryInputStream(buffer.buffer)) {
+            XCTAssertTrue(newClientHello.extensions != nil)
+            
+            let count = clientHello.extensions!.count
+            XCTAssertTrue(count == newClientHello.extensions!.count)
+            
+            for var i = 0; i < count; ++i
+            {
+                let e = clientHello.extensions![i]
+                let n = newClientHello.extensions![i]
+                
+                XCTAssertTrue(e as? TLSServerNameExtension != nil)
+                XCTAssertTrue(n as? TLSServerNameExtension != nil)
+                
+                XCTAssertTrue((e as! TLSServerNameExtension).serverNames == (n as! TLSServerNameExtension).serverNames)
+            }
+        }
+        else {
+            XCTFail()
+        }
+    }
+    
 
 }

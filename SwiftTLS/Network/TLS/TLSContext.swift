@@ -178,15 +178,10 @@ public class TLSContext
     {
         self.protocolVersion = protocolVersion
         self.isClient = isClient
-
         self.handshakeMessages = []
-        
         self.securityParameters = TLSSecurityParameters()
-        
         self.cipherSuites = [.TLS_RSA_WITH_AES_256_CBC_SHA]
-        
         self.recordLayer = TLSRecordLayer(context: self, dataProvider: dataProvider)
-        
         self.stateMachine = TLSStateMachine(context: self)
     }
     
@@ -204,13 +199,11 @@ public class TLSContext
         context.serverCertificates = self.serverCertificates
         context.clientCertificates = self.clientCertificates
         
-        
         if let preMasterSecret = self.preMasterSecret {
             context.preMasterSecret = preMasterSecret
         }
         
         context.securityParameters = self.securityParameters
-        
         context.handshakeMessages = self.handshakeMessages
 
         return context
@@ -219,16 +212,13 @@ public class TLSContext
     func startConnection(completionBlock : (error : TLSError?) -> ())
     {
         self.connectionEstablishedCompletionBlock = completionBlock
-        
         self.sendClientHello()
-        
         self.receiveNextTLSMessage(completionBlock)
     }
     
     func acceptConnection(completionBlock : (error : TLSError?) -> ())
     {
         self.connectionEstablishedCompletionBlock = completionBlock
-
         self.receiveNextTLSMessage(completionBlock)
     }
     
@@ -260,9 +250,7 @@ public class TLSContext
     private func sendHandshakeMessage(message : TLSHandshakeMessage, completionBlock : ((TLSDataProviderError?) -> ())? = nil)
     {
         self.sendMessage(message, completionBlock: completionBlock)
-        
         self.handshakeMessages.append(message)
-        
         self.stateMachine!.didSendHandshakeMessage(message)
     }
     
@@ -285,9 +273,7 @@ public class TLSContext
         {
         case .ChangeCipherSpec:
             self.recordLayer.activateReadEncryptionParameters()
-            
             self.stateMachine!.didReceiveChangeCipherSpec()
-            
             self.receiveNextTLSMessage(completionBlock)
             
             break
@@ -404,6 +390,7 @@ public class TLSContext
             }
             else {
                 print("Error: could not verify Finished message.")
+                sendAlert(.DecryptionFailed, alertLevel: .Fatal)
             }
             
         default:
@@ -488,28 +475,21 @@ public class TLSContext
     func sendChangeCipherSpec()
     {
         let message = TLSChangeCipherSpec()
-        
         self.sendMessage(message)
-
         self.recordLayer.activateWriteEncryptionParameters()
-        
         self.stateMachine!.didSendChangeCipherSpec()
     }
     
     func sendFinished()
     {
         let verifyData = self.verifyDataForFinishedMessage(isClient: self.isClient)
-        print("send finished -> before messages: \(self.handshakeMessages)")
-
         self.sendHandshakeMessage(TLSFinished(verifyData: verifyData), completionBlock: nil)
-
-        print("send finished -> after messages: \(self.handshakeMessages)")
     }
 
     private func verifyFinishedMessage(finishedMessage : TLSFinished, isClient: Bool) -> Bool
     {
         let verifyData = self.verifyDataForFinishedMessage(isClient: isClient)
-        
+
         return finishedMessage.verifyData == verifyData
     }
 
@@ -533,9 +513,9 @@ public class TLSContext
         let clientHandshakeMD5  = Hash_MD5(handshakeData)
         let clientHandshakeSHA1 = Hash_SHA1(handshakeData)
         
-        let d = clientHandshakeMD5 + clientHandshakeSHA1
+        let seed = clientHandshakeMD5 + clientHandshakeSHA1
 
-        let verifyData = PRF(secret: self.securityParameters.masterSecret!, label: finishedLabel, seed: d, outputLength: 12)
+        let verifyData = PRF(secret: self.securityParameters.masterSecret!, label: finishedLabel, seed: seed, outputLength: 12)
         
         return verifyData
     }
@@ -543,8 +523,6 @@ public class TLSContext
     
     private func receiveNextTLSMessage(completionBlock: ((TLSError?) -> ())?)
     {
-//        let tlsConnectCompletionBlock = completionBlock
-        
         self._readTLSMessage {
             (message : TLSMessage?) -> () in
             

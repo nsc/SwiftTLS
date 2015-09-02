@@ -203,6 +203,8 @@
 		03BB64C41B9378DD001A6AAA /* TLSContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3981AC474430004EEC1 /* TLSContext.swift */; settings = {ASSET_TAGS = (); }; };
 		03BF8C8C1B11C2E800332087 /* ASN1Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03BF8C8A1B11C2E800332087 /* ASN1Parser.swift */; };
 		03BF8C901B11CF9200332087 /* dhparams.pem in Resources */ = {isa = PBXBuildFile; fileRef = 03BF8C8F1B11CF9200332087 /* dhparams.pem */; };
+		03C4A4EF1B975F7200C61AE2 /* TLSServerNameExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03C4A4EE1B975F7200C61AE2 /* TLSServerNameExtension.swift */; settings = {ASSET_TAGS = (); }; };
+		03C4A4F01B975F7400C61AE2 /* TLSServerNameExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03C4A4EE1B975F7200C61AE2 /* TLSServerNameExtension.swift */; settings = {ASSET_TAGS = (); }; };
 		03DDB64A1AC60DAD000B5726 /* certificate.cer in Resources */ = {isa = PBXBuildFile; fileRef = 03DDB6491AC60DAD000B5726 /* certificate.cer */; };
 /* End PBXBuildFile section */
 
@@ -376,6 +378,7 @@
 		03BF8C8A1B11C2E800332087 /* ASN1Parser.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ASN1Parser.swift; sourceTree = "<group>"; };
 		03BF8C8D1B11CF6E00332087 /* ASN1Tests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ASN1Tests.swift; sourceTree = "<group>"; };
 		03BF8C8F1B11CF9200332087 /* dhparams.pem */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = dhparams.pem; sourceTree = "<group>"; };
+		03C4A4EE1B975F7200C61AE2 /* TLSServerNameExtension.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSServerNameExtension.swift; sourceTree = "<group>"; };
 		03D0BDDD1AEAA16600BFE004 /* TLSApplicationData.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSApplicationData.swift; sourceTree = "<group>"; };
 		03DDB6491AC60DAD000B5726 /* certificate.cer */ = {isa = PBXFileReference; lastKnownFileType = file; path = certificate.cer; sourceTree = "<group>"; };
 		03DDB64B1AC60DE5000B5726 /* TLSCertificateMessageTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSCertificateMessageTests.swift; sourceTree = "<group>"; };
@@ -498,6 +501,7 @@
 				033AC3931AC474430004EEC1 /* CryptoKey.swift */,
 				03BF8C8A1B11C2E800332087 /* ASN1Parser.swift */,
 				033AC3961AC474430004EEC1 /* TLSClientHello.swift */,
+				0376D7C21B96342600CEE7B1 /* Hello Extensions */,
 				033AC39C1AC474430004EEC1 /* TLSServerHello.swift */,
 				033AC39D1AC474430004EEC1 /* TLSServerHelloDone.swift */,
 				033AC3971AC474430004EEC1 /* TLSClientKeyExchange.swift */,
@@ -730,6 +734,14 @@
 			path = swifttls;
 			sourceTree = "<group>";
 		};
+		0376D7C21B96342600CEE7B1 /* Hello Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				03C4A4EE1B975F7200C61AE2 /* TLSServerNameExtension.swift */,
+			);
+			name = "Hello Extensions";
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -912,6 +924,7 @@
 				033B64681B2348190019F3FA /* bn_recp.c in Sources */,
 				035481311B6E8A7000D7891E /* BigIntTests.swift in Sources */,
 				035481231B6E8A3500D7891E /* CryptoKey.swift in Sources */,
+				03C4A4EF1B975F7200C61AE2 /* TLSServerNameExtension.swift in Sources */,
 				033B64BD1B2348190019F3FA /* rsa_lib.c in Sources */,
 				033B64AD1B2348190019F3FA /* rc5_enc.c in Sources */,
 				033B64561B2348190019F3FA /* bn_exp2.c in Sources */,
@@ -938,6 +951,7 @@
 				032882461B8BBEFF00EC8004 /* bn_prime.c in Sources */,
 				036A7C031B07C17D00AE46F8 /* TLSRecord.swift in Sources */,
 				0328824C1B8BBEFF00EC8004 /* bn_word.c in Sources */,
+				03C4A4F01B975F7400C61AE2 /* TLSServerNameExtension.swift in Sources */,
 				032882591B8BBEFF00EC8004 /* dsa_lib.c in Sources */,
 				032882381B8BBEC000EC8004 /* lhash.c in Sources */,
 				032882611B8BBF0900EC8004 /* bf_ecb.c in Sources */,

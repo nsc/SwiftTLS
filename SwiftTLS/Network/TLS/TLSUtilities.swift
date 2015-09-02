@@ -276,6 +276,12 @@ func TLSHandshakeMessageNameForType(handshakeType : TLSHandshakeType) -> String
         
     case .Finished:
         messageName = "Finished"
+        
+    case .CertificateURL:
+        messageName = "CertificateURL"
+        
+    case .CertificateStatus:
+        messageName = "CertificateStatus"
     }
     
     return messageName
@@ -292,40 +298,7 @@ func TLSMessageNameForType(messageType : TLSMessageType) -> String
         messageName = "ChangeCipherSpec"
         
     case .Handshake(let handshakeType):
-        let handshakeMessageName : String
-        switch (handshakeType)
-        {
-        case .HelloRequest:
-            handshakeMessageName = "HelloRequest"
-            
-        case .ClientHello:
-            handshakeMessageName = "ClientHello"
-            
-        case .ServerHello:
-            handshakeMessageName = "ServerHello"
-            
-        case .Certificate:
-            handshakeMessageName = "Certificate"
-            
-        case .ServerKeyExchange:
-            handshakeMessageName = "ServerKeyExchange"
-            
-        case .CertificateRequest:
-            handshakeMessageName = "CertificateRequest"
-            
-        case .ServerHelloDone:
-            handshakeMessageName = "ServerHelloDone"
-            
-        case .CertificateVerify:
-            handshakeMessageName = "CertificateVerify"
-            
-        case .ClientKeyExchange:
-            handshakeMessageName = "ClientKeyExchange"
-            
-        case .Finished:
-            handshakeMessageName = "Finished"
-        }
-        
+        let handshakeMessageName = TLSHandshakeMessageNameForType(handshakeType)
         messageName = "Handshake(\(handshakeMessageName))"
         
     case .Alert(let alertLevel, let alertDescription):

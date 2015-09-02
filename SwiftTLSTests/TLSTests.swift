@@ -33,7 +33,7 @@ class TSLTests: XCTestCase {
 //        socket.context.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
         socket.context.cipherSuites = [.TLS_RSA_WITH_AES_256_CBC_SHA]
       
-        //        var (host, port) = ("195.50.155.66", 443)
+        //        let (host, port) = ("195.50.155.66", 443)
         //        let (host, port) = ("85.13.145.53", 443) // nschmidt.name
         let (host, port) = ("127.0.0.1", 4433)
         

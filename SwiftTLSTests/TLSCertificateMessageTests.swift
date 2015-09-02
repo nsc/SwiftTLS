@@ -31,7 +31,7 @@ class TLSCertificateMessageTests: XCTestCase {
 
         var data = DataBuffer()
         sut.writeTo(&data)
-        let cert2Message = TLSCertificateMessage(inputStream: BinaryInputStream(data: data.buffer))!
+        let cert2Message = TLSCertificateMessage(inputStream: BinaryInputStream(data.buffer))!
         var data2 = DataBuffer()
         cert2Message.writeTo(&data2)
         

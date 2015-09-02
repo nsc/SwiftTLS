@@ -59,10 +59,8 @@ func client()
     socket.context.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
     
     //        var host = "195.50.155.66"
-    let host = "85.13.145.53" // nschmidt.name
-    //        let host = "127.0.0.1"
-    //        let port = 4433
-    let port = 443
+    let (host, port) = ("85.13.145.53", 443) // nschmidt.name
+//    let (host, port) = ("127.0.0.1", 4433)
     
     socket.connect(IPAddress.addressWithString(host, port: port)!, completionBlock: { (error : SocketError?) -> () in
         socket.write([UInt8]("GET / HTTP/1.1\r\nHost: nschmidt.name\r\n\r\n".utf8), completionBlock: { (error : SocketError?) -> () in

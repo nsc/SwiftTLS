@@ -19,6 +19,8 @@ enum TLSHandshakeType : UInt8 {
     case CertificateVerify = 15
     case ClientKeyExchange = 16
     case Finished = 20
+    case CertificateURL = 21
+    case CertificateStatus = 22
 }
 
 enum TLSMessageType

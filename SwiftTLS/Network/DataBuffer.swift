@@ -43,7 +43,7 @@ class BinaryInputStream : InputStreamType
     private var data : [UInt8]
     private var length : Int
     
-    init(data : [UInt8])
+    init(_ data : [UInt8])
     {
         self.data = data
         self.length = data.count

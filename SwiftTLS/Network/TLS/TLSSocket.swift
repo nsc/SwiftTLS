@@ -137,6 +137,21 @@ extension InputStreamType
         return nil
     }
     
+    func read(bytes bytes: Int) -> [UInt16]?
+    {
+        let count = bytes / 2
+        if let s : [UInt8] = self.read(count: bytes) {
+            var buffer = [UInt16](count: count, repeatedValue: 0)
+            for var i = 0; i < count; ++i {
+                buffer[i] = UInt16(s[2 * i]) << 8 + UInt16(s[2 * i + 1])
+            }
+            
+            return buffer
+        }
+        
+        return nil
+    }
+
     func readUInt24() -> Int?
     {
         if  let a : [UInt8] = self.read(count: 3)
@@ -146,6 +161,43 @@ extension InputStreamType
         
         return nil
     }
+    
+    func read8() -> [UInt8]?
+    {
+        guard
+            let count : UInt8 = self.read(),
+            let data : [UInt8] = self.read(count: Int(count))
+            else {
+                return nil
+        }
+        
+        return data
+    }
+
+    func read16() -> [UInt8]?
+    {
+        guard
+            let count : UInt16 = self.read(),
+            let data : [UInt8] = self.read(count: Int(count))
+        else {
+            return nil
+        }
+        
+        return data
+    }
+
+    func read16() -> [UInt16]?
+    {
+        guard
+            let count : UInt16 = self.read(),
+            let data : [UInt16] = self.read(bytes: Int(count))
+            else {
+                return nil
+        }
+        
+        return data
+    }
+
 }
 
 class Random : Streamable

@@ -53,15 +53,15 @@ class TLSServerHelloTests: XCTestCase {
     }
     
     func test_initWithBinaryInputStream_givesClientHello() {
-        let serverHello = TLSServerHello(inputStream: BinaryInputStream(data: self.testServerHelloData))
+        let serverHello = TLSServerHello(inputStream: BinaryInputStream(self.testServerHelloData))
         
         XCTAssert(serverHello != nil)
     }
     
     func test_initWithBinaryInputStream_hasCorrectRandom() {
-        let serverHello = TLSServerHello(inputStream: BinaryInputStream(data: self.testServerHelloData))
+        let serverHello = TLSServerHello(inputStream: BinaryInputStream(self.testServerHelloData))
         
-        let expectedRandom = Random(inputStream: BinaryInputStream(data: [UInt8]([1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,
+        let expectedRandom = Random(inputStream: BinaryInputStream([UInt8]([1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,
             17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32])))!
         
         let random = serverHello!.random
@@ -70,7 +70,7 @@ class TLSServerHelloTests: XCTestCase {
     }
     
     func test_initWithBinaryInputStream_hasCorrectCipherSuites() {
-        let serverHello = TLSServerHello(inputStream: BinaryInputStream(data: self.testServerHelloData))
+        let serverHello = TLSServerHello(inputStream: BinaryInputStream(self.testServerHelloData))
         
         let expectedCiperSuite = CipherSuite.TLS_RSA_WITH_RC4_128_MD5
         

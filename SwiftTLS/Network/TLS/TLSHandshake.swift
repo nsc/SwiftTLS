@@ -26,7 +26,7 @@ class TLSHandshakeMessage : TLSMessage
     }
     
     class func handshakeMessageFromData(data : [UInt8], context: TLSContext? = nil) -> TLSHandshakeMessage? {
-        guard let (handshakeType, _) = readHeader(BinaryInputStream(data: data)) else {
+        guard let (handshakeType, _) = readHeader(BinaryInputStream(data)) else {
             return nil
         }
             
@@ -35,25 +35,25 @@ class TLSHandshakeMessage : TLSMessage
         switch (handshakeType)
         {
         case .ClientHello:
-            message = TLSClientHello(inputStream: BinaryInputStream(data: data))
+            message = TLSClientHello(inputStream: BinaryInputStream(data))
             
         case .ServerHello:
-            message = TLSServerHello(inputStream: BinaryInputStream(data: data))
+            message = TLSServerHello(inputStream: BinaryInputStream(data))
             
         case .Certificate:
-            message = TLSCertificateMessage(inputStream: BinaryInputStream(data: data))
+            message = TLSCertificateMessage(inputStream: BinaryInputStream(data))
             
         case .ServerHelloDone:
-            message = TLSServerHelloDone(inputStream: BinaryInputStream(data: data))
+            message = TLSServerHelloDone(inputStream: BinaryInputStream(data))
             
         case .ServerKeyExchange:
-            message = TLSServerKeyExchange(inputStream: BinaryInputStream(data: data))
+            message = TLSServerKeyExchange(inputStream: BinaryInputStream(data))
             
         case .ClientKeyExchange:
-            message = TLSClientKeyExchange(inputStream: BinaryInputStream(data: data), context: context)
+            message = TLSClientKeyExchange(inputStream: BinaryInputStream(data), context: context)
             
         case .Finished:
-            message = TLSFinished(inputStream: BinaryInputStream(data: data))
+            message = TLSFinished(inputStream: BinaryInputStream(data))
             
         default:
             fatalError("Unsupported handshake message")

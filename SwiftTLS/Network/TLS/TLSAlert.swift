@@ -81,6 +81,6 @@ class TLSAlertMessage : TLSMessage
 
     class func alertFromData(data : [UInt8]) -> TLSAlertMessage?
     {
-        return TLSAlertMessage(inputStream: BinaryInputStream(data: data))
+        return TLSAlertMessage(inputStream: BinaryInputStream(data))
     }
 }

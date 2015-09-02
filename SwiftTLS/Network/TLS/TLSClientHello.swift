@@ -6,7 +6,17 @@
 //  Copyright (c) 2015 Nico Schmidt. All rights reserved.
 //
 
-import Foundation
+enum TLSHelloExtensionType : UInt16
+{
+    case ServerName = 0
+}
+
+protocol TLSHelloExtension : Streamable
+{
+    var extensionType : TLSHelloExtensionType {
+        get
+    }
+}
 
 class TLSClientHello : TLSHandshakeMessage
 {
@@ -33,6 +43,8 @@ class TLSClientHello : TLSHandshakeMessage
     
     var compressionMethods : [CompressionMethod]
     
+    var extensions : [TLSHelloExtension]?
+    
     init(clientVersion : TLSProtocolVersion, random : Random, sessionID : SessionID?, cipherSuites : [CipherSuite], compressionMethods : [CompressionMethod])
     {
         self.clientVersion = clientVersion
@@ -49,7 +61,7 @@ class TLSClientHello : TLSHandshakeMessage
     required init?(inputStream : InputStreamType)
     {
         guard
-            let (type, _) = TLSHandshakeMessage.readHeader(inputStream) where type == TLSHandshakeType.ClientHello,
+            let (type, bodyLength) = TLSHandshakeMessage.readHeader(inputStream) where type == TLSHandshakeType.ClientHello,
             let major : UInt8? = inputStream.read(),
             let minor : UInt8? = inputStream.read(),
             let clientVersion = TLSProtocolVersion(major: major!, minor: minor!),
@@ -72,10 +84,8 @@ class TLSClientHello : TLSHandshakeMessage
         let rawSessionID : [UInt8]? = sessionIDSize > 0 ? inputStream.read(count: Int(sessionIDSize)) : nil
 
         guard
-            let cipherSuitesSize : UInt16 = inputStream.read(),
-            let rawCipherSuitesRead : [UInt16] = inputStream.read(count: Int(cipherSuitesSize) / sizeof(UInt16)),
-            let compressionMethodsSize : UInt8 = inputStream.read(),
-            let rawCompressionMethods : [UInt8] = inputStream.read(count: Int(compressionMethodsSize))
+            let rawCipherSuitesRead : [UInt16] = inputStream.read16(),
+            let rawCompressionMethods : [UInt8] = inputStream.read8()
         else {
             // FIXME: Once the compiler is smart enough, remove this pointless initialization
 
@@ -88,6 +98,68 @@ class TLSClientHello : TLSHandshakeMessage
             super.init(type: .Handshake(.ClientHello))
             
             return nil
+        }
+        
+        var bytesLeft = bodyLength - 34
+        bytesLeft -= 1 + Int(sessionIDSize)
+        bytesLeft -= 2 + rawCipherSuitesRead.count * 2
+        bytesLeft -= 1 + rawCompressionMethods.count
+
+        if bytesLeft > 0 {
+            guard
+                let extensionsSize : UInt16 = inputStream.read(),
+                let extensionsData : [UInt8] = inputStream.read(count: Int(extensionsSize))
+            else {
+                // FIXME: Once the compiler is smart enough, remove this pointless initialization
+                
+                self.clientVersion = TLSProtocolVersion.TLS_v1_0
+                self.random = Random()
+                self.sessionID = nil
+                self.rawCipherSuites = []
+                self.compressionMethods = []
+                
+                super.init(type: .Handshake(.ClientHello))
+                
+                return nil
+            }
+
+            print("Extensions Size: \(extensionsSize)")
+            print("Extensions Data:\n\(hex(extensionsData))")
+            
+            bytesLeft -= 2 + extensionsData.count
+            
+            if bytesLeft > 0 {
+                print("Error: excess bytes at the end of client hello")
+            }
+            
+            let buffer = BinaryInputStream(extensionsData)
+            var extensionBytesLeft = extensionsData.count
+            self.extensions = []
+            repeat {
+                
+                if let rawExtensionType : UInt16 = buffer.read(), let extensionData : [UInt8] = buffer.read16() {
+                    
+                    extensionBytesLeft -= 2 + 2 + extensionData.count
+                 
+                    if let extensionType = TLSHelloExtensionType(rawValue: rawExtensionType) {
+
+                        switch (extensionType)
+                        {
+                        case .ServerName:
+                            if let serverName = TLSServerNameExtension(inputStream: BinaryInputStream(extensionData)) {
+                                self.extensions!.append(serverName)
+                            }
+                        }
+                    }
+                    else {
+                        print("Unknown extension type \(rawExtensionType)")
+                    }
+                    
+                    if extensionBytesLeft == 0 {
+                        break
+                    }
+                }
+            } while(true)
         }
         
         self.clientVersion = clientVersion
@@ -123,6 +195,17 @@ class TLSClientHello : TLSHandshakeMessage
         
         buffer.write(UInt8(compressionMethods.count))
         buffer.write(compressionMethods.map { $0.rawValue})
+        
+        if self.extensions != nil {
+            var extensionsData = DataBuffer()
+            
+            for helloExtension in self.extensions! {
+                helloExtension.writeTo(&extensionsData)
+            }
+
+            buffer.write(UInt16(extensionsData.buffer.count))
+            buffer.write(extensionsData.buffer)
+        }
         
         let data = buffer.buffer
         
