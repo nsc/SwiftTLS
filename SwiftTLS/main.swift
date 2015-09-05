@@ -22,7 +22,7 @@ func server()
     
     print("Listening on port \(port)")
     
-    let server = TLSSocket(protocolVersion: .TLS_v1_0, isClient: false, identity: serverIdentity!)
+    let server = TLSSocket(protocolVersion: .TLS_v1_1, isClient: false, identity: serverIdentity!)
     let address = IPv4Address.localAddress()
     address.port = UInt16(port)
     

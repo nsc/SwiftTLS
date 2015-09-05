@@ -139,9 +139,17 @@ class TLSRecordLayer
         if let encryptionParameters = self.currentWriteEncryptionParameters {
             let secret = encryptionParameters.MACKey
             
+            if self.protocolVersion >= TLSProtocolVersion.TLS_v1_1 {
+                encryptionParameters.IV = TLSRandomBytes(encryptionParameters.blockLength)
+            }
+
             if let MAC = calculateMessageMAC(secret: secret, contentType: contentType, data: data, isRead: false) {
                 
                 var plainTextRecordData = data + MAC
+                if self.protocolVersion >= TLSProtocolVersion.TLS_v1_1 {
+                    plainTextRecordData = encryptionParameters.IV + plainTextRecordData
+                }
+                
                 let blockLength = encryptionParameters.blockLength
                 if blockLength > 0 {
                     let paddingLength = blockLength - ((plainTextRecordData.count) % blockLength)
@@ -153,7 +161,7 @@ class TLSRecordLayer
                 }
                 
                 var cipherText : [UInt8]
-                if let b = encrypt(plainTextRecordData) {
+                if let b = encrypt(plainTextRecordData, key: encryptionParameters.bulkKey, IV: encryptionParameters.IV) {
                     cipherText = b
                 }
                 else {
@@ -319,12 +327,8 @@ class TLSRecordLayer
         }
     }
 
-    private func encrypt(data : [UInt8]) -> [UInt8]?
+    private func encrypt(data : [UInt8], var key : [UInt8], var IV : [UInt8]) -> [UInt8]?
     {
-        if self.currentWriteEncryptionParameters == nil {
-            return nil
-        }
-    
         let encryptionParameters = self.currentWriteEncryptionParameters!
         
         let algorithm = self.CCCipherAlgorithmForCipherAlgorithm(encryptionParameters.bulkCipherAlgorithm)
@@ -334,8 +338,6 @@ class TLSRecordLayer
                 return data
             }
             
-            var key = encryptionParameters.bulkKey
-            var IV  = encryptionParameters.IV
             var encryptor = CCCryptorRef()
 
             let status = Int(CCCryptorCreate(CCOperation(kCCEncrypt), algorithm!, 0, &key, key.count, &IV, &encryptor))
@@ -352,6 +354,11 @@ class TLSRecordLayer
         
         let status = outputData.withUnsafeMutableBufferPointer { (inout outputBuffer : UnsafeMutableBufferPointer<UInt8>) -> Int in
             var outputDataWritten : Int = 0
+            
+            if self.protocolVersion >= TLSProtocolVersion.TLS_v1_1 {
+                CCCryptorReset(self.encryptor!, &IV)
+            }
+            
             let status = Int(CCCryptorUpdate(self.encryptor!, data, data.count, outputBuffer.baseAddress, outputLength, &outputDataWritten))
             assert(outputDataWritten == outputLength)
             return status
@@ -365,12 +372,8 @@ class TLSRecordLayer
         return outputData
     }
 
-    private func decrypt(data : [UInt8]) -> [UInt8]?
+    private func decrypt(data : [UInt8], var key : [UInt8], var IV : [UInt8]) -> [UInt8]?
     {
-        if self.currentReadEncryptionParameters == nil {
-            return nil
-        }
-        
         let encryptionParameters = self.currentReadEncryptionParameters!
         
         let algorithm = self.CCCipherAlgorithmForCipherAlgorithm(encryptionParameters.bulkCipherAlgorithm)
@@ -380,8 +383,6 @@ class TLSRecordLayer
                 return data
             }
             
-            var key = encryptionParameters.bulkKey
-            var IV  = encryptionParameters.IV
             var decryptor = CCCryptorRef()
             
             let status = Int(CCCryptorCreate(CCOperation(kCCDecrypt), algorithm!, 0, &key, key.count, &IV, &decryptor))
@@ -398,6 +399,11 @@ class TLSRecordLayer
         
         let status = outputData.withUnsafeMutableBufferPointer { (inout outputBuffer : UnsafeMutableBufferPointer<UInt8>) -> Int in
             var outputDataWritten : Int = 0
+            
+            if self.protocolVersion >= TLSProtocolVersion.TLS_v1_1 {
+                CCCryptorReset(self.decryptor!, &IV)
+            }
+
             let status = Int(CCCryptorUpdate(self.decryptor!, data, data.count, outputBuffer.baseAddress, outputLength, &outputDataWritten))
             assert(outputDataWritten == outputLength)
             return status
@@ -411,23 +417,35 @@ class TLSRecordLayer
         return outputData
     }
 
-    private func decryptAndVerifyMAC(contentType contentType : ContentType, data : [UInt8]) -> [UInt8]?
+    private func decryptAndVerifyMAC(contentType contentType : ContentType, var data : [UInt8]) -> [UInt8]?
     {
-        if let decryptedMessage = decrypt(data) {
+        if let encryptionParameters = self.currentReadEncryptionParameters
+        {
+            if self.protocolVersion >= TLSProtocolVersion.TLS_v1_1 {
+                encryptionParameters.IV = [UInt8](data[0..<encryptionParameters.blockLength])
+            }
             
-            if let encryptionParameters = self.currentReadEncryptionParameters
-            {
+            if let decryptedMessage = decrypt(data, key: encryptionParameters.bulkKey, IV: encryptionParameters.IV) {
+
+                var message : [UInt8]
+                if self.protocolVersion >= TLSProtocolVersion.TLS_v1_1 {
+                    message = [UInt8](decryptedMessage[encryptionParameters.blockLength..<decryptedMessage.count])
+                }
+                else {
+                    message = decryptedMessage
+                }
+                
                 let hmacLength = encryptionParameters.hmacDescriptor.size
-                var messageLength = decryptedMessage.count - hmacLength
+                var messageLength = message.count - hmacLength
                 
                 if encryptionParameters.blockLength > 0 {
-                    let paddingLength = Int(decryptedMessage.last!) + 1
+                    let paddingLength = Int(message.last!) + 1
                     messageLength -= paddingLength
                 }
                 
-                let messageContent = [UInt8](decryptedMessage[0..<messageLength])
+                let messageContent = [UInt8](message[0..<messageLength])
                 
-                let MAC = [UInt8](decryptedMessage[messageLength..<messageLength + hmacLength])
+                let MAC = [UInt8](message[messageLength..<messageLength + hmacLength])
                 
                 let messageMAC = self.calculateMessageMAC(secret: encryptionParameters.MACKey, contentType: contentType, data: messageContent, isRead: true)
                 

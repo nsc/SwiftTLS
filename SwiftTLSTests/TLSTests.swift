@@ -29,13 +29,13 @@ class TSLTests: XCTestCase {
         // wait for server to be up
         sleep(1)
         
-        let socket = TLSSocket(protocolVersion: TLSProtocolVersion.TLS_v1_0)
+        let socket = TLSSocket(protocolVersion: TLSProtocolVersion.TLS_v1_1)
 //        socket.context.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
         socket.context.cipherSuites = [.TLS_RSA_WITH_AES_256_CBC_SHA]
       
-        //        let (host, port) = ("195.50.155.66", 443)
-        //        let (host, port) = ("85.13.145.53", 443) // nschmidt.name
-        let (host, port) = ("127.0.0.1", 4433)
+//        let (host, port) = ("195.50.155.66", 443)
+        let (host, port) = ("85.13.145.53", 443) // nschmidt.name
+//        let (host, port) = ("127.0.0.1", 4433)
         
         socket.connect(IPAddress.addressWithString(host, port: port)!, completionBlock: { (error : SocketError?) -> () in
             socket.write([UInt8]("GET / HTTP/1.1\r\nHost: nschmidt.name\r\n\r\n".utf8), completionBlock: { (error : SocketError?) -> () in
@@ -96,14 +96,14 @@ class TSLTests: XCTestCase {
     {
         let serverIdentity = Identity(name: "Internet Widgits Pty Ltd")
         
-        let server = TLSSocket(protocolVersion: .TLS_v1_0, isClient: false, identity: serverIdentity!)
+        let server = TLSSocket(protocolVersion: .TLS_v1_1, isClient: false, identity: serverIdentity!)
         let address = IPv4Address.localAddress()
         address.port = UInt16(12345)
         
         let sentData = [UInt8]("12345678".utf8)
         var receivedData : [UInt8]? = nil
 
-        let client = TLSSocket(protocolVersion: .TLS_v1_0)
+        let client = TLSSocket(protocolVersion: .TLS_v1_1)
 
         let expectation = self.expectationWithDescription("receive data")
         server.listen(address) {

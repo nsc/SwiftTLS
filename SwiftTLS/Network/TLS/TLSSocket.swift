@@ -12,7 +12,7 @@ enum TLSSocketError : ErrorType {
     case Error
 }
 
-enum TLSProtocolVersion : UInt16, CustomStringConvertible {
+public enum TLSProtocolVersion : UInt16, CustomStringConvertible, Comparable {
     init?(major : UInt8, minor : UInt8)
     {
         self.init(rawValue: (UInt16(major) << 8) + UInt16(minor))
@@ -22,7 +22,7 @@ enum TLSProtocolVersion : UInt16, CustomStringConvertible {
     case TLS_v1_1 = 0x0302
     case TLS_v1_2 = 0x0303
     
-    var description: String {
+    public var description: String {
         get {
             switch self {
 
@@ -37,6 +37,17 @@ enum TLSProtocolVersion : UInt16, CustomStringConvertible {
             }
         }
     }
+}
+
+
+public func == (lhs : TLSProtocolVersion, rhs : TLSProtocolVersion) -> Bool
+{
+    return lhs.rawValue == rhs.rawValue
+}
+
+public func < (lhs : TLSProtocolVersion, rhs : TLSProtocolVersion) -> Bool
+{
+    return lhs.rawValue < rhs.rawValue
 }
 
 protocol OutputStreamType
@@ -200,6 +211,15 @@ extension InputStreamType
 
 }
 
+public func TLSRandomBytes(count: Int) -> [UInt8]
+{
+    var randomBytes = [UInt8](count: count, repeatedValue: 0)
+    
+    arc4random_buf(&randomBytes, count)
+    
+    return randomBytes
+}
+
 class Random : Streamable
 {
     static let NumberOfRandomBytes = 28
@@ -208,9 +228,8 @@ class Random : Streamable
     
     init()
     {
-        randomBytes = [UInt8](count: 28, repeatedValue: 0)
+        randomBytes = TLSRandomBytes(28)
         
-        arc4random_buf(&randomBytes, 28)
         gmtUnixTime = UInt32(NSDate().timeIntervalSinceReferenceDate)
     }
     
