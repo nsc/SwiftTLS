@@ -49,7 +49,7 @@ class TLSRecordLayer
             if let s = pendingSecurityParameters, hmacDescriptor = s.hmacDescriptor {
                 
                 let numberOfKeyMaterialBytes = 2 * (hmacDescriptor.size + s.encodeKeyLength + s.fixedIVLength)
-                var keyBlock = PRF(secret: s.masterSecret!, label: TLSKeyExpansionLabel, seed: s.serverRandom! + s.clientRandom!, outputLength: numberOfKeyMaterialBytes)
+                var keyBlock = self.context!.PRF(secret: s.masterSecret!, label: TLSKeyExpansionLabel, seed: s.serverRandom! + s.clientRandom!, outputLength: numberOfKeyMaterialBytes)
                 
                 var index = 0
                 let clientWriteMACKey = [UInt8](keyBlock[index..<index + hmacDescriptor.size])

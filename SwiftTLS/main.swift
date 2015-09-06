@@ -22,7 +22,7 @@ func server()
     
     print("Listening on port \(port)")
     
-    let server = TLSSocket(protocolVersion: .TLS_v1_1, isClient: false, identity: serverIdentity!)
+    let server = TLSSocket(protocolVersion: .TLS_v1_2, isClient: false, identity: serverIdentity!)
     let address = IPv4Address.localAddress()
     address.port = UInt16(port)
     
@@ -55,7 +55,7 @@ func server()
 
 func client()
 {
-    let socket = TLSSocket(protocolVersion: TLSProtocolVersion.TLS_v1_0)
+    let socket = TLSSocket(protocolVersion: TLSProtocolVersion.TLS_v1_2)
     socket.context.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
     
     //        var host = "195.50.155.66"

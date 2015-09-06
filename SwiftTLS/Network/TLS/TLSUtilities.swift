@@ -91,38 +91,6 @@ func P_hash(hashFunction : HashFunction, secret : [UInt8], seed : [UInt8], outpu
 
 
 
-/// PRF function as defined in RFC 2246, section 5, p. 12
-func PRF(secret secret : [UInt8], label : [UInt8], seed : [UInt8], outputLength : Int) -> [UInt8]
-{
-    let halfSecretLength = secret.count / 2
-    var S1 : [UInt8]
-    var S2 : [UInt8]
-    if (secret.count % 2 == 0) {
-        S1 = [UInt8](secret[0..<halfSecretLength])
-        S2 = [UInt8](secret[halfSecretLength..<secret.count])
-    }
-    else {
-        S1 = [UInt8](secret[0..<halfSecretLength + 1])
-        S2 = [UInt8](secret[halfSecretLength..<secret.count])
-    }
-    
-    assert(S1.count == S2.count)
-    
-    var md5data  = P_hash(HMAC_MD5,  secret: S1, seed: label + seed, outputLength: outputLength)
-    var sha1data = P_hash(HMAC_SHA1, secret: S2, seed: label + seed, outputLength: outputLength)
-    
-    var output = [UInt8](count: outputLength, repeatedValue: 0)
-    for var i = 0; i < output.count; ++i
-    {
-        output[i] = md5data[i] ^ sha1data[i]
-    }
-    
-    return output
-}
-
-
-
-
 func HMAC_MD5(secret : [UInt8], data : [UInt8]) -> [UInt8]
 {
     var output = [UInt8](count: Int(CC_MD5_DIGEST_LENGTH), repeatedValue: 0)

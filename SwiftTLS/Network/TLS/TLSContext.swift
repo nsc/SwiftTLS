@@ -117,13 +117,6 @@ class TLSSecurityParameters
     var                     masterSecret : [UInt8]? = nil
     var                     clientRandom : [UInt8]? = nil
     var                     serverRandom : [UInt8]? = nil
-    
-    // Calculate master secret as described in RFC 2246, section 8.1, p. 46
-    func calculateMasterSecret(preMasterSecret : [UInt8])
-    {
-        self.masterSecret = PRF(secret: preMasterSecret, label: [UInt8]("master secret".utf8), seed: self.clientRandom! + self.serverRandom!, outputLength: 48)
-        print("master secret: \(hex(self.masterSecret!))")
-    }
 }
 
 
@@ -510,16 +503,58 @@ public class TLSContext
             }
         }
         
-        let clientHandshakeMD5  = Hash_MD5(handshakeData)
-        let clientHandshakeSHA1 = Hash_SHA1(handshakeData)
-        
-        let seed = clientHandshakeMD5 + clientHandshakeSHA1
+        if self.protocolVersion < TLSProtocolVersion.TLS_v1_2 {
+            let clientHandshakeMD5  = Hash_MD5(handshakeData)
+            let clientHandshakeSHA1 = Hash_SHA1(handshakeData)
+            
+            let seed = clientHandshakeMD5 + clientHandshakeSHA1
+            
+            return PRF(secret: self.securityParameters.masterSecret!, label: finishedLabel, seed: seed, outputLength: 12)
+        }
+        else {
+            let clientHandshake = Hash_SHA256(handshakeData)
 
-        let verifyData = PRF(secret: self.securityParameters.masterSecret!, label: finishedLabel, seed: seed, outputLength: 12)
-        
-        return verifyData
+            return PRF(secret: self.securityParameters.masterSecret!, label: finishedLabel, seed: clientHandshake, outputLength: 12)
+        }
     }
     
+    
+    
+    internal func PRF(secret secret : [UInt8], label : [UInt8], seed : [UInt8], outputLength : Int) -> [UInt8]
+    {
+        if self.protocolVersion < TLSProtocolVersion.TLS_v1_2 {
+            /// PRF function as defined in RFC 2246, section 5, p. 12
+
+            let halfSecretLength = secret.count / 2
+            var S1 : [UInt8]
+            var S2 : [UInt8]
+            if (secret.count % 2 == 0) {
+                S1 = [UInt8](secret[0..<halfSecretLength])
+                S2 = [UInt8](secret[halfSecretLength..<secret.count])
+            }
+            else {
+                S1 = [UInt8](secret[0..<halfSecretLength + 1])
+                S2 = [UInt8](secret[halfSecretLength..<secret.count])
+            }
+            
+            assert(S1.count == S2.count)
+            
+            var md5data  = P_hash(HMAC_MD5,  secret: S1, seed: label + seed, outputLength: outputLength)
+            var sha1data = P_hash(HMAC_SHA1, secret: S2, seed: label + seed, outputLength: outputLength)
+            
+            var output = [UInt8](count: outputLength, repeatedValue: 0)
+            for var i = 0; i < output.count; ++i
+            {
+                output[i] = md5data[i] ^ sha1data[i]
+            }
+            
+            return output
+        }
+        else {
+            return P_hash(HMAC_SHA256, secret: secret, seed: label + seed, outputLength: outputLength)
+        }
+    }
+
     
     private func receiveNextTLSMessage(completionBlock: ((TLSError?) -> ())?)
     {
@@ -554,9 +589,15 @@ public class TLSContext
         self.securityParameters.recordIVLength       = cipherAlgorithmDescriptor.blockSize
         self.securityParameters.hmacDescriptor       = cipherSuiteDescriptor.hmacDescriptor
         
-        self.securityParameters.calculateMasterSecret(self.preMasterSecret!)
+        self.securityParameters.masterSecret = calculateMasterSecret()
     }
     
+    // Calculate master secret as described in RFC 2246, section 8.1, p. 46
+    private func calculateMasterSecret() -> [UInt8]
+    {
+        return PRF(secret: self.preMasterSecret!, label: [UInt8]("master secret".utf8), seed: self.securityParameters.clientRandom! + self.securityParameters.serverRandom!, outputLength: 48)
+    }
+
     func selectCipherSuite(cipherSuites : [CipherSuite]) -> CipherSuite?
     {
         for clientCipherSuite in cipherSuites {
