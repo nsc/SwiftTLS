@@ -8,7 +8,7 @@
 
 import Cocoa
 import XCTest
-@testable import swifttls
+@testable import SwiftTLS
 
 class TLSClientKeyExchangeTests: XCTestCase {
 
@@ -38,7 +38,7 @@ class TLSClientKeyExchangeTests: XCTestCase {
                 data.writeUInt24(encryptedPreMasterSecret.count)
                 data.write(UInt16(encryptedPreMasterSecret.count))
                 data.write(encryptedPreMasterSecret)
-                super.init(inputStream: BinaryInputStream(data: data.buffer))
+                super.init(inputStream: BinaryInputStream(data.buffer), context: nil)
             }
 
             required init?(inputStream: InputStreamType) {
@@ -48,7 +48,7 @@ class TLSClientKeyExchangeTests: XCTestCase {
         
         var data = DataBuffer()
         SUT().writeTo(&data)
-        let msg2 = TLSClientKeyExchange(inputStream: BinaryInputStream(data: data.buffer))!
+        let msg2 = TLSClientKeyExchange(inputStream: BinaryInputStream(data.buffer))!
         var data2 = DataBuffer()
         msg2.writeTo(&data2)
         

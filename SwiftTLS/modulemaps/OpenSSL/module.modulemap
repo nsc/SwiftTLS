@@ -1,0 +1,5 @@
+module OpenSSL [system] {
+    header "../../../external/openssl/openssl/bn.h"
+    header "../../../external/openssl/openssl/opensslconf.h"
+    export *
+}

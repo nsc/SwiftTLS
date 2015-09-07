@@ -8,7 +8,7 @@
 
 import Cocoa
 import XCTest
-@testable import swifttls
+@testable import SwiftTLS
 
 class ASN1Tests: XCTestCase {
 

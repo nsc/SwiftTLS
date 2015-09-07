@@ -7,8 +7,9 @@
 //
 
 import Foundation
+import SwiftHelper
 
-typealias BigInt = BigIntImpl<UInt32>
+public typealias BigInt = BigIntImpl<UInt32>
 
 var addOperations : Int = 0
 var subOperations : Int = 0
@@ -20,39 +21,39 @@ var modOperations : Int = 0
 ///
 /// They use largest primitive possible (usually UInt64)
 /// and are stored in little endian order, i.e. n = parts[0] + parts[1] * 2^64 + parts[2] * 2 ^ 128 ...
-struct BigIntImpl<U where U : UnsignedIntegerType> {
+public struct BigIntImpl<U where U : UnsignedIntegerType> {
 
     typealias PrimitiveType = U
     var parts: [PrimitiveType]
     var sign : Bool
     
-    init(_ a : Int) {
+    public init(_ a : Int) {
         self.init([UInt(abs(a))], negative: a < 0)
     }
 
-    init<T where T : UnsignedIntegerType>(_ a : T) {
+    public init<T where T : UnsignedIntegerType>(_ a : T) {
         self.init([a])
     }
 
-    init(count: Int)
+    public init(count: Int)
     {
         parts = [PrimitiveType](count:count, repeatedValue: 0)
         sign = false
     }
     
-    init(capacity: Int) {
+    public init(capacity: Int) {
         parts = [PrimitiveType]()
         parts.reserveCapacity(capacity)
         sign = false
     }
     
-    init<T where T : UnsignedIntegerType>(_ bigInt : BigIntImpl<T>)
+    public init<T where T : UnsignedIntegerType>(_ bigInt : BigIntImpl<T>)
     {
         self.init(bigInt.parts, negative: bigInt.sign)
     }
     
     /// parts are given in little endian order
-    init<T where T : UnsignedIntegerType>(_ parts : [T], negative: Bool = false)
+    public init<T where T : UnsignedIntegerType>(_ parts : [T], negative: Bool = false)
     {
         let numberInPrimitiveType = sizeof(PrimitiveType)/sizeof(T)
         
@@ -125,7 +126,7 @@ struct BigIntImpl<U where U : UnsignedIntegerType> {
         self.init([T](parts), negative: negative)
     }
     
-    init?(hexString : String)
+    public init?(hexString : String)
     {
         var bytes = [UInt8]()
         var bytesLeft = hexString.utf8.count
@@ -160,7 +161,7 @@ struct BigIntImpl<U where U : UnsignedIntegerType> {
         self.init(bytes.reverse())
     }
     
-    func toString() -> String
+    public func toString() -> String
     {
         var s = ""
         var onlyZeroesYet = true
@@ -199,13 +200,13 @@ struct BigIntImpl<U where U : UnsignedIntegerType> {
         }
     }
     
-    var isZero : Bool {
+    public var isZero : Bool {
         get {
             return parts.count == 0 || (parts.count == 1 && parts[0] == 0)
         }
     }
     
-    func isBitSet(bitNumber : Int) -> Bool
+    public func isBitSet(bitNumber : Int) -> Bool
     {
         let partSize    = sizeof(PrimitiveType) * 8
         let partNumber  = bitNumber / partSize
@@ -218,7 +219,7 @@ struct BigIntImpl<U where U : UnsignedIntegerType> {
         return (self.parts[partNumber].toUIntMax() & (UIntMax(1) << UIntMax(bit))) != 0
     }
     
-    static func random(max : BigIntImpl<U>) -> BigIntImpl<U>
+    static public func random(max : BigIntImpl<U>) -> BigIntImpl<U>
     {
         let mask = UIntMax(1 << (sizeof(PrimitiveType) * 8) - 1)
         let num = max.parts.count
@@ -245,7 +246,7 @@ func toString<U>(x : BigIntImpl<U>) -> String
     return x.toString()
 }
 
-func +<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>
+public func +<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>
 {
     if a.sign != b.sign {
         if a.sign {
@@ -294,7 +295,7 @@ func +<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>
     return v
 }
 
-func -<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>
+public func -<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>
 {
     a.normalize()
     b.normalize()
@@ -355,7 +356,7 @@ func -<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>
     return v
 }
 
-func *<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>
+public func *<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>
 {
     let aCount = a.parts.count;
     let bCount = b.parts.count;
@@ -415,12 +416,12 @@ func *<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>
 }
 
 // short division
-func /<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, v : UInt) -> BigIntImpl<UIntN>
+public func /<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, v : UInt) -> BigIntImpl<UIntN>
 {
     return u / Int(v)
 }
 
-func /<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, v : Int) -> BigIntImpl<UIntN>
+public func /<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, v : Int) -> BigIntImpl<UIntN>
 {
     let UIntNShift = UIntMax(sizeof(UIntN) * 8)
     let b = UIntMax(UIntMax(1) << UIntNShift)
@@ -450,20 +451,20 @@ func /<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, v : Int) -> BigIntImpl
     return result
 }
 
-protocol KnowsLargerIntType : UnsignedIntegerType {
+public protocol KnowsLargerIntType : UnsignedIntegerType {
     typealias LargerIntType : UnsignedIntegerType
 }
 
 extension UInt8 : KnowsLargerIntType {
-    typealias LargerIntType = UInt16
+    public typealias LargerIntType = UInt16
 }
 
 extension UInt16 : KnowsLargerIntType {
-    typealias LargerIntType = UInt32
+    public typealias LargerIntType = UInt32
 }
 
 extension UInt32 : KnowsLargerIntType {
-    typealias LargerIntType = UInt64
+    public typealias LargerIntType = UInt64
 }
 
 func division<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, _ v : Int, inout remainder : Int?) -> BigIntImpl<UIntN>
@@ -693,12 +694,17 @@ func %<U : UnsignedIntegerType where U : KnowsLargerIntType>(u : BigIntImpl<U>, 
     return remainder!
 }
 
-func == <U>(lhs : BigIntImpl<U>, rhs : BigIntImpl<U>) -> Bool
+func %(u : BigInt, v : BigInt) -> BigInt
+{
+    return u % v
+}
+
+public func == <U>(lhs : BigIntImpl<U>, rhs : BigIntImpl<U>) -> Bool
 {
     return lhs.parts == rhs.parts
 }
 
-func < <U>(lhs : BigIntImpl<U>, rhs : BigIntImpl<U>) -> Bool
+public func < <U>(lhs : BigIntImpl<U>, rhs : BigIntImpl<U>) -> Bool
 {
     if lhs.parts.count != rhs.parts.count {
         return lhs.parts.count < rhs.parts.count
@@ -722,7 +728,7 @@ func < <U>(lhs : BigIntImpl<U>, rhs : BigIntImpl<U>) -> Bool
     return false
 }
 
-func > <U>(lhs : BigIntImpl<U>, rhs : BigIntImpl<U>) -> Bool
+public func > <U>(lhs : BigIntImpl<U>, rhs : BigIntImpl<U>) -> Bool
 {
     if lhs.parts.count != rhs.parts.count {
         return lhs.parts.count > rhs.parts.count
@@ -746,17 +752,17 @@ func > <U>(lhs : BigIntImpl<U>, rhs : BigIntImpl<U>) -> Bool
     return false
 }
 
-prefix func -<U>(var v : BigIntImpl<U>) -> BigIntImpl<U> {
+public prefix func -<U>(var v : BigIntImpl<U>) -> BigIntImpl<U> {
     v.sign = !v.sign
     return v
 }
 
-func modular_multiply<U : UnsignedIntegerType where U : KnowsLargerIntType>(a : BigIntImpl<U>, b : BigIntImpl<U>, mod : BigIntImpl<U>) -> BigIntImpl<U>
+public func modular_multiply<U : UnsignedIntegerType where U : KnowsLargerIntType>(a : BigIntImpl<U>, b : BigIntImpl<U>, mod : BigIntImpl<U>) -> BigIntImpl<U>
 {
     return ((a % mod) * (b % mod)) % mod
 }
 
-func pow<U : UnsignedIntegerType where U : KnowsLargerIntType>(base : BigIntImpl<U>, _ exponent : Int) -> BigIntImpl<U>
+public func pow<U : UnsignedIntegerType where U : KnowsLargerIntType>(base : BigIntImpl<U>, _ exponent : Int) -> BigIntImpl<U>
 {
     let numBits = sizeof(Int) * 8
     
@@ -774,7 +780,7 @@ func pow<U : UnsignedIntegerType where U : KnowsLargerIntType>(base : BigIntImpl
     return result
 }
 
-func modular_pow<U : UnsignedIntegerType where U : KnowsLargerIntType>(base : BigIntImpl<U>, _ exponent : Int, _ mod : BigIntImpl<U>) -> BigIntImpl<U>
+public func modular_pow<U : UnsignedIntegerType where U : KnowsLargerIntType>(base : BigIntImpl<U>, _ exponent : Int, _ mod : BigIntImpl<U>) -> BigIntImpl<U>
 {
     let numBits = sizeof(Int) * 8
     
@@ -792,7 +798,7 @@ func modular_pow<U : UnsignedIntegerType where U : KnowsLargerIntType>(base : Bi
     return result
 }
 
-func modular_pow<U : UnsignedIntegerType where U : KnowsLargerIntType>(base : BigIntImpl<U>, _ exponent : BigIntImpl<U>, _ mod : BigIntImpl<U>) -> BigIntImpl<U>
+public func modular_pow<U : UnsignedIntegerType where U : KnowsLargerIntType>(base : BigIntImpl<U>, _ exponent : BigIntImpl<U>, _ mod : BigIntImpl<U>) -> BigIntImpl<U>
 {
     let numBits = exponent.parts.count * sizeof(U) * 8
     

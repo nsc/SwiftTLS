@@ -8,9 +8,9 @@
 
 import Foundation
 
-class IPAddress
+public class IPAddress
 {
-    var port : UInt16 {
+    public var port : UInt16 {
         get { return 0}
         set {}
     }
@@ -27,7 +27,7 @@ class IPAddress
         }
     }
     
-    class func localAddress() -> IPAddress {
+    public class func localAddress() -> IPAddress {
         let localAddress = IPv6Address()
 
         var ipv6address = sockaddr_in6()
@@ -43,7 +43,7 @@ class IPAddress
     
     init() {}
     
-    class func addressWithString(address : String, port : Int? = nil) -> IPAddress?
+    public class func addressWithString(address : String, port : Int? = nil) -> IPAddress?
     {
         if let ipv4address = IPv4Address(address) {
             if let p = port {
@@ -64,11 +64,11 @@ class IPAddress
     
 }
 
-class IPv4Address : IPAddress
+public class IPv4Address : IPAddress
 {
     var socketAddress = sockaddr_in()
 
-    override var port : UInt16 {
+    override public var port : UInt16 {
         get {
             return CFSwapInt16BigToHost(socketAddress.sin_port)
         }
@@ -78,11 +78,11 @@ class IPv4Address : IPAddress
         }
     }
     
-    override init()
+    public override init()
     {
     }
     
-    init?(_ address : String)
+    public init?(_ address : String)
     {
         super.init()
         
@@ -127,11 +127,11 @@ class IPv4Address : IPAddress
     }
 }
 
-class IPv6Address : IPAddress
+public class IPv6Address : IPAddress
 {
     var socketAddress = sockaddr_in6()
     
-    override var port : UInt16 {
+    override public var port : UInt16 {
         get {
             return CFSwapInt16BigToHost(socketAddress.sin6_port)
         }

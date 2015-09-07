@@ -7,11 +7,12 @@
 //
 
 import Foundation
+import SwiftHelper
 
-enum SocketError : CustomStringConvertible {
+public enum SocketError : CustomStringConvertible {
     case PosixError(errno : Int32)
     
-    var description : String {
+    public var description : String {
         get {
             switch (self)
             {
@@ -22,7 +23,7 @@ enum SocketError : CustomStringConvertible {
     }
 }
 
-protocol SocketProtocol
+public protocol SocketProtocol
 {
     func connect(address : IPAddress, completionBlock : ((SocketError?) -> ())?)
     func listen(address : IPAddress, acceptBlock : (clientSocket : SocketProtocol?, error : SocketError?) -> ())

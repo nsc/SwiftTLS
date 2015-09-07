@@ -133,7 +133,7 @@ protocol TLSContextStateMachine
 
 public class TLSContext
 {
-    var protocolVersion : TLSProtocolVersion
+    public var protocolVersion : TLSProtocolVersion
     var negotiatedProtocolVersion : TLSProtocolVersion! = nil
     public var cipherSuites : [CipherSuite]?
     

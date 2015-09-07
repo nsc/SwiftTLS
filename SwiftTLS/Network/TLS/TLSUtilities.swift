@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import CommonCrypto
 
 func hexDigit(d : UInt8) -> String
 {

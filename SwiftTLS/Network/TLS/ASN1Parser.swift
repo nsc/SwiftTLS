@@ -43,7 +43,7 @@ enum ASN1Class : UInt8
 }
 
 
-class ASN1Object
+public class ASN1Object
 {
 }
 
@@ -181,23 +181,23 @@ class ASN1UTCTime : ASN1Object
     }
 }
 
-class ASN1Parser
+public class ASN1Parser
 {
     var data : [UInt8]
     var cursor : Int
     
-    init(data : [UInt8])
+    public init(data : [UInt8])
     {
         self.data = data
         self.cursor = 0
     }
     
-    convenience init(data : NSData)
+    public convenience init(data : NSData)
     {
         self.init(data: [UInt8](UnsafeBufferPointer<UInt8>(start: UnsafePointer<UInt8>(data.bytes), count: data.length)))
     }
     
-    init?(PEMFile : String)
+    public init?(PEMFile : String)
     {
         do {
             let base64string = try NSString(contentsOfFile: PEMFile, encoding: NSUTF8StringEncoding)
@@ -244,7 +244,7 @@ class ASN1Parser
         return nil
     }
     
-    func parseObject() -> ASN1Object?
+    public func parseObject() -> ASN1Object?
     {
         if let t = self._data(cursor..<cursor+1) {
             var type = t[0]
@@ -423,7 +423,7 @@ class ASN1Parser
 
 }
 
-func ASN1_print_recursive(object: ASN1Object, depth : Int = 0)
+public func ASN1_print_recursive(object: ASN1Object, depth : Int = 0)
 {
     for var i = 0; i < depth; ++i {
         print("    ", terminator: "")

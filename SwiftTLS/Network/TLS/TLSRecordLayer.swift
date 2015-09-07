@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import CommonCrypto
 
 let TLSKeyExpansionLabel = [UInt8]("key expansion".utf8)
 
@@ -32,7 +33,7 @@ class EncryptionParameters {
     
 }
 
-class TLSRecordLayer
+public class TLSRecordLayer
 {
     weak var dataProvider : TLSDataProvider?
     weak var context : TLSContext?

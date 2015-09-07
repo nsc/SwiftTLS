@@ -7,6 +7,8 @@
 //
 
 import Foundation
+import SwiftTLS
+import OpenSSL
 
 func server()
 {
@@ -55,7 +57,7 @@ func server()
 
 func client()
 {
-    let socket = TLSSocket(protocolVersion: TLSProtocolVersion.TLS_v1_2)
+    let socket = TLSSocket(protocolVersion: .TLS_v1_2)
     socket.context.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
     
     //        var host = "195.50.155.66"
@@ -68,11 +70,11 @@ func client()
                 print("\(NSString(bytes: data!, length: data!.count, encoding: NSUTF8StringEncoding)!)")
                 socket.close()
                 
-                print("Add operations: \(addOperations)")
-                print("Sub operations: \(subOperations)")
-                print("Mul operations: \(mulOperations)")
-                print("Div operations: \(divOperations)")
-                print("Mod operations: \(modOperations)")
+//                print("Add operations: \(addOperations)")
+//                print("Sub operations: \(subOperations)")
+//                print("Mul operations: \(mulOperations)")
+//                print("Div operations: \(divOperations)")
+//                print("Mod operations: \(modOperations)")
 
             })
         })
@@ -144,9 +146,9 @@ server()
 
 //test_BN_multiply_performance()
 
-print("Add operations: \(addOperations)")
-print("Sub operations: \(subOperations)")
-print("Mul operations: \(mulOperations)")
-print("Div operations: \(divOperations)")
-print("Mod operations: \(modOperations)")
+//print("Add operations: \(addOperations)")
+//print("Sub operations: \(subOperations)")
+//print("Mul operations: \(mulOperations)")
+//print("Div operations: \(divOperations)")
+//print("Mod operations: \(modOperations)")
 dispatch_main()

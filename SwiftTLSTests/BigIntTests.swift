@@ -8,7 +8,8 @@
 
 import Cocoa
 import XCTest
-@testable import swifttls
+import OpenSSL
+@testable import SwiftTLS
 
 class BigIntTests: XCTestCase {
 

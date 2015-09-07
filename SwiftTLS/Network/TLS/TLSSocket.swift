@@ -255,19 +255,19 @@ class Random : Streamable
     }
 }
 
-class TLSSocket : SocketProtocol, TLSDataProvider
+public class TLSSocket : SocketProtocol, TLSDataProvider
 {
-    var context : TLSContext!
+    public var context : TLSContext!
     
     var socket : TCPSocket?
     
-    init(protocolVersion : TLSProtocolVersion, isClient: Bool = true)
+    public init(protocolVersion : TLSProtocolVersion, isClient: Bool = true)
     {
         self.context = nil
         self.context = TLSContext(protocolVersion: protocolVersion, dataProvider: self, isClient: isClient)
     }
     
-    init(protocolVersion : TLSProtocolVersion, isClient: Bool, identity : Identity)
+    public init(protocolVersion : TLSProtocolVersion, isClient: Bool, identity : Identity)
     {
         self.context = nil
         self.context = TLSContext(protocolVersion: protocolVersion, dataProvider: self, isClient: isClient)
@@ -282,7 +282,7 @@ class TLSSocket : SocketProtocol, TLSDataProvider
     
     // add connect method that takes a domain name rather than an IP
     // so we can check the server certificate against that name
-    func connect(address: IPAddress, completionBlock: ((SocketError?) -> ())?) {
+    public func connect(address: IPAddress, completionBlock: ((SocketError?) -> ())?) {
         let tlsConnectCompletionBlock = completionBlock
 
         self.socket = TCPSocket()
@@ -297,7 +297,7 @@ class TLSSocket : SocketProtocol, TLSDataProvider
         })
     }
     
-    func listen(address : IPAddress, acceptBlock : (clientSocket : SocketProtocol?, error : SocketError?) -> ())
+    public func listen(address : IPAddress, acceptBlock : (clientSocket : SocketProtocol?, error : SocketError?) -> ())
     {
         self.socket = TCPSocket()
         
@@ -325,7 +325,7 @@ class TLSSocket : SocketProtocol, TLSDataProvider
         })
     }
     
-    func close()
+    public func close()
     {
         self.context.sendAlert(.CloseNotify, alertLevel: .Warning) { (error : TLSDataProviderError?) -> () in
             // When the send is done, close the underlying socket
@@ -334,7 +334,7 @@ class TLSSocket : SocketProtocol, TLSDataProvider
         }
     }
     
-    func read(count count: Int, completionBlock: ((data: [UInt8]?, error: SocketError?) -> ()))
+    public func read(count count: Int, completionBlock: ((data: [UInt8]?, error: SocketError?) -> ()))
     {
         self.context.readTLSMessage { (message) -> () in
             if let message = message
@@ -376,7 +376,7 @@ class TLSSocket : SocketProtocol, TLSDataProvider
         }
     }
     
-    func write(data: [UInt8], completionBlock: ((SocketError?) -> ())? = nil)
+    public func write(data: [UInt8], completionBlock: ((SocketError?) -> ())? = nil)
     {
         self.context.sendApplicationData(data) { (error : TLSDataProviderError?) -> () in
             var socketError : SocketError? = nil

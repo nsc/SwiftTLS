@@ -8,14 +8,14 @@
 
 import Security
 
-class Identity
+public class Identity
 {
     var name : String
     var identity : SecIdentityRef!
     var privateKey  : CryptoKey!
     var certificate : Certificate!
     
-    init?(name : String)
+    public init?(name : String)
     {
         self.name = name
         
