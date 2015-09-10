@@ -128,8 +128,18 @@ func testPerformance()
     }
 }
 
+func parseASN1()
+{
+    let data = NSData(contentsOfFile: "embedded.mobileprovision")
+    
+    let object = ASN1Parser(data: data!).parseObject()
+    
+    ASN1_print_recursive(object!)
+}
+
 //client()
 //testPerformance()
+//parseASN1()
 server()
 
 //test_BN_multiply_performance()

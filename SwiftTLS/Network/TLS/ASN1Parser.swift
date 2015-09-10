@@ -192,6 +192,11 @@ class ASN1Parser
         self.cursor = 0
     }
     
+    convenience init(data : NSData)
+    {
+        self.init(data: [UInt8](UnsafeBufferPointer<UInt8>(start: UnsafePointer<UInt8>(data.bytes), count: data.length)))
+    }
+    
     init?(PEMFile : String)
     {
         do {
