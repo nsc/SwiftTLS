@@ -8,6 +8,8 @@
 
 #include <stdint.h>
 
+#include "CBigInt.h"
+
 int NSC_setFileFlags(int fd, int flags);
 int NSC_getFileFlags(int fd);
 

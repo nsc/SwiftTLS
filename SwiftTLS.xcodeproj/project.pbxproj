@@ -82,6 +82,9 @@
 		032D0F3E1B9F5BD3009C13F0 /* certificate.cer in Resources */ = {isa = PBXBuildFile; fileRef = 03DDB6491AC60DAD000B5726 /* certificate.cer */; };
 		032D0F3F1B9F5BD3009C13F0 /* mycert.pem in Resources */ = {isa = PBXBuildFile; fileRef = 031868E51ADD7D9800CB51E1 /* mycert.pem */; };
 		036A7C141B07C26800AE46F8 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 036A7C131B07C26800AE46F8 /* Security.framework */; };
+		036D9FFC1BA45EA4008B2AF1 /* CBigInt.c in Sources */ = {isa = PBXBuildFile; fileRef = 036D9FFA1BA45EA4008B2AF1 /* CBigInt.c */; };
+		036D9FFD1BA45EA4008B2AF1 /* CBigInt.h in Headers */ = {isa = PBXBuildFile; fileRef = 036D9FFB1BA45EA4008B2AF1 /* CBigInt.h */; };
+		036D9FFE1BA49091008B2AF1 /* CBigInt.c in Sources */ = {isa = PBXBuildFile; fileRef = 036D9FFA1BA45EA4008B2AF1 /* CBigInt.c */; };
 		03AB0E6A1B9F769F00B96F84 /* openssl_utils.c in Sources */ = {isa = PBXBuildFile; fileRef = 033B64CD1B234A460019F3FA /* openssl_utils.c */; };
 		03AB0E6B1B9F76A800B96F84 /* bf_ecb.c in Sources */ = {isa = PBXBuildFile; fileRef = 033B63C31B2348190019F3FA /* bf_ecb.c */; };
 		03AB0E6C1B9F76A800B96F84 /* bf_enc.c in Sources */ = {isa = PBXBuildFile; fileRef = 033B63C41B2348190019F3FA /* bf_enc.c */; };
@@ -336,6 +339,8 @@
 		03657D061B07BDEF00293CE3 /* swifttls-test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "swifttls-test"; sourceTree = BUILT_PRODUCTS_DIR; };
 		036A7C131B07C26800AE46F8 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		036C47401AC70BEB007C5501 /* NSDataVsArrayPerformanceTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NSDataVsArrayPerformanceTests.swift; sourceTree = "<group>"; };
+		036D9FFA1BA45EA4008B2AF1 /* CBigInt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CBigInt.c; sourceTree = "<group>"; };
+		036D9FFB1BA45EA4008B2AF1 /* CBigInt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CBigInt.h; sourceTree = "<group>"; };
 		0372CA8F1B94D69E00B567D5 /* TLSCipherSuites.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSCipherSuites.swift; sourceTree = "<group>"; };
 		0374FE3C1B6E42E8003DD557 /* DiffieHellmanKeyExchange.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DiffieHellmanKeyExchange.swift; sourceTree = "<group>"; };
 		038AEE761ADAC06100DDFA8F /* TLSCipherSuiteDescriptions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSCipherSuiteDescriptions.swift; sourceTree = "<group>"; };
@@ -494,6 +499,8 @@
 				033AC3941AC474430004EEC1 /* TLSCertificateMessage.swift */,
 				03471E761AD59D6D004E0F5E /* TLSFinished.swift */,
 				033AC3951AC474430004EEC1 /* TLSChangeCipherSpec.swift */,
+				036D9FFB1BA45EA4008B2AF1 /* CBigInt.h */,
+				036D9FFA1BA45EA4008B2AF1 /* CBigInt.c */,
 			);
 			path = TLS;
 			sourceTree = "<group>";
@@ -736,6 +743,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				03FA94A21B9E1A0500F08FB8 /* SwiftTLS.h in Headers */,
+				036D9FFD1BA45EA4008B2AF1 /* CBigInt.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -957,6 +965,7 @@
 				03FA94B61B9E1A1B00F08FB8 /* BigInt.swift in Sources */,
 				03FA94CC1B9E1A2300F08FB8 /* TLSServerKeyExchange.swift in Sources */,
 				03FA94C51B9E1A1B00F08FB8 /* Certificate.swift in Sources */,
+				036D9FFC1BA45EA4008B2AF1 /* CBigInt.c in Sources */,
 				03FA94CF1B9E1A2300F08FB8 /* TLSChangeCipherSpec.swift in Sources */,
 				03FA94D21B9E1A2300F08FB8 /* Socket.swift in Sources */,
 				03FA94C61B9E1A1B00F08FB8 /* CryptoKey.swift in Sources */,
@@ -1035,6 +1044,7 @@
 				032D0F121B9F5B4C009C13F0 /* bn_mul.c in Sources */,
 				032D0EF71B9F56A1009C13F0 /* TLSTests.swift in Sources */,
 				032D0F091B9F5B4C009C13F0 /* bn_ctx.c in Sources */,
+				036D9FFE1BA49091008B2AF1 /* CBigInt.c in Sources */,
 				032D0F181B9F5B4C009C13F0 /* bn_sqr.c in Sources */,
 				032D0F2A1B9F5B6E009C13F0 /* err.c in Sources */,
 				032D0F291B9F5B67009C13F0 /* dsa_vrf.c in Sources */,
@@ -1151,7 +1161,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_INCLUDE_PATHS = "${SRCROOT}/SwiftTLS/modulemaps/OpenSSL";
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
 			};
 			name = Debug;
 		};
@@ -1187,6 +1197,7 @@
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				FRAMEWORK_VERSION = A;
 				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 3;
 				INFOPLIST_FILE = SwiftTLS/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx";
@@ -1194,6 +1205,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_INCLUDE_PATHS = "${SRCROOT}/SwiftTLS/modulemaps/SwiftHelper ${SRCROOT}/SwiftTLS/modulemaps/CommonCrypto ${SRCROOT}/SwiftTLS/modulemaps/OpenSSL";
+				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
 			};
@@ -1210,6 +1222,7 @@
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				FRAMEWORK_VERSION = A;
 				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 3;
 				INFOPLIST_FILE = SwiftTLS/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx";
@@ -1217,6 +1230,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_INCLUDE_PATHS = "${SRCROOT}/SwiftTLS/modulemaps/SwiftHelper ${SRCROOT}/SwiftTLS/modulemaps/CommonCrypto ${SRCROOT}/SwiftTLS/modulemaps/OpenSSL";
+				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
 			};
@@ -1233,6 +1247,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.savoysoftware.SwiftTLSTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
 			};
 			name = Debug;
 		};
@@ -1246,6 +1261,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.savoysoftware.SwiftTLSTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
 			};
 			name = Release;
 		};
