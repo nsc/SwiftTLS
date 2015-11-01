@@ -342,7 +342,10 @@ public enum CipherSuite : UInt16 {
         {
         case .DHE_RSA:
             return true
-            
+
+        case .ECDHE_RSA:
+            return true
+
         default:
             return false
         }

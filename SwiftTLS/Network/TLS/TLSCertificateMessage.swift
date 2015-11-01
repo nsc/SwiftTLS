@@ -32,7 +32,7 @@ class TLSCertificateMessage : TLSHandshakeMessage
         super.init(type: .Handshake(.Certificate))
     }
     
-    required init?(inputStream : InputStreamType)
+    required init?(inputStream : InputStreamType, context: TLSContext)
     {
         var certificates : [Certificate]?
         

@@ -56,13 +56,13 @@ class TLSClientHelloTests: XCTestCase {
     }
     
     func test_initWithBinaryInputStream_givesClientHello() {
-        let clientHello = TLSClientHello(inputStream: BinaryInputStream(self.testClientHelloData))
+        let clientHello = TLSClientHello(inputStream: BinaryInputStream(self.testClientHelloData), context:  TLSContext())
         
         XCTAssert(clientHello != nil)
     }
 
     func test_initWithBinaryInputStream_hasCorrectRandom() {
-        let clientHello = TLSClientHello(inputStream: BinaryInputStream(self.testClientHelloData))
+        let clientHello = TLSClientHello(inputStream: BinaryInputStream(self.testClientHelloData), context:  TLSContext())
         
         let expectedRandom = Random(inputStream: BinaryInputStream([UInt8]([1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,
             17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32])))!
@@ -73,7 +73,7 @@ class TLSClientHelloTests: XCTestCase {
     }
 
     func test_initWithBinaryInputStream_hasCorrectCipherSuites() {
-        let clientHello = TLSClientHello(inputStream: BinaryInputStream(self.testClientHelloData))
+        let clientHello = TLSClientHello(inputStream: BinaryInputStream(self.testClientHelloData), context:  TLSContext())
         
         let expectedCiperSuites = [CipherSuite.TLS_RSA_WITH_RC4_128_MD5, CipherSuite.TLS_RSA_WITH_RC4_128_SHA]
         
@@ -95,16 +95,16 @@ class TLSClientHelloTests: XCTestCase {
         var buffer = DataBuffer()
         clientHello.writeTo(&buffer)
 
-        if let newClientHello = TLSClientHello(inputStream: BinaryInputStream(buffer.buffer)) {
-            XCTAssertTrue(newClientHello.extensions != nil)
+        if let newClientHello = TLSClientHello(inputStream: BinaryInputStream(buffer.buffer), context:  TLSContext()) {
+            XCTAssertTrue(newClientHello.extensions.count != 0)
             
-            let count = clientHello.extensions!.count
-            XCTAssertTrue(count == newClientHello.extensions!.count)
+            let count = clientHello.extensions.count
+            XCTAssertTrue(count == newClientHello.extensions.count)
             
             for var i = 0; i < count; ++i
             {
-                let e = clientHello.extensions![i]
-                let n = newClientHello.extensions![i]
+                let e = clientHello.extensions[i]
+                let n = newClientHello.extensions[i]
                 
                 XCTAssertTrue(e as? TLSServerNameExtension != nil)
                 XCTAssertTrue(n as? TLSServerNameExtension != nil)

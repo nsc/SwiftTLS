@@ -31,8 +31,9 @@ class TSLTests: XCTestCase {
         
         let socket = TLSSocket(protocolVersion: TLSProtocolVersion.TLS_v1_2)
 //        socket.context.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
-        socket.context.cipherSuites = [.TLS_RSA_WITH_AES_256_CBC_SHA]
-      
+//        socket.context.cipherSuites = [.TLS_RSA_WITH_AES_256_CBC_SHA]
+        socket.context.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256]
+
 //        let (host, port) = ("195.50.155.66", 443)
         let (host, port) = ("85.13.145.53", 443) // nschmidt.name
 //        let (host, port) = ("127.0.0.1", 4433)

@@ -285,7 +285,7 @@ class Socket : SocketProtocol
             self.setupSocketReadSource()
         }
         
-        if let socketReadSource = _socketReadSource {
+        if _socketReadSource != nil {
             dispatch_async(Socket.socketQueue) {
 
                 self._readRequests.append(ReadRequest(count: count, completionBlock: completionBlock))

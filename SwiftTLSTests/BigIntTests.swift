@@ -41,6 +41,15 @@ class BigIntTests: XCTestCase {
         XCTAssert(c == BigInt(-1))
     }
 
+    func test_subtract_negative2from1_givesCorrectResult() {
+        let a = BigInt(1)
+        let b = BigInt(-2)
+        
+        let c = a - b
+        
+        XCTAssert(c == BigInt(3))
+    }
+
     func test_subtract_with0x10000000000000000And0x1_givesCorrectResult() {
         let a = BigInt([0x0, 0x1] as [UInt64])
         let b = BigInt(1)
@@ -84,6 +93,23 @@ class BigIntTests: XCTestCase {
             let d = c + b
             
             XCTAssert(a == d, "Wrong result for \(a) - \(b)")
+        }
+    }
+    
+    func test_multiply_negativeAndAPositiveNumbers_givesCorrectResult()
+    {
+        let values = [
+            (3, -4, -12),
+            (-3, 4, -12),
+            (-3, -4, 12),
+            (3, 4, 12),
+        ]
+        
+        for (a, b, result) in values {
+        
+            let r = BigInt(a) * BigInt(b)
+
+            XCTAssert(BigInt(result) == r)
         }
     }
     
@@ -315,6 +341,16 @@ class BigIntTests: XCTestCase {
         return BigInt(parts)
     }
     
+    func test_mod_withNegativeNumbers_givesCorrectResult()
+    {
+        let a = BigInt(hexString: "10000000000000000001", negative: true)!
+        let b = BigInt(hexString: "10000000000000000000", negative: false)!
+        
+        let c = a % b
+        
+        XCTAssert(c == BigInt(-1))
+    }
+    
     func test_divide_twoNumbers_givesCorrectResult()
     {
         let uvValues : [(String, String)] = [
@@ -498,6 +534,27 @@ class BigIntTests: XCTestCase {
         XCTAssert(q == BigInt(0xc))
     }
     
+    func test_extendedEuclid__givesCorrectResult()
+    {
+        let z = BigInt(5)
+        let a = BigInt(13)
+        let result = extended_euclid(z: z, a: a)
+        print(result)
+        
+        XCTAssert(result == BigInt(-5))
+    }
+    
+    func test_modularInverse__givesCorrectResult()
+    {
+        let x = BigInt(3)
+        let y = BigInt(5)
+        let a = BigInt(7)
+
+        let result = modular_inverse(x, y, mod: a)
+        
+        XCTAssert(result == BigInt(9))
+    }
+
     func test_isBitSet_someNumbers_givesCorrectResult()
     {
         let values : [(BigInt, Int, Bool)] = [
@@ -611,7 +668,7 @@ class BigIntTests: XCTestCase {
         }
     }
 
-    func test_BN_mod_pow_performance()
+    func donttest_BN_mod_pow_performance()
     {
         let generatorString = "02"
         let exponentString = "737328E34295F1F0808C5B49DE95074D2903CA6B4671C366DDACB0E81987E8D59273F1EEF33A464EE6C98E7F2980D380F5DA28224D2E98F93D073A8ED82EEA5136B92FC065EFAE8D6A94706B4A938DE702EC70FD87752722288D5C2C933CE323C7D4466DA2FD92661D23DBBABE29A4CE276BCCA4C2842B464DE6471C7F81F4CA62F239A3F16BBEB1FFAB93210EBC77F1425D880731D0605CE2C59A21B2F01B287EB6191ECCA9413F78202E6502A04310801B5E28AA139FC38C17EFAA31C7A8EB365AF759FAEC89DF2148855ABA21B1A0FBED53A7C72814CCC0439A65B41A1B42D69813B0AF781F27168A1ED439E74829151F658218E12513271B12849967B1DC80A72EFED413FECAF88A55E31A231CBB5778DE5179232931BDD1E2802BD4045E36941FBABC742E5C91B8E11026450FBEFDBB1B197816B818A41A4434292E1D2E929ADF1D841648670FAC9694AB38079A219141F61C86424CED5C258DDEE091760BC2CF57D02D29B8E0019D4B1B8A24E1087FBE0E2E2CC135F450B6FAD8D88D89"
@@ -637,7 +694,7 @@ class BigIntTests: XCTestCase {
         }
     }
 
-    func test_CBigInt_mod_pow_performance()
+    func donttest_CBigInt_mod_pow_performance()
     {
         let generatorString = "02";
         let exponentString = "737328E34295F1F0808C5B49DE95074D2903CA6B4671C366DDACB0E81987E8D59273F1EEF33A464EE6C98E7F2980D380F5DA28224D2E98F93D073A8ED82EEA5136B92FC065EFAE8D6A94706B4A938DE702EC70FD87752722288D5C2C933CE323C7D4466DA2FD92661D23DBBABE29A4CE276BCCA4C2842B464DE6471C7F81F4CA62F239A3F16BBEB1FFAB93210EBC77F1425D880731D0605CE2C59A21B2F01B287EB6191ECCA9413F78202E6502A04310801B5E28AA139FC38C17EFAA31C7A8EB365AF759FAEC89DF2148855ABA21B1A0FBED53A7C72814CCC0439A65B41A1B42D69813B0AF781F27168A1ED439E74829151F658218E12513271B12849967B1DC80A72EFED413FECAF88A55E31A231CBB5778DE5179232931BDD1E2802BD4045E36941FBABC742E5C91B8E11026450FBEFDBB1B197816B818A41A4434292E1D2E929ADF1D841648670FAC9694AB38079A219141F61C86424CED5C258DDEE091760BC2CF57D02D29B8E0019D4B1B8A24E1087FBE0E2E2CC135F450B6FAD8D88D89"
@@ -656,7 +713,7 @@ class BigIntTests: XCTestCase {
         }
     }
 
-    func test_mod_pow_performance()
+    func donttest_mod_pow_performance()
     {
 //        let generator = BigInt([2] as [UInt32], negative: false)
 //        let exponentString = "737328E34295F1F0808C5B49DE95074D2903CA6B4671C366DDACB0E81987E8D59273F1EEF33A464EE6C98E7F2980D380F5DA28224D2E98F93D073A8ED82EEA5136B92FC065EFAE8D6A94706B4A938DE702EC70FD87752722288D5C2C933CE323C7D4466DA2FD92661D23DBBABE29A4CE276BCCA4C2842B464DE6471C7F81F4CA62F239A3F16BBEB1FFAB93210EBC77F1425D880731D0605CE2C59A21B2F01B287EB6191ECCA9413F78202E6502A04310801B5E28AA139FC38C17EFAA31C7A8EB365AF759FAEC89DF2148855ABA21B1A0FBED53A7C72814CCC0439A65B41A1B42D69813B0AF781F27168A1ED439E74829151F658218E12513271B12849967B1DC80A72EFED413FECAF88A55E31A231CBB5778DE5179232931BDD1E2802BD4045E36941FBABC742E5C91B8E11026450FBEFDBB1B197816B818A41A4434292E1D2E929ADF1D841648670FAC9694AB38079A219141F61C86424CED5C258DDEE091760BC2CF57D02D29B8E0019D4B1B8A24E1087FBE0E2E2CC135F450B6FAD8D88D89"

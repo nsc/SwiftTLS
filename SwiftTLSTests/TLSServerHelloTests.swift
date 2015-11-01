@@ -10,6 +10,18 @@ import Cocoa
 import XCTest
 @testable import SwiftTLS
 
+extension TLSContext {
+    convenience init() {
+        class EmptyDataProvider : TLSDataProvider
+        {
+            func writeData(data : [UInt8], completionBlock : ((TLSDataProviderError?) -> ())?) {}
+            func readData(count count : Int, completionBlock : ((data : [UInt8]?, error : TLSDataProviderError?) -> ())) {}
+        }
+        
+        self.init(protocolVersion: .TLS_v1_2, dataProvider: EmptyDataProvider())
+    }
+}
+
 class TLSServerHelloTests: XCTestCase {
     
     func test_writeTo__givesCorrectBinaryRepresentation() {
@@ -53,13 +65,13 @@ class TLSServerHelloTests: XCTestCase {
     }
     
     func test_initWithBinaryInputStream_givesClientHello() {
-        let serverHello = TLSServerHello(inputStream: BinaryInputStream(self.testServerHelloData))
+        let serverHello = TLSServerHello(inputStream: BinaryInputStream(self.testServerHelloData), context:  TLSContext())
         
         XCTAssert(serverHello != nil)
     }
     
     func test_initWithBinaryInputStream_hasCorrectRandom() {
-        let serverHello = TLSServerHello(inputStream: BinaryInputStream(self.testServerHelloData))
+        let serverHello = TLSServerHello(inputStream: BinaryInputStream(self.testServerHelloData), context:  TLSContext())
         
         let expectedRandom = Random(inputStream: BinaryInputStream([UInt8]([1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,
             17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32])))!
@@ -70,7 +82,7 @@ class TLSServerHelloTests: XCTestCase {
     }
     
     func test_initWithBinaryInputStream_hasCorrectCipherSuites() {
-        let serverHello = TLSServerHello(inputStream: BinaryInputStream(self.testServerHelloData))
+        let serverHello = TLSServerHello(inputStream: BinaryInputStream(self.testServerHelloData), context:  TLSContext())
         
         let expectedCiperSuite = CipherSuite.TLS_RSA_WITH_RC4_128_MD5
         

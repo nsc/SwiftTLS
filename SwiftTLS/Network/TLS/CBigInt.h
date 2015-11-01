@@ -26,6 +26,8 @@ CBigInt *CBigIntCopy(CBigInt *b);
 
 void CBigIntFree(CBigInt *b);
 
+int CBigIntIsBitSet(CBigInt *b, int bitNumber);
+
 CBigInt *CBigIntAdd(CBigInt *a, CBigInt *b);
 CBigInt *CBigIntSubtract(CBigInt *a, CBigInt *b);
 CBigInt *CBigIntMultiply(CBigInt *a, CBigInt *b);

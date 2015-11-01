@@ -38,17 +38,17 @@ class TLSClientKeyExchangeTests: XCTestCase {
                 data.writeUInt24(encryptedPreMasterSecret.count)
                 data.write(UInt16(encryptedPreMasterSecret.count))
                 data.write(encryptedPreMasterSecret)
-                super.init(inputStream: BinaryInputStream(data.buffer), context: nil)
+                super.init(inputStream: BinaryInputStream(data.buffer), context: TLSContext())
             }
 
-            required init?(inputStream: InputStreamType) {
+            required init?(inputStream: InputStreamType, context: TLSContext) {
                 fatalError("init(inputStream:) has not been implemented")
             }
         }
         
         var data = DataBuffer()
         SUT().writeTo(&data)
-        let msg2 = TLSClientKeyExchange(inputStream: BinaryInputStream(data.buffer))!
+        let msg2 = TLSClientKeyExchange(inputStream: BinaryInputStream(data.buffer), context: TLSContext())!
         var data2 = DataBuffer()
         msg2.writeTo(&data2)
         

@@ -1,14 +1,12 @@
 //
-//  DiffieHellmanKeyExchange.swift
+//  DHKeyExchange.swift
 //  SwiftTLS
 //
 //  Created by Nico Schmidt on 02.08.15.
 //  Copyright © 2015 Nico Schmidt. All rights reserved.
 //
 
-import Foundation
-
-public class DiffieHellmanKeyExchange
+public class DHKeyExchange
 {
     let primeModulus    : BigInt
     let generator       : BigInt

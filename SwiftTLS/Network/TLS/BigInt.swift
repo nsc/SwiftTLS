@@ -126,7 +126,7 @@ public struct BigIntImpl<U where U : UnsignedIntegerType> {
         self.init([T](parts), negative: negative)
     }
     
-    public init?(hexString : String)
+    public init?(hexString : String, negative : Bool = false)
     {
         var bytes = [UInt8]()
         var bytesLeft = hexString.utf8.count
@@ -158,12 +158,12 @@ public struct BigIntImpl<U where U : UnsignedIntegerType> {
             bytesLeft -= 1
         }
         
-        self.init(bytes.reverse())
+        self.init(bytes.reverse(), negative: negative)
     }
     
     public func toString() -> String
     {
-        var s = ""
+        var s = self.sign ? "-" : ""
         var onlyZeroesYet = true
         let count = Int(parts.count)
         for var i = count - 1; i >= 0; --i
@@ -238,6 +238,13 @@ public struct BigIntImpl<U where U : UnsignedIntegerType> {
         n.parts[num - 1] = highest
         
         return n
+    }
+}
+
+extension BigIntImpl : CustomStringConvertible
+{
+    public var description : String {
+        return self.toString()
     }
 }
 
@@ -412,7 +419,19 @@ public func *<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>
 
     result.normalize()
     
+    result.sign = (a.sign != b.sign)
+
     return result
+}
+
+public func *<U>(a : BigIntImpl<U>, b : Int) -> BigIntImpl<U>
+{
+    return a * BigIntImpl<U>(b)
+}
+
+public func *<U>(a : Int, b : BigIntImpl<U>) -> BigIntImpl<U>
+{
+    return BigIntImpl<U>(a) * b
 }
 
 // short division
@@ -502,7 +521,7 @@ func division<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, _ v : Int, inou
     return result
 }
 
-func division<UIntN : KnowsLargerIntType>(uu : BigIntImpl<UIntN>, _ vv : BigIntImpl<UIntN>, inout remainder : BigIntImpl<UIntN>?) -> BigIntImpl<UIntN>
+func division<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, _ v : BigIntImpl<UIntN>, inout remainder : BigIntImpl<UIntN>?) -> BigIntImpl<UIntN>
 {
     typealias BigIntType = BigIntImpl<UIntN>
     typealias UIntN2 = UIntN.LargerIntType
@@ -510,21 +529,21 @@ func division<UIntN : KnowsLargerIntType>(uu : BigIntImpl<UIntN>, _ vv : BigIntI
     
     // This is an implementation of Algorithm D in
     // "The Art of Computer Programming" by Donald E. Knuth, Volume 2, Seminumerical Algorithms, 3rd edition, p. 272
-    if vv.isZero {
+    if v.isZero {
         // handle error
         return BigIntType(0)
     }
     
-    if uu.isZero {
+    if u.isZero {
         return BigIntType(0)
     }
     
-    let n = vv.parts.count
-    let m = uu.parts.count - vv.parts.count
+    let n = v.parts.count
+    let m = u.parts.count - v.parts.count
     
     if m < 0 {
         if remainder != nil {
-            remainder = uu
+            remainder = u
         }
 
         return BigIntType(0)
@@ -532,21 +551,21 @@ func division<UIntN : KnowsLargerIntType>(uu : BigIntImpl<UIntN>, _ vv : BigIntI
     
     if n == 1 && m == 0 {
         if remainder != nil {
-            remainder = BigIntType(uu.parts[0] % vv.parts[0])
+            remainder = BigIntType(u.parts[0] % v.parts[0])
             modOperations++
         }
         
         divOperations++
-        return BigIntType(uu.parts[0] / vv.parts[0])
+        return BigIntType(u.parts[0] / v.parts[0])
     }
     else if n == 1 {
-        var divisor = Int(vv.parts[0].toUIntMax())
-        if vv.sign {
+        var divisor = Int(v.parts[0].toUIntMax())
+        if v.sign {
             divisor = -divisor
         }
 
         var rem : Int? = remainder == nil ? nil : 0
-        let result = division(uu, divisor, remainder: &rem)
+        let result = division(u, divisor, remainder: &rem)
         
         if remainder != nil {
             remainder = BigIntImpl(rem!)
@@ -557,8 +576,8 @@ func division<UIntN : KnowsLargerIntType>(uu : BigIntImpl<UIntN>, _ vv : BigIntI
 
     let UIntNShift = UIntMax(sizeof(UIntN) * 8)
     let b = UIntN2(UIntMax(1) << UIntNShift)
-    var u = BigIntType(uu.parts)
-    var v = BigIntType(vv.parts)
+    var u = BigIntType(u.parts)
+    var v = BigIntType(v.parts)
     
     var result = BigIntType(count: m + 1)
     
@@ -634,7 +653,7 @@ func division<UIntN : KnowsLargerIntType>(uu : BigIntImpl<UIntN>, _ vv : BigIntI
         
     }
 
-    let q =  BigIntType(result.parts, negative: uu.sign != vv.sign)
+    let q =  BigIntType(result.parts, negative: u.sign != v.sign)
     if remainder != nil {
         let uSlice = u.parts[0..<n]
         let uParts = [UIntN](uSlice)
@@ -694,10 +713,10 @@ func %<U : UnsignedIntegerType where U : KnowsLargerIntType>(u : BigIntImpl<U>, 
     return remainder!
 }
 
-func %(u : BigInt, v : BigInt) -> BigInt
-{
-    return u % v
-}
+//func %(u : BigInt, v : BigInt) -> BigInt
+//{
+//    return u % v
+//}
 
 public func == <U>(lhs : BigIntImpl<U>, rhs : BigIntImpl<U>) -> Bool
 {
@@ -731,6 +750,10 @@ public func < <U>(lhs : BigIntImpl<U>, rhs : BigIntImpl<U>) -> Bool
 public func > <U>(lhs : BigIntImpl<U>, rhs : BigIntImpl<U>) -> Bool
 {
     if lhs.parts.count != rhs.parts.count {
+        if lhs.isZero && rhs.isZero {
+            return false
+        }
+
         return lhs.parts.count > rhs.parts.count
     }
     
@@ -780,11 +803,11 @@ public func pow<U : UnsignedIntegerType where U : KnowsLargerIntType>(base : Big
     return result
 }
 
-public func modular_pow<U : UnsignedIntegerType where U : KnowsLargerIntType>(base : BigIntImpl<U>, _ exponent : Int, _ mod : BigIntImpl<U>) -> BigIntImpl<U>
+public func modular_pow(base : BigInt, _ exponent : Int, _ mod : BigInt) -> BigInt
 {
     let numBits = sizeof(Int) * 8
     
-    var result = BigIntImpl<U>(1)
+    var result = BigInt(1)
     var r = base % mod
     for var i = 0; i < numBits; ++i
     {
@@ -798,11 +821,11 @@ public func modular_pow<U : UnsignedIntegerType where U : KnowsLargerIntType>(ba
     return result
 }
 
-public func modular_pow<U : UnsignedIntegerType where U : KnowsLargerIntType>(base : BigIntImpl<U>, _ exponent : BigIntImpl<U>, _ mod : BigIntImpl<U>) -> BigIntImpl<U>
+public func modular_pow(base : BigInt, _ exponent : BigInt, _ mod : BigInt) -> BigInt
 {
-    let numBits = exponent.parts.count * sizeof(U) * 8
+    let numBits = exponent.parts.count * sizeof(BigInt.PrimitiveType.self) * 8
     
-    var result = BigIntImpl<U>(1)
+    var result = BigInt(1)
     var r = base % mod
     for var i = 0; i < numBits; ++i
     {
@@ -814,6 +837,38 @@ public func modular_pow<U : UnsignedIntegerType where U : KnowsLargerIntType>(ba
     }
     
     return result
+}
+
+public func extended_euclid(z z : BigInt, a : BigInt) -> BigInt
+{
+    var i = a
+    var j = z
+    var y1 = BigInt(1)
+    var y2 = BigInt(0)
+    
+    let zero = BigInt(0)
+    while j > zero
+    {
+        var remainder : BigInt? = BigInt(0)
+        let quotient = division(i, j, remainder: &remainder)
+        
+        let y = y2 - y1 * quotient
+
+        i = j
+        j = remainder!
+        y2 = y1
+        y1 = y
+        
+    }
+    
+    return y2 % a
+}
+
+public func modular_inverse(x : BigInt, _ y : BigInt, mod : BigInt) -> BigInt
+{
+    let inverse = extended_euclid(z: y, a: mod)
+    
+    return inverse * x
 }
 
 public func SwiftTLS_mod_pow_performance()

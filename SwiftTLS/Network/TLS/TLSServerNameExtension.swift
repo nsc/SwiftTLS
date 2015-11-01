@@ -57,7 +57,7 @@ class TLSServerNameExtension : TLSHelloExtension
     }
     
     func writeTo<Target : OutputStreamType>(inout target: Target) {
-        var data = DataBuffer()
+        let data = DataBuffer()
         for serverName in self.serverNames {
             let utf8 = [UInt8](serverName.utf8)
             data.write(TLSServerNameType.HostName.rawValue)

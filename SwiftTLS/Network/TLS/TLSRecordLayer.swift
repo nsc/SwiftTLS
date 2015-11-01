@@ -239,17 +239,17 @@ public class TLSRecordLayer
                         switch (contentType)
                         {
                         case .ChangeCipherSpec:
-                            let changeCipherSpec = TLSChangeCipherSpec(inputStream: BinaryInputStream(messageBody))
+                            let changeCipherSpec = TLSChangeCipherSpec(inputStream: BinaryInputStream(messageBody), context: self.context!)
                             completionBlock(message: changeCipherSpec)
                             break
                             
                         case .Alert:
-                            let alert = TLSAlertMessage.alertFromData(messageBody)
+                            let alert = TLSAlertMessage.alertFromData(messageBody, context: self.context!)
                             completionBlock(message: alert)
                             break
                             
                         case .Handshake:
-                            let handshakeMessage = TLSHandshakeMessage.handshakeMessageFromData(messageBody, context: self.context)
+                            let handshakeMessage = TLSHandshakeMessage.handshakeMessageFromData(messageBody, context: self.context!)
                             completionBlock(message: handshakeMessage)
                             break
                             

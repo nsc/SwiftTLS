@@ -395,8 +395,97 @@ CBigInt *CBigIntSubtract(CBigInt *a, CBigInt *b)
     return result;
 }
 
+void CBigIntInplaceAdd(CBigInt *a, CBigInt *b)
+{
+    uint32_t count = max(a->count, b->count);
+    CBigIntExtendCapacity(a, count + 1);
+    
+    uint32_t carry = 0;
+    uint32_t i = 0;
+    for (; i < count; ++i)
+    {
+        uint64_t sum = carry;
+        carry = 0;
+        
+        if (i < a->count) {
+            uint64_t tmp = sum + a->parts[i];
+            char overflow = (tmp > UINT32_MAX);
+            if (overflow) {
+                carry = 1;
+            }
+            sum = tmp;
+        }
+        
+        if (i < b->count) {
+            uint64_t tmp = sum + b->parts[i];
+            char overflow = (tmp > UINT32_MAX);
+            if (overflow) {
+                carry = 1;
+            }
+            sum = tmp;
+        }
+        
+        a->parts[i] = (uint32_t)sum;
+    }
+    
+    if (carry != 0) {
+        a->parts[i] = carry;
+        a->count = i;
+    }
+    else {
+        a->count = count;
+    }
+    
+    normalize(a);
+}
+
+static void CBigIntShiftLeft(CBigInt *a)
+{
+    const uint32_t highestBitMask = 0x80000000UL;
+    if ((a->parts[a->count - 1] & highestBitMask) != 0) {
+        CBigIntExtendCapacity(a, a->count + 1);
+        a->parts[a->count] = 0;
+        a->count += 1;
+    }
+    
+    uint32_t oldCarry = 0;
+    uint32_t carry = 0;
+    for (int i = 0; i < a->count; ++i)
+    {
+        uint32_t v = a->parts[i];
+        carry = (v & highestBitMask) ? 1 : 0;
+        v <<= 1;
+        a->parts[i] = v | oldCarry;
+        oldCarry = carry;
+    }
+}
+
+static CBigInt *CBigIntMultiplyByAddAndShift(CBigInt *a, CBigInt *b)
+{
+    int aCount = a->count;
+    int bCount = b->count;
+    int resultCount = aCount + bCount;
+    
+    CBigInt *result = CBigIntCreateWithCapacity(resultCount);
+    CBigInt *aShifted = CBigIntCopy(a);
+    
+    for (int i=0; i < aCount * 8 * sizeof(uint32_t); ++i)
+    {
+        if (CBigIntIsBitSet(b, i))
+        {
+            CBigIntInplaceAdd(result, aShifted);
+        }
+        CBigIntShiftLeft(aShifted);
+    }
+    
+    return result;
+}
+
 CBigInt *CBigIntMultiply(CBigInt *a, CBigInt *b)
 {
+//    return CBigIntMultiplyByAddAndShift(a, b);
+    
+#if 1
     int aCount = a->count;
     int bCount = b->count;
     int resultCount = aCount + bCount;
@@ -447,6 +536,7 @@ CBigInt *CBigIntMultiply(CBigInt *a, CBigInt *b)
     result->count = resultCount;
     
     return result;
+#endif
 }
 
 static CBigInt *CBigIntDivideByUInt(CBigInt *u, uint32_t v, uint32_t *remainder)

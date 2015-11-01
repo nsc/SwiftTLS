@@ -12,7 +12,72 @@ public enum CompressionMethod : UInt8 {
     case NULL = 0
 }
 
+enum HashAlgorithm : UInt8 {
+    case none   = 0
+    case MD5    = 1
+    case SHA1   = 2
+    case SHA224 = 3
+    case SHA256 = 4
+    case SHA384 = 5
+    case SHA512 = 6
+}
 
+enum SignatureAlgorithm : UInt8 {
+    case anonymous  = 0
+    case RSA        = 1
+    case DSA        = 2
+    case ECDSA      = 3
+}
+
+struct TLSSignedData : Streamable
+{
+    var hashAlgorithm : HashAlgorithm?
+    var signatureAlgorithm : SignatureAlgorithm?
+    
+    var signature : [UInt8]
+
+    // FIXME: this is only needed to quiet the compiler because of the bug that you have to initialize
+    // all ivars even when a failable initializer fails
+    init()
+    {
+        self.signature = []
+    }
+    
+    init?(inputStream : InputStreamType, context: TLSContext)
+    {
+        if context.negotiatedProtocolVersion == .TLS_v1_2 {
+            guard
+                let rawHashAlgorithm : UInt8 = inputStream.read(),
+                let hashAlgorithm = HashAlgorithm(rawValue: rawHashAlgorithm),
+                let rawSignatureAlgorithm : UInt8 = inputStream.read(),
+                let signatureAlgorithm = SignatureAlgorithm(rawValue: rawSignatureAlgorithm)
+            else {
+                return nil
+            }
+            
+            self.hashAlgorithm = hashAlgorithm
+            self.signatureAlgorithm = signatureAlgorithm
+        }
+        
+        if let signature : [UInt8] = inputStream.read16() {
+            self.signature = signature
+        }
+        else {
+            return nil
+        }
+    }
+    
+    func writeTo<Target : OutputStreamType>(inout target: Target)
+    {
+        if self.hashAlgorithm != nil && self.signatureAlgorithm != nil {
+            target.write(self.hashAlgorithm!.rawValue)
+            target.write(self.signatureAlgorithm!.rawValue)
+        }
+        
+        target.write(UInt16(self.signature.count))
+        target.write(self.signature)
+    }
+}
 
 enum TLSError : ErrorType
 {
@@ -95,6 +160,7 @@ enum KeyExchangeAlgorithm
 {
     case RSA
     case DHE_RSA
+    case ECDHE_RSA
 }
 
 enum PRFAlgorithm {
@@ -163,13 +229,15 @@ public class TLSContext
     
     var recordLayer : TLSRecordLayer!
     
-    var dhKeyExchange : DiffieHellmanKeyExchange?
+    var dhKeyExchange : DHKeyExchange?
+    var ecdhKeyExchange : ECDHKeyExchange?
     
     private var connectionEstablishedCompletionBlock : ((error : TLSError?) -> ())?
     
     init(protocolVersion: TLSProtocolVersion, dataProvider : TLSDataProvider, isClient : Bool = true)
     {
         self.protocolVersion = protocolVersion
+        self.negotiatedProtocolVersion = protocolVersion
         self.isClient = isClient
         self.handshakeMessages = []
         self.securityParameters = TLSSecurityParameters()
@@ -313,6 +381,7 @@ public class TLSContext
             print("Server wants to speak \(version)")
             
             self.recordLayer.protocolVersion = version
+            self.negotiatedProtocolVersion = version
             
             self.cipherSuite = serverHello.cipherSuite
             self.securityParameters.serverRandom = DataBuffer(serverHello.random).buffer
@@ -331,13 +400,19 @@ public class TLSContext
         case .ServerKeyExchange:
             let keyExchangeMessage = message as! TLSServerKeyExchange
             
-            let p = BigInt(keyExchangeMessage.dh_p.reverse())
-            let g = BigInt(keyExchangeMessage.dh_g.reverse())
-            let Ys = BigInt(keyExchangeMessage.dh_Ys.reverse())
+            if let diffieHellmanParameters = keyExchangeMessage.diffieHellmanParameters {
+                let p = diffieHellmanParameters.p
+                let g = diffieHellmanParameters.g
+                let Ys = diffieHellmanParameters.Ys
+                
+                let dhKeyExchange = DHKeyExchange(primeModulus: p, generator: g)
+                dhKeyExchange.peerPublicValue = Ys
+                self.dhKeyExchange = dhKeyExchange
+            }
+            else if let ecDiffieHellmanParameters = keyExchangeMessage.ecDiffieHellmanParameters {
+                print(ecDiffieHellmanParameters)
+            }
             
-            let dhKeyExchange = DiffieHellmanKeyExchange(primeModulus: p, generator: g)
-            dhKeyExchange.peerPublicValue = Ys
-            self.dhKeyExchange = dhKeyExchange
             
         case .ServerHelloDone:
             break
@@ -410,6 +485,11 @@ public class TLSContext
             cipherSuites: self.cipherSuites!,
 //            cipherSuites: [.TLS_RSA_WITH_NULL_SHA],
             compressionMethods: [.NULL])
+        
+        if self.cipherSuites!.contains({TLSCipherSuiteDescriptorForCipherSuite($0).keyExchangeAlgorithm == .ECDHE_RSA}) {
+            clientHello.extensions.append(TLSEllipticCurvesExtension(ellipticCurves: [.secp256r1, .secp384r1, .secp521r1]))
+            clientHello.extensions.append(TLSEllipticCurvePointFormatsExtension(ellipticCurvePointFormats: [.uncompressed]))
+        }
         
         self.securityParameters.clientRandom = DataBuffer(clientHelloRandom).buffer
         self.sendHandshakeMessage(clientHello)
@@ -503,7 +583,7 @@ public class TLSContext
             }
         }
         
-        if self.protocolVersion < TLSProtocolVersion.TLS_v1_2 {
+        if self.negotiatedProtocolVersion < TLSProtocolVersion.TLS_v1_2 {
             let clientHandshakeMD5  = Hash_MD5(handshakeData)
             let clientHandshakeSHA1 = Hash_SHA1(handshakeData)
             
@@ -522,7 +602,7 @@ public class TLSContext
     
     internal func PRF(secret secret : [UInt8], label : [UInt8], seed : [UInt8], outputLength : Int) -> [UInt8]
     {
-        if self.protocolVersion < TLSProtocolVersion.TLS_v1_2 {
+        if self.negotiatedProtocolVersion < TLSProtocolVersion.TLS_v1_2 {
             /// PRF function as defined in RFC 2246, section 5, p. 12
 
             let halfSecretLength = secret.count / 2

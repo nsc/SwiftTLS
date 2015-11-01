@@ -9,6 +9,8 @@
 enum TLSHelloExtensionType : UInt16
 {
     case ServerName = 0
+    case EllipticCurves = 10
+    case ECPointFormats = 11
 }
 
 protocol TLSHelloExtension : Streamable
@@ -43,7 +45,7 @@ class TLSClientHello : TLSHandshakeMessage
     
     var compressionMethods : [CompressionMethod]
     
-    var extensions : [TLSHelloExtension]?
+    var extensions : [TLSHelloExtension] = []
     
     init(clientVersion : TLSProtocolVersion, random : Random, sessionID : SessionID?, cipherSuites : [CipherSuite], compressionMethods : [CompressionMethod])
     {
@@ -58,7 +60,7 @@ class TLSClientHello : TLSHandshakeMessage
         self.cipherSuites = cipherSuites
     }
     
-    required init?(inputStream : InputStreamType)
+    required init?(inputStream : InputStreamType, context: TLSContext)
     {
         guard
             let (type, bodyLength) = TLSHandshakeMessage.readHeader(inputStream) where type == TLSHandshakeType.ClientHello,
@@ -147,8 +149,19 @@ class TLSClientHello : TLSHandshakeMessage
                         {
                         case .ServerName:
                             if let serverName = TLSServerNameExtension(inputStream: BinaryInputStream(extensionData)) {
-                                self.extensions!.append(serverName)
+                                self.extensions.append(serverName)
                             }
+                            
+                        case .EllipticCurves:
+                            if let ellipticCurves = TLSEllipticCurvesExtension(inputStream: BinaryInputStream(extensionData)) {
+                                self.extensions.append(ellipticCurves)
+                            }
+
+                        case .ECPointFormats:
+                            if let pointFormats = TLSEllipticCurvePointFormatsExtension(inputStream: BinaryInputStream(extensionData)) {
+                                self.extensions.append(pointFormats)
+                            }
+
                         }
                     }
                     else {
@@ -196,10 +209,10 @@ class TLSClientHello : TLSHandshakeMessage
         buffer.write(UInt8(compressionMethods.count))
         buffer.write(compressionMethods.map { $0.rawValue})
         
-        if self.extensions != nil {
+        if self.extensions.count != 0 {
             var extensionsData = DataBuffer()
             
-            for helloExtension in self.extensions! {
+            for helloExtension in self.extensions {
                 helloExtension.writeTo(&extensionsData)
             }
 

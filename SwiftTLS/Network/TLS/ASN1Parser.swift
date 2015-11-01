@@ -231,7 +231,7 @@ public class ASN1Parser
         return nil
     }
     
-    func _data(range : Range<Int>) -> [UInt8]? {
+    func subData(range : Range<Int>) -> [UInt8]? {
         let length = self.data.count
         if  range.startIndex >= 0 &&
             range.startIndex <= length &&
@@ -246,7 +246,7 @@ public class ASN1Parser
     
     public func parseObject() -> ASN1Object?
     {
-        if let t = self._data(cursor..<cursor+1) {
+        if let t = self.subData(cursor..<cursor+1) {
             var type = t[0]
             cursor += 1
             
@@ -255,7 +255,7 @@ public class ASN1Parser
             
             type = type & ASN1_LOW_TAG_TYPE_MASK
             
-            if let l = self._data(cursor..<cursor+1) {
+            if let l = self.subData(cursor..<cursor+1) {
                 var contentLength = Int(l[0])
                 cursor += 1
         
@@ -268,7 +268,7 @@ public class ASN1Parser
                     }
                     
                     contentLength = 0
-                    if let lengthBytes = self._data(cursor..<cursor + numLengthBytes) {
+                    if let lengthBytes = self.subData(cursor..<cursor + numLengthBytes) {
                         for b in lengthBytes
                         {
                             contentLength = contentLength << 8 + Int(b)
@@ -290,22 +290,22 @@ public class ASN1Parser
                     switch asn1Type
                     {
                     case .BOOLEAN:
-                        if let data = self._data(cursor..<cursor + 1) {
+                        if let data = self.subData(cursor..<cursor + 1) {
                             object = ASN1Boolean(value: data[0] == UInt8(0xff))
                             self.cursor += contentLength
                         }
 
                     case .INTEGER:
-                        if let data = self._data(cursor..<cursor + contentLength) {
+                        if let data = self.subData(cursor..<cursor + contentLength) {
                             object = ASN1Integer(data: data)
                             self.cursor += contentLength
                         }
 
                     case .BITSTRING:
-                        if let u = self._data(cursor..<cursor + 1) {
+                        if let u = self.subData(cursor..<cursor + 1) {
                             let unusedBits = Int(u[0])
                             
-                            if let data = self._data(cursor+1..<cursor + contentLength) {
+                            if let data = self.subData(cursor+1..<cursor + contentLength) {
                                 object = ASN1BitString(unusedBits:unusedBits, data: data)
                             }
                         }
@@ -313,7 +313,7 @@ public class ASN1Parser
                         self.cursor += contentLength
 
                     case .OCTET_STRING:
-                        if let data = self._data(cursor..<cursor + contentLength) {
+                        if let data = self.subData(cursor..<cursor + contentLength) {
                             object = ASN1OctetString(data: data)
                             self.cursor += contentLength
                         }
@@ -323,7 +323,7 @@ public class ASN1Parser
                         self.cursor += contentLength
                         
                     case .OBJECT_IDENTIFIER:
-                        if let data = self._data(cursor..<cursor + contentLength) {
+                        if let data = self.subData(cursor..<cursor + contentLength) {
                             var identifier = [Int]()
                             let v1 = Int(data[0]) % 40
                             let v0 = (Int(data[0]) - v1) / 40
@@ -383,7 +383,7 @@ public class ASN1Parser
                         break
                         
                     case .PRINTABLESTRING:
-                        if let data = self._data(cursor..<cursor + contentLength) {
+                        if let data = self.subData(cursor..<cursor + contentLength) {
                             if let s = NSString(bytes: data, length: data.count, encoding: NSUTF8StringEncoding) {
                                 object = ASN1PrintableString(string: s as String)
                             }
@@ -393,7 +393,7 @@ public class ASN1Parser
                         break
                         
                     case .UTCTIME:
-                        if let data = self._data(cursor..<cursor + contentLength) {
+                        if let data = self.subData(cursor..<cursor + contentLength) {
                             if let s = NSString(bytes: data, length: data.count, encoding: NSUTF8StringEncoding) {
                                 object = ASN1UTCTime(string: s as String)
                             }
@@ -448,7 +448,7 @@ public func ASN1_print_recursive(object: ASN1Object, depth : Int = 0)
     case let object as ASN1OctetString:
         print("OCTET STRING (\(hex(object.value)))")
 
-    case let object as ASN1Null:
+    case _ as ASN1Null:
         print("NULL")
         
     case let object as ASN1ObjectIdentifier:

@@ -18,7 +18,7 @@ class TLSApplicationData : TLSMessage
         super.init(type: .ApplicationData)
     }
     
-    required init?(inputStream: InputStreamType)
+    required init?(inputStream: InputStreamType, context: TLSContext)
     {
         applicationData = []
         super.init(type: .ApplicationData)

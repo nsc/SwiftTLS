@@ -62,7 +62,6 @@ protocol InputStreamType
 
 protocol Streamable
 {
-    init?(inputStream : InputStreamType)
     func writeTo<Target : OutputStreamType>(inout target: Target)
 }
 

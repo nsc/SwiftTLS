@@ -15,7 +15,7 @@ class TLSChangeCipherSpec : TLSMessage
         super.init(type: .ChangeCipherSpec)
     }
     
-    required init?(inputStream: InputStreamType) {
+    required init?(inputStream: InputStreamType, context: TLSContext) {
         if let type : UInt8? = inputStream.read() {
             if type == 1 {
                 super.init(type: .ChangeCipherSpec)

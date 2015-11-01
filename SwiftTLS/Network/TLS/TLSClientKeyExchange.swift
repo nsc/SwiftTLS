@@ -77,7 +77,7 @@ class TLSClientKeyExchange : TLSHandshakeMessage
         super.init(type: .Handshake(.ClientKeyExchange))
     }
 
-    init?(inputStream : InputStreamType, context: TLSContext?)
+    required init?(inputStream : InputStreamType, context: TLSContext)
     {
         guard let (type, _) = TLSHandshakeMessage.readHeader(inputStream) else {
             super.init(type: .Handshake(.ClientKeyExchange))
@@ -90,7 +90,7 @@ class TLSClientKeyExchange : TLSHandshakeMessage
             if let length : UInt16 = inputStream.read() {
                 if let data : [UInt8] = inputStream.read(count: Int(length)) {
                     
-                    if context?.dhKeyExchange != nil {
+                    if context.dhKeyExchange != nil {
                         self.diffieHellmanPublicValue = data
                     }
                     else {
@@ -108,11 +108,6 @@ class TLSClientKeyExchange : TLSHandshakeMessage
         super.init(type: .Handshake(.ClientKeyExchange))
         
         return nil        
-    }
-
-    required convenience init?(inputStream : InputStreamType)
-    {
-        self.init(inputStream: inputStream, context: nil)
     }
 
     override func writeTo<Target : OutputStreamType>(inout target: Target)

@@ -55,7 +55,7 @@ class TLSAlertMessage : TLSMessage
         super.init(type: .Alert(alertLevel, alert))
     }
 
-    required init?(inputStream: InputStreamType)
+    required init?(inputStream: InputStreamType, context: TLSContext)
     {
         if  let level : UInt8 = inputStream.read(),
             alertLevel = TLSAlertLevel(rawValue: level),
@@ -79,8 +79,8 @@ class TLSAlertMessage : TLSMessage
         target.write(data)
     }
 
-    class func alertFromData(data : [UInt8]) -> TLSAlertMessage?
+    class func alertFromData(data : [UInt8], context: TLSContext) -> TLSAlertMessage?
     {
-        return TLSAlertMessage(inputStream: BinaryInputStream(data))
+        return TLSAlertMessage(inputStream: BinaryInputStream(data), context: context)
     }
 }

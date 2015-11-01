@@ -28,14 +28,14 @@ class ASN1Tests: XCTestCase {
                 XCTAssert(sequence.objects.count == 2)
                 
                 if let prime = sequence.objects[0] as? ASN1Integer {
-                    XCTAssert(true)
+                    XCTAssert(prime.value.count != 0)
                 }
                 else {
                     XCTFail()
                 }
                 
                 if let generator = sequence.objects[1] as? ASN1Integer {
-                    XCTAssert(true)
+                    XCTAssert(generator.value.count != 0)
                 }
                 else {
                     XCTFail()
