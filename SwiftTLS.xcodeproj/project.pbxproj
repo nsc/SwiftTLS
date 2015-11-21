@@ -82,7 +82,7 @@
 		032D0F3D1B9F5BD3009C13F0 /* dhparams.pem in Resources */ = {isa = PBXBuildFile; fileRef = 03BF8C8F1B11CF9200332087 /* dhparams.pem */; };
 		032D0F3E1B9F5BD3009C13F0 /* certificate.cer in Resources */ = {isa = PBXBuildFile; fileRef = 03DDB6491AC60DAD000B5726 /* certificate.cer */; };
 		032D0F3F1B9F5BD3009C13F0 /* mycert.pem in Resources */ = {isa = PBXBuildFile; fileRef = 031868E51ADD7D9800CB51E1 /* mycert.pem */; };
-		0350D6FA1C0093560093C785 /* BigIntNew.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0350D6F91C0093560093C785 /* BigIntNew.swift */; };
+		0350D6FA1C0093560093C785 /* BigInt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0350D6F91C0093560093C785 /* BigInt.swift */; };
 		036794801BFD0BF9006C5155 /* math.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0367947F1BFD0BF9006C5155 /* math.swift */; };
 		036A7C141B07C26800AE46F8 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 036A7C131B07C26800AE46F8 /* Security.framework */; };
 		036D9FFD1BA45EA4008B2AF1 /* CBigInt.h in Headers */ = {isa = PBXBuildFile; fileRef = 036D9FFB1BA45EA4008B2AF1 /* CBigInt.h */; };
@@ -342,7 +342,7 @@
 		033B643B1B2348190019F3FA /* stack.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = stack.c; sourceTree = "<group>"; };
 		033B64CD1B234A460019F3FA /* openssl_utils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = openssl_utils.c; sourceTree = "<group>"; };
 		03471E761AD59D6D004E0F5E /* TLSFinished.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSFinished.swift; sourceTree = "<group>"; };
-		0350D6F91C0093560093C785 /* BigIntNew.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BigIntNew.swift; sourceTree = "<group>"; };
+		0350D6F91C0093560093C785 /* BigInt.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BigInt.swift; sourceTree = "<group>"; };
 		03657D061B07BDEF00293CE3 /* swifttls-test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "swifttls-test"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0367947F1BFD0BF9006C5155 /* math.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = math.swift; sourceTree = "<group>"; };
 		036A7C131B07C26800AE46F8 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
@@ -485,7 +485,7 @@
 			children = (
 				03BF8C8A1B11C2E800332087 /* ASN1Parser.swift */,
 				033AC3911AC474430004EEC1 /* BigIntImpl.swift */,
-				0350D6F91C0093560093C785 /* BigIntNew.swift */,
+				0350D6F91C0093560093C785 /* BigInt.swift */,
 				0367947F1BFD0BF9006C5155 /* math.swift */,
 				0394D2901AD65F40005DC3C4 /* TLSUtilities.swift */,
 				0372CA8F1B94D69E00B567D5 /* TLSCipherSuites.swift */,
@@ -972,7 +972,7 @@
 				03FA94C21B9E1A1B00F08FB8 /* TLSRecord.swift in Sources */,
 				03FA94C41B9E1A1B00F08FB8 /* Identity.swift in Sources */,
 				03FA94C01B9E1A1B00F08FB8 /* TLSApplicationData.swift in Sources */,
-				0350D6FA1C0093560093C785 /* BigIntNew.swift in Sources */,
+				0350D6FA1C0093560093C785 /* BigInt.swift in Sources */,
 				03FA94BB1B9E1A1B00F08FB8 /* TLSStateMachine.swift in Sources */,
 				03FA94B81B9E1A1B00F08FB8 /* TLSCipherSuites.swift in Sources */,
 				03FA94C11B9E1A1B00F08FB8 /* TLSAlert.swift in Sources */,
