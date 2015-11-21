@@ -424,7 +424,7 @@ public class TLSContext
                 if let diffieHellmanPublicValue = clientKeyExchange.diffieHellmanPublicValue {
                     let secret = BigInt.random(dhKeyExchange.primeModulus)
                     dhKeyExchange.peerPublicValue = BigInt(diffieHellmanPublicValue.reverse())
-                    self.preMasterSecret = BigIntImpl<UInt8>(dhKeyExchange.calculateSharedSecret(secret)!).parts.reverse()
+                    self.preMasterSecret = (dhKeyExchange.calculateSharedSecret(secret)!.toArray() as [UInt8]).reverse()
                 }
                 else {
                     fatalError("Client Key Exchange has no encrypted master secret")
@@ -529,11 +529,11 @@ public class TLSContext
             let secret = BigInt.random(diffieHellmanKeyExchange.primeModulus)
             let publicValue = diffieHellmanKeyExchange.calculatePublicValue(secret)
             let sharedSecret = diffieHellmanKeyExchange.calculateSharedSecret(secret)!
-            self.preMasterSecret = BigIntImpl<UInt8>(sharedSecret).parts.reverse()
+            self.preMasterSecret = (sharedSecret.toArray() as [UInt8]).reverse()
             self.setPendingSecurityParametersForCipherSuite(self.cipherSuite!)
             self.recordLayer.pendingSecurityParameters = self.securityParameters
 
-            let message = TLSClientKeyExchange(diffieHellmanPublicValue: BigIntImpl<UInt8>(publicValue).parts.reverse())
+            let message = TLSClientKeyExchange(diffieHellmanPublicValue: (publicValue.toArray() as [UInt8]).reverse())
             self.sendHandshakeMessage(message)
         }
         else {

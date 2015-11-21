@@ -209,7 +209,7 @@ class BigIntTests: XCTestCase {
         let hexString = "1234567890abcdefABCDEF"
         let a = BigInt(hexString: hexString)!
         
-        XCTAssert(hexString.lowercaseString == toString(a).lowercaseString)
+        XCTAssert(hexString.lowercaseString == String(a).lowercaseString)
     }
     
     func BIGNUM_multiply(a : String, _ b : String) -> String

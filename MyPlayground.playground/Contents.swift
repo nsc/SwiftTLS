@@ -76,3 +76,28 @@ outer: if true {
     print(a)
     print(b)
 }
+
+class Bla
+{
+    init() {}
+}
+
+extension String {
+    init(stringInterpolationSegment expr: Bla) {
+        self.init("horst")
+    }
+}
+
+let bla=Bla()
+
+let s = "\(bla)"
+
+
+
+
+
+
+
+
+
+

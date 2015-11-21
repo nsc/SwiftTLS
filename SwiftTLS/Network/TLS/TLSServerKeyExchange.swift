@@ -140,9 +140,9 @@ class TLSServerKeyExchange : TLSHandshakeMessage
     override func writeTo<Target : OutputStreamType>(inout target: Target)
     {
         if let diffieHellmanParameters = self.diffieHellmanParameters {
-            let dh_p  : [UInt8] = BigIntImpl<UInt8>(diffieHellmanParameters.p).parts.reverse()
-            let dh_g  : [UInt8] = BigIntImpl<UInt8>(diffieHellmanParameters.g).parts.reverse()
-            let dh_Ys : [UInt8] = BigIntImpl<UInt8>(diffieHellmanParameters.Ys).parts.reverse()
+            let dh_p  : [UInt8] = (diffieHellmanParameters.p.toArray() as[UInt8]).reverse()
+            let dh_g  : [UInt8] = (diffieHellmanParameters.g.toArray() as[UInt8]).reverse()
+            let dh_Ys : [UInt8] = (diffieHellmanParameters.Ys.toArray() as [UInt8]).reverse()
             
             self.writeHeader(type: .ServerKeyExchange, bodyLength: dh_p.count + dh_g.count + dh_Ys.count + 6, target: &target)
             target.write(UInt16(dh_p.count))
