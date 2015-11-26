@@ -62,7 +62,7 @@ public struct BigInt : IntegerArithmeticType, IntegerLiteralConvertible
     }
     
     /// parts are given in little endian order
-    init<T where T : UnsignedIntegerType>(_ parts : [T], negative: Bool = false)
+    public init<T where T : UnsignedIntegerType>(_ parts : [T], negative: Bool = false)
     {
         self.impl = BigIntImplType(parts, negative: negative)
     }
