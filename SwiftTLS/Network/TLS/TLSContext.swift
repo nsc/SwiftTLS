@@ -363,6 +363,8 @@ public class TLSContext
             self.handshakeMessages.append(message)
         }
         
+        self.stateMachine!.didReceiveHandshakeMessage(message)
+        
         switch (handshakeType)
         {
         case .ClientHello:
@@ -468,8 +470,6 @@ public class TLSContext
             }
         }
 
-        self.stateMachine!.didReceiveHandshakeMessage(message)
-    
         if handshakeType != .Finished {
             self.receiveNextTLSMessage(completionBlock)
         }
@@ -486,7 +486,7 @@ public class TLSContext
 //            cipherSuites: [.TLS_RSA_WITH_NULL_SHA],
             compressionMethods: [.NULL])
         
-        if self.cipherSuites!.contains({TLSCipherSuiteDescriptorForCipherSuite($0).keyExchangeAlgorithm == .ECDHE_RSA}) {
+        if self.cipherSuites!.contains({ if let descriptor = TLSCipherSuiteDescriptorForCipherSuite($0) { return descriptor.keyExchangeAlgorithm == .ECDHE_RSA} else { return false } }) {
             clientHello.extensions.append(TLSEllipticCurvesExtension(ellipticCurves: [.secp256r1, .secp384r1, .secp521r1]))
             clientHello.extensions.append(TLSEllipticCurvePointFormatsExtension(ellipticCurvePointFormats: [.uncompressed]))
         }
@@ -659,7 +659,10 @@ public class TLSContext
     
     private func setPendingSecurityParametersForCipherSuite(cipherSuite : CipherSuite)
     {
-        let cipherSuiteDescriptor = TLSCipherSuiteDescriptorForCipherSuite(cipherSuite)
+        guard let cipherSuiteDescriptor = TLSCipherSuiteDescriptorForCipherSuite(cipherSuite)
+        else {
+            fatalError("Unkown cipher suite \(cipherSuite)")
+        }
         let cipherAlgorithmDescriptor = cipherSuiteDescriptor.bulkCipherAlgorithm
 
         self.securityParameters.bulkCipherAlgorithm  = cipherAlgorithmDescriptor.algorithm

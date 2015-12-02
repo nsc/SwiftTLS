@@ -336,7 +336,10 @@ public enum CipherSuite : UInt16 {
     
     func needsServerKeyExchange() -> Bool {
         
-        let keyExchangeAlgorithm = TLSCipherSuiteDescriptorForCipherSuite(self).keyExchangeAlgorithm
+        guard let keyExchangeAlgorithm = TLSCipherSuiteDescriptorForCipherSuite(self)?.keyExchangeAlgorithm
+        else {
+                return false
+        }
         
         switch keyExchangeAlgorithm
         {

@@ -369,10 +369,11 @@ func TLSMessageNameForType(messageType : TLSMessageType) -> String
     return messageName
 }
 
-func TLSCipherSuiteDescriptorForCipherSuite(cipherSuite : CipherSuite) -> CipherSuiteDescriptor
+func TLSCipherSuiteDescriptorForCipherSuite(cipherSuite : CipherSuite) -> CipherSuiteDescriptor?
 {
     guard let cipherSuiteDescriptor = TLSCipherSuiteDescritions[cipherSuite] else {
-        fatalError("Unknown cipher suite")
+//        fatalError("Unknown cipher suite")
+        return nil
     }
     
     return cipherSuiteDescriptor

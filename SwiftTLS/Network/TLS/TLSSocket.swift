@@ -279,7 +279,7 @@ public class TLSSocket : SocketProtocol, TLSDataProvider
         }
     }
     
-    // add connect method that takes a domain name rather than an IP
+    // TODO: add connect method that takes a domain name rather than an IP
     // so we can check the server certificate against that name
     public func connect(address: IPAddress, completionBlock: ((SocketError?) -> ())?) {
         let tlsConnectCompletionBlock = completionBlock

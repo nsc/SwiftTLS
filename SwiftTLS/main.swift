@@ -63,8 +63,8 @@ func client()
     socket.context.cipherSuites = [.TLS_RSA_WITH_AES_256_CBC_SHA]
     
     //        var host = "195.50.155.66"
-//    let (host, port) = ("85.13.145.53", 443) // nschmidt.name
-    let (host, port) = ("104.85.251.151", 443) // autodesk license server or something
+    let (host, port) = ("85.13.145.53", 443) // nschmidt.name
+//    let (host, port) = ("104.85.251.151", 443) // autodesk license server or something
 //    let (host, port) = ("127.0.0.1", 4433)
     
     socket.connect(IPAddress.addressWithString(host, port: port)!, completionBlock: { (error : SocketError?) -> () in
@@ -88,6 +88,77 @@ func parseASN1()
     ASN1_print_recursive(object!)
 }
 
-client()
+func probeCipherSuitesForHost(host : String, port : Int)
+{
+    class StateMachine : TLSContextStateMachine
+    {
+        var socket : TLSSocket
+        init(socket : TLSSocket)
+        {
+            self.socket = socket
+        }
+        
+        func didSendMessage(message : TLSMessage) {}
+        func didSendHandshakeMessage(message : TLSHandshakeMessage) {}
+        func didSendChangeCipherSpec() {}
+        func didReceiveChangeCipherSpec() {}
+        func didReceiveHandshakeMessage(message : TLSHandshakeMessage)
+        {
+            if let hello = message as? TLSServerHello {
+                print("\(hello.cipherSuite)")
+                self.socket.close()
+            }
+        }
+    }
+    
+    let cipherSuites : [CipherSuite] = [
+        .TLS_RSA_WITH_RC4_128_MD5,
+        .TLS_RSA_WITH_RC4_128_SHA,
+        .TLS_RSA_WITH_3DES_EDE_CBC_SHA,
+        .TLS_DH_DSS_WITH_3DES_EDE_CBC_SHA,
+        .TLS_DH_RSA_WITH_3DES_EDE_CBC_SHA,
+        .TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA,
+        .TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA,
+        .TLS_DH_anon_WITH_RC4_128_MD5,
+        .TLS_DH_anon_WITH_3DES_EDE_CBC_SHA,
+        .TLS_RSA_WITH_AES_128_CBC_SHA,
+        .TLS_DH_DSS_WITH_AES_128_CBC_SHA,
+        .TLS_DH_RSA_WITH_AES_128_CBC_SHA,
+        .TLS_DHE_DSS_WITH_AES_128_CBC_SHA,
+        .TLS_DHE_RSA_WITH_AES_128_CBC_SHA,
+        .TLS_DH_anon_WITH_AES_128_CBC_SHA,
+        .TLS_RSA_WITH_AES_256_CBC_SHA,
+        .TLS_DH_DSS_WITH_AES_256_CBC_SHA,
+        .TLS_DH_RSA_WITH_AES_256_CBC_SHA,
+        .TLS_DHE_DSS_WITH_AES_256_CBC_SHA,
+        .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
+        .TLS_DH_anon_WITH_AES_256_CBC_SHA,
+        .TLS_RSA_WITH_NULL_SHA256,
+        .TLS_RSA_WITH_AES_128_CBC_SHA256,
+        .TLS_RSA_WITH_AES_256_CBC_SHA256,
+        .TLS_DH_DSS_WITH_AES_128_CBC_SHA256,
+        .TLS_DH_RSA_WITH_AES_128_CBC_SHA256,
+        .TLS_DHE_DSS_WITH_AES_128_CBC_SHA256,
+        .TLS_DHE_RSA_WITH_AES_128_CBC_SHA256,
+        .TLS_DH_DSS_WITH_AES_256_CBC_SHA256,
+        .TLS_DH_RSA_WITH_AES_256_CBC_SHA256,
+        .TLS_DHE_DSS_WITH_AES_256_CBC_SHA256,
+        .TLS_DHE_RSA_WITH_AES_256_CBC_SHA256,
+        .TLS_DH_anon_WITH_AES_128_CBC_SHA256,
+        .TLS_DH_anon_WITH_AES_256_CBC_SHA256,
+    ]
+    
+    for cipherSuite in cipherSuites {
+        let socket = TLSSocket(protocolVersion: .TLS_v1_2)
+        let stateMachine = StateMachine(socket: socket)
+        socket.context.stateMachine = stateMachine
+
+        socket.context.cipherSuites = [cipherSuite]
+        socket.connect(IPAddress.addressWithString(host, port: port)!, completionBlock: nil)
+    }
+}
+
+//client()
+probeCipherSuitesForHost("85.13.145.53", port: 443)
 
 dispatch_main()
