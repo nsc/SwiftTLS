@@ -35,7 +35,7 @@ public class IPAddress
         ipv6address.sin6_len = UInt8(sizeof(sockaddr_in6))
         ipv6address.sin6_family = sa_family_t(AF_INET6)
         ipv6address.sin6_port = 0
-        ipv6address.sin6_addr = in6addr_any
+        ipv6address.sin6_addr = in6addr_loopback
         localAddress.socketAddress = ipv6address
         
         return localAddress
@@ -125,6 +125,21 @@ public class IPv4Address : IPAddress
             }
         }
     }
+    
+    public override class func localAddress() -> IPAddress {
+        let localAddress = IPv4Address()
+        
+        var address = sockaddr_in()
+        memset(&address, 0, sizeof(sockaddr_in))
+        address.sin_len = UInt8(sizeof(sockaddr_in))
+        address.sin_family = sa_family_t(AF_INET)
+        address.sin_port = 0
+        address.sin_addr.s_addr = 0
+        localAddress.socketAddress = address
+        
+        return localAddress
+    }
+
 }
 
 public class IPv6Address : IPAddress

@@ -60,7 +60,7 @@ class TLSStateMachine : TLSContextStateMachine
         print((self.context!.isClient ? "Client" : "Server" ) + ": did send message \(TLSMessageNameForType(message.type))")
     }
     
-    func didSendHandshakeMessage(message : TLSHandshakeMessage)
+    func didSendHandshakeMessage(message : TLSHandshakeMessage) throws
     {
         self.didSendMessage(message)
         
@@ -71,13 +71,13 @@ class TLSStateMachine : TLSContextStateMachine
             
         case .ServerHello:
             self.state = .ServerHelloSent
-            self.context!.sendCertificate()
+            try self.context!.sendCertificate()
             
         case .Certificate:
             self.state = .CertificateSent
             
             if !self.context!.isClient {
-                self.context!.sendServerHelloDone()
+                try self.context!.sendServerHelloDone()
             }
             
         case .ServerHelloDone:
@@ -85,7 +85,7 @@ class TLSStateMachine : TLSContextStateMachine
 
         case .ClientKeyExchange:
             self.state = .ClientKeyExchangeSent
-            self.context!.sendChangeCipherSpec()
+            try self.context!.sendChangeCipherSpec()
 
         case .Finished:
             self.state = .FinishedSent
@@ -95,18 +95,20 @@ class TLSStateMachine : TLSContextStateMachine
         }
     }
     
-    func didSendChangeCipherSpec() {
+    func didSendChangeCipherSpec() throws
+    {
         print("did send change cipher spec")
         self.state = .ChangeCipherSpecSent
-        self.context!.sendFinished()
+        try self.context!.sendFinished()
     }
     
-    func didReceiveChangeCipherSpec() {
+    func didReceiveChangeCipherSpec()
+    {
         print("did receive change cipher spec")
         self.state = .ChangeCipherSpecReceived
     }
 
-    func didReceiveHandshakeMessage(message : TLSHandshakeMessage)
+    func didReceiveHandshakeMessage(message : TLSHandshakeMessage) throws
     {
         print((self.context!.isClient ? "Client" : "Server" ) + ": did receive handshake message \(TLSMessageNameForType(message.type))")
 
@@ -116,7 +118,7 @@ class TLSStateMachine : TLSContextStateMachine
         {
         case .ClientHello:
             self.state = .ClientHelloReceived
-            self.context!.sendServerHello()
+            try self.context!.sendServerHello()
             
         case .ServerHello:
             self.state = .ServerHelloReceived
@@ -129,7 +131,7 @@ class TLSStateMachine : TLSContextStateMachine
             
         case .ServerHelloDone:
             self.state = .ServerHelloDoneReceived
-            self.context!.sendClientKeyExchange()
+            try self.context!.sendClientKeyExchange()
             
         case .ClientKeyExchange:
             self.state = .ClientKeyExchangeReceived
@@ -138,7 +140,7 @@ class TLSStateMachine : TLSContextStateMachine
             self.state = .FinishedReceived
             
             if !self.context!.isClient {
-                self.context!.sendChangeCipherSpec()
+                try self.context!.sendChangeCipherSpec()
             }
             
         default:

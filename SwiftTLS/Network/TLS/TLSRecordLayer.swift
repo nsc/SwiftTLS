@@ -134,9 +134,8 @@ public class TLSRecordLayer
     }
     
     
-    func sendData(contentType contentType: ContentType, data: [UInt8], completionBlock : ((TLSDataProviderError?) -> ())? = nil)
+    func sendData(contentType contentType: ContentType, data: [UInt8]) throws
     {
-        
         if let encryptionParameters = self.currentWriteEncryptionParameters {
             let secret = encryptionParameters.MACKey
             
@@ -166,104 +165,81 @@ public class TLSRecordLayer
                     cipherText = b
                 }
                 else {
-                    if let block = completionBlock {
-                        block(nil)
-                    }
-                    return
+                    throw TLSError.Error("Could not encrypt")
                 }
                 
                 encryptionParameters.sequenceNumber += 1
 
                 let record = TLSRecord(contentType: contentType, protocolVersion: self.protocolVersion, body: cipherText)
-                self.dataProvider?.writeData(DataBuffer(record).buffer, completionBlock: completionBlock)
+                try self.dataProvider?.writeData(DataBuffer(record).buffer)
             }
         }
         else {
             // no security parameters have been negotiated yet
             let record = TLSRecord(contentType: contentType, protocolVersion: self.protocolVersion, body: data)
-            self.dataProvider?.writeData(DataBuffer(record).buffer, completionBlock: completionBlock)
+            try self.dataProvider?.writeData(DataBuffer(record).buffer)
         }
     }
     
-    func sendMessage(message : TLSMessage, completionBlock : ((TLSDataProviderError?) -> ())? = nil)
+    func sendMessage(message : TLSMessage) throws
     {
         let contentType = message.contentType
         let messageData = DataBuffer(message).buffer
         
-        self.sendData(contentType: contentType, data: messageData, completionBlock: completionBlock)
+        try self.sendData(contentType: contentType, data: messageData)
     }
 
     
     
-    func readMessage(completionBlock completionBlock: (message : TLSMessage?) -> ())
+    func readMessage() throws -> TLSMessage
     {
         let headerProbeLength = TLSRecord.headerProbeLength
         
-        self.dataProvider?.readData(count: headerProbeLength) { (data, error) -> () in
+        let header = try self.dataProvider!.readData(count: headerProbeLength)
             
-            guard
-                let header = data,
-                let (contentType, bodyLength) = TLSRecord.probeHeader(header) else {
+        guard
+            let (contentType, bodyLength) = TLSRecord.probeHeader(header) else {
+                
+                fatalError("Probe failed")
+        }
+        
+        let body = try self.dataProvider!.readData(count: bodyLength)
 
-                    fatalError("Probe failed")
+        var messageBody : [UInt8]
+        if let encryptionParameters = self.currentReadEncryptionParameters {
+            if let decryptedMessage = self.decryptAndVerifyMAC(contentType: contentType, data: body) {
+                messageBody = decryptedMessage
             }
-                    
-            var body : [UInt8] = []
-            
-            var recursiveBlock : ((data : [UInt8]?, error : TLSDataProviderError?) -> ())!
-            let readBlock : (data : [UInt8]?, error : TLSDataProviderError?) -> () = { (data, error) -> () in
-                
-                if let d = data {
-                    body.appendContentsOf(d)
-                    
-                    if body.count < bodyLength {
-                        let rest = bodyLength - body.count
-                        self.dataProvider?.readData(count:rest , completionBlock: recursiveBlock)
-                        return
-                    }
-                    else {
-                        var messageBody : [UInt8]
-                        if let encryptionParameters = self.currentReadEncryptionParameters {
-                            if let decryptedMessage = self.decryptAndVerifyMAC(contentType: contentType, data: body) {
-                                messageBody = decryptedMessage
-                            }
-                            else {
-                                fatalError("Could not decrypt")
-                            }
-                            encryptionParameters.sequenceNumber += 1
-                        }
-                        else {
-                            messageBody = body
-                        }
-                        
-                        switch (contentType)
-                        {
-                        case .ChangeCipherSpec:
-                            let changeCipherSpec = TLSChangeCipherSpec(inputStream: BinaryInputStream(messageBody), context: self.context!)
-                            completionBlock(message: changeCipherSpec)
-                            break
-                            
-                        case .Alert:
-                            let alert = TLSAlertMessage.alertFromData(messageBody, context: self.context!)
-                            completionBlock(message: alert)
-                            break
-                            
-                        case .Handshake:
-                            let handshakeMessage = TLSHandshakeMessage.handshakeMessageFromData(messageBody, context: self.context!)
-                            completionBlock(message: handshakeMessage)
-                            break
-                            
-                        case .ApplicationData:
-                            completionBlock(message: TLSApplicationData(applicationData: messageBody))
-                            break
-                        }
-                    }
-                }
-                
+            else {
+                fatalError("Could not decrypt")
             }
-            recursiveBlock = readBlock
+            encryptionParameters.sequenceNumber += 1
+        }
+        else {
+            messageBody = body
+        }
+        
+        let message : TLSMessage?
+        switch (contentType)
+        {
+        case .ChangeCipherSpec:
+            message = TLSChangeCipherSpec(inputStream: BinaryInputStream(messageBody), context: self.context!)
             
-            self.dataProvider?.readData(count: bodyLength, completionBlock: readBlock)
+        case .Alert:
+            message = TLSAlertMessage.alertFromData(messageBody, context: self.context!)
+            
+        case .Handshake:
+            message = TLSHandshakeMessage.handshakeMessageFromData(messageBody, context: self.context!)
+            
+        case .ApplicationData:
+            return TLSApplicationData(applicationData: messageBody)
+        }
+        
+        if let message = message {
+            return message
+        }
+        else {
+            throw TLSError.Error("Could not create TLSMessage")
         }
     }
 

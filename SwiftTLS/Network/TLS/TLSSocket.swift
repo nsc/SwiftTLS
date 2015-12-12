@@ -281,115 +281,76 @@ public class TLSSocket : SocketProtocol, TLSDataProvider
     
     // TODO: add connect method that takes a domain name rather than an IP
     // so we can check the server certificate against that name
-    public func connect(address: IPAddress, completionBlock: ((SocketError?) -> ())?) {
-        let tlsConnectCompletionBlock = completionBlock
-
-        self.socket = TCPSocket()
-        
-        self.socket?.connect(address, completionBlock: { (error : SocketError?) -> () in
-            if error == nil {
-                self.context.startConnection({ (error : TLSError?) -> () in
-                    // TODO: map context errors to socket provider errors
-                    tlsConnectCompletionBlock?(nil)
-                })
-            }
-        })
-    }
-    
-    public func listen(address : IPAddress, acceptBlock : (clientSocket : SocketProtocol?, error : SocketError?) -> ())
+    public func connect(address: IPAddress) throws
     {
         self.socket = TCPSocket()
         
-        let tlsAcceptBlock = acceptBlock
+        try self.socket?.connect(address)
+        try self.context.startConnection()
+    }
+    
+    public func acceptConnection(address: IPAddress) throws -> SocketProtocol
+    {
+        self.socket = TCPSocket()
         
-        self.socket?.listen(address, acceptBlock: { (clientSocket, error) -> () in
-            if let error = error {
-                tlsAcceptBlock(clientSocket: nil, error: error)
-                return
-            }
-            
-            let clientTLSSocket = TLSSocket(protocolVersion: self.context.protocolVersion, isClient: false)
-            clientTLSSocket.socket = clientSocket as? TCPSocket
-            clientTLSSocket.context = self.context.copy()
-            clientTLSSocket.context.recordLayer.dataProvider = clientTLSSocket
-            
-            clientTLSSocket.context.acceptConnection { (error : TLSError?) -> () in
-                if error == nil {
-                    tlsAcceptBlock(clientSocket: clientTLSSocket, error: nil)
-                }
-                else {
-                    fatalError("Error: \(error)")
-                }
-            }
-        })
+        let clientSocket = try self.socket?.acceptConnection(address) as! TCPSocket
+
+        let clientTLSSocket = TLSSocket(protocolVersion: self.context.protocolVersion, isClient: false)
+        clientTLSSocket.socket = clientSocket
+        clientTLSSocket.context = self.context.copy(isClient: false)
+        clientTLSSocket.context.recordLayer.dataProvider = clientTLSSocket
+        
+        try clientTLSSocket.context.acceptConnection()
+        
+        return clientTLSSocket
     }
     
     public func close()
     {
-        self.context.sendAlert(.CloseNotify, alertLevel: .Warning) { (error : TLSDataProviderError?) -> () in
-            // When the send is done, close the underlying socket
-            // We might want to have an option to wait for the peer to send *its* closeNotify if it wants to
-            self.socket?.close()
+        do {
+            try self.context.sendAlert(.CloseNotify, alertLevel: .Warning)
         }
+        catch
+        {
+        }
+        
+        // When the send is done, close the underlying socket
+        // We might want to have an option to wait for the peer to send *its* closeNotify if it wants to
+        self.socket?.close()
     }
     
-    public func read(count count: Int, completionBlock: ((data: [UInt8]?, error: SocketError?) -> ()))
+    public func read(count count: Int) throws -> [UInt8]
     {
-        self.context.readTLSMessage { (message) -> () in
-            if let message = message
-            {
-                switch message.type
-                {
-                case .ApplicationData:
-                    let applicationData = (message as! TLSApplicationData).applicationData
+        let message = try self.context.readTLSMessage()
+        switch message.type
+        {
+        case .ApplicationData:
+            let applicationData = (message as! TLSApplicationData).applicationData
             
-                    if applicationData.count == 0 {
-                        self.read(count: count, completionBlock: completionBlock)
-                    }
-                    else {
-                        completionBlock(data: applicationData, error: nil)
-                    }
-                    
-                default:
-                    print("Error: unhandled message \(message)")
-                    break
-                }
+            if applicationData.count == 0 {
+                return try self.read(count: count)
             }
             else {
-                print("No TLS message read.")
-            }
-        }
-    }
-    
-    func readData(count count: Int, completionBlock: ((data: [UInt8]?, error: TLSDataProviderError?) -> ()))
-    {
-        self.socket?.read(count: count) { (data, error) -> () in
-            completionBlock(data: data, error: TLSDataProviderError(socketError: error))
-        }
-    }
-    
-    func writeData(data: [UInt8], completionBlock: ((TLSDataProviderError?) -> ())? = nil)
-    {
-        self.socket?.write(data) { (error: SocketError?) -> () in
-            completionBlock?(TLSDataProviderError(socketError: error))
-        }
-    }
-    
-    public func write(data: [UInt8], completionBlock: ((SocketError?) -> ())? = nil)
-    {
-        self.context.sendApplicationData(data) { (error : TLSDataProviderError?) -> () in
-            var socketError : SocketError? = nil
-            if let error = error {
-                switch error {
-                case .PosixError(errno):
-                    socketError = SocketError.PosixError(errno: errno)
-
-                default:
-                    break
-                }
+                return applicationData
             }
             
-            completionBlock?(socketError)
+        default:
+            throw TLSError.Error("Error: unhandled message \(message)")
         }
+    }
+
+    func readData(count count: Int) throws -> [UInt8]
+    {
+        return try self.socket!.read(count: count)
+    }
+    
+    func writeData(data: [UInt8]) throws
+    {
+        try self.socket?.write(data)
+    }
+    
+    public func write(data: [UInt8]) throws
+    {
+        try self.context.sendApplicationData(data)
     }
 }

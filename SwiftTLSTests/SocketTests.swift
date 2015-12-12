@@ -29,26 +29,36 @@ class SocketTests: XCTestCase {
         address.port = UInt16(12345)
         
         let expectation = self.expectationWithDescription("accept connection successfully")
-        server.listen(address, acceptBlock: { (clientSocket, error) -> () in
-            if error != nil {
-                print("\(error)")
-                return
-            }
-            
-            if clientSocket != nil {
-                expectation.fulfill()
-            }
-        })
-        
-        let client = TCPSocket()
-        client.connect(address, completionBlock: { (error: SocketError?) -> () in
-            print("\(error)")
-        })
-        
-        self.waitForExpectationsWithTimeout(50.0, handler: { (error : NSError?) -> Void in
-        })
 
-        server.close()
-        client.close()
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), {
+            do {
+                try server.acceptConnection(address)
+                
+                expectation.fulfill()
+                server.close()
+
+            } catch {
+            }
+        })
+        
+        sleep(2)
+        
+        do {
+            let client = TCPSocket()
+            do {
+                try client.connect(address)
+                
+                client.close()
+                
+                self.waitForExpectationsWithTimeout(50.0, handler: { (error : NSError?) -> Void in
+                })
+            }
+            catch let error as SocketError {
+                print("\(error)")
+                XCTFail()
+            }
+            catch _ {}
+        }
+
     }
 }

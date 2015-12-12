@@ -9,8 +9,10 @@
 import Foundation
 import SwiftHelper
 
-public enum SocketError : CustomStringConvertible {
+public enum SocketError : CustomStringConvertible, ErrorType {
     case PosixError(errno : Int32)
+    
+    case Closed
     
     public var description : String {
         get {
@@ -18,6 +20,9 @@ public enum SocketError : CustomStringConvertible {
             {
             case let .PosixError(errno):
                 return String.fromCString(strerror(errno))!
+                
+            case .Closed:
+                return "Socket Closed"
             }
         }
     }
@@ -25,11 +30,19 @@ public enum SocketError : CustomStringConvertible {
 
 public protocol SocketProtocol
 {
-    func connect(address : IPAddress, completionBlock : ((SocketError?) -> ())?)
-    func listen(address : IPAddress, acceptBlock : (clientSocket : SocketProtocol?, error : SocketError?) -> ())
-    func read(count count : Int, completionBlock : ((data : [UInt8]?, error : SocketError?) -> ()))
-    func write(data : [UInt8], completionBlock : ((SocketError?) -> ())?)
+    func connect(address : IPAddress) throws
+    func acceptConnection(address : IPAddress) throws -> SocketProtocol
+    func read(count count : Int) throws -> [UInt8]
+    func write(data : [UInt8]) throws
     func close()
+}
+
+public extension SocketProtocol
+{
+    func write(string : String) throws {
+        let data = Array(string.nulTerminatedUTF8)
+        try self.write(data)
+    }
 }
 
 class Socket : SocketProtocol
@@ -38,22 +51,11 @@ class Socket : SocketProtocol
         return dispatch_queue_create("com.savoysoftware.socketQueue", DISPATCH_QUEUE_SERIAL)
     }()
     
-    struct ReadRequest {
-        let count : Int
-        let completionBlock : (data : [UInt8]?, error : SocketError?) -> ()
-    }
-    
-    var _readRequests : [ReadRequest] = []
     var _readBuffer : [UInt8] = [UInt8](count: 64 * 1024, repeatedValue: 0)
     
-    var _socketConnectSource : dispatch_source_t?
     var _socketAcceptSource : dispatch_source_t?
-    var _socketReadSource : dispatch_source_t?
-    var _socketWriteSource : dispatch_source_t?
 
     var socketDescriptor : Int32?
-    
-    var isReadSourceRunning : Bool = false
     
     init()
     {
@@ -73,226 +75,142 @@ class Socket : SocketProtocol
         self.close()
     }
 
-    func connect(address : IPAddress, completionBlock : ((SocketError?) -> ())?)
+    func connect(address : IPAddress) throws
     {
-        self._connect(address, completionBlock: completionBlock)
+        try self._connect(address)
     }
     
-    func _connect(address : IPAddress, completionBlock : ((SocketError?) -> ())?)
+    func _connect(address : IPAddress) throws
     {
         if (socketDescriptor == nil) {
             socketDescriptor = createSocket(address.unsafeSockAddrPointer.memory.sa_family)
             if (socketDescriptor == nil) {
-                if let block = completionBlock
-                {
-                    block(SocketError.PosixError(errno: errno))
-                }
-                
-                return
+                throw SocketError.PosixError(errno: errno)
             }
         }
         
         let socket = socketDescriptor!
         
-        // make socket non-blocking
-        let flags = NSC_getFileFlags(socket)
-        NSC_setFileFlags(socket, flags | ~O_NONBLOCK)
-        
-        _socketConnectSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_WRITE, UInt(socket), 0, Socket.socketQueue)
-        if let socketConnectSource = _socketConnectSource {
-            
-            dispatch_source_set_registration_handler(socketConnectSource) {
-                let addr = address.unsafeSockAddrPointer
-                let status = Darwin.connect(socket, addr, socklen_t(addr.memory.sa_len))
-                
-                if status == 0
-                {
-                    if let block = completionBlock
-                    {
-                        block(nil)
-                    }
-                }
-                else if (status < 0 && errno != EINPROGRESS)
-                {
-                    if let block = completionBlock
-                    {
-                        block(SocketError.PosixError(errno: errno))
-                    }
-                    
-                    self.close()
-                    return
-                }
-                else if (status < 0 && errno == EINPROGRESS)
-                {
+        let addr = address.unsafeSockAddrPointer
+        let status = Darwin.connect(socket, addr, socklen_t(addr.memory.sa_len))
 
-                }
-            }
-            
-            dispatch_source_set_event_handler(socketConnectSource) {
-
-                dispatch_suspend(socketConnectSource)
-                
-                var error : Int32 = 0
-                var len = socklen_t(sizeof(Int32.Type))
-                if (getsockopt(socket, SOL_SOCKET, SO_ERROR, &error, &len) < 0)
-                {
-                    if let block = completionBlock
-                    {
-                        block(SocketError.PosixError(errno: errno))
-                    }
-                    return
-                }
-                
-                if (error != 0)
-                {
-                    if let block = completionBlock
-                    {
-                        block(SocketError.PosixError(errno: errno))
-                    }
-                    
-                    self.close()
-                    
-                    return
-                }
-                
-                if let block = completionBlock
-                {
-                    block(nil)
-                }
-            }
-            
-            dispatch_resume(socketConnectSource)
+        if status < 0
+        {
+            throw SocketError.PosixError(errno: errno)
         }
     }
     
-    func listen(address : IPAddress, acceptBlock : (clientSocket : SocketProtocol?, error : SocketError?) -> ())
+    func acceptConnection(address : IPAddress) throws -> SocketProtocol
     {
         self.socketDescriptor = createSocket(address.unsafeSockAddrPointer.memory.sa_family)
         
-        if let socket = self.socketDescriptor {
-            var result = Darwin.bind(socket, address.unsafeSockAddrPointer, socklen_t(address.unsafeSockAddrPointer.memory.sa_len))
-            if result < 0 {
-                acceptBlock(clientSocket: nil, error: SocketError.PosixError(errno: errno))
-                return
-            }
-
-            result = Darwin.listen(socket, 5)
-            if result < 0 {
-                acceptBlock(clientSocket: nil, error: SocketError.PosixError(errno: errno))
-                return
-            }
-
-            _socketAcceptSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_READ, UInt(socket), 0, Socket.socketQueue)
-            if let acceptSource = _socketAcceptSource {
-                dispatch_source_set_event_handler(acceptSource) {
-                    let clientSocket = Darwin.accept(socket, nil, nil)
-                    if clientSocket == Int32(-1) {
-                        acceptBlock(clientSocket: nil, error: SocketError.PosixError(errno: errno))
-                        return
-                    }
-                    
-                    let socket = self.dynamicType.init(socketDescriptor: clientSocket)
-                    acceptBlock(clientSocket: socket, error: nil)
-                }
-                
-                dispatch_resume(acceptSource)
-            }
+        guard let socket = self.socketDescriptor else {
+            throw SocketError.Closed
         }
+        
+        var result = Darwin.bind(socket, address.unsafeSockAddrPointer, socklen_t(address.unsafeSockAddrPointer.memory.sa_len))
+        if result < 0 {
+            throw SocketError.PosixError(errno: errno)
+        }
+        
+        result = Darwin.listen(socket, 5)
+        if result < 0 {
+            throw SocketError.PosixError(errno: errno)
+        }
+        
+        let clientSocket = Darwin.accept(socket, nil, nil)
+        if clientSocket == Int32(-1) {
+            throw SocketError.PosixError(errno: errno)
+        }
+        
+        return self.dynamicType.init(socketDescriptor: clientSocket)
     }
-    
-    func sendTo(address : IPAddress?, data : [UInt8], completionBlock : ((numberOfBytesWritten : Int, error : SocketError?) -> ())? = nil)
+
+    func sendTo(address : IPAddress?, data : [UInt8]) throws
     {
         if let socket = self.socketDescriptor {
-            dispatch_async(Socket.socketQueue, {
-                let numberOfBytesToWrite : Int = data.count
-                var numberOfBytesWritten : Int
+            let numberOfBytesToWrite : Int = data.count
+            var numberOfBytesWritten : Int = 0
+            
+            var currentSlice = data[0..<data.count]
+            while numberOfBytesWritten < numberOfBytesToWrite
+            {
+                var bytesWrittenThisTurn : Int = 0
                 if (address == nil) {
-                    numberOfBytesWritten = self._write(socket, data, numberOfBytesToWrite)
+                    bytesWrittenThisTurn = self._write(socket, [UInt8](currentSlice), currentSlice.count)
                 }
                 else {
                     let addr = address!.unsafeSockAddrPointer
-                    numberOfBytesWritten = data.withUnsafeBufferPointer {
+                    bytesWrittenThisTurn = currentSlice.withUnsafeBufferPointer {
                         (buffer : UnsafeBufferPointer<UInt8>) -> Int in
                         let bufferPointer = buffer.baseAddress
-                        return sendto(socket, bufferPointer, numberOfBytesToWrite, Int32(0), addr, socklen_t(addr.memory.sa_len))
+                        return sendto(socket, bufferPointer, currentSlice.count, Int32(0), addr, socklen_t(addr.memory.sa_len))
                     }
                 }
-                if (numberOfBytesWritten < 0)
+                
+                if (bytesWrittenThisTurn < 0)
                 {
-                    if (completionBlock != nil)
-                    {
-                        completionBlock!(numberOfBytesWritten: 0, error: SocketError.PosixError(errno: errno))
-                    }
+                    throw SocketError.PosixError(errno: errno)
                 }
-                else if (numberOfBytesWritten == 0)
+                else if (bytesWrittenThisTurn == 0)
                 {
-                    NSLog("Could not write data")
-                    if (completionBlock != nil)
-                    {
-                        completionBlock!(numberOfBytesWritten: 0, error: nil)
-                    }
+                    throw SocketError.Closed
                 }
                 else
                 {
-                    if (completionBlock != nil)
+                    numberOfBytesWritten += bytesWrittenThisTurn
+                    
+                    if numberOfBytesWritten < numberOfBytesToWrite
                     {
-                        completionBlock!(numberOfBytesWritten: numberOfBytesWritten, error: nil)
+                        currentSlice = data[numberOfBytesWritten..<numberOfBytesToWrite]
                     }
                 }
-            })
-        }
-    }
-
-    func write(data : [UInt8], completionBlock : ((SocketError?) -> ())? = nil) {
-        self._write(data, completionBlock: completionBlock)
-    }
-    
-    internal func _write(data : [UInt8], completionBlock : ((SocketError?) -> ())? = nil)
-    {
-        let numberOfBytesToWrite = data.count
-        self.sendTo(nil, data: data) {
-            (numberOfBytesWritten, error) -> () in
-            
-            if numberOfBytesWritten < numberOfBytesToWrite {
-                if let e = error {
-                    print("Error: \(e)")
-                }
-            }
-            
-            if let block = completionBlock {
-                if error != nil {
-                    block(nil)
-                }
-                else {
-                    block(nil)
-                }
             }
         }
     }
 
-    func write(string : String, completionBlock : ((SocketError?) -> ())? = nil) {
-        let data = Array(string.nulTerminatedUTF8)
-        self.write(data, completionBlock: completionBlock)
-    }
-    
-    func read(count count : Int, completionBlock : ((data : [UInt8]?, error : SocketError?) -> ()))
+    func write(data : [UInt8]) throws
     {
-        return self._read(count: count, completionBlock: completionBlock)
+        try self._write(data)
     }
     
-    internal func _read(count count : Int, completionBlock : ((data : [UInt8]?, error : SocketError?) -> ())) {
-        if _socketReadSource == nil {
-            self.setupSocketReadSource()
+    internal func _write(data : [UInt8]) throws
+    {
+        try self.sendTo(nil, data: data)
+    }
+
+    func read(count count : Int) throws -> [UInt8]
+    {
+        return try self._read(count: count)
+    }
+    
+    internal func _read(count count : Int) throws -> [UInt8]
+    {
+        guard let socket = self.socketDescriptor
+            else {
+                // FIXME: Introduce some sane error here
+                throw SocketError.Closed
+        }
+        var dataRead = [UInt8]()
+        
+        var bytesReadUntilNow = 0
+        while bytesReadUntilNow < count
+        {
+            let bytesToReadInThisRequest = min(count - bytesReadUntilNow, self._readBuffer.count)
+            let result = self._read(socket, &self._readBuffer, bytesToReadInThisRequest)
+            if result < 0 {
+                throw SocketError.PosixError(errno: errno)
+            }
+            else if result == 0 {
+                throw SocketError.Closed
+            }
+            else {
+                dataRead.appendContentsOf(self._readBuffer[0..<result])
+                bytesReadUntilNow += result
+            }
         }
         
-        if _socketReadSource != nil {
-            dispatch_async(Socket.socketQueue) {
-
-                self._readRequests.append(ReadRequest(count: count, completionBlock: completionBlock))
-                
-                self.resumeReadSource()
-            }
-        }
+        return dataRead
     }
     
     func close() {
@@ -303,83 +221,10 @@ class Socket : SocketProtocol
     {
         if let socket = socketDescriptor {
             _socketAcceptSource = nil
-            _socketConnectSource = nil
-            _socketReadSource = nil
-            _socketWriteSource = nil
             
             Darwin.close(socket)
             
             socketDescriptor = nil
-        }
-    }
-    
-    private func suspendReadSource() {
-        if self.isReadSourceRunning {
-            if let source = _socketReadSource {
-                dispatch_suspend(source)
-                
-                self.isReadSourceRunning = false
-            }
-        }
-    }
-    
-    private func resumeReadSource() {
-        if !self.isReadSourceRunning {
-            if let source = _socketReadSource {
-                dispatch_resume(source)
-                
-                self.isReadSourceRunning = true
-            }
-        }
-    }
-    
-    private func setupSocketReadSource() {
-        if let socket = socketDescriptor {
-            _socketReadSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_READ, UInt(socket), 0, Socket.socketQueue)
-            if let socketReadSource = _socketReadSource {
-                dispatch_source_set_registration_handler(socketReadSource) {
-                    if self._readRequests.count == 0 {
-                        self.suspendReadSource()
-                    }
-                }
-                
-                dispatch_source_set_event_handler(socketReadSource, {
-                    [unowned self] () -> Void in
-                    
-                    let availableBytes = Int(dispatch_source_get_data(socketReadSource))
-                    var bytesRead = 0
-
-                    while (self._readRequests.count > 0) {
-                        
-                        let readRequest = self._readRequests[0]
-                        self._readRequests.removeAtIndex(0)
-                        
-                        let result = self._read(socket, &self._readBuffer, readRequest.count)
-                        if result < 0 {
-                            readRequest.completionBlock(data: nil, error: SocketError.PosixError(errno: errno))
-                            return
-                        }
-                        else if result == 0 {
-                            readRequest.completionBlock(data: nil, error: nil)
-                            return
-                        }
-                        else {
-                            readRequest.completionBlock(data: [UInt8](self._readBuffer[0..<result]), error: nil)
-                            bytesRead += result
-                        }
-                        
-                        if bytesRead >= availableBytes {
-                            return
-                        }
-                    }
-                    
-                    if (self._readRequests.count == 0) {
-                        self.suspendReadSource()
-                    }
-                })
-                
-                self.resumeReadSource()
-            }
         }
     }
     

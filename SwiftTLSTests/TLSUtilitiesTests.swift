@@ -68,8 +68,8 @@ class TLSUtilitiesTests: XCTestCase {
     {
         class DataProvider : TLSDataProvider
         {
-            func writeData(data : [UInt8], completionBlock : ((TLSDataProviderError?) -> ())?) {}
-            func readData(count count : Int, completionBlock : ((data : [UInt8]?, error : TLSDataProviderError?) -> ())) {}
+            func writeData(data : [UInt8]) throws {}
+            func readData(count count : Int) throws -> [UInt8] { return [] }
         }
         
         let dataProvider = DataProvider()
