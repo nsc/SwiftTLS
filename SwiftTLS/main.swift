@@ -88,91 +88,70 @@ import SwiftHelper
 //    ASN1_print_recursive(object!)
 //}
 //
-//func probeCipherSuitesForHost(host : String, port : Int)
-//{
-//    class StateMachine : TLSContextStateMachine
-//    {
-//        var socket : TLSSocket
-//        init(socket : TLSSocket)
-//        {
-//            self.socket = socket
-//        }
-//        
-//        func didSendMessage(message : TLSMessage) {}
-//        func didSendHandshakeMessage(message : TLSHandshakeMessage) {}
-//        func didSendChangeCipherSpec() {}
-//        func didReceiveChangeCipherSpec() {}
-//        func didReceiveHandshakeMessage(message : TLSHandshakeMessage)
-//        {
-//            if let hello = message as? TLSServerHello {
-//                print("\(hello.cipherSuite)")
-//                self.socket.close()
-//            }
-//        }
-//    }
-//    
-//    let cipherSuites : [CipherSuite] = [
-//        .TLS_RSA_WITH_RC4_128_MD5,
-//        .TLS_RSA_WITH_RC4_128_SHA,
-//        .TLS_RSA_WITH_3DES_EDE_CBC_SHA,
-//        .TLS_DH_DSS_WITH_3DES_EDE_CBC_SHA,
-//        .TLS_DH_RSA_WITH_3DES_EDE_CBC_SHA,
-//        .TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA,
-//        .TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA,
-//        .TLS_DH_anon_WITH_RC4_128_MD5,
-//        .TLS_DH_anon_WITH_3DES_EDE_CBC_SHA,
-//        .TLS_RSA_WITH_AES_128_CBC_SHA,
-//        .TLS_DH_DSS_WITH_AES_128_CBC_SHA,
-//        .TLS_DH_RSA_WITH_AES_128_CBC_SHA,
-//        .TLS_DHE_DSS_WITH_AES_128_CBC_SHA,
-//        .TLS_DHE_RSA_WITH_AES_128_CBC_SHA,
-//        .TLS_DH_anon_WITH_AES_128_CBC_SHA,
-//        .TLS_RSA_WITH_AES_256_CBC_SHA,
-//        .TLS_DH_DSS_WITH_AES_256_CBC_SHA,
-//        .TLS_DH_RSA_WITH_AES_256_CBC_SHA,
-//        .TLS_DHE_DSS_WITH_AES_256_CBC_SHA,
-//        .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
-//        .TLS_DH_anon_WITH_AES_256_CBC_SHA,
-//        .TLS_RSA_WITH_NULL_SHA256,
-//        .TLS_RSA_WITH_AES_128_CBC_SHA256,
-//        .TLS_RSA_WITH_AES_256_CBC_SHA256,
-//        .TLS_DH_DSS_WITH_AES_128_CBC_SHA256,
-//        .TLS_DH_RSA_WITH_AES_128_CBC_SHA256,
-//        .TLS_DHE_DSS_WITH_AES_128_CBC_SHA256,
-//        .TLS_DHE_RSA_WITH_AES_128_CBC_SHA256,
-//        .TLS_DH_DSS_WITH_AES_256_CBC_SHA256,
-//        .TLS_DH_RSA_WITH_AES_256_CBC_SHA256,
-//        .TLS_DHE_DSS_WITH_AES_256_CBC_SHA256,
-//        .TLS_DHE_RSA_WITH_AES_256_CBC_SHA256,
-//        .TLS_DH_anon_WITH_AES_128_CBC_SHA256,
-//        .TLS_DH_anon_WITH_AES_256_CBC_SHA256,
-//    ]
-//    
-//    for cipherSuite in cipherSuites {
-//        let socket = TLSSocket(protocolVersion: .TLS_v1_2)
-//        let stateMachine = StateMachine(socket: socket)
-//        socket.context.stateMachine = stateMachine
-//
-//        socket.context.cipherSuites = [cipherSuite]
-//        socket.connect(IPAddress.addressWithString(host, port: port)!)
-//    }
-//}
+func probeCipherSuitesForHost(host : String, port : Int)
+{
+    class StateMachine : TLSContextStateMachine
+    {
+        var socket : TLSSocket
+        var cipherSuite : CipherSuite!
+        init(socket : TLSSocket)
+        {
+            self.socket = socket
+        }
+        
+        func shouldContinueHandshakeWithMessage(message: TLSHandshakeMessage) -> Bool
+        {
+            if let hello = message as? TLSServerHello {
+                print("\(hello.cipherSuite)")
+                self.socket.close()
+
+                return false
+            }
+            
+            return true
+        }
+        
+        func didReceiveAlert(alert: TLSAlertMessage) {
+//            print("\(cipherSuite) not supported")
+//            print("NO")
+        }
+    }
+    
+    for cipherSuite in CipherSuite.allValues {
+        let socket = TLSSocket(protocolVersion: .TLS_v1_2)
+        let stateMachine = StateMachine(socket: socket)
+        socket.context.stateMachine = stateMachine
+
+        socket.context.cipherSuites = [cipherSuite]
+        
+//        print("\(cipherSuite)\t: ", separator: "", terminator: "")
+        do {
+            stateMachine.cipherSuite = cipherSuite
+            try socket.connect(IPAddress.addressWithString(host, port: port)!)
+        } catch _ as SocketError {
+//            print("Error: \(error)")
+        }
+        catch {}
+    }
+}
 
 //client()
-//probeCipherSuitesForHost("85.13.145.53", port: 443)
+//probeCipherSuitesForHost("77.74.169.27", port: 443)
+probeCipherSuitesForHost("85.13.145.53", port: 443)
+//probeCipherSuitesForHost("62.153.105.15", port: 443)
 
 //dispatch_main()
 
-let address = IPv4Address.localAddress()
-address.port = UInt16(12345)
-//let server = TLSSocket(protocolVersion: .TLS_v1_2, isClient: false, identity: Identity(name: "Internet Widgits Pty Ltd")!)
-//try server.acceptConnection(address)
-
-do {
-    let client = TLSSocket(protocolVersion: .TLS_v1_2)
-    try client.connect(address)
-    try client.write("abc\n")
-    client.close()
-} catch let error as SocketError {
-    print("Error: \(error)")
-}
+//let address = IPv4Address.localAddress()
+//address.port = UInt16(12345)
+////let server = TLSSocket(protocolVersion: .TLS_v1_2, isClient: false, identity: Identity(name: "Internet Widgits Pty Ltd")!)
+////try server.acceptConnection(address)
+//
+//do {
+//    let client = TLSSocket(protocolVersion: .TLS_v1_2)
+//    try client.connect(address)
+//    try client.write("abc\n")
+//    client.close()
+//} catch let error as SocketError {
+//    print("Error: \(error)")
+//}

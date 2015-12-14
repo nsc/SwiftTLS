@@ -334,6 +334,23 @@ public enum CipherSuite : UInt16 {
     // mandatory cipher suite to be TLS compliant as of RFC 2246
     //    case TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA
     
+    static var allValues : [CipherSuite] {
+        var allValues = [CipherSuite]()
+        for i in 0..<0xff {
+            if let cipherSuite = CipherSuite(rawValue: UInt16(i)) {
+                allValues.append(cipherSuite)
+            }
+        }
+        
+        for i in 0xc000..<0xc100 {
+            if let cipherSuite = CipherSuite(rawValue: UInt16(i)) {
+                allValues.append(cipherSuite)
+            }
+        }
+
+        return allValues
+    }
+    
     func needsServerKeyExchange() -> Bool {
         
         guard let keyExchangeAlgorithm = TLSCipherSuiteDescriptorForCipherSuite(self)?.keyExchangeAlgorithm

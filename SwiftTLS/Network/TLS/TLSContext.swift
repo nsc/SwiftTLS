@@ -167,8 +167,23 @@ protocol TLSContextStateMachine
     func didSendChangeCipherSpec() throws
     func didReceiveChangeCipherSpec() throws
     func didReceiveHandshakeMessage(message : TLSHandshakeMessage) throws
+    func shouldContinueHandshakeWithMessage(message : TLSHandshakeMessage) -> Bool
+    func didReceiveAlert(alert : TLSAlertMessage)
 }
 
+extension TLSContextStateMachine
+{
+    func didSendMessage(message : TLSMessage) throws {}
+    func didSendHandshakeMessage(message : TLSHandshakeMessage) throws {}
+    func didSendChangeCipherSpec() throws {}
+    func didReceiveChangeCipherSpec() throws {}
+    func didReceiveHandshakeMessage(message : TLSHandshakeMessage) throws {}
+    func shouldContinueHandshakeWithMessage(message : TLSHandshakeMessage) -> Bool
+    {
+        return true
+    }
+    func didReceiveAlert(alert : TLSAlertMessage) {}
+}
 
 public class TLSContext
 {
@@ -302,7 +317,7 @@ public class TLSContext
     
     func _didReceiveMessage(message : TLSMessage) throws
     {
-        print((self.isClient ? "Client" : "Server" ) + ": did receive message \(TLSMessageNameForType(message.type))")
+//        print((self.isClient ? "Client" : "Server" ) + ": did receive message \(TLSMessageNameForType(message.type))")
 
         switch (message.type)
         {
@@ -315,9 +330,14 @@ public class TLSContext
             
         case .Handshake:
             let handshakeMessage = message as! TLSHandshakeMessage
-            try self._didReceiveHandshakeMessage(handshakeMessage)
+            if self.stateMachine.shouldContinueHandshakeWithMessage(handshakeMessage) {
+                try self._didReceiveHandshakeMessage(handshakeMessage)
+            }
 
         case .Alert:
+            let alert = message as! TLSAlertMessage
+            self.stateMachine.didReceiveAlert(alert)
+
             break
             
         case .ApplicationData:
