@@ -610,7 +610,7 @@ public class TLSContext
             var sha1data = P_hash(HMAC_SHA1, secret: S2, seed: label + seed, outputLength: outputLength)
             
             var output = [UInt8](count: outputLength, repeatedValue: 0)
-            for var i = 0; i < output.count; ++i
+            for i in 0 ..< output.count
             {
                 output[i] = md5data[i] ^ sha1data[i]
             }

@@ -92,8 +92,8 @@ class ASN1BitString : ASN1Object
         var v : UInt = 0
         let lengthOfMostSignificantValueInBytes = self.value.count % size
         
-        var i : Int
-        for i = 0; i < numValues;  ++i {
+        var i : Int = 0
+        for i in 0 ..< numValues {
             let b = UInt(self.value[i])
             v += b >> unusedBits
             
@@ -103,7 +103,6 @@ class ASN1BitString : ASN1Object
             }
             v = v << 8
             v += (b & lowerBitsMask) << (8 - unusedBits)
-            
         }
 
         if i % size != lengthOfMostSignificantValueInBytes {
@@ -384,7 +383,7 @@ public class ASN1Parser
                         
                     case .PRINTABLESTRING:
                         if let data = self.subData(cursor..<cursor + contentLength) {
-                            if let s = NSString(bytes: data, length: data.count, encoding: NSUTF8StringEncoding) {
+                            if let s = String.fromUTF8Bytes(data) {
                                 object = ASN1PrintableString(string: s as String)
                             }
                         }
@@ -394,7 +393,7 @@ public class ASN1Parser
                         
                     case .UTCTIME:
                         if let data = self.subData(cursor..<cursor + contentLength) {
-                            if let s = NSString(bytes: data, length: data.count, encoding: NSUTF8StringEncoding) {
+                            if let s = String.fromUTF8Bytes(data) {
                                 object = ASN1UTCTime(string: s as String)
                             }
                         }
@@ -425,7 +424,7 @@ public class ASN1Parser
 
 public func ASN1_print_recursive(object: ASN1Object, depth : Int = 0)
 {
-    for var i = 0; i < depth; ++i {
+    for _ in 0 ..< depth {
         print("    ", terminator: "")
     }
     
@@ -454,7 +453,7 @@ public func ASN1_print_recursive(object: ASN1Object, depth : Int = 0)
     case let object as ASN1ObjectIdentifier:
         
         print("OBJECT IDENTIFIER ", terminator: "")
-        for var i = 0; i < object.identifier.count; ++i {
+        for i in 0 ..< object.identifier.count {
             if i != object.identifier.count - 1 {
                 print("\(object.identifier[i]).", terminator: "")
             }

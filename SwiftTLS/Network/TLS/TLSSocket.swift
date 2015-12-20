@@ -137,7 +137,7 @@ extension InputStreamType
     {
         if let s : [UInt8] = self.read(count: count * 2) {
             var buffer = [UInt16](count: count, repeatedValue: 0)
-            for var i = 0; i < count; ++i {
+            for i in 0 ..< count {
                 buffer[i] = UInt16(s[2 * i]) << 8 + UInt16(s[2 * i + 1])
             }
             
@@ -152,7 +152,7 @@ extension InputStreamType
         let count = bytes / 2
         if let s : [UInt8] = self.read(count: bytes) {
             var buffer = [UInt16](count: count, repeatedValue: 0)
-            for var i = 0; i < count; ++i {
+            for i in 0 ..< count {
                 buffer[i] = UInt16(s[2 * i]) << 8 + UInt16(s[2 * i + 1])
             }
             

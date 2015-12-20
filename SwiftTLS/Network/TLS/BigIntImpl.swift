@@ -95,7 +95,7 @@ struct BigIntImpl<U where U : UnsignedIntegerType> {
             {
                 let shift : UIntMax = UIntMax(8 * sizeof(PrimitiveType))
                 var mask : UIntMax = (0xffffffffffffffff >> UIntMax(64 - shift))
-                for var i = 0; i < n; ++i
+                for i in 0 ..< n
                 {
                     let part : PrimitiveType = PrimitiveType((a.toUIntMax() & mask) >> (UIntMax(i) * shift))
                     number.append(part)
@@ -158,14 +158,15 @@ struct BigIntImpl<U where U : UnsignedIntegerType> {
         var s = self.sign ? "-" : ""
         var onlyZeroesYet = true
         let count = Int(parts.count)
-        for var i = count - 1; i >= 0; --i
+        
+        for i in (0..<count).reverse()
         {
             let part = self.parts[i].toUIntMax()
             var c : UInt8
             
             var shift = (sizeof(PrimitiveType) - 1) * 8
             var mask : UIntMax = UIntMax(0xff) << UIntMax(shift)
-            for var j = 0; j < sizeof(PrimitiveType); ++j
+            for _ in 0 ..< sizeof(PrimitiveType)
             {
                 c = UInt8((part & mask) >> UIntMax(shift))
                 if !onlyZeroesYet || c != 0 {
@@ -216,7 +217,7 @@ struct BigIntImpl<U where U : UnsignedIntegerType> {
         let mask = UIntMax(1 << (sizeof(PrimitiveType) * 8) - 1)
         let num = max.parts.count
         var n = BigIntImpl<U>(capacity: num)
-        for var i = 0; i < num; ++i
+        for _ in 0 ..< num
         {
             n.parts.append(PrimitiveType(UIntMax(arc4random()) & mask))
         }
@@ -261,7 +262,7 @@ func +<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>
     v.sign = a.sign
     
     var carry : BigIntImpl<U>.PrimitiveType = 0
-    for var i=0; i < count; ++i {
+    for i in 0 ..< count {
         var sum : BigIntImpl<U>.PrimitiveType = carry
         var overflow : Bool
         carry = 0
@@ -320,7 +321,7 @@ func -<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>
     var v = BigIntImpl<U>(capacity: count)
 
     var carry = U(0)
-    for var i=0; i < count; ++i {
+    for i in 0 ..< count {
         var difference : U = carry
         var overflow : Bool
         carry = 0
@@ -359,11 +360,11 @@ func *<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>
 
     var result = BigIntImpl<U>(count: resultCount)
     
-    for var i = 0; i < aCount; ++i {
+    for i in 0 ..< aCount {
        
         var overflow    : Bool
         
-        for var j = 0; j < bCount; ++j {
+        for j in 0 ..< bCount {
 
             var lo      : UInt64 = 0
             var hi      : UInt64 = 0
@@ -434,7 +435,7 @@ func /<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, v : Int) -> BigIntImpl
     let vv = UIntMax(v.toIntMax())
     
     var result = BigIntImpl<UIntN>(count: n)
-    for var i = n - 1; i >= 0; --i {
+    for i in (0 ..< n).reverse() {
         let t = r * b + u.parts[i].toUIntMax()
         
         let q = t / vv
@@ -478,7 +479,7 @@ func division<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, _ v : Int, inou
     let vv = UIntMax(v.toIntMax())
     
     var result = BigIntImpl<UIntN>(count: n)
-    for var i = n - 1; i >= 0; --i {
+    for i in (0 ..< n).reverse() {
         let t = r * b + u.parts[i].toUIntMax()
         
         let q = t / vv
@@ -578,7 +579,7 @@ func division<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, _ v : BigIntImp
         u.parts.append(0)
     }
 
-    for var j = m; j >= 0; --j
+    for j in (0 ..< m+1).reverse()
     {
         // D3. Calculate q
         let dividend = UIntN2(u.parts[j + n].toUIntMax() << UIntNShift + u.parts[j + n - 1].toUIntMax())
@@ -616,7 +617,7 @@ func division<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, _ v : BigIntImp
             }
             
             let count = temp.parts.count
-            for var i = 0; i < n; ++i {
+            for i in 0 ..< n {
                 u.parts[j + i] = i < count ? temp.parts[i] : 0
             }
         }
@@ -702,7 +703,7 @@ func < <U>(lhs : BigIntImpl<U>, rhs : BigIntImpl<U>) -> Bool
     }
 
     if lhs.parts.count > 0 {
-        for var i = lhs.parts.count - 1; i >= 0; --i
+        for i in (0 ..< lhs.parts.count).reverse()
         {
             if lhs.parts[i] == rhs.parts[i] {
                 continue
@@ -730,7 +731,7 @@ func > <U>(lhs : BigIntImpl<U>, rhs : BigIntImpl<U>) -> Bool
     }
     
     if lhs.parts.count > 0 {
-        for var i = lhs.parts.count - 1; i >= 0; --i
+        for i in (0 ..< lhs.parts.count).reverse()
         {
             if lhs.parts[i] == rhs.parts[i] {
                 continue
@@ -763,7 +764,7 @@ func pow<U : UnsignedIntegerType where U : KnowsLargerIntType>(base : BigIntImpl
     
     var result = BigIntImpl<U>(1)
     var r = base
-    for var i = 0; i < numBits; ++i
+    for i in 0 ..< numBits
     {
         if (exponent & (1 << i)) != 0 {
             result = result * r

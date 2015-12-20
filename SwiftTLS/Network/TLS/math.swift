@@ -21,7 +21,7 @@ public func modular_pow(base : BigInt, _ exponent : Int, _ mod : BigInt) -> BigI
     
     var result = BigInt(1)
     var r = base % mod
-    for var i = 0; i < numBits; ++i
+    for i in 0..<numBits
     {
         if (exponent & (1 << i)) != 0 {
             result = (result * r) % mod
@@ -39,7 +39,7 @@ public func modular_pow(base : BigInt, _ exponent : BigInt, _ mod : BigInt) -> B
     
     var result = BigInt(1)
     var r = base % mod
-    for var i = 0; i < numBits; ++i
+    for i in 0..<numBits
     {
         if (exponent.isBitSet(i)) {
             result = (result * r) % mod

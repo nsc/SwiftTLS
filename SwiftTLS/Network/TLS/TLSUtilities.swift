@@ -59,7 +59,7 @@ func hexString(c : UInt8) -> String
 func hex(data : [UInt8]) -> String
 {
     var s = ""
-    for var i = 0; i < data.count; ++i {
+    for i in 0 ..< data.count {
         let c = data[i]
         if (i % 16 == 0 && i != 0) {
             s += "\n"
@@ -377,4 +377,19 @@ func TLSCipherSuiteDescriptorForCipherSuite(cipherSuite : CipherSuite) -> Cipher
     }
     
     return cipherSuiteDescriptor
+}
+
+public extension String {
+    static func fromUTF8Bytes(bytes : [UInt8]) -> String? {
+        let buffer = UnsafeBufferPointer(start: bytes, count: bytes.count)
+        var string  = ""
+        let success = transcode(UTF8.self, UTF32.self, buffer.generate(),
+                               { string.append(UnicodeScalar($0)) }, stopOnError: true)
+        
+        if success {
+            return string
+        }
+        
+        return nil
+    }
 }

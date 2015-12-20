@@ -40,7 +40,7 @@ class TSLTests: XCTestCase {
             try socket.connect(IPAddress.addressWithString(host, port: port)!)
             try socket.write([UInt8]("GET / HTTP/1.1\r\nHost: nschmidt.name\r\n\r\n".utf8))
             let data = try socket.read(count: 100)
-            print("\(NSString(bytes: data, length: data.count, encoding: NSUTF8StringEncoding)!)")
+            print("\(try! String.fromUTF8Bytes(data))")
             socket.close()
         }
         catch let error as SocketError {

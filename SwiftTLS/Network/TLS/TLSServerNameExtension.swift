@@ -46,7 +46,7 @@ class TLSServerNameExtension : TLSHelloExtension
                     fatalError("Unknown host type \(rawNameType)")
                 }
                 
-                self.serverNames.append(NSString(bytes: serverNameBytes, length: serverNameBytes.count, encoding: NSUTF8StringEncoding) as! String)
+                self.serverNames.append(String.fromUTF8Bytes(serverNameBytes)!)
                 
                 bytesLeft -= 3 + serverNameBytes.count
             }
