@@ -383,10 +383,10 @@ public extension String {
     static func fromUTF8Bytes(bytes : [UInt8]) -> String? {
         let buffer = UnsafeBufferPointer(start: bytes, count: bytes.count)
         var string  = ""
-        let success = transcode(UTF8.self, UTF32.self, buffer.generate(),
-                               { string.append(UnicodeScalar($0)) }, stopOnError: true)
+        let hadError = transcode(UTF8.self, UTF32.self, buffer.generate(),
+            { string.append(UnicodeScalar($0)) }, stopOnError: false)
         
-        if success {
+        if !hadError {
             return string
         }
         

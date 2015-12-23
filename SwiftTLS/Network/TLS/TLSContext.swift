@@ -188,7 +188,11 @@ extension TLSContextStateMachine
 public class TLSContext
 {
     public var protocolVersion : TLSProtocolVersion
-    var negotiatedProtocolVersion : TLSProtocolVersion! = nil
+    var negotiatedProtocolVersion : TLSProtocolVersion! = nil {
+        didSet {
+            self.recordLayer.protocolVersion = negotiatedProtocolVersion
+        }
+    }
     public var cipherSuites : [CipherSuite]?
     
     var cipherSuite : CipherSuite?
@@ -225,7 +229,6 @@ public class TLSContext
     init(protocolVersion: TLSProtocolVersion, dataProvider : TLSDataProvider, isClient : Bool = true)
     {
         self.protocolVersion = protocolVersion
-        self.negotiatedProtocolVersion = protocolVersion
         self.isClient = isClient
         self.handshakeMessages = []
         self.securityParameters = TLSSecurityParameters()
@@ -359,6 +362,9 @@ public class TLSContext
         {
         case .ClientHello:
             let clientHello = (message as! TLSClientHello)
+            if clientHello.clientVersion < self.protocolVersion {
+                self.negotiatedProtocolVersion = clientHello.clientVersion
+            }
             self.securityParameters.clientRandom = DataBuffer(clientHello.random).buffer
             
             self.cipherSuite = self.selectCipherSuite(clientHello.cipherSuites)
@@ -443,8 +449,6 @@ public class TLSContext
                 if !self.isClient {
                     self.handshakeMessages.append(message)
                 }
-
-                return
             }
             else {
                 print("Error: could not verify Finished message.")
@@ -486,7 +490,7 @@ public class TLSContext
     {
         let serverHelloRandom = Random()
         let serverHello = TLSServerHello(
-            serverVersion: self.protocolVersion,
+            serverVersion: self.negotiatedProtocolVersion,
             random: serverHelloRandom,
             sessionID: nil,
             cipherSuite: self.cipherSuite!,

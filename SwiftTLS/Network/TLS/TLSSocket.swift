@@ -334,6 +334,10 @@ public class TLSSocket : SocketProtocol, TLSDataProvider
                 return applicationData
             }
             
+        case .Alert(let level, let alert):
+            print("Alert: \(level) \(alert)")
+            return []
+            
         default:
             throw TLSError.Error("Error: unhandled message \(message)")
         }
