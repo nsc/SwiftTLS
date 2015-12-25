@@ -552,7 +552,7 @@ class BigIntTests: XCTestCase {
 
         let result = modular_inverse(x, y, mod: a)
         
-        XCTAssert(result == BigInt(9))
+        XCTAssert(result == BigInt(2))
     }
 
     func test_isBitSet_someNumbers_givesCorrectResult()

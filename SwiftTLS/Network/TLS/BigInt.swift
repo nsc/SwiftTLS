@@ -19,6 +19,16 @@ public struct BigInt : IntegerArithmeticType, IntegerLiteralConvertible
         return impl.parts.count * sizeof(BigIntImplType.PrimitiveType.self) * 8
     }
     
+    var isZero : Bool {
+        get {
+            return impl.isZero
+        }
+    }
+
+    var sign : Bool {
+        get { return impl.sign }
+    }
+    
     func toArray<T : UnsignedIntegerType>() -> [T]
     {
         return BigIntImpl<T>(impl.parts).parts
@@ -28,6 +38,10 @@ public struct BigInt : IntegerArithmeticType, IntegerLiteralConvertible
         impl = BigIntImplType(a)
     }
     
+    init(_ a : UInt, negative: Bool = false) {
+        impl = BigIntImpl([a], negative: negative)
+    }
+
     public init(integerLiteral value: Int)
     {
         self.init(value)
@@ -66,7 +80,12 @@ public struct BigInt : IntegerArithmeticType, IntegerLiteralConvertible
     {
         self.impl = BigIntImplType(parts, negative: negative)
     }
-    
+
+    public init<T where T : UnsignedIntegerType>(bigEndianParts : [T], negative: Bool = false)
+    {
+        self.impl = BigIntImplType(bigEndianParts.reverse(), negative: negative)
+    }
+
     func toString() -> String
     {
         return impl.toString()
@@ -130,6 +149,13 @@ public struct BigInt : IntegerArithmeticType, IntegerLiteralConvertible
     public static func remainderWithOverflow(lhs: BigInt, _ rhs: BigInt) -> (BigInt, overflow: Bool)
     {
         return (lhs % rhs, overflow: false)
+    }
+}
+
+extension BigInt : CustomStringConvertible
+{
+    public var description : String {
+        return self.toString()
     }
 }
 

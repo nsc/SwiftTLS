@@ -78,12 +78,11 @@ let TLSCipherSuiteDescritions : [CipherSuite:CipherSuiteDescriptor] = [
         cipherType: .Stream,
         blockCipherMode: .CBC,
         hmacDescriptor: HMACDescriptor(algorithm: .HMAC_SHA256, size: Int(CC_SHA256_DIGEST_LENGTH))),
-    
-    
+        
     .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256: CipherSuiteDescriptor(
         cipherSuite: .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
         keyExchangeAlgorithm: .ECDHE_RSA,
-        bulkCipherAlgorithm: CipherAlgorithmDescriptor(algorithm: .AES, keySize: kCCKeySizeAES256, blockSize: kCCBlockSizeAES128),
+        bulkCipherAlgorithm: CipherAlgorithmDescriptor(algorithm: .AES, keySize: kCCKeySizeAES128, blockSize: kCCBlockSizeAES128),
         cipherType: .Stream,
         blockCipherMode: .CBC,
         hmacDescriptor: HMACDescriptor(algorithm: .HMAC_SHA256, size: Int(CC_SHA256_DIGEST_LENGTH))),

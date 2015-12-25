@@ -47,7 +47,8 @@ func client()
 {
     let socket = TLSSocket(protocolVersion: .TLS_v1_2)
 //    socket.context.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
-    socket.context.cipherSuites = [.TLS_RSA_WITH_AES_256_CBC_SHA]
+//    socket.context.cipherSuites = [.TLS_RSA_WITH_AES_256_CBC_SHA]
+    socket.context.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256]
     
     //        var host = "195.50.155.66"
     let (host, port) = ("85.13.145.53", 443) // nschmidt.name

@@ -72,7 +72,7 @@ struct ECDiffieHellmanParameters
 class TLSServerKeyExchange : TLSHandshakeMessage
 {
     var diffieHellmanParameters : DiffieHellmanParameters?
-    var ecDiffieHellmanParameters : ECDiffieHellmanParameters?
+    var ecdhParameters : ECDiffieHellmanParameters?
     
     var signedParameters : TLSSignedData
     
@@ -116,7 +116,7 @@ class TLSServerKeyExchange : TLSHandshakeMessage
             }
             
         case .ECDHE_RSA:
-            self.ecDiffieHellmanParameters = ECDiffieHellmanParameters(inputStream: inputStream)
+            self.ecdhParameters = ECDiffieHellmanParameters(inputStream: inputStream)
             if let signedParameters = TLSSignedData(inputStream: inputStream, context: context) {
                 self.signedParameters = signedParameters
             }
@@ -157,8 +157,8 @@ class TLSServerKeyExchange : TLSHandshakeMessage
             self.signedParameters.writeTo(&target)
         }
         
-        else if let ecDiffieHellmanParameters = self.ecDiffieHellmanParameters {
-            
+        else if let ecdhParameters = self.ecdhParameters {
+            assert(false)
         }
     }
 }

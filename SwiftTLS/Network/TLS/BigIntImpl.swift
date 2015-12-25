@@ -23,6 +23,10 @@ struct BigIntImpl<U where U : UnsignedIntegerType> {
         self.init([UInt(abs(a))], negative: a < 0)
     }
 
+    init(_ a : UInt, negative: Bool = false) {
+        self.init([a], negative: negative)
+    }
+
     init<T where T : UnsignedIntegerType>(_ a : T) {
         self.init([a])
     }
@@ -212,23 +216,17 @@ struct BigIntImpl<U where U : UnsignedIntegerType> {
         return (self.parts[partNumber].toUIntMax() & (UIntMax(1) << UIntMax(bit))) != 0
     }
     
-    static func random(max : BigIntImpl<U>) -> BigIntImpl<U>
+    static func random<U : KnowsLargerIntType>(max : BigIntImpl<U>) -> BigIntImpl<U>
     {
-        let mask = UIntMax(1 << (sizeof(PrimitiveType) * 8) - 1)
+        let mask = UIntMax(1 << (sizeof(U) * 8) - 1)
         let num = max.parts.count
         var n = BigIntImpl<U>(capacity: num)
         for _ in 0 ..< num
         {
-            n.parts.append(PrimitiveType(UIntMax(arc4random()) & mask))
+            n.parts.append(U(UIntMax(arc4random()) & mask))
         }
         
-        var highest     = n.parts[num - 1]
-        let maxHighest  = max.parts[num - 1]
-        while highest > maxHighest
-        {
-           highest = U(highest.toUIntMax() >> UIntMax(1))
-        }
-        n.parts[num - 1] = highest
+        n = n % max
         
         return n
     }
@@ -470,7 +468,7 @@ extension UInt32 : KnowsLargerIntType {
     typealias LargerIntType = UInt64
 }
 
-func division<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, _ v : Int, inout remainder : Int?) -> BigIntImpl<UIntN>
+func short_division<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, _ v : Int, inout remainder : Int?) -> BigIntImpl<UIntN>
 {
     let UIntNShift = UIntMax(sizeof(UIntN) * 8)
     let b = UIntMax(UIntMax(1) << UIntNShift)
@@ -501,11 +499,14 @@ func division<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, _ v : Int, inou
     return result
 }
 
+
 func division<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, _ v : BigIntImpl<UIntN>, inout remainder : BigIntImpl<UIntN>?) -> BigIntImpl<UIntN>
 {
     typealias BigIntType = BigIntImpl<UIntN>
     typealias UIntN2 = UIntN.LargerIntType
     typealias LargerBigIntType = BigIntImpl<UIntN2>
+    
+    let uSign = u.sign
     
     // This is an implementation of Algorithm D in
     // "The Art of Computer Programming" by Donald E. Knuth, Volume 2, Seminumerical Algorithms, 3rd edition, p. 272
@@ -531,7 +532,7 @@ func division<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, _ v : BigIntImp
     
     if n == 1 && m == 0 {
         if remainder != nil {
-            remainder = BigIntType(u.parts[0] % v.parts[0])
+            remainder = BigIntType(UInt((u.parts[0] % v.parts[0]).toUIntMax()), negative: u.sign)
         }
         
         return BigIntType(u.parts[0] / v.parts[0])
@@ -543,7 +544,7 @@ func division<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, _ v : BigIntImp
         }
 
         var rem : Int? = remainder == nil ? nil : 0
-        let result = division(u, divisor, remainder: &rem)
+        let result = short_division(u, divisor, remainder: &rem)
         
         if remainder != nil {
             remainder = BigIntImpl(rem!)
@@ -627,10 +628,11 @@ func division<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, _ v : BigIntImp
     }
 
     let q =  BigIntType(result.parts, negative: u.sign != v.sign)
+
     if remainder != nil {
         let uSlice = u.parts[0..<n]
         let uParts = [UIntN](uSlice)
-        remainder = BigIntType(uParts) / d
+        remainder = BigIntType(uParts, negative: uSign) / d
     }
     
     return q
@@ -693,11 +695,19 @@ func %<U : UnsignedIntegerType where U : KnowsLargerIntType>(u : BigIntImpl<U>, 
 
 func == <U>(lhs : BigIntImpl<U>, rhs : BigIntImpl<U>) -> Bool
 {
-    return lhs.parts == rhs.parts
+    return lhs.parts == rhs.parts && lhs.sign == rhs.sign
 }
 
 func < <U>(lhs : BigIntImpl<U>, rhs : BigIntImpl<U>) -> Bool
 {
+    if lhs.sign != rhs.sign {
+        return lhs.sign
+    }
+    
+    if lhs.sign {
+        return -lhs > -rhs
+    }
+    
     if lhs.parts.count != rhs.parts.count {
         return lhs.parts.count < rhs.parts.count
     }
@@ -722,6 +732,14 @@ func < <U>(lhs : BigIntImpl<U>, rhs : BigIntImpl<U>) -> Bool
 
 func > <U>(lhs : BigIntImpl<U>, rhs : BigIntImpl<U>) -> Bool
 {
+    if lhs.sign != rhs.sign {
+        return rhs.sign
+    }
+    
+    if lhs.sign {
+        return -lhs < -rhs
+    }
+
     if lhs.parts.count != rhs.parts.count {
         if lhs.isZero && rhs.isZero {
             return false

@@ -149,7 +149,7 @@ class TLSStateMachine : TLSContextStateMachine
     }
 
     func didReceiveAlert(alert: TLSAlertMessage) {
-        print((self.context!.isClient ? "Client" : "Server" ) + ": did receive message \(alert)")
+        print((self.context!.isClient ? "Client" : "Server" ) + ": did receive message \(alert.alertLevel) \(alert.alert)")
     }
 
     func advanceState(state : TLSState) -> Bool

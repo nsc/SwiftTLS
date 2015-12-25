@@ -207,12 +207,8 @@ public class TLSContext
     var serverCertificates : [Certificate]?
     var clientCertificates : [Certificate]?
     
-    var preMasterSecret     : [UInt8]? = nil {
-        didSet {
-            print("pre master secret = \(hex(preMasterSecret!))")
-        }
-    }
-
+    var preMasterSecret     : [UInt8]? = nil
+    
     var securityParameters  : TLSSecurityParameters
     
     var handshakeMessages : [TLSHandshakeMessage]
@@ -408,8 +404,18 @@ public class TLSContext
                 dhKeyExchange.peerPublicValue = Ys
                 self.dhKeyExchange = dhKeyExchange
             }
-            else if let ecDiffieHellmanParameters = keyExchangeMessage.ecDiffieHellmanParameters {
-                print(ecDiffieHellmanParameters)
+            else if let ecdhParameters = keyExchangeMessage.ecdhParameters {                
+                if ecdhParameters.curveType != .NamedCurve {
+                    throw TLSError.Error("Unsupported curve type \(ecdhParameters.curveType)")
+                }
+                
+                guard let curve = EllipticCurve.named(ecdhParameters.namedCurve!)
+                else {
+                    throw TLSError.Error("Unsupported curve \(ecdhParameters.namedCurve)")
+                }
+
+                self.ecdhKeyExchange = ECDHKeyExchange(curve: curve)
+                self.ecdhKeyExchange!.peerPublicKey = ecdhParameters.publicKey
             }
             
             
@@ -516,7 +522,8 @@ public class TLSContext
     
     func sendClientKeyExchange() throws
     {
-        if let diffieHellmanKeyExchange = self.dhKeyExchange {
+        if let diffieHellmanKeyExchange = self.dhKeyExchange
+        {
             // Diffie-Hellman
             let secret = BigInt.random(diffieHellmanKeyExchange.primeModulus)
             let publicValue = diffieHellmanKeyExchange.calculatePublicValue(secret)
@@ -526,6 +533,16 @@ public class TLSContext
             self.recordLayer.pendingSecurityParameters = self.securityParameters
 
             let message = TLSClientKeyExchange(diffieHellmanPublicValue: (publicValue.toArray() as [UInt8]).reverse())
+            try self.sendHandshakeMessage(message)
+        }
+        else if let ecdhKeyExchange = self.ecdhKeyExchange
+        {
+            let Q = ecdhKeyExchange.calculatePublicValue()
+            self.preMasterSecret = (ecdhKeyExchange.calculateSharedSecret()!.toArray() as [UInt8]).reverse()
+            self.setPendingSecurityParametersForCipherSuite(self.cipherSuite!)
+            self.recordLayer.pendingSecurityParameters = self.securityParameters
+            
+            let message = TLSClientKeyExchange(ecdhPublicKey: Q)
             try self.sendHandshakeMessage(message)
         }
         else {

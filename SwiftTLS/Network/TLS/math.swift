@@ -91,8 +91,20 @@ func extended_euclid<T : IntegerArithmeticType where T : IntegerLiteralConvertib
 
 public func modular_inverse<T : IntegerArithmeticType where T : IntegerLiteralConvertible>(x : T, _ y : T, mod : T) -> T
 {
+    let x = x > 0 ? x : x + mod
+    let y = y > 0 ? y : y + mod
+
     let inverse = extended_euclid(z: y, a: mod)
     
-    return inverse * x
+    var result = (inverse * x) % mod
+    
+    let zero : T = 0
+    if result < zero {
+        result = result + mod
+    }
+    
+    assert(((y + mod) * result) % mod == (x + mod) % mod)
+    
+    return result
 }
 

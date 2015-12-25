@@ -54,13 +54,12 @@ class TLSClientKeyExchange : TLSHandshakeMessage
 {
     var encryptedPreMasterSecret : [UInt8]?
     var diffieHellmanPublicValue : [UInt8]?
+    var ecdhPublicKey : EllipticCurvePoint?
     
     init(preMasterSecret : [UInt8], publicKey : CryptoKey)
     {
         if let crypttext = publicKey.encrypt(preMasterSecret) {
             self.encryptedPreMasterSecret = crypttext
-            var data = crypttext
-            NSData(bytesNoCopy: &data, length: data.count, freeWhenDone: false).writeToFile("/Users/nico/tmp/preMasterSecret", atomically: true)
         }
         else {
             self.encryptedPreMasterSecret = []
@@ -73,6 +72,13 @@ class TLSClientKeyExchange : TLSHandshakeMessage
     init(diffieHellmanPublicValue : [UInt8])
     {
         self.diffieHellmanPublicValue = diffieHellmanPublicValue
+        
+        super.init(type: .Handshake(.ClientKeyExchange))
+    }
+    
+    init(ecdhPublicKey : EllipticCurvePoint)
+    {
+        self.ecdhPublicKey = ecdhPublicKey
         
         super.init(type: .Handshake(.ClientKeyExchange))
     }
@@ -92,6 +98,10 @@ class TLSClientKeyExchange : TLSHandshakeMessage
                     
                     if context.dhKeyExchange != nil {
                         self.diffieHellmanPublicValue = data
+                    }
+                    else if context.ecdhKeyExchange != nil {
+                        // FIXME: Implement client key exchange on server side
+                        precondition(false)
                     }
                     else {
                         self.encryptedPreMasterSecret = data
@@ -121,6 +131,14 @@ class TLSClientKeyExchange : TLSHandshakeMessage
             self.writeHeader(type: .ClientKeyExchange, bodyLength: diffieHellmanPublicValue.count + 2, target: &target)
             target.write(UInt16(diffieHellmanPublicValue.count))
             target.write(diffieHellmanPublicValue)
+        }
+        else if let ecdhPublicKey = self.ecdhPublicKey {
+            let Q = ecdhPublicKey
+            let data = (Q.x.toArray() as [UInt8]).reverse() + (Q.y.toArray() as [UInt8]).reverse()
+            self.writeHeader(type: .ClientKeyExchange, bodyLength: data.count + 2, target: &target)
+            target.write(UInt8(data.count + 1))
+            target.write(UInt8(4)) // uncompressed ECPoint encoding
+            target.write(data)
         }
 
     }
