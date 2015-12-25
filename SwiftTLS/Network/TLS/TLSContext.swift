@@ -188,7 +188,7 @@ extension TLSContextStateMachine
 public class TLSContext
 {
     public var protocolVersion : TLSProtocolVersion
-    var negotiatedProtocolVersion : TLSProtocolVersion! = nil {
+    var negotiatedProtocolVersion : TLSProtocolVersion {
         didSet {
             self.recordLayer.protocolVersion = negotiatedProtocolVersion
         }
@@ -229,6 +229,7 @@ public class TLSContext
     init(protocolVersion: TLSProtocolVersion, dataProvider : TLSDataProvider, isClient : Bool = true)
     {
         self.protocolVersion = protocolVersion
+        self.negotiatedProtocolVersion = protocolVersion
         self.isClient = isClient
         self.handshakeMessages = []
         self.securityParameters = TLSSecurityParameters()

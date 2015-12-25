@@ -63,23 +63,24 @@ class TSLTests: XCTestCase {
         let client = TLSSocket(protocolVersion: .TLS_v1_2)
 
         let expectation = self.expectationWithDescription("accept connection successfully")
-        server.acceptConnection(address)
-        if clientSocket != nil {
+
+        do {
+            dispatch_async(dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0)) {
+                do {
+                    let clientSocket = try server.acceptConnection(address)
+                } catch(let error) {
+                    XCTFail("\(error)")
+                }
+            }
+            sleep(1)
+            
+            try client.connect(address)
+            expectation.fulfill()
+            client.close()
             server.close()
         }
-        else {
-            XCTFail("Connect failed")
-        }
-    
-        sleep(1)
-        
-        client.connect(address) {
-            (error: SocketError?) -> () in
-            
-            client.close()
-            if error != nil {
-                print("\(error)")
-            }
+        catch (let error) {
+            XCTFail("\(error)")
         }
         
         self.waitForExpectationsWithTimeout(2.0) {

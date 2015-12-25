@@ -125,8 +125,8 @@ func probeCipherSuitesForHost(host : String, port : Int)
     }
 }
 
-//client()
-server()
+client()
+//server()
 //probeCipherSuitesForHost("77.74.169.27", port: 443)
 //probeCipherSuitesForHost("85.13.145.53", port: 443)
 //probeCipherSuitesForHost("62.153.105.15", port: 443)

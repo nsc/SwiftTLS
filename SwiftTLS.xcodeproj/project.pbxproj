@@ -439,6 +439,44 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		03176EAB1C2D6E2A00E11426 /* Protocol Messages */ = {
+			isa = PBXGroup;
+			children = (
+				033AC39A1AC474430004EEC1 /* TLSMessage.swift */,
+				033AC3991AC474430004EEC1 /* TLSHandshake.swift */,
+				03A4BF001AC4851F00CEB7A3 /* TLSAlert.swift */,
+				033AC3961AC474430004EEC1 /* TLSClientHello.swift */,
+				0376D7C21B96342600CEE7B1 /* Hello Extensions */,
+				033AC39C1AC474430004EEC1 /* TLSServerHello.swift */,
+				033AC39D1AC474430004EEC1 /* TLSServerHelloDone.swift */,
+				033AC3971AC474430004EEC1 /* TLSClientKeyExchange.swift */,
+				033423911B0E6AE000D2964A /* TLSServerKeyExchange.swift */,
+				033AC3941AC474430004EEC1 /* TLSCertificateMessage.swift */,
+				033AC3951AC474430004EEC1 /* TLSChangeCipherSpec.swift */,
+				03471E761AD59D6D004E0F5E /* TLSFinished.swift */,
+				03D0BDDD1AEAA16600BFE004 /* TLSApplicationData.swift */,
+			);
+			name = "Protocol Messages";
+			sourceTree = "<group>";
+		};
+		03176EAC1C2D6E9F00E11426 /* Crypto */ = {
+			isa = PBXGroup;
+			children = (
+				0367947F1BFD0BF9006C5155 /* math.swift */,
+				033AC3911AC474430004EEC1 /* BigIntImpl.swift */,
+				0350D6F91C0093560093C785 /* BigInt.swift */,
+				0374FE3C1B6E42E8003DD557 /* DHKeyExchange.swift */,
+				0397934C1BCACD830034CFF1 /* ECDHKeyExchange.swift */,
+				039363261B04E2BF0020F857 /* Identity.swift */,
+				033AC3921AC474430004EEC1 /* Certificate.swift */,
+				033AC3931AC474430004EEC1 /* CryptoKey.swift */,
+				032A50491BC96A7400CDEAA2 /* EllipticCurve.swift */,
+				036D9FFB1BA45EA4008B2AF1 /* CBigInt.h */,
+				036D9FFA1BA45EA4008B2AF1 /* CBigInt.c */,
+			);
+			name = Crypto;
+			sourceTree = "<group>";
+		};
 		033AC34D1AC473730004EEC1 = {
 			isa = PBXGroup;
 			children = (
@@ -518,39 +556,17 @@
 		033AC3901AC474430004EEC1 /* TLS */ = {
 			isa = PBXGroup;
 			children = (
+				03176EAC1C2D6E9F00E11426 /* Crypto */,
+				03176EAB1C2D6E2A00E11426 /* Protocol Messages */,
 				03BF8C8A1B11C2E800332087 /* ASN1Parser.swift */,
-				033AC3911AC474430004EEC1 /* BigIntImpl.swift */,
-				0350D6F91C0093560093C785 /* BigInt.swift */,
-				0367947F1BFD0BF9006C5155 /* math.swift */,
 				0394D2901AD65F40005DC3C4 /* TLSUtilities.swift */,
 				0372CA8F1B94D69E00B567D5 /* TLSCipherSuites.swift */,
 				038AEE761ADAC06100DDFA8F /* TLSCipherSuiteDescriptions.swift */,
 				033AC3981AC474430004EEC1 /* TLSContext.swift */,
 				03BB64C01B936BAD001A6AAA /* TLSStateMachine.swift */,
-				0374FE3C1B6E42E8003DD557 /* DHKeyExchange.swift */,
-				0397934C1BCACD830034CFF1 /* ECDHKeyExchange.swift */,
 				0394D28D1AD65F09005DC3C4 /* TLSRecordLayer.swift */,
-				033AC3991AC474430004EEC1 /* TLSHandshake.swift */,
-				033AC39A1AC474430004EEC1 /* TLSMessage.swift */,
-				03D0BDDD1AEAA16600BFE004 /* TLSApplicationData.swift */,
-				03A4BF001AC4851F00CEB7A3 /* TLSAlert.swift */,
 				033AC39B1AC474430004EEC1 /* TLSRecord.swift */,
 				033AC39E1AC474430004EEC1 /* TLSSocket.swift */,
-				039363261B04E2BF0020F857 /* Identity.swift */,
-				033AC3921AC474430004EEC1 /* Certificate.swift */,
-				033AC3931AC474430004EEC1 /* CryptoKey.swift */,
-				032A50491BC96A7400CDEAA2 /* EllipticCurve.swift */,
-				033AC3961AC474430004EEC1 /* TLSClientHello.swift */,
-				0376D7C21B96342600CEE7B1 /* Hello Extensions */,
-				033AC39C1AC474430004EEC1 /* TLSServerHello.swift */,
-				033AC39D1AC474430004EEC1 /* TLSServerHelloDone.swift */,
-				033AC3971AC474430004EEC1 /* TLSClientKeyExchange.swift */,
-				033423911B0E6AE000D2964A /* TLSServerKeyExchange.swift */,
-				033AC3941AC474430004EEC1 /* TLSCertificateMessage.swift */,
-				03471E761AD59D6D004E0F5E /* TLSFinished.swift */,
-				033AC3951AC474430004EEC1 /* TLSChangeCipherSpec.swift */,
-				036D9FFB1BA45EA4008B2AF1 /* CBigInt.h */,
-				036D9FFA1BA45EA4008B2AF1 /* CBigInt.c */,
 			);
 			path = TLS;
 			sourceTree = "<group>";
