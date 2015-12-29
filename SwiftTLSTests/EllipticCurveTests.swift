@@ -79,13 +79,11 @@ class EllipticCurveTests: XCTestCase {
         
         let G = curve.G
         
-        for i in 1 ..< 100
+        for i in 10 ..< 15
         {
             let q = curve.multiplyPoint(G, BigInt(i))
-            print("\(i) is \(q.isOnCurve(curve) ? "" : "not") on curve")
+            XCTAssert(q.isOnCurve(curve))
         }
-        
-//        XCTAssert(q.isOnCurve(curve))
     }
     
     func test_multiplyPoint_onWellKnownCurve_yieldsCorrectResults()
@@ -124,4 +122,25 @@ class EllipticCurveTests: XCTestCase {
         }
     }
 
+    func test_sign_someData_verifies()
+    {
+        guard let curve = EllipticCurve.named(.secp256r1) else {
+            XCTFail()
+            return
+        }
+        
+        let (privateKey, publicKey) = curve.createKeyPair()
+        
+        let ecdsa = ECDSA(curve: curve, publicKey: publicKey, privateKey: privateKey)
+        
+        let data = [1,2,3,4,5,6,7,8] as [UInt8]
+        
+        let signature = ecdsa.signData(data)
+        
+        // use ECDSA only with a public key for verification
+        let ecdsa2 = ECDSA(curve: curve, publicKey: publicKey)
+        let verified = ecdsa2.verifySignature(signature, data: data)
+        
+        XCTAssert(verified)
+    }
 }

@@ -77,7 +77,12 @@ class TLSStateMachine : TLSContextStateMachine
             self.state = .CertificateSent
             
             if !self.context!.isClient {
-                try self.context!.sendServerHelloDone()
+                if self.context!.cipherSuite!.needsServerKeyExchange() {
+                    try self.context!.sendServerKeyExchange()
+                }
+                else {
+                    try self.context!.sendServerHelloDone()
+                }
             }
             
         case .ServerHelloDone:

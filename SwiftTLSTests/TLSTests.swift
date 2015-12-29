@@ -27,20 +27,21 @@ class TSLTests: XCTestCase {
         // wait for server to be up
         sleep(1)
         
-        let socket = TLSSocket(protocolVersion: TLSProtocolVersion.TLS_v1_2)
-//        socket.context.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
-        socket.context.cipherSuites = [.TLS_RSA_WITH_AES_256_CBC_SHA]
-//        socket.context.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256]
+        var configuration = TLSConfiguration(protocolVersion: TLSProtocolVersion.TLS_v1_2)
+//        configuration.cipherSuites = [.TLS_RSA_WITH_AES_256_CBC_SHA]
+        configuration.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
+//        configuration.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256]
+        let socket = TLSSocket(configuration: configuration)
 
 //        let (host, port) = ("195.50.155.66", 443)
-        let (host, port) = ("85.13.145.53", 443) // nschmidt.name
-//        let (host, port) = ("127.0.0.1", 4433)
+//        let (host, port) = ("85.13.145.53", 443) // nschmidt.name
+        let (host, port) = ("127.0.0.1", 4433)
         
         do {
             try socket.connect(IPAddress.addressWithString(host, port: port)!)
             try socket.write([UInt8]("GET / HTTP/1.1\r\nHost: nschmidt.name\r\n\r\n".utf8))
             let data = try socket.read(count: 100)
-            print("\(try! String.fromUTF8Bytes(data))")
+            print("\(String.fromUTF8Bytes(data))")
             socket.close()
         }
         catch let error as SocketError {
@@ -52,20 +53,28 @@ class TSLTests: XCTestCase {
         opensslServer.terminate()
     }
     
-    func test_listen_whenClientConnects_callsAcceptBlock()
+    func test_acceptConnection_whenClientConnects_works()
     {
-        let serverIdentity = Identity(name: "Internet Widgits Pty Ltd")
-
-        let server = TLSSocket(protocolVersion: .TLS_v1_2, isClient: false, identity: serverIdentity!)
+        var configuration = TLSConfiguration(protocolVersion: .TLS_v1_2)
+        configuration.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
+        configuration.identity = Identity(name: "Internet Widgits Pty Ltd")!
+        
+        let dhParametersPath = NSBundle(forClass: self.dynamicType).URLForResource("dhparams.pem", withExtension: nil)!.path!
+        configuration.dhParameters = DiffieHellmanParameters.fromPEMFile(dhParametersPath)
+        
         let address = IPv4Address.localAddress()
         address.port = UInt16(12345)
+
+        let server = TLSSocket(configuration: configuration, isClient: false)
         
         let client = TLSSocket(protocolVersion: .TLS_v1_2)
+        client.context.configuration.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
 
         let expectation = self.expectationWithDescription("accept connection successfully")
 
+        let serverQueue = dispatch_queue_create("server queue", nil)
         do {
-            dispatch_async(dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0)) {
+            dispatch_async(serverQueue) {
                 do {
                     let clientSocket = try server.acceptConnection(address)
                 } catch(let error) {

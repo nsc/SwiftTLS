@@ -260,25 +260,16 @@ public class TLSSocket : SocketProtocol, TLSDataProvider
     
     var socket : TCPSocket?
     
-    public init(protocolVersion : TLSProtocolVersion, isClient: Bool = true)
+    convenience public init(protocolVersion : TLSProtocolVersion, isClient: Bool = true)
     {
-        self.context = nil
-        self.context = TLSContext(protocolVersion: protocolVersion, dataProvider: self, isClient: isClient)
+        self.init(configuration: TLSConfiguration(protocolVersion: protocolVersion), isClient: isClient)
     }
-    
-    public init(protocolVersion : TLSProtocolVersion, isClient: Bool, identity : Identity)
-    {
-        self.context = nil
-        self.context = TLSContext(protocolVersion: protocolVersion, dataProvider: self, isClient: isClient)
 
-        if isClient {
-            self.context.identity = identity
-        }
-        else {
-            self.context.identity = identity
-        }
+    public init(configuration: TLSConfiguration, isClient: Bool = true)
+    {
+        self.context = TLSContext(configuration: configuration, dataProvider: self, isClient: isClient)
     }
-    
+        
     // TODO: add connect method that takes a domain name rather than an IP
     // so we can check the server certificate against that name
     public func connect(address: IPAddress) throws
@@ -295,7 +286,7 @@ public class TLSSocket : SocketProtocol, TLSDataProvider
         
         let clientSocket = try self.socket?.acceptConnection(address) as! TCPSocket
 
-        let clientTLSSocket = TLSSocket(protocolVersion: self.context.protocolVersion, isClient: false)
+        let clientTLSSocket = TLSSocket(protocolVersion: self.context.configuration.protocolVersion, isClient: false)
         clientTLSSocket.socket = clientSocket
         clientTLSSocket.context = self.context.copy(isClient: false)
         clientTLSSocket.context.recordLayer.dataProvider = clientTLSSocket

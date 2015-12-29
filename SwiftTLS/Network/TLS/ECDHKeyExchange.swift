@@ -19,7 +19,7 @@ class ECDHKeyExchange
         self.curve = curve
     }
 
-    func calculatePublicValue() -> EllipticCurvePoint
+    func calculatePublicKey() -> EllipticCurvePoint
     {
         let (d, Q) = self.curve.createKeyPair()
         self.d = d

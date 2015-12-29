@@ -196,38 +196,60 @@ public class ASN1Parser
         self.init(data: [UInt8](UnsafeBufferPointer<UInt8>(start: UnsafePointer<UInt8>(data.bytes), count: data.length)))
     }
     
-    public init?(PEMFile : String)
+    public class func objectFromPEMFile(PEMFile : String) -> ASN1Object?
     {
+        let sections = self.sectionsFromPEMFile(PEMFile)
+        
+        guard sections.count == 1 else {
+            return nil
+        }
+        
+        return sections.values.first
+    }
+    
+    public class func sectionsFromPEMFile(PEMFile : String) -> [String : ASN1Object]
+    {
+        var sectionDictionary : [String : ASN1Object] = [:]
         do {
-            let base64string = try NSString(contentsOfFile: PEMFile, encoding: NSUTF8StringEncoding)
-            var range = base64string.rangeOfString("-----BEGIN")
-            var rangeOfBase64Block = NSRange()
-            if range.location != NSNotFound {
-                let eol = base64string.rangeOfString("\n", options: NSStringCompareOptions(rawValue: 0), range: NSRange(location: range.location, length: base64string.length - range.location))
+            var base64string = try NSString(contentsOfFile: PEMFile, encoding: NSUTF8StringEncoding)
+            repeat {
+                let beginRange = base64string.rangeOfString("-----BEGIN ")
+                var rangeOfBase64Block = NSRange()
+                guard beginRange.location != NSNotFound else {
+                    return sectionDictionary
+                }
+            
+                let eol = base64string.rangeOfString("----\n", options: NSStringCompareOptions(rawValue: 0), range: NSRange(location: beginRange.location, length: base64string.length - beginRange.location))
+                let startIndex = beginRange.location + beginRange.length
+                let sectionNameRange = NSRange(location: startIndex, length: eol.location - startIndex - 1)
+                let sectionName = base64string.substringWithRange(sectionNameRange)
                 rangeOfBase64Block.location = eol.location + 1
-                
-                range = base64string.rangeOfString("-----END",
+            
+                let endRange = base64string.rangeOfString("-----END ",
                     options: NSStringCompareOptions(rawValue: 0),
                     range: NSRange(location: rangeOfBase64Block.location, length: base64string.length - rangeOfBase64Block.location))
                 
-                if range.location != NSNotFound {
-                    rangeOfBase64Block.length = range.location - 1 - rangeOfBase64Block.location
+                if endRange.location != NSNotFound {
+                    rangeOfBase64Block.length = endRange.location - 1 - rangeOfBase64Block.location
                     
                     let base64 = base64string.substringWithRange(rangeOfBase64Block)
                     if let data = NSData(base64EncodedString:base64, options: .IgnoreUnknownCharacters) {
                         
-                        self.data = [UInt8](UnsafeBufferPointer<UInt8>(start: UnsafePointer<UInt8>(data.bytes), count: data.length))
-                        self.cursor = 0
-                        return
+                        let parser = ASN1Parser(data: [UInt8](UnsafeBufferPointer<UInt8>(start: UnsafePointer<UInt8>(data.bytes), count: data.length)))
+                        guard let object = parser.parseObject() else {
+                            return sectionDictionary
+                        }
+                        
+                        sectionDictionary[sectionName] = object
                     }
                 }
-            }
+                
+                base64string = base64string.substringFromIndex(endRange.location + endRange.length)
+            } while true
         } catch _ {
         }
         
-        self.data = []
-        self.cursor = 0
-        return nil
+        return sectionDictionary
     }
     
     func subData(range : Range<Int>) -> [UInt8]? {

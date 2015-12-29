@@ -121,6 +121,7 @@ public class TLSRecordLayer
 
     func activateWriteEncryptionParameters()
     {
+        print(self.pendingWriteEncryptionParameters)
         self.currentWriteEncryptionParameters = self.pendingWriteEncryptionParameters
         self.pendingWriteEncryptionParameters = nil
     }
@@ -128,7 +129,7 @@ public class TLSRecordLayer
     init(context: TLSContext, dataProvider: TLSDataProvider)
     {
         self.context = context
-        self.protocolVersion = context.protocolVersion
+        self.protocolVersion = context.configuration.protocolVersion
         self.dataProvider = dataProvider
         self.isClient = context.isClient
     }
@@ -236,6 +237,12 @@ public class TLSRecordLayer
         }
         
         if let message = message {
+            
+            var messageBuffer = DataBuffer()
+            message.writeTo(&messageBuffer)
+
+            assert(messageBody == messageBuffer.buffer)
+            
             return message
         }
         else {

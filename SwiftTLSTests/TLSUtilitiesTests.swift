@@ -73,7 +73,7 @@ class TLSUtilitiesTests: XCTestCase {
         }
         
         let dataProvider = DataProvider()
-        let context = TLSContext(protocolVersion: .TLS_v1_0, dataProvider: dataProvider)
+        let context = TLSContext(configuration: TLSConfiguration(protocolVersion: .TLS_v1_0), dataProvider: dataProvider)
         let output = context.PRF(secret: [UInt8]("secret".utf8), label: [UInt8]("label".utf8), seed: [UInt8]("seed".utf8), outputLength: 20)
         let expectedResult : [UInt8] = [0xb5, 0xba, 0xf4, 0x72, 0x2b, 0x91, 0x85, 0x1a, 0x88, 0x16, 0xd2, 0x2e, 0xbd, 0x8c, 0x1d, 0x8c, 0xc2, 0xe9, 0x4d, 0x55]
 

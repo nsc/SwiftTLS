@@ -53,7 +53,7 @@ class PreMasterSecret : Streamable
 class TLSClientKeyExchange : TLSHandshakeMessage
 {
     var encryptedPreMasterSecret : [UInt8]?
-    var diffieHellmanPublicValue : [UInt8]?
+    var diffieHellmanPublicKey : BigInt?
     var ecdhPublicKey : EllipticCurvePoint?
     
     init(preMasterSecret : [UInt8], publicKey : CryptoKey)
@@ -69,9 +69,9 @@ class TLSClientKeyExchange : TLSHandshakeMessage
         super.init(type: .Handshake(.ClientKeyExchange))
     }
     
-    init(diffieHellmanPublicValue : [UInt8])
+    init(diffieHellmanPublicKey : BigInt)
     {
-        self.diffieHellmanPublicValue = diffieHellmanPublicValue
+        self.diffieHellmanPublicKey = diffieHellmanPublicKey
         
         super.init(type: .Handshake(.ClientKeyExchange))
     }
@@ -97,7 +97,8 @@ class TLSClientKeyExchange : TLSHandshakeMessage
                 if let data : [UInt8] = inputStream.read(count: Int(length)) {
                     
                     if context.dhKeyExchange != nil {
-                        self.diffieHellmanPublicValue = data
+                        print("dh public key data: \(data)")
+                        self.diffieHellmanPublicKey = BigInt(bigEndianParts: data)
                     }
                     else if context.ecdhKeyExchange != nil {
                         // FIXME: Implement client key exchange on server side
@@ -127,14 +128,17 @@ class TLSClientKeyExchange : TLSHandshakeMessage
             target.write(UInt16(encryptedPreMasterSecret.count))
             target.write(encryptedPreMasterSecret)
         }
-        else if let diffieHellmanPublicValue = self.diffieHellmanPublicValue {
-            self.writeHeader(type: .ClientKeyExchange, bodyLength: diffieHellmanPublicValue.count + 2, target: &target)
-            target.write(UInt16(diffieHellmanPublicValue.count))
-            target.write(diffieHellmanPublicValue)
+        else if let diffieHellmanPublicKey = self.diffieHellmanPublicKey {
+            let diffieHellmanPublicKeyData = diffieHellmanPublicKey.asBigEndianData()
+
+            self.writeHeader(type: .ClientKeyExchange, bodyLength: diffieHellmanPublicKeyData.count + 2, target: &target)
+            target.write(UInt16(diffieHellmanPublicKeyData.count))
+            target.write(diffieHellmanPublicKeyData)
         }
         else if let ecdhPublicKey = self.ecdhPublicKey {
             let Q = ecdhPublicKey
-            let data = (Q.x.toArray() as [UInt8]).reverse() + (Q.y.toArray() as [UInt8]).reverse()
+            let data = Q.x.asBigEndianData() + Q.y.asBigEndianData()
+            
             self.writeHeader(type: .ClientKeyExchange, bodyLength: data.count + 2, target: &target)
             target.write(UInt8(data.count + 1))
             target.write(UInt8(4)) // uncompressed ECPoint encoding

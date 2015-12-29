@@ -11,7 +11,17 @@ public class DHKeyExchange
     let primeModulus    : BigInt
     let generator       : BigInt
     
-    var peerPublicValue : BigInt?
+    var privateKey : BigInt?
+    var publicKey : BigInt?
+    var peerPublicKey : BigInt?
+    
+
+    init(dhParameters: DiffieHellmanParameters)
+    {
+        self.primeModulus = dhParameters.p
+        self.generator = dhParameters.g
+        self.publicKey = dhParameters.Ys
+    }
     
     init(primeModulus : BigInt, generator : BigInt)
     {
@@ -19,21 +29,29 @@ public class DHKeyExchange
         self.generator      = generator
     }
     
-    func calculatePublicValue(secret : BigInt) -> BigInt
+    func calculatePublicKey() -> BigInt
     {
-        print("calculatePublicValue")
-        print("\(self.generator)")
-        print("\(secret)")
-        print("\(primeModulus)")
-        return modular_pow(self.generator, secret, primeModulus)
+        assert(self.privateKey == nil)
+        
+        self.privateKey = BigInt.random(self.primeModulus)
+        
+        return modular_pow(self.generator, self.privateKey!, primeModulus)
     }
     
-    func calculateSharedSecret(secret : BigInt) -> BigInt?
+    func calculateSharedSecret() -> BigInt?
     {
-        guard let peerPublicValue = self.peerPublicValue else {
+        guard let peerPublicKey = self.peerPublicKey else {
             return nil
         }
         
-        return modular_pow(peerPublicValue, secret, self.primeModulus)
+        
+        if self.privateKey == nil {
+            print("Recalculate private key")
+            self.calculatePublicKey()
+        }
+        
+        assert(peerPublicKey != self.privateKey!)
+        
+        return modular_pow(peerPublicKey, self.privateKey!, self.primeModulus)
     }
 }

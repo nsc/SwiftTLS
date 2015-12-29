@@ -34,6 +34,11 @@ public struct BigInt : IntegerArithmeticType, IntegerLiteralConvertible
         return BigIntImpl<T>(impl.parts).parts
     }
     
+    func asBigEndianData() -> [UInt8]
+    {
+        return BigIntImpl<UInt8>(impl.parts).parts.reverse()
+    }
+
     public init(_ a : Int) {
         impl = BigIntImplType(a)
     }
@@ -78,12 +83,18 @@ public struct BigInt : IntegerArithmeticType, IntegerLiteralConvertible
     /// parts are given in little endian order
     public init<T where T : UnsignedIntegerType>(_ parts : [T], negative: Bool = false)
     {
-        self.impl = BigIntImplType(parts, negative: negative)
+        var b = BigIntImplType(parts, negative: negative)
+        b.normalize()
+        
+        self.impl = b
     }
 
     public init<T where T : UnsignedIntegerType>(bigEndianParts : [T], negative: Bool = false)
     {
-        self.impl = BigIntImplType(bigEndianParts.reverse(), negative: negative)
+        var b = BigIntImplType(bigEndianParts.reverse(), negative: negative)
+        b.normalize()
+        
+        self.impl = b
     }
 
     func toString() -> String

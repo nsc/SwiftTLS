@@ -8,11 +8,30 @@
 
 import Foundation
 
-struct DiffieHellmanParameters
+public struct DiffieHellmanParameters
 {
     var p : BigInt
     var g : BigInt
     var Ys : BigInt
+    
+    public static func fromPEMFile(file : String) -> DiffieHellmanParameters?
+    {
+        guard let sequence = ASN1Parser.objectFromPEMFile(file) as? ASN1Sequence else {
+            return nil
+        }
+                
+        guard let prime = sequence.objects[0] as? ASN1Integer else {
+            return nil
+        }
+        
+        guard let generator = sequence.objects[1] as? ASN1Integer else {
+            return nil
+        }
+        
+        let p = BigInt(bigEndianParts: prime.value)
+        let g = BigInt(bigEndianParts: generator.value)
+        return DiffieHellmanParameters(p: p, g: g, Ys:BigInt(0))
+    }
 }
 
 enum ECCurveType : UInt8
@@ -75,6 +94,15 @@ class TLSServerKeyExchange : TLSHandshakeMessage
     var ecdhParameters : ECDiffieHellmanParameters?
     
     var signedParameters : TLSSignedData
+    
+    init(dhParameters: DiffieHellmanParameters, context: TLSContext)
+    {
+        self.diffieHellmanParameters = dhParameters
+        
+        self.signedParameters = TLSSignedData()
+        
+        super.init(type: .Handshake(.ServerKeyExchange))
+    }
     
     required init?(inputStream : InputStreamType, context: TLSContext)
     {
@@ -140,9 +168,9 @@ class TLSServerKeyExchange : TLSHandshakeMessage
     override func writeTo<Target : OutputStreamType>(inout target: Target)
     {
         if let diffieHellmanParameters = self.diffieHellmanParameters {
-            let dh_p  : [UInt8] = (diffieHellmanParameters.p.toArray() as[UInt8]).reverse()
-            let dh_g  : [UInt8] = (diffieHellmanParameters.g.toArray() as[UInt8]).reverse()
-            let dh_Ys : [UInt8] = (diffieHellmanParameters.Ys.toArray() as [UInt8]).reverse()
+            let dh_p  : [UInt8] = diffieHellmanParameters.p.asBigEndianData()
+            let dh_g  : [UInt8] = diffieHellmanParameters.g.asBigEndianData()
+            let dh_Ys : [UInt8] = diffieHellmanParameters.Ys.asBigEndianData()
             
             self.writeHeader(type: .ServerKeyExchange, bodyLength: dh_p.count + dh_g.count + dh_Ys.count + 6, target: &target)
             target.write(UInt16(dh_p.count))

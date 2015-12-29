@@ -44,10 +44,6 @@ class Certificate
             var err : OSStatus = 0
             var publicKeyFromTrust : SecKey?
             
-            var ptr : SecKey? = nil
-
-            SecCertificateCopyPublicKey(self.certificate, &ptr)
-            
             let policy = SecPolicyCreateBasicX509()
             
             var trustPtr : SecTrust? = nil

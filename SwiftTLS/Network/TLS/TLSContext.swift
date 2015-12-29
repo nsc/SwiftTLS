@@ -187,13 +187,13 @@ extension TLSContextStateMachine
 
 public class TLSContext
 {
-    public var protocolVersion : TLSProtocolVersion
+    public var configuration : TLSConfiguration
+    
     var negotiatedProtocolVersion : TLSProtocolVersion {
         didSet {
             self.recordLayer.protocolVersion = negotiatedProtocolVersion
         }
     }
-    public var cipherSuites : [CipherSuite]?
     
     var cipherSuite : CipherSuite?
     
@@ -201,8 +201,6 @@ public class TLSContext
     
     var serverKey : CryptoKey?
     var clientKey : CryptoKey?
-    
-    var identity : Identity?
     
     var serverCertificates : [Certificate]?
     var clientCertificates : [Certificate]?
@@ -221,15 +219,15 @@ public class TLSContext
     var ecdhKeyExchange : ECDHKeyExchange?
     
     private var connectionEstablishedCompletionBlock : ((error : TLSError?) -> ())?
-    
-    init(protocolVersion: TLSProtocolVersion, dataProvider : TLSDataProvider, isClient : Bool = true)
+
+    init(configuration: TLSConfiguration, dataProvider : TLSDataProvider, isClient : Bool = true)
     {
-        self.protocolVersion = protocolVersion
-        self.negotiatedProtocolVersion = protocolVersion
+        self.configuration = configuration
+        self.negotiatedProtocolVersion = configuration.protocolVersion
         self.isClient = isClient
         self.handshakeMessages = []
         self.securityParameters = TLSSecurityParameters()
-        self.cipherSuites = [.TLS_RSA_WITH_AES_256_CBC_SHA]
+
         self.recordLayer = TLSRecordLayer(context: self, dataProvider: dataProvider)
         self.stateMachine = TLSStateMachine(context: self)
     }
@@ -239,14 +237,13 @@ public class TLSContext
         if isClient == nil {
             isClient = self.isClient
         }
-        let context = TLSContext(protocolVersion: self.protocolVersion, dataProvider: self.recordLayer.dataProvider!, isClient: isClient!)
+        let context = TLSContext(configuration: self.configuration, dataProvider: self.recordLayer.dataProvider!, isClient: isClient!)
         
-        context.cipherSuites = self.cipherSuites
+        context.configuration = self.configuration
         context.cipherSuite = self.cipherSuite
         
         context.serverKey = self.serverKey
         context.clientKey = self.clientKey
-        context.identity = self.identity
         
         context.serverCertificates = self.serverCertificates
         context.clientCertificates = self.clientCertificates
@@ -359,7 +356,7 @@ public class TLSContext
         {
         case .ClientHello:
             let clientHello = (message as! TLSClientHello)
-            if clientHello.clientVersion < self.protocolVersion {
+            if clientHello.clientVersion < self.configuration.protocolVersion {
                 self.negotiatedProtocolVersion = clientHello.clientVersion
             }
             self.securityParameters.clientRandom = DataBuffer(clientHello.random).buffer
@@ -382,9 +379,8 @@ public class TLSContext
             self.securityParameters.serverRandom = DataBuffer(serverHello.random).buffer
             if !serverHello.cipherSuite.needsServerKeyExchange()
             {
-                self.preMasterSecret = DataBuffer(PreMasterSecret(clientVersion: self.protocolVersion)).buffer
-                self.setPendingSecurityParametersForCipherSuite(serverHello.cipherSuite)
-                self.recordLayer.pendingSecurityParameters = self.securityParameters
+                let preMasterSecret = DataBuffer(PreMasterSecret(clientVersion: self.configuration.protocolVersion)).buffer
+                self.setPreMasterSecretAndCommitSecurityParameters(preMasterSecret, cipherSuite: serverHello.cipherSuite)
             }
             
         case .Certificate:
@@ -401,7 +397,8 @@ public class TLSContext
                 let Ys = diffieHellmanParameters.Ys
                 
                 let dhKeyExchange = DHKeyExchange(primeModulus: p, generator: g)
-                dhKeyExchange.peerPublicValue = Ys
+                dhKeyExchange.peerPublicKey = Ys
+
                 self.dhKeyExchange = dhKeyExchange
             }
             else if let ecdhParameters = keyExchangeMessage.ecdhParameters {                
@@ -424,12 +421,12 @@ public class TLSContext
             
         case .ClientKeyExchange:
             let clientKeyExchange = message as! TLSClientKeyExchange
+            var preMasterSecret : [UInt8]
             if let dhKeyExchange = self.dhKeyExchange {
                 // Diffie-Hellman
-                if let diffieHellmanPublicValue = clientKeyExchange.diffieHellmanPublicValue {
-                    let secret = BigInt.random(dhKeyExchange.primeModulus)
-                    dhKeyExchange.peerPublicValue = BigInt(diffieHellmanPublicValue.reverse())
-                    self.preMasterSecret = (dhKeyExchange.calculateSharedSecret(secret)!.toArray() as [UInt8]).reverse()
+                if let diffieHellmanPublicKey = clientKeyExchange.diffieHellmanPublicKey {
+                    dhKeyExchange.peerPublicKey = diffieHellmanPublicKey
+                    preMasterSecret = dhKeyExchange.calculateSharedSecret()!.asBigEndianData()
                 }
                 else {
                     fatalError("Client Key Exchange has no encrypted master secret")
@@ -438,16 +435,14 @@ public class TLSContext
             else {
                 // RSA
                 if let encryptedPreMasterSecret = clientKeyExchange.encryptedPreMasterSecret {
-                    self.preMasterSecret = self.identity!.privateKey.decrypt(encryptedPreMasterSecret)
+                    preMasterSecret = self.configuration.identity!.privateKey.decrypt(encryptedPreMasterSecret)!
                 }
                 else {
                     fatalError("Client Key Exchange has no encrypted master secret")
                 }
             }
             
-            
-            self.setPendingSecurityParametersForCipherSuite(self.cipherSuite!)
-            self.recordLayer.pendingSecurityParameters = self.securityParameters
+            self.setPreMasterSecretAndCommitSecurityParameters(preMasterSecret)
             
         case .Finished:
             if (self.verifyFinishedMessage(message as! TLSFinished, isClient: !self.isClient)) {
@@ -477,14 +472,14 @@ public class TLSContext
     {
         let clientHelloRandom = Random()
         let clientHello = TLSClientHello(
-            clientVersion: self.protocolVersion,
+            clientVersion: self.configuration.protocolVersion,
             random: clientHelloRandom,
             sessionID: nil,
-            cipherSuites: self.cipherSuites!,
+            cipherSuites: self.configuration.cipherSuites,
 //            cipherSuites: [.TLS_RSA_WITH_NULL_SHA],
             compressionMethods: [.NULL])
         
-        if self.cipherSuites!.contains({ if let descriptor = TLSCipherSuiteDescriptorForCipherSuite($0) { return descriptor.keyExchangeAlgorithm == .ECDHE_RSA} else { return false } }) {
+        if self.configuration.cipherSuites.contains({ if let descriptor = TLSCipherSuiteDescriptorForCipherSuite($0) { return descriptor.keyExchangeAlgorithm == .ECDHE_RSA} else { return false } }) {
             clientHello.extensions.append(TLSEllipticCurvesExtension(ellipticCurves: [.secp256r1, .secp384r1, .secp521r1]))
             clientHello.extensions.append(TLSEllipticCurvePointFormatsExtension(ellipticCurvePointFormats: [.uncompressed]))
         }
@@ -509,7 +504,7 @@ public class TLSContext
     
     func sendCertificate() throws
     {
-        let certificate = self.identity!.certificate
+        let certificate = self.configuration.identity!.certificate
         let certificateMessage = TLSCertificateMessage(certificates: [certificate])
         
         try self.sendHandshakeMessage(certificateMessage);
@@ -520,27 +515,62 @@ public class TLSContext
         try self.sendHandshakeMessage(TLSServerHelloDone())
     }
     
+    func sendServerKeyExchange() throws
+    {
+        guard let cipherSuiteDescriptor = TLSCipherSuiteDescriptorForCipherSuite(self.cipherSuite!) else {
+            throw TLSError.Error("No cipher suite")
+        }
+        
+        switch cipherSuiteDescriptor.keyExchangeAlgorithm
+        {
+        case .DHE_RSA:
+            guard let dhParameters = self.configuration.dhParameters else {
+                throw TLSError.Error("No DH parameters set in configuration")
+            }
+            
+            // Diffie-Hellman
+            let diffieHellmanKeyExchange = DHKeyExchange(dhParameters: dhParameters)
+            let publicKey = diffieHellmanKeyExchange.calculatePublicKey()
+            let sharedSecret = diffieHellmanKeyExchange.calculateSharedSecret()!
+
+            self.setPreMasterSecretAndCommitSecurityParameters(sharedSecret.asBigEndianData())
+            
+            let message = TLSClientKeyExchange(diffieHellmanPublicKey: publicKey)
+            try self.sendHandshakeMessage(message)
+            
+        case .ECDHE_RSA:
+//            let Q = ecdhKeyExchange.calculatePublicKey()
+//            let preMasterSecret = ecdhKeyExchange.calculateSharedSecret()!.asBigEndianData()
+//            self.setPreMasterSecretAndCommitSecurityParameters(preMasterSecret)
+//            
+//            let message = TLSClientKeyExchange(ecdhPublicKey: Q)
+//            try self.sendHandshakeMessage(message)
+            break
+            
+        default:
+            throw TLSError.Error("Cipher suite \(self.cipherSuite) doesn't need server key exchange")
+        }
+    }
+
     func sendClientKeyExchange() throws
     {
         if let diffieHellmanKeyExchange = self.dhKeyExchange
         {
             // Diffie-Hellman
-            let secret = BigInt.random(diffieHellmanKeyExchange.primeModulus)
-            let publicValue = diffieHellmanKeyExchange.calculatePublicValue(secret)
-            let sharedSecret = diffieHellmanKeyExchange.calculateSharedSecret(secret)!
-            self.preMasterSecret = (sharedSecret.toArray() as [UInt8]).reverse()
-            self.setPendingSecurityParametersForCipherSuite(self.cipherSuite!)
-            self.recordLayer.pendingSecurityParameters = self.securityParameters
+            let publicKey = diffieHellmanKeyExchange.calculatePublicKey()
+            let sharedSecret = diffieHellmanKeyExchange.calculateSharedSecret()!
 
-            let message = TLSClientKeyExchange(diffieHellmanPublicValue: (publicValue.toArray() as [UInt8]).reverse())
+            self.setPreMasterSecretAndCommitSecurityParameters(sharedSecret.asBigEndianData())
+            
+            let message = TLSClientKeyExchange(diffieHellmanPublicKey: publicKey)
             try self.sendHandshakeMessage(message)
         }
         else if let ecdhKeyExchange = self.ecdhKeyExchange
         {
-            let Q = ecdhKeyExchange.calculatePublicValue()
-            self.preMasterSecret = (ecdhKeyExchange.calculateSharedSecret()!.toArray() as [UInt8]).reverse()
-            self.setPendingSecurityParametersForCipherSuite(self.cipherSuite!)
-            self.recordLayer.pendingSecurityParameters = self.securityParameters
+            let Q = ecdhKeyExchange.calculatePublicKey()
+            let sharedSecret = ecdhKeyExchange.calculateSharedSecret()!
+            
+            self.setPreMasterSecretAndCommitSecurityParameters(sharedSecret.asBigEndianData())
             
             let message = TLSClientKeyExchange(ecdhPublicKey: Q)
             try self.sendHandshakeMessage(message)
@@ -603,6 +633,8 @@ public class TLSContext
         else {
             let clientHandshake = Hash_SHA256(handshakeData)
 
+            assert(self.securityParameters.masterSecret != nil)
+            
             return PRF(secret: self.securityParameters.masterSecret!, label: finishedLabel, seed: clientHandshake, outputLength: 12)
         }
     }
@@ -643,7 +675,6 @@ public class TLSContext
             return P_hash(HMAC_SHA256, secret: secret, seed: label + seed, outputLength: outputLength)
         }
     }
-
     
     private func receiveNextTLSMessage() throws
     {
@@ -660,6 +691,17 @@ public class TLSContext
     private func _readTLSMessage() throws -> TLSMessage
     {
         return try self.recordLayer.readMessage()
+    }
+    
+    private func setPreMasterSecretAndCommitSecurityParameters(preMasterSecret : [UInt8], cipherSuite : CipherSuite? = nil)
+    {
+        var cipherSuite = cipherSuite
+        if cipherSuite == nil {
+            cipherSuite = self.cipherSuite
+        }
+        self.preMasterSecret = preMasterSecret
+        self.setPendingSecurityParametersForCipherSuite(cipherSuite!)
+        self.recordLayer.pendingSecurityParameters = self.securityParameters
     }
     
     private func setPendingSecurityParametersForCipherSuite(cipherSuite : CipherSuite)
@@ -689,7 +731,7 @@ public class TLSContext
     func selectCipherSuite(cipherSuites : [CipherSuite]) -> CipherSuite?
     {
         for clientCipherSuite in cipherSuites {
-            for myCipherSuite in self.cipherSuites! {
+            for myCipherSuite in self.configuration.cipherSuites {
                 if clientCipherSuite == myCipherSuite {
                     return myCipherSuite
                 }
