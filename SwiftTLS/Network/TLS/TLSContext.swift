@@ -43,6 +43,17 @@ struct TLSSignedData : Streamable
         self.signature = []
     }
     
+    init(data: [UInt8], context: TLSContext)
+    {
+        if context.negotiatedProtocolVersion == .TLS_v1_2 {
+            self.hashAlgorithm = context.configuration.hashAlgorithm
+            self.signatureAlgorithm = context.configuration.signatureAlgorithm
+        }
+        
+        let hash = context.hash(data)
+        self.signature = context.sign(hash)
+    }
+    
     init?(inputStream : InputStreamType, context: TLSContext)
     {
         if context.negotiatedProtocolVersion == .TLS_v1_2 {
@@ -218,11 +229,22 @@ public class TLSContext
     var dhKeyExchange : DHKeyExchange?
     var ecdhKeyExchange : ECDHKeyExchange?
     
+    var signer : Signing?
+    
     private var connectionEstablishedCompletionBlock : ((error : TLSError?) -> ())?
 
     init(configuration: TLSConfiguration, dataProvider : TLSDataProvider, isClient : Bool = true)
     {
         self.configuration = configuration
+        if !isClient {
+            if let certificatePath = self.configuration.certificatePath {
+                // we are currently only supporintg RSA
+                if let rsa = RSA.fromCertificateFile(certificatePath) {
+                    self.signer = rsa
+                }
+            }
+        }
+        
         self.negotiatedProtocolVersion = configuration.protocolVersion
         self.isClient = isClient
         self.handshakeMessages = []
@@ -529,13 +551,13 @@ public class TLSContext
             }
             
             // Diffie-Hellman
-            let diffieHellmanKeyExchange = DHKeyExchange(dhParameters: dhParameters)
-            let publicKey = diffieHellmanKeyExchange.calculatePublicKey()
-            let sharedSecret = diffieHellmanKeyExchange.calculateSharedSecret()!
+            self.dhKeyExchange = DHKeyExchange(dhParameters: dhParameters)
 
-            self.setPreMasterSecretAndCommitSecurityParameters(sharedSecret.asBigEndianData())
+            // use new public key for each key exchange
+            let Ys = self.dhKeyExchange!.calculatePublicKey()
             
-            let message = TLSClientKeyExchange(diffieHellmanPublicKey: publicKey)
+            let dhParams = DiffieHellmanParameters(p: dhParameters.p, g: dhParameters.g, Ys: Ys)
+            let message = TLSServerKeyExchange(dhParameters: dhParams, context: self)
             try self.sendHandshakeMessage(message)
             
         case .ECDHE_RSA:
@@ -640,6 +662,42 @@ public class TLSContext
     }
     
     
+    internal func hash(data : [UInt8]) -> [UInt8]
+    {
+        switch self.configuration.hashAlgorithm
+        {
+        case .MD5:
+            return Hash_MD5(data)
+            
+        case .SHA1:
+            return Hash_SHA1(data)
+
+        case .SHA224:
+            return Hash_SHA224(data)
+
+        case .SHA256:
+            return Hash_SHA256(data)
+            
+        case .SHA384:
+            return Hash_SHA384(data)
+
+        case .SHA512:
+            return Hash_SHA512(data)
+            
+        default:
+            fatalError("Unsupported hash algorithm \(self.configuration.hashAlgorithm)")
+        }
+    }
+    
+    internal func sign(data : [UInt8]) -> [UInt8]
+    {
+        guard let signer = self.signer else {
+            fatalError("Unsupported signature algorithm \(self.configuration.signatureAlgorithm)")
+            return []
+        }
+        
+        return signer.sign(data)
+    }
     
     internal func PRF(secret secret : [UInt8], label : [UInt8], seed : [UInt8], outputLength : Int) -> [UInt8]
     {

@@ -132,3 +132,18 @@ struct RSA
         return decrypted.asBigEndianData()
     }
 }
+
+extension RSA : Signing
+{
+    func sign(data : [UInt8]) -> [UInt8]
+    {
+        let signature = self.signData(data)
+        
+        return signature.asBigEndianData()
+    }
+    
+    func verify(signature : [UInt8], data : [UInt8]) -> Bool
+    {
+        return self.verifySignature(BigInt(bigEndianParts: signature), data: data)
+    }
+}

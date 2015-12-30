@@ -241,7 +241,7 @@ public class TLSRecordLayer
             var messageBuffer = DataBuffer()
             message.writeTo(&messageBuffer)
 
-            assert(messageBody == messageBuffer.buffer)
+//            assert(messageBody == messageBuffer.buffer)
             
             return message
         }
@@ -411,6 +411,8 @@ public class TLSRecordLayer
             
             if let decryptedMessage = decrypt(data, key: encryptionParameters.bulkKey, IV: encryptionParameters.IV) {
 
+                print("\(encryptionParameters.blockLength)")
+                print(decryptedMessage)
                 var message : [UInt8]
                 if self.protocolVersion >= TLSProtocolVersion.TLS_v1_1 {
                     message = [UInt8](decryptedMessage[encryptionParameters.blockLength..<decryptedMessage.count])
@@ -423,7 +425,14 @@ public class TLSRecordLayer
                 var messageLength = message.count - hmacLength
                 
                 if encryptionParameters.blockLength > 0 {
-                    let paddingLength = Int(message.last!) + 1
+                    let padding = message.last!
+                    let paddingLength = Int(padding) + 1
+                    var paddingIsCorrect = (paddingLength < message.count)
+                    paddingIsCorrect = paddingIsCorrect && (message[(message.count - paddingLength) ..< message.count].filter({$0 != padding}).count == 0)
+                    if !paddingIsCorrect {
+                        print("Error: could not decrypt message")
+                        return nil
+                    }
                     messageLength -= paddingLength
                 }
                 
@@ -435,6 +444,9 @@ public class TLSRecordLayer
                 
                 if let messageMAC = messageMAC where MAC == messageMAC {
                     return messageContent
+                }
+                else {
+                    print("Error: MAC doesn't match")
                 }
             }
         }

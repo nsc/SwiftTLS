@@ -97,7 +97,6 @@ class TLSClientKeyExchange : TLSHandshakeMessage
                 if let data : [UInt8] = inputStream.read(count: Int(length)) {
                     
                     if context.dhKeyExchange != nil {
-                        print("dh public key data: \(data)")
                         self.diffieHellmanPublicKey = BigInt(bigEndianParts: data)
                     }
                     else if context.ecdhKeyExchange != nil {

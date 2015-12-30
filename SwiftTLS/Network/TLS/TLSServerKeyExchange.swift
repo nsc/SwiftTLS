@@ -32,6 +32,48 @@ public struct DiffieHellmanParameters
         let g = BigInt(bigEndianParts: generator.value)
         return DiffieHellmanParameters(p: p, g: g, Ys:BigInt(0))
     }
+    
+    init(p : BigInt, g : BigInt, Ys : BigInt)
+    {
+        self.p = p
+        self.g = g
+        self.Ys = Ys
+    }
+    
+    init?(inputStream : InputStreamType)
+    {
+        guard
+            let dh_pDataLength : UInt16 = inputStream.read(),
+            let dh_pData : [UInt8] = inputStream.read(count: Int(dh_pDataLength)),
+            let dh_gDataLength : UInt16 = inputStream.read(),
+            let dh_gData : [UInt8] = inputStream.read(count: Int(dh_gDataLength)),
+            let dh_YsDataLength : UInt16 = inputStream.read(),
+            let dh_YsData : [UInt8] = inputStream.read(count: Int(dh_YsDataLength))
+        else {
+            return nil
+        }
+        
+        self.init(p: BigInt(dh_pData.reverse()), g: BigInt(dh_gData.reverse()), Ys: BigInt(dh_YsData.reverse()))
+    }
+}
+
+extension DiffieHellmanParameters : Streamable
+{
+    func writeTo<Target : OutputStreamType>(inout target: Target)
+    {
+        let dh_p  = self.p.asBigEndianData()
+        let dh_g  = self.g.asBigEndianData()
+        let dh_Ys = self.Ys.asBigEndianData()
+        
+        target.write(UInt16(dh_p.count))
+        target.write(dh_p)
+        
+        target.write(UInt16(dh_g.count))
+        target.write(dh_g)
+        
+        target.write(UInt16(dh_Ys.count))
+        target.write(dh_Ys)
+    }
 }
 
 enum ECCurveType : UInt8
@@ -99,7 +141,7 @@ class TLSServerKeyExchange : TLSHandshakeMessage
     {
         self.diffieHellmanParameters = dhParameters
         
-        self.signedParameters = TLSSignedData()
+        self.signedParameters = TLSSignedData(data: DataBuffer(dhParameters).buffer, context:context)
         
         super.init(type: .Handshake(.ServerKeyExchange))
     }
@@ -120,12 +162,7 @@ class TLSServerKeyExchange : TLSHandshakeMessage
 
         case .DHE_RSA:
             guard
-                let dh_pDataLength : UInt16 = inputStream.read(),
-                let dh_pData : [UInt8] = inputStream.read(count: Int(dh_pDataLength)),
-                let dh_gDataLength : UInt16 = inputStream.read(),
-                let dh_gData : [UInt8] = inputStream.read(count: Int(dh_gDataLength)),
-                let dh_YsDataLength : UInt16 = inputStream.read(),
-                let dh_YsData : [UInt8] = inputStream.read(count: Int(dh_YsDataLength)),
+                let diffieHellmanParameters = DiffieHellmanParameters(inputStream: inputStream),
                 let signedParameters = TLSSignedData(inputStream: inputStream, context: context)
             else {
                 self.signedParameters = TLSSignedData()
@@ -134,13 +171,13 @@ class TLSServerKeyExchange : TLSHandshakeMessage
                 return nil
             }
 
-            self.diffieHellmanParameters = DiffieHellmanParameters(p: BigInt(dh_pData.reverse()), g: BigInt(dh_gData.reverse()), Ys: BigInt(dh_YsData.reverse()))
-            self.signedParameters   = signedParameters
-            
+            self.diffieHellmanParameters    = diffieHellmanParameters
+            self.signedParameters           = signedParameters
+                        
             if context.negotiatedProtocolVersion == .TLS_v1_2 {
-                assert(bodyLength == dh_pData.count + 2 + dh_gData.count + 2 + dh_YsData.count + 2 + signedParameters.signature.count + 4)
+//                assert(bodyLength == dh_pData.count + 2 + dh_gData.count + 2 + dh_YsData.count + 2 + signedParameters.signature.count + 4)
             } else {
-                assert(bodyLength == dh_pData.count + 2 + dh_gData.count + 2 + dh_YsData.count + 2 + signedParameters.signature.count + 2)
+//                assert(bodyLength == dh_pData.count + 2 + dh_gData.count + 2 + dh_YsData.count + 2 + signedParameters.signature.count + 2)
             }
             
         case .ECDHE_RSA:
@@ -168,21 +205,14 @@ class TLSServerKeyExchange : TLSHandshakeMessage
     override func writeTo<Target : OutputStreamType>(inout target: Target)
     {
         if let diffieHellmanParameters = self.diffieHellmanParameters {
-            let dh_p  : [UInt8] = diffieHellmanParameters.p.asBigEndianData()
-            let dh_g  : [UInt8] = diffieHellmanParameters.g.asBigEndianData()
-            let dh_Ys : [UInt8] = diffieHellmanParameters.Ys.asBigEndianData()
             
-            self.writeHeader(type: .ServerKeyExchange, bodyLength: dh_p.count + dh_g.count + dh_Ys.count + 6, target: &target)
-            target.write(UInt16(dh_p.count))
-            target.write(dh_p)
+            var body = DataBuffer()
+            diffieHellmanParameters.writeTo(&body)
+            self.signedParameters.writeTo(&body)
+            let bodyData = body.buffer
             
-            target.write(UInt16(dh_g.count))
-            target.write(dh_g)
-            
-            target.write(UInt16(dh_Ys.count))
-            target.write(dh_Ys)
-            
-            self.signedParameters.writeTo(&target)
+            self.writeHeader(type: .ServerKeyExchange, bodyLength: bodyData.count, target: &target)
+            target.write(bodyData)
         }
         
         else if let ecdhParameters = self.ecdhParameters {

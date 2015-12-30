@@ -85,6 +85,10 @@ class TLSStateMachine : TLSContextStateMachine
                 }
             }
             
+        case .ServerKeyExchange:
+            self.state = .ServerKeyExchangeSent
+            try self.context!.sendServerHelloDone()
+
         case .ServerHelloDone:
             self.state = .ServerHelloDoneSent
 

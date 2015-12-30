@@ -58,7 +58,7 @@ class TSLTests: XCTestCase {
         var configuration = TLSConfiguration(protocolVersion: .TLS_v1_2)
         configuration.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
         configuration.identity = Identity(name: "Internet Widgits Pty Ltd")!
-        
+        configuration.certificatePath = NSBundle(forClass: self.dynamicType).URLForResource("mycert.pem", withExtension: nil)!.path!
         let dhParametersPath = NSBundle(forClass: self.dynamicType).URLForResource("dhparams.pem", withExtension: nil)!.path!
         configuration.dhParameters = DiffieHellmanParameters.fromPEMFile(dhParametersPath)
         

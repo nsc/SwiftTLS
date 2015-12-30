@@ -176,6 +176,18 @@ func Hash_SHA1(data : [UInt8]) -> [UInt8]
 
 
 
+func Hash_SHA224(data : [UInt8]) -> [UInt8]
+{
+    var output = [UInt8](count: Int(CC_SHA224_DIGEST_LENGTH), repeatedValue: 0)
+    output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
+        CC_SHA224(data, CC_LONG(data.count), buffer.baseAddress)
+    }
+    
+    return output
+}
+
+
+
 func Hash_SHA256(data : [UInt8]) -> [UInt8]
 {
     var output = [UInt8](count: Int(CC_SHA256_DIGEST_LENGTH), repeatedValue: 0)
