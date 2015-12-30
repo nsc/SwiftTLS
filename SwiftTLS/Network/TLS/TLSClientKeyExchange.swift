@@ -93,25 +93,36 @@ class TLSClientKeyExchange : TLSHandshakeMessage
         
         // TODO: check consistency of body length and the data following
         if type == TLSHandshakeType.ClientKeyExchange {
-            if let length : UInt16 = inputStream.read() {
-                if let data : [UInt8] = inputStream.read(count: Int(length)) {
+
+            if context.ecdhKeyExchange != nil {
+                if let rawPublicKeyPoint : [UInt8] = inputStream.read8() {
+                    // only uncompressed format is currently supported
+                    if rawPublicKeyPoint[0] != 4 {
+                        fatalError("Error: only uncompressed curve points are supported")
+                    }
+
+                    // FIXME: How do we know what bit lenght these have?
+                    let numBytes = rawPublicKeyPoint.count/2
+                    let x = BigInt(bigEndianParts: [UInt8](rawPublicKeyPoint[1..<1+numBytes]))
+                    let y = BigInt(bigEndianParts: [UInt8](rawPublicKeyPoint[1+numBytes..<1+2*numBytes]))
+                    self.ecdhPublicKey = EllipticCurvePoint(x: x, y: y)
+                }
+            }
+            else {
+                if let data : [UInt8] = inputStream.read16() {
                     
                     if context.dhKeyExchange != nil {
                         self.diffieHellmanPublicKey = BigInt(bigEndianParts: data)
                     }
-                    else if context.ecdhKeyExchange != nil {
-                        // FIXME: Implement client key exchange on server side
-                        precondition(false)
-                    }
                     else {
                         self.encryptedPreMasterSecret = data
                     }
-                    
-                    super.init(type: .Handshake(.ClientKeyExchange))
-                    
-                    return
                 }
             }
+            
+            super.init(type: .Handshake(.ClientKeyExchange))
+            
+            return
         }
 
         self.encryptedPreMasterSecret = []

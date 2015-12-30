@@ -53,7 +53,7 @@ public struct DiffieHellmanParameters
             return nil
         }
         
-        self.init(p: BigInt(dh_pData.reverse()), g: BigInt(dh_gData.reverse()), Ys: BigInt(dh_YsData.reverse()))
+        self.init(p: BigInt(bigEndianParts: dh_pData), g: BigInt(bigEndianParts: dh_gData), Ys: BigInt(bigEndianParts: dh_YsData))
     }
 }
 
@@ -88,7 +88,29 @@ struct ECDiffieHellmanParameters
     var curveType : ECCurveType
     var namedCurve : NamedCurve?
     
-    var publicKey : EllipticCurvePoint
+    var publicKey : EllipticCurvePoint!
+    
+    var curve : EllipticCurve {
+        get {
+            switch self.curveType
+            {
+            case .NamedCurve:
+                guard let curve = EllipticCurve.named(self.namedCurve!) else {
+                    fatalError("Unsuppored curve \(self.namedCurve)")
+                }
+                return curve
+                
+            default:
+                fatalError("Unsupported curve type \(self.curveType)")
+            }
+        }
+    }
+    
+    init(namedCurve: NamedCurve)
+    {
+        self.curveType = .NamedCurve
+        self.namedCurve = namedCurve
+    }
     
     init?(inputStream : InputStreamType)
     {
@@ -121,9 +143,30 @@ struct ECDiffieHellmanParameters
             
             let numBits = namedCurve.bitLength
             let numBytes = numBits/8
-            let x = BigInt([UInt8](rawPublicKeyPoint[1..<1+numBytes]).reverse())
-            let y = BigInt([UInt8](rawPublicKeyPoint[1+numBytes..<1+2*numBytes]).reverse())
+            let x = BigInt(bigEndianParts: [UInt8](rawPublicKeyPoint[1..<1+numBytes]))
+            let y = BigInt(bigEndianParts: [UInt8](rawPublicKeyPoint[1+numBytes..<1+2*numBytes]))
             self.publicKey = EllipticCurvePoint(x: x, y: y)
+        default:
+            fatalError("Error: unsupported curve type \(curveType)")
+        }
+    }
+}
+
+extension ECDiffieHellmanParameters : Streamable
+{
+    func writeTo<Target : OutputStreamType>(inout target: Target)
+    {
+        switch self.curveType
+        {
+        case .NamedCurve:
+            
+            target.write(self.curveType.rawValue)
+            target.write(self.namedCurve!.rawValue)
+            let Q = self.publicKey
+            let curvePointData : [UInt8] = [4] + Q.x.asBigEndianData() + Q.y.asBigEndianData()
+            target.write(UInt8(curvePointData.count))
+            target.write(curvePointData)
+            
         default:
             fatalError("Error: unsupported curve type \(curveType)")
         }
@@ -146,6 +189,15 @@ class TLSServerKeyExchange : TLSHandshakeMessage
         super.init(type: .Handshake(.ServerKeyExchange))
     }
     
+    init(ecdhParameters: ECDiffieHellmanParameters, context: TLSContext)
+    {
+        self.ecdhParameters = ecdhParameters
+        
+        self.signedParameters = TLSSignedData(data: DataBuffer(ecdhParameters).buffer, context:context)
+        
+        super.init(type: .Handshake(.ServerKeyExchange))
+    }
+
     required init?(inputStream : InputStreamType, context: TLSContext)
     {
         guard
@@ -216,7 +268,13 @@ class TLSServerKeyExchange : TLSHandshakeMessage
         }
         
         else if let ecdhParameters = self.ecdhParameters {
-            assert(false)
+            var body = DataBuffer()
+            ecdhParameters.writeTo(&body)
+            self.signedParameters.writeTo(&body)
+            let bodyData = body.buffer
+            
+            self.writeHeader(type: .ServerKeyExchange, bodyLength: bodyData.count, target: &target)
+            target.write(bodyData)
         }
     }
 }

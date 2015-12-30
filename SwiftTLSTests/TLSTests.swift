@@ -29,8 +29,8 @@ class TSLTests: XCTestCase {
         
         var configuration = TLSConfiguration(protocolVersion: TLSProtocolVersion.TLS_v1_2)
 //        configuration.cipherSuites = [.TLS_RSA_WITH_AES_256_CBC_SHA]
-        configuration.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
-//        configuration.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256]
+//        configuration.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
+        configuration.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256]
         let socket = TLSSocket(configuration: configuration)
 
 //        let (host, port) = ("195.50.155.66", 443)
@@ -53,25 +53,27 @@ class TSLTests: XCTestCase {
         opensslServer.terminate()
     }
     
-    func test_acceptConnection_whenClientConnects_works()
+    func test_clientServerWithCipherSuite(cipherSuite : CipherSuite)
     {
         var configuration = TLSConfiguration(protocolVersion: .TLS_v1_2)
-        configuration.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
+        
+        configuration.cipherSuites = [cipherSuite]
         configuration.identity = Identity(name: "Internet Widgits Pty Ltd")!
         configuration.certificatePath = NSBundle(forClass: self.dynamicType).URLForResource("mycert.pem", withExtension: nil)!.path!
         let dhParametersPath = NSBundle(forClass: self.dynamicType).URLForResource("dhparams.pem", withExtension: nil)!.path!
         configuration.dhParameters = DiffieHellmanParameters.fromPEMFile(dhParametersPath)
+        configuration.ecdhParameters = ECDiffieHellmanParameters(namedCurve: .secp256r1)
         
         let address = IPv4Address.localAddress()
         address.port = UInt16(12345)
-
+        
         let server = TLSSocket(configuration: configuration, isClient: false)
         
         let client = TLSSocket(protocolVersion: .TLS_v1_2)
-        client.context.configuration.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
-
+        client.context.configuration.cipherSuites = [cipherSuite]
+        
         let expectation = self.expectationWithDescription("accept connection successfully")
-
+        
         let serverQueue = dispatch_queue_create("server queue", nil)
         do {
             dispatch_async(serverQueue) {
@@ -94,6 +96,19 @@ class TSLTests: XCTestCase {
         
         self.waitForExpectationsWithTimeout(2.0) {
             (error : NSError?) -> Void in
+        }
+    }
+    
+    func test_acceptConnection_whenClientConnects_works()
+    {
+        let cipherSuites : [CipherSuite] = [
+            .TLS_RSA_WITH_AES_256_CBC_SHA,
+            .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
+            .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+        ]
+        
+        for cipherSuite in cipherSuites {
+            test_clientServerWithCipherSuite(cipherSuite)
         }
     }
 

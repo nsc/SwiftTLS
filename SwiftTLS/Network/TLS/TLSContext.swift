@@ -451,7 +451,16 @@ public class TLSContext
                     preMasterSecret = dhKeyExchange.calculateSharedSecret()!.asBigEndianData()
                 }
                 else {
-                    fatalError("Client Key Exchange has no encrypted master secret")
+                    fatalError("Client Key Exchange has no DH public key")
+                }
+            }
+            else if let ecdhKeyExchange = self.ecdhKeyExchange {
+                if let ecdhPublicKey = clientKeyExchange.ecdhPublicKey {
+                    ecdhKeyExchange.peerPublicKey = ecdhPublicKey
+                    preMasterSecret = ecdhKeyExchange.calculateSharedSecret()!.asBigEndianData()
+                }
+                else {
+                    fatalError("Client Key Exchange has no ECDH public key")
                 }
             }
             else {
@@ -546,27 +555,30 @@ public class TLSContext
         switch cipherSuiteDescriptor.keyExchangeAlgorithm
         {
         case .DHE_RSA:
-            guard let dhParameters = self.configuration.dhParameters else {
+            guard var dhParameters = self.configuration.dhParameters else {
                 throw TLSError.Error("No DH parameters set in configuration")
             }
             
-            // Diffie-Hellman
             self.dhKeyExchange = DHKeyExchange(dhParameters: dhParameters)
 
             // use new public key for each key exchange
-            let Ys = self.dhKeyExchange!.calculatePublicKey()
+            dhParameters.Ys = self.dhKeyExchange!.calculatePublicKey()
             
-            let dhParams = DiffieHellmanParameters(p: dhParameters.p, g: dhParameters.g, Ys: Ys)
-            let message = TLSServerKeyExchange(dhParameters: dhParams, context: self)
+            let message = TLSServerKeyExchange(dhParameters: dhParameters, context: self)
             try self.sendHandshakeMessage(message)
             
         case .ECDHE_RSA:
-//            let Q = ecdhKeyExchange.calculatePublicKey()
-//            let preMasterSecret = ecdhKeyExchange.calculateSharedSecret()!.asBigEndianData()
-//            self.setPreMasterSecretAndCommitSecurityParameters(preMasterSecret)
-//            
-//            let message = TLSClientKeyExchange(ecdhPublicKey: Q)
-//            try self.sendHandshakeMessage(message)
+            guard var ecdhParameters = self.configuration.ecdhParameters else {
+                throw TLSError.Error("No ECDH parameters set in configuration")
+            }
+
+            let ecdhKeyExchange = ECDHKeyExchange(curve: ecdhParameters.curve)
+            let Q = ecdhKeyExchange.calculatePublicKey()
+            self.ecdhKeyExchange = ecdhKeyExchange
+            
+            ecdhParameters.publicKey = Q
+            let message = TLSServerKeyExchange(ecdhParameters: ecdhParameters, context:self)
+            try self.sendHandshakeMessage(message)
             break
             
         default:
