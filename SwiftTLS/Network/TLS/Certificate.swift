@@ -11,6 +11,11 @@ import Foundation
 class Certificate
 {
     private var certificate : SecCertificateRef!
+    private var certificateData : [UInt8]
+    
+    private lazy var asn1certificate : ASN1Sequence? = {
+        return ASN1Parser(data: self.certificateData).parseObject() as? ASN1Sequence
+    }()
     
     var data : [UInt8] {
         get {
@@ -74,8 +79,40 @@ class Certificate
         }
     }
     
+    var publicKeySigner : Signing? {
+        get {
+            guard let sequence = self.asn1certificate else {
+                return nil
+            }
+            
+            guard let firstSequence = sequence.objects.first as? ASN1Sequence else {
+                return nil
+            }
+            
+            for object in firstSequence.objects
+            {
+                guard let subSequence = object as? ASN1Sequence where subSequence.objects.count == 2 else { continue }
+                guard let oidSequence = subSequence.objects[0] as? ASN1Sequence where oidSequence.objects.count == 2 else { continue }
+                guard let oidObject = oidSequence.objects.first as? ASN1ObjectIdentifier else { continue }
+                guard let oid = OID(id: oidObject.identifier) else { continue }
+                
+                guard oid == OID.rsaEncryption else { continue }
+                if let bitString = subSequence.objects[1] as? ASN1BitString {
+                    return RSA(publicKey: bitString.value)
+                }
+            }
+            
+            return nil
+        }
+    }
+    
     init(certificate : SecCertificateRef)
     {
+        let data = SecCertificateCopyData(certificate) as NSData
+        var array = [UInt8](count:data.length, repeatedValue: 0)
+        array.withUnsafeMutableBufferPointer { memcpy($0.baseAddress, data.bytes, data.length); return }
+        
+        self.certificateData = array
         self.certificate = certificate
     }
     
@@ -84,15 +121,24 @@ class Certificate
         let unmanagedCert = SecCertificateCreateWithData(kCFAllocatorDefault, certificateData)
         if let cert = unmanagedCert {
             self.certificate = cert
+            var array = [UInt8](count:certificateData.length, repeatedValue: 0)
+            array.withUnsafeMutableBufferPointer { memcpy($0.baseAddress, certificateData.bytes, certificateData.length); return }
+            self.certificateData = array
         }
         else {
             self.certificate = nil
+            self.certificateData = []
             return nil
         }
     }
 
     convenience init?(var certificateData : [UInt8])
     {
+        if let object = ASN1Parser(data: certificateData).parseObject()
+        {
+            ASN1_printObject(object)
+        }
+
         let data = NSData(bytesNoCopy: &certificateData, length: certificateData.count, freeWhenDone: false)
         self.init(certificateData: data)
     }

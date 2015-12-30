@@ -1,5 +1,5 @@
 - check padding
-- implement protocol negotiation
 - implement TLS 1.2 extension to choose hash function other than SHA256
 
 - improve BigInt multiply and pow performance
+- implement support for explicit elliptic curves

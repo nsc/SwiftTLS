@@ -8,6 +8,12 @@
 
 import Foundation
 
+enum RSA_PKCS1PaddingType : UInt8
+{
+    case None  = 0
+    case Type1 = 1
+}
+
 struct RSA
 {
     let n : BigInt
@@ -91,27 +97,97 @@ struct RSA
         self.coefficient = nil
     }
     
-    func signData(data : [UInt8]) -> BigInt
+    init?(publicKey: [UInt8])
+    {
+        guard let sequence = ASN1Parser(data: publicKey).parseObject() as? ASN1Sequence else {
+            return nil
+        }
+        
+        guard sequence.objects.count == 2 else {
+            return nil
+        }
+        
+        guard let n = sequence.objects[0] as? ASN1Integer else {
+            return nil
+        }
+
+        guard let e = sequence.objects[1] as? ASN1Integer else {
+            return nil
+        }
+
+        self.n = BigInt(bigEndianParts: n.value)
+        self.e = BigInt(bigEndianParts: e.value)
+
+        self.d = nil
+        self.p = nil
+        self.q = nil
+        self.exponent1 = nil
+        self.exponent2 = nil
+        self.coefficient = nil
+    }
+    
+    func signData(data : [UInt8], paddingType: RSA_PKCS1PaddingType? = .Type1) -> BigInt
     {
         guard let d = self.d else {
             precondition(self.d != nil)
             return BigInt(0)
         }
         
-        let m = BigInt(bigEndianParts: data)
+        let paddedData = self.paddedData(data, length: self.n.numberOfBits / 8, paddingType: paddingType!)!
+        
+        print("padded \(paddedData)")
+        
+        let m = BigInt(bigEndianParts: paddedData)
         let signature = modular_pow(m, d, n)
         
         return signature
     }
     
-    func verifySignature(signature : BigInt, data: [UInt8]) -> Bool
+    func verifySignature(signature : BigInt, data: [UInt8], paddingType: RSA_PKCS1PaddingType? = .Type1) -> Bool
     {
         let e = self.e
-        let m = BigInt(bigEndianParts: data)
         
         let verification = modular_pow(signature, e, n)
+        print("verification \(verification.asBigEndianData())")
+        guard let unpaddedVerification = self.unpaddedData(verification.asBigEndianData(), length: self.n.numberOfBits / 8, paddingType: paddingType!) else {
+            return false
+        }
         
-        return verification == m % n
+        print("unpadded \(unpaddedVerification)")
+
+        guard let sequence = ASN1Parser(data: unpaddedVerification).parseObject() as? ASN1Sequence where sequence.objects.count == 2 else {
+            return false
+        }
+        
+        guard let subSequence = sequence.objects[0] as? ASN1Sequence where subSequence.objects.count >= 1 else {
+            return false
+        }
+        
+        guard
+            let oidObject = subSequence.objects[0] as? ASN1ObjectIdentifier,
+            let oid = OID(id: oidObject.identifier)
+        else {
+            return false
+        }
+        
+        let hash : [UInt8]
+        let hashedData : [UInt8]
+        switch oid
+        {
+        case .sha1:
+            guard let octetString = sequence.objects[1] as? ASN1OctetString else {
+                return false
+            }
+            hash = octetString.value
+            hashedData = Hash_SHA1(data)
+            
+        default:
+            fatalError("Unsupported hash algorithm \(oid)")
+        }
+
+        let m = BigInt(bigEndianParts: hashedData)
+
+        return hash == (m % n).asBigEndianData()
     }
 
     func encrypt(data: [UInt8]) -> [UInt8]
@@ -130,6 +206,61 @@ struct RSA
         let decrypted = modular_pow(encrypted, d!, n)
         
         return decrypted.asBigEndianData()
+    }
+    
+    private func paddedData(data : [UInt8], length: Int, paddingType : RSA_PKCS1PaddingType) -> [UInt8]?
+    {
+        switch paddingType
+        {
+        case .None:
+            return data
+            
+        case .Type1:
+            let dataLength = data.count
+            if dataLength + 3 > length {
+                return nil
+            }
+            
+            var paddedData : [UInt8] = [0,1]
+            let paddingLength = length - 3 - dataLength
+            paddedData += [UInt8](count: paddingLength, repeatedValue: 0xff)
+            paddedData += [0]
+            paddedData += data
+            
+            return paddedData
+        }
+    }
+    
+    private func unpaddedData(paddedData : [UInt8], length: Int, paddingType : RSA_PKCS1PaddingType) -> [UInt8]?
+    {
+        switch paddingType
+        {
+        case .None:
+            return paddedData
+            
+        case .Type1:
+            guard paddedData.count + 1 == length && paddedData[0] == 1 else {
+                return nil
+            }
+            
+            // skip over padding
+            var firstNonPaddingIndex : Int = 0
+            for i in 1 ..< paddedData.count
+            {
+                if paddedData[i] == 0xff {
+                    continue
+                }
+                
+                firstNonPaddingIndex = i
+                break
+            }
+            
+            guard firstNonPaddingIndex < paddedData.count && paddedData[firstNonPaddingIndex] == 0 else {
+                return nil
+            }
+            
+            return [UInt8](paddedData[(firstNonPaddingIndex + 1) ..< paddedData.count])
+        }
     }
 }
 

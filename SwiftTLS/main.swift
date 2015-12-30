@@ -13,19 +13,41 @@ import SwiftHelper
 
 func server()
 {
-    let serverIdentity = Identity(name: "Internet Widgits Pty Ltd")
-    
     var port = 12345
+    var certificatePath : String?
+    var dhParametersPath : String?
     if Process.arguments.count >= 2 {
         let portString = Process.arguments[1]
         if let portNumber = Int(portString) {
             port = portNumber
         }
     }
+
+    if Process.arguments.count >= 3 {
+        certificatePath = Process.arguments[2]
+    }
+
+    if Process.arguments.count >= 4 {
+        dhParametersPath = Process.arguments[3]
+    }
     
     print("Listening on port \(port)")
     
-    let server = TLSSocket(protocolVersion: .TLS_v1_2, isClient: false, identity: serverIdentity!)
+    var configuration = TLSConfiguration(protocolVersion: .TLS_v1_2)
+    
+    let cipherSuite : CipherSuite = .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+//    let cipherSuite : CipherSuite = .TLS_DHE_RSA_WITH_AES_256_CBC_SHA
+//    let cipherSuite :CipherSuite = .TLS_RSA_WITH_AES_256_CBC_SHA
+    
+    configuration.cipherSuites = [cipherSuite]
+    configuration.identity = Identity(name: "Internet Widgits Pty Ltd")!
+    configuration.certificatePath = certificatePath
+    if let dhParametersPath = dhParametersPath {
+        configuration.dhParameters = DiffieHellmanParameters.fromPEMFile(dhParametersPath)
+    }
+    configuration.ecdhParameters = ECDiffieHellmanParameters(namedCurve: .secp256r1)
+    
+    let server = TLSSocket(configuration: configuration, isClient: false)
     let address = IPv4Address.localAddress()
     address.port = UInt16(port)
     
@@ -45,11 +67,12 @@ func server()
 
 func client()
 {
-    let socket = TLSSocket(protocolVersion: .TLS_v1_2)
-//    socket.context.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
-//    socket.context.cipherSuites = [.TLS_RSA_WITH_AES_256_CBC_SHA]
-    socket.context.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256]
+    var configuration = TLSConfiguration(protocolVersion: .TLS_v1_2)
+//    configuration.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256]
+    configuration.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
+//    configuration.cipherSuites = [.TLS_RSA_WITH_AES_256_CBC_SHA]
     
+    let socket = TLSSocket(configuration: configuration)
     //        var host = "195.50.155.66"
     let (host, port) = ("85.13.145.53", 443) // nschmidt.name
 //    let (host, port) = ("104.85.251.151", 443) // autodesk license server or something
@@ -76,7 +99,7 @@ func parseASN1()
     
     let object = ASN1Parser(data: data!).parseObject()
     
-    ASN1_print_recursive(object!)
+    ASN1_printObject(object!)
 }
 
 func probeCipherSuitesForHost(host : String, port : Int)
@@ -113,7 +136,7 @@ func probeCipherSuitesForHost(host : String, port : Int)
         let stateMachine = StateMachine(socket: socket)
         socket.context.stateMachine = stateMachine
 
-        socket.context.cipherSuites = [cipherSuite]
+        socket.context.configuration.cipherSuites = [cipherSuite]
         
 //        print("\(cipherSuite)\t: ", separator: "", terminator: "")
         do {

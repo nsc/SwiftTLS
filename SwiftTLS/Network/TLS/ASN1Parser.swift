@@ -444,7 +444,7 @@ public class ASN1Parser
 
 }
 
-public func ASN1_print_recursive(object: ASN1Object, depth : Int = 0)
+public func ASN1_printObject(object: ASN1Object, depth : Int = 0)
 {
     for _ in 0 ..< depth {
         print("    ", terminator: "")
@@ -455,7 +455,7 @@ public func ASN1_print_recursive(object: ASN1Object, depth : Int = 0)
     case let object as ASN1TaggedObject:
         
         print("[\(object.tag)]", terminator: "")
-        ASN1_print_recursive(object.taggedObject, depth: depth + 1)
+        ASN1_printObject(object.taggedObject, depth: depth + 1)
 
     case let object as ASN1Boolean:
         print("BOOLEAN " + (object.value ? "true" : "false"))
@@ -491,13 +491,13 @@ public func ASN1_print_recursive(object: ASN1Object, depth : Int = 0)
     case let object as ASN1Sequence:
         print("SEQUENCE (\(object.objects.count) objects)")
         for o in object.objects {
-            ASN1_print_recursive(o, depth: depth + 1)
+            ASN1_printObject(o, depth: depth + 1)
         }
 
     case let object as ASN1Set:
         print("SET (\(object.objects.count) objects)")
         for o in object.objects {
-            ASN1_print_recursive(o, depth: depth + 1)
+            ASN1_printObject(o, depth: depth + 1)
         }
 
     case let object as ASN1UTCTime:

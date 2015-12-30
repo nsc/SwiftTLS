@@ -183,8 +183,11 @@ class TLSServerKeyExchange : TLSHandshakeMessage
     init(dhParameters: DiffieHellmanParameters, context: TLSContext)
     {
         self.diffieHellmanParameters = dhParameters
-        
-        self.signedParameters = TLSSignedData(data: DataBuffer(dhParameters).buffer, context:context)
+        var data = context.securityParameters.clientRandom!
+        data += context.securityParameters.serverRandom!
+        data += DataBuffer(dhParameters).buffer
+
+        self.signedParameters = TLSSignedData(data: data, context:context)
         
         super.init(type: .Handshake(.ServerKeyExchange))
     }
@@ -193,7 +196,11 @@ class TLSServerKeyExchange : TLSHandshakeMessage
     {
         self.ecdhParameters = ecdhParameters
         
-        self.signedParameters = TLSSignedData(data: DataBuffer(ecdhParameters).buffer, context:context)
+        var data = context.securityParameters.clientRandom!
+        data += context.securityParameters.serverRandom!
+        data += DataBuffer(ecdhParameters).buffer
+
+        self.signedParameters = TLSSignedData(data: data, context:context)
         
         super.init(type: .Handshake(.ServerKeyExchange))
     }
@@ -256,25 +263,19 @@ class TLSServerKeyExchange : TLSHandshakeMessage
 
     override func writeTo<Target : OutputStreamType>(inout target: Target)
     {
+        var body = DataBuffer()
+
         if let diffieHellmanParameters = self.diffieHellmanParameters {
-            
-            var body = DataBuffer()
             diffieHellmanParameters.writeTo(&body)
-            self.signedParameters.writeTo(&body)
-            let bodyData = body.buffer
-            
-            self.writeHeader(type: .ServerKeyExchange, bodyLength: bodyData.count, target: &target)
-            target.write(bodyData)
         }
-        
         else if let ecdhParameters = self.ecdhParameters {
-            var body = DataBuffer()
             ecdhParameters.writeTo(&body)
-            self.signedParameters.writeTo(&body)
-            let bodyData = body.buffer
-            
-            self.writeHeader(type: .ServerKeyExchange, bodyLength: bodyData.count, target: &target)
-            target.write(bodyData)
         }
+
+        self.signedParameters.writeTo(&body)
+        let bodyData = body.buffer
+        
+        self.writeHeader(type: .ServerKeyExchange, bodyLength: bodyData.count, target: &target)
+        target.write(bodyData)
     }
 }

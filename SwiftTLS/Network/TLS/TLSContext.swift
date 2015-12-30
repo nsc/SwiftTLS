@@ -414,6 +414,23 @@ public class TLSContext
             let keyExchangeMessage = message as! TLSServerKeyExchange
             
             if let diffieHellmanParameters = keyExchangeMessage.diffieHellmanParameters {
+
+                // verify signature
+                if let certificate = self.serverCertificates?.first {
+                    if let rsa = certificate.publicKeySigner {
+                        let signedData = keyExchangeMessage.signedParameters
+                        var data = self.securityParameters.clientRandom!
+                        data += self.securityParameters.serverRandom!
+                        data += DataBuffer(diffieHellmanParameters).buffer
+
+                        if !rsa.verify(signedData.signature, data: data) {
+                            throw TLSError.Error("Signature error on server key exchange")
+                        }
+                    }
+                }
+                
+
+                
                 let p = diffieHellmanParameters.p
                 let g = diffieHellmanParameters.g
                 let Ys = diffieHellmanParameters.Ys
@@ -705,7 +722,6 @@ public class TLSContext
     {
         guard let signer = self.signer else {
             fatalError("Unsupported signature algorithm \(self.configuration.signatureAlgorithm)")
-            return []
         }
         
         return signer.sign(data)
