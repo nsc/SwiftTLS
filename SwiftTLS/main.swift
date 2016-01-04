@@ -68,8 +68,8 @@ func server()
 func client()
 {
     var configuration = TLSConfiguration(protocolVersion: .TLS_v1_2)
-//    configuration.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256]
-    configuration.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
+    configuration.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256]
+//    configuration.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
 //    configuration.cipherSuites = [.TLS_RSA_WITH_AES_256_CBC_SHA]
     
     let socket = TLSSocket(configuration: configuration)

@@ -415,22 +415,6 @@ public class TLSContext
             
             if let diffieHellmanParameters = keyExchangeMessage.diffieHellmanParameters {
 
-                // verify signature
-                if let certificate = self.serverCertificates?.first {
-                    if let rsa = certificate.publicKeySigner {
-                        let signedData = keyExchangeMessage.signedParameters
-                        var data = self.securityParameters.clientRandom!
-                        data += self.securityParameters.serverRandom!
-                        data += DataBuffer(diffieHellmanParameters).buffer
-
-                        if !rsa.verify(signedData.signature, data: data) {
-                            throw TLSError.Error("Signature error on server key exchange")
-                        }
-                    }
-                }
-                
-
-                
                 let p = diffieHellmanParameters.p
                 let g = diffieHellmanParameters.g
                 let Ys = diffieHellmanParameters.Ys
@@ -454,6 +438,19 @@ public class TLSContext
                 self.ecdhKeyExchange!.peerPublicKey = ecdhParameters.publicKey
             }
             
+            // verify signature
+            if let certificate = self.serverCertificates?.first {
+                if let rsa = certificate.publicKeySigner {
+                    let signedData = keyExchangeMessage.signedParameters
+                    var data = self.securityParameters.clientRandom!
+                    data += self.securityParameters.serverRandom!
+                    data += keyExchangeMessage.parametersData
+                    
+                    if !rsa.verify(signedData.signature, data: data) {
+                        throw TLSError.Error("Signature error on server key exchange")
+                    }
+                }
+            }
             
         case .ServerHelloDone:
             break
@@ -733,8 +730,8 @@ public class TLSContext
             /// PRF function as defined in RFC 2246, section 5, p. 12
 
             let halfSecretLength = secret.count / 2
-            var S1 : [UInt8]
-            var S2 : [UInt8]
+            let S1 : [UInt8]
+            let S2 : [UInt8]
             if (secret.count % 2 == 0) {
                 S1 = [UInt8](secret[0..<halfSecretLength])
                 S2 = [UInt8](secret[halfSecretLength..<secret.count])

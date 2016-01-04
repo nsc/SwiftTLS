@@ -180,6 +180,19 @@ class TLSServerKeyExchange : TLSHandshakeMessage
     
     var signedParameters : TLSSignedData
     
+    var parametersData : [UInt8] {
+        get {
+            if let dhParams = diffieHellmanParameters {
+                return DataBuffer(dhParams).buffer
+            }
+            else if let ecdhParameters = self.ecdhParameters {
+                return DataBuffer(ecdhParameters).buffer
+            }
+            
+            fatalError("Neither DH nor ECDH parameters in server key exchange")
+        }
+    }
+    
     init(dhParameters: DiffieHellmanParameters, context: TLSContext)
     {
         self.diffieHellmanParameters = dhParameters
