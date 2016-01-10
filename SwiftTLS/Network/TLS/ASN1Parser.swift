@@ -43,8 +43,17 @@ enum ASN1Class : UInt8
 }
 
 
-public class ASN1Object
+public class ASN1Object : Equatable
 {
+    private func isEqualTo(other : ASN1Object) -> Bool
+    {
+        return false
+    }
+}
+
+public func ==(lhs : ASN1Object, rhs : ASN1Object) -> Bool
+{
+    return lhs.isEqualTo(rhs)
 }
 
 class ASN1TaggedObject : ASN1Object
@@ -56,7 +65,17 @@ class ASN1TaggedObject : ASN1Object
         self.tag = tag
         self.taggedObject = taggedObject
     }
+    
+    private override func isEqualTo(other : ASN1Object) -> Bool
+    {
+        guard let other = other as? ASN1TaggedObject else {
+            return false
+        }
+        
+        return (self.tag == other.tag && self.taggedObject == other.taggedObject)
+    }
 }
+
 
 class ASN1Boolean : ASN1Object
 {
@@ -65,15 +84,33 @@ class ASN1Boolean : ASN1Object
     {
         self.value = value
     }
+    
+    private override func isEqualTo(other : ASN1Object) -> Bool
+    {
+        guard let other = other as? ASN1Boolean else {
+            return false
+        }
+        
+        return self.value == other.value
+    }
 }
 
 class ASN1Integer : ASN1Object
 {
     var value : [UInt8]
     
-    init(data : [UInt8])
+    init(value : [UInt8])
     {
-        self.value = data
+        self.value = value
+    }
+    
+    private override func isEqualTo(other : ASN1Object) -> Bool
+    {
+        guard let other = other as? ASN1Integer else {
+            return false
+        }
+        
+        return self.value == other.value
     }
 }
 
@@ -92,7 +129,6 @@ class ASN1BitString : ASN1Object
         var v : UInt = 0
         let lengthOfMostSignificantValueInBytes = self.value.count % size
         
-        var i : Int = 0
         for i in 0 ..< numValues {
             let b = UInt(self.value[i])
             v += b >> unusedBits
@@ -105,7 +141,7 @@ class ASN1BitString : ASN1Object
             v += (b & lowerBitsMask) << (8 - unusedBits)
         }
 
-        if i % size != lengthOfMostSignificantValueInBytes {
+        if numValues % size != lengthOfMostSignificantValueInBytes {
             values.append(v)
         }
         
@@ -115,7 +151,22 @@ class ASN1BitString : ASN1Object
     init(unusedBits: Int, data : [UInt8])
     {
         self.unusedBits = unusedBits
-        self.value = data
+        if unusedBits == 0 {
+            self.value = data
+        }
+        else {
+            let mask : UInt8 = 0xff - (UInt8(1 << unusedBits) - 1)
+            self.value = data[0 ..< (data.count - 1)] + [data[data.count - 1] & mask]
+        }
+    }
+    
+    private override func isEqualTo(other : ASN1Object) -> Bool
+    {
+        guard let other = other as? ASN1BitString else {
+            return false
+        }
+        
+        return self.unusedBits == other.unusedBits && self.value == other.value
     }
 }
 
@@ -127,10 +178,23 @@ class ASN1OctetString : ASN1Object
     {
         self.value = data
     }
+
+    private override func isEqualTo(other : ASN1Object) -> Bool
+    {
+        guard let other = other as? ASN1OctetString else {
+            return false
+        }
+        
+        return self.value == other.value
+    }
 }
 
 class ASN1Null : ASN1Object
 {
+    private override func isEqualTo(other : ASN1Object) -> Bool
+    {
+        return other is ASN1Null
+    }
 }
 
 class ASN1ObjectIdentifier : ASN1Object
@@ -139,6 +203,20 @@ class ASN1ObjectIdentifier : ASN1Object
     init(identifier: [Int])
     {
         self.identifier = identifier
+    }
+
+    init(oid: OID)
+    {
+        self.identifier = oid.identifier
+    }
+
+    private override func isEqualTo(other : ASN1Object) -> Bool
+    {
+        guard let other = other as? ASN1ObjectIdentifier else {
+            return false
+        }
+        
+        return self.identifier == other.identifier
     }
 }
 
@@ -150,6 +228,15 @@ class ASN1Sequence : ASN1Object
     {
         self.objects = objects
     }
+
+    private override func isEqualTo(other : ASN1Object) -> Bool
+    {
+        guard let other = other as? ASN1Sequence else {
+            return false
+        }
+
+        return self.objects == other.objects
+    }
 }
 
 class ASN1Set : ASN1Object
@@ -160,14 +247,32 @@ class ASN1Set : ASN1Object
     {
         self.objects = objects
     }
+    
+    private override func isEqualTo(other : ASN1Object) -> Bool
+    {
+        guard let other = other as? ASN1Set else {
+            return false
+        }
+        
+        return self.objects == other.objects
+    }
 }
 
-class ASN1PrintableString : ASN1Object
+class ASN1UTF8String : ASN1Object
 {
     var string : String
     init(string: String)
     {
         self.string = string
+    }
+
+    private override func isEqualTo(other : ASN1Object) -> Bool
+    {
+        guard let other = other as? ASN1UTF8String else {
+            return false
+        }
+        
+        return self.string == other.string
     }
 }
 
@@ -177,6 +282,15 @@ class ASN1UTCTime : ASN1Object
     init(string: String)
     {
         self.string = string
+    }
+    
+    private override func isEqualTo(other : ASN1Object) -> Bool
+    {
+        guard let other = other as? ASN1UTCTime else {
+            return false
+        }
+        
+        return self.string == other.string
     }
 }
 
@@ -318,7 +432,7 @@ public class ASN1Parser
 
                     case .INTEGER:
                         if let data = self.subData(cursor..<cursor + contentLength) {
-                            object = ASN1Integer(data: data)
+                            object = ASN1Integer(value: data)
                             self.cursor += contentLength
                         }
 
@@ -403,10 +517,10 @@ public class ASN1Parser
 
                         break
                         
-                    case .PRINTABLESTRING:
+                    case .PRINTABLESTRING, .UTF8STRING, .T61STRING:
                         if let data = self.subData(cursor..<cursor + contentLength) {
                             if let s = String.fromUTF8Bytes(data) {
-                                object = ASN1PrintableString(string: s as String)
+                                object = ASN1UTF8String(string: s as String)
                             }
                         }
                         self.cursor += contentLength
@@ -485,8 +599,8 @@ public func ASN1_printObject(object: ASN1Object, depth : Int = 0)
         }
         print("")
 
-    case let object as ASN1PrintableString:
-        print("PrintableString \(object.string)")
+    case let object as ASN1UTF8String:
+        print("ASN1UTF8String \(object.string)")
 
     case let object as ASN1Sequence:
         print("SEQUENCE (\(object.objects.count) objects)")
@@ -502,6 +616,9 @@ public func ASN1_printObject(object: ASN1Object, depth : Int = 0)
 
     case let object as ASN1UTCTime:
         print("UTCTIME \(object.string)")
+        
+    case _ as ASN1Object:
+        print("ASN1Object")
         
     default:
         print("")

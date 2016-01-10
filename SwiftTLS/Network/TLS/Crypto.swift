@@ -8,6 +8,6 @@
 
 protocol Signing
 {
-    func sign(data : [UInt8]) -> [UInt8]
+    func sign(data : [UInt8], hashAlgorithm: HashAlgorithm) -> [UInt8]
     func verify(signature : [UInt8], data : [UInt8]) -> Bool
 }

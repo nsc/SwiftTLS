@@ -126,14 +126,27 @@ struct RSA
         self.coefficient = nil
     }
     
-    func signData(data : [UInt8], paddingType: RSA_PKCS1PaddingType? = .Type1) -> BigInt
+    func signData(data : [UInt8], hashAlgorithm: HashAlgorithm, paddingType: RSA_PKCS1PaddingType? = .Type1) -> BigInt
     {
         guard let d = self.d else {
             precondition(self.d != nil)
             return BigInt(0)
         }
         
-        let paddedData = self.paddedData(data, length: self.n.numberOfBits / 8, paddingType: paddingType!)!
+        let hash = self.hash(data, hashAlgorithm: hashAlgorithm)
+        
+        let writer = ASN1Writer()
+        let sequence = ASN1Sequence(objects: [
+            ASN1Sequence(objects: [
+                ASN1ObjectIdentifier(oid: self.oidForHashAlgorithm(hashAlgorithm)),
+                ASN1Null()
+                ]),
+            ASN1OctetString(data: hash)
+            ])
+        
+        let derData = writer.dataFromObject(sequence)
+        
+        let paddedData = self.paddedData(derData, length: self.n.numberOfBits / 8, paddingType: paddingType!)!
         
         print("padded \(paddedData)")
         
@@ -148,7 +161,9 @@ struct RSA
         let e = self.e
         
         let verification = modular_pow(signature, e, n)
+        
         print("verification \(verification.asBigEndianData())")
+        
         guard let unpaddedVerification = self.unpaddedData(verification.asBigEndianData(), length: self.n.numberOfBits / 8, paddingType: paddingType!) else {
             return false
         }
@@ -158,6 +173,8 @@ struct RSA
         guard let sequence = ASN1Parser(data: unpaddedVerification).parseObject() as? ASN1Sequence where sequence.objects.count == 2 else {
             return false
         }
+        
+        ASN1_printObject(sequence)
         
         guard let subSequence = sequence.objects[0] as? ASN1Sequence where subSequence.objects.count >= 1 else {
             return false
@@ -262,13 +279,67 @@ struct RSA
             return [UInt8](paddedData[(firstNonPaddingIndex + 1) ..< paddedData.count])
         }
     }
+    
+    private func oidForHashAlgorithm(hashAlgorithm : HashAlgorithm) -> OID
+    {
+        switch hashAlgorithm
+        {
+//        case .MD5:
+//            return Hash_MD5(data)
+            
+        case .SHA1:
+            return OID.sha1
+            
+//        case .SHA224:
+//            return Hash_SHA224(data)
+//            
+//        case .SHA256:
+//            return Hash_SHA256(data)
+//            
+//        case .SHA384:
+//            return Hash_SHA384(data)
+//            
+//        case .SHA512:
+//            return Hash_SHA512(data)
+            
+        default:
+            fatalError("Unsupported hash algorithm \(hashAlgorithm)")
+        }
+    }
+    
+    private func hash(data : [UInt8], hashAlgorithm: HashAlgorithm) -> [UInt8]
+    {
+        switch hashAlgorithm
+        {
+        case .MD5:
+            return Hash_MD5(data)
+            
+        case .SHA1:
+            return Hash_SHA1(data)
+            
+        case .SHA224:
+            return Hash_SHA224(data)
+            
+        case .SHA256:
+            return Hash_SHA256(data)
+            
+        case .SHA384:
+            return Hash_SHA384(data)
+            
+        case .SHA512:
+            return Hash_SHA512(data)
+            
+        default:
+            fatalError("Unsupported hash algorithm \(hashAlgorithm)")
+        }
+    }
 }
 
 extension RSA : Signing
 {
-    func sign(data : [UInt8]) -> [UInt8]
+    func sign(data : [UInt8], hashAlgorithm: HashAlgorithm) -> [UInt8]
     {
-        let signature = self.signData(data)
+        let signature = self.signData(data, hashAlgorithm: hashAlgorithm)
         
         return signature.asBigEndianData()
     }

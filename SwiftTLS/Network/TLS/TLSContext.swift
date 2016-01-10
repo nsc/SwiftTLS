@@ -50,8 +50,7 @@ struct TLSSignedData : Streamable
             self.signatureAlgorithm = context.configuration.signatureAlgorithm
         }
         
-        let hash = context.hash(data)
-        self.signature = context.sign(hash)
+        self.signature = context.sign(data)
     }
     
     init?(inputStream : InputStreamType, context: TLSContext)
@@ -238,7 +237,7 @@ public class TLSContext
         self.configuration = configuration
         if !isClient {
             if let certificatePath = self.configuration.certificatePath {
-                // we are currently only supporintg RSA
+                // we are currently only supporting RSA
                 if let rsa = RSA.fromCertificateFile(certificatePath) {
                     self.signer = rsa
                 }
@@ -687,41 +686,13 @@ public class TLSContext
         }
     }
     
-    
-    internal func hash(data : [UInt8]) -> [UInt8]
-    {
-        switch self.configuration.hashAlgorithm
-        {
-        case .MD5:
-            return Hash_MD5(data)
-            
-        case .SHA1:
-            return Hash_SHA1(data)
-
-        case .SHA224:
-            return Hash_SHA224(data)
-
-        case .SHA256:
-            return Hash_SHA256(data)
-            
-        case .SHA384:
-            return Hash_SHA384(data)
-
-        case .SHA512:
-            return Hash_SHA512(data)
-            
-        default:
-            fatalError("Unsupported hash algorithm \(self.configuration.hashAlgorithm)")
-        }
-    }
-    
     internal func sign(data : [UInt8]) -> [UInt8]
     {
         guard let signer = self.signer else {
             fatalError("Unsupported signature algorithm \(self.configuration.signatureAlgorithm)")
         }
         
-        return signer.sign(data)
+        return signer.sign(data, hashAlgorithm: self.configuration.hashAlgorithm)
     }
     
     internal func PRF(secret secret : [UInt8], label : [UInt8], seed : [UInt8], outputLength : Int) -> [UInt8]
