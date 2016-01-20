@@ -97,11 +97,6 @@ public struct BigInt : IntegerArithmeticType, IntegerLiteralConvertible
         self.impl = b
     }
 
-    func toString() -> String
-    {
-        return impl.toString()
-    }
-    
     func isBitSet(bitNumber : Int) -> Bool
     {
         return impl.isBitSet(bitNumber)
@@ -166,13 +161,13 @@ public struct BigInt : IntegerArithmeticType, IntegerLiteralConvertible
 extension BigInt : CustomStringConvertible
 {
     public var description : String {
-        return self.toString()
+        return "\(self)"
     }
 }
 
 extension String {
     init(stringInterpolationSegment expr: BigInt) {
-        self.init(expr.toString())
+        self.init("\(expr.impl)")
     }
 }
 
@@ -293,8 +288,8 @@ func SwiftTLS_mod_pow_performance()
     let exponent = BigInt(hexString: exponentString)!
     let modulus = BigInt(hexString: modulusString)!
     
-    print(exponent.toString())
-    print(modulus.toString())
+    print("\(exponent)")
+    print("\(modulus)")
     
     modular_pow(generator, exponent, modulus)
 }

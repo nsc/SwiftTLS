@@ -341,7 +341,6 @@ public class TLSSocket : SocketProtocol, TLSDataProvider
     
     func writeData(data: [UInt8]) throws
     {
-        print("write data:\n\(data)")
         try self.socket?.write(data)
     }
     

@@ -367,6 +367,8 @@ public class TLSContext
     {
         let handshakeType = message.handshakeType
 
+        self.didReceiveHandshakeMessage(message)
+        
         if (handshakeType != .Finished) {
             // don't add the incoming Finished message to handshakeMessages.
             // We need to verify it's data against the handshake messages before it.
@@ -386,6 +388,10 @@ public class TLSContext
             
             if self.cipherSuite == nil {
                 try self.sendAlert(.HandshakeFailure, alertLevel: .Fatal)
+                throw TLSError.Error("No shared cipher suites. Client supports:" + clientHello.cipherSuites.map({"\($0)"}).reduce("", combine: {$0 + "\n" + $1}))
+            }
+            else {
+                print("Selected cipher suite is \(self.cipherSuite!)")
             }
             
         case .ServerHello:

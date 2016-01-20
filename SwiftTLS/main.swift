@@ -35,11 +35,14 @@ func server()
     
     var configuration = TLSConfiguration(protocolVersion: .TLS_v1_2)
     
-//    let cipherSuite : CipherSuite = .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
-    let cipherSuite : CipherSuite = .TLS_DHE_RSA_WITH_AES_256_CBC_SHA
-//    let cipherSuite :CipherSuite = .TLS_RSA_WITH_AES_256_CBC_SHA
+    let cipherSuites : [CipherSuite] = [
+//        .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+        .TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+//        .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
+//        .TLS_RSA_WITH_AES_256_CBC_SHA
+        ]
     
-    configuration.cipherSuites = [cipherSuite]
+    configuration.cipherSuites = cipherSuites
     configuration.identity = Identity(name: "Internet Widgits Pty Ltd")!
     configuration.certificatePath = certificatePath
     if let dhParametersPath = dhParametersPath {
@@ -51,17 +54,29 @@ func server()
     let address = IPv4Address.localAddress()
     address.port = UInt16(port)
     
-    do {
-        let clientSocket = try server.acceptConnection(address)
-        
-        while true {
-            let data = try clientSocket.read(count: 1024)
-            print(String.fromUTF8Bytes(data)!)
-            try clientSocket.write(data)
+    while true {
+        do {
+            let clientSocket = try server.acceptConnection(address)
+            
+            while true {
+                let data = try clientSocket.read(count: 1024)
+                print(String.fromUTF8Bytes(data)!)
+                try clientSocket.write(data)
+            }
         }
-    }
-    catch(let error) {
-        print("Error: \(error)")
+        catch(let error) {
+            if let tlserror = error as? TLSError {
+                switch tlserror {
+                case .Error(let message):
+                    print("Error: \(message)")
+                }
+                
+                continue
+            }
+            
+            
+            print("Error: \(error)")
+        }
     }
 }
 

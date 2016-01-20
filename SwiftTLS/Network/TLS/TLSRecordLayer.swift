@@ -200,8 +200,7 @@ public class TLSRecordLayer
             
         guard
             let (contentType, bodyLength) = TLSRecord.probeHeader(header) else {
-                
-                fatalError("Probe failed")
+                throw TLSError.Error("Probe failed with malformed header \(header)")
         }
         
         let body = try self.dataProvider!.readData(count: bodyLength)
@@ -410,9 +409,6 @@ public class TLSRecordLayer
             }
             
             if let decryptedMessage = decrypt(data, key: encryptionParameters.bulkKey, IV: encryptionParameters.IV) {
-
-                print("\(encryptionParameters.blockLength)")
-                print(decryptedMessage)
                 var message : [UInt8]
                 if self.protocolVersion >= TLSProtocolVersion.TLS_v1_1 {
                     message = [UInt8](decryptedMessage[encryptionParameters.blockLength..<decryptedMessage.count])

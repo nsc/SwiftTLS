@@ -298,7 +298,7 @@ class BigIntTests: XCTestCase {
         
         let s = BIGNUM_multiply(hexString, hexString)
         
-        let nString = nSquared.toString()
+        let nString = String(nSquared)
         
         XCTAssert(nString.lowercaseString == s.lowercaseString)
     }
@@ -313,7 +313,7 @@ class BigIntTests: XCTestCase {
         
         let s = BIGNUM_multiply(aHex, bHex)
         
-        let productHex = product.toString()
+        let productHex = String(product)
         
         XCTAssert(productHex.lowercaseString == s.lowercaseString)
     }
@@ -384,15 +384,15 @@ class BigIntTests: XCTestCase {
                 swap(&u, &v)
             }
             
-            let s = BIGNUM_divide(u.toString(), v.toString())
+            let s = BIGNUM_divide(String(u), String(v))
 
             let div = u / v
             
-            let divHex = div.toString()
+            let divHex = String(div)
             
             if divHex.lowercaseString != s.lowercaseString {
 //                print("\(i):")
-                print("Wrong division result for \(u.toString()) / \(v.toString())")
+                print("Wrong division result for \(u) / \(v)")
                 print("    Should be       \(s)\n" +
                       "    but is actually \(divHex)")
             }
@@ -456,15 +456,15 @@ class BigIntTests: XCTestCase {
                 swap(&u, &v)
             }
             
-            let s = BIGNUM_mod(u.toString(), v.toString())
+            let s = BIGNUM_mod(String(u), String(v))
 
             let div = u % v
             
-            let divHex = div.toString()
+            let divHex = String(div)
             
             if divHex.lowercaseString != s.lowercaseString {
                 print("\(i):")
-                print("Wrong mod result for \(u.toString()) % \(v.toString())")
+                print("Wrong mod result for \(u) % \(v)")
                 print("    Should be       \(s)\n" +
                     "    but is actually \(divHex)")
             }
@@ -481,15 +481,15 @@ class BigIntTests: XCTestCase {
             let mod = randomBigInt()
             let n = Int(arc4random() % 10000)
             
-            let s = BIGNUM_mod_pow(u.toString(), String(n, radix: 16), mod.toString())
+            let s = BIGNUM_mod_pow(String(u), String(n, radix: 16), String(mod))
             
             let result = modular_pow(u, n, mod)
             
-            let divHex = result.toString()
+            let divHex = String(result)
             
             if divHex.lowercaseString != s.lowercaseString {
                 print("\(i):")
-                print("Wrong mod_pow result for \(u.toString()) % \(n)")
+                print("Wrong mod_pow result for \(u) % \(n)")
                 print("    Should be       \(s)\n" +
                     "    but is actually \(divHex)")
             }
@@ -506,15 +506,15 @@ class BigIntTests: XCTestCase {
             let mod = randomBigInt()
             let n = randomBigInt()
             
-            let s = BIGNUM_mod_pow(u.toString(), n.toString(), mod.toString())
+            let s = BIGNUM_mod_pow(String(u), String(n), String(mod))
             
             let result = modular_pow(u, n, mod)
             
-            let divHex = result.toString()
+            let divHex = String(result)
             
             if divHex.lowercaseString != s.lowercaseString {
                 print("\(i):")
-                print("Wrong mod_pow result for \(u.toString()) % \(n)")
+                print("Wrong mod_pow result for \(u) % \(n)")
                 print("    Should be       \(s)\n" +
                     "    but is actually \(divHex)")
             }
@@ -615,8 +615,8 @@ class BigIntTests: XCTestCase {
         let exponent = BigInt(hexString: exponentString)!
         let modulus = BigInt(hexString: modulusString)!
         
-        print(exponent.toString())
-        print(modulus.toString())
+        print(exponent)
+        print(modulus)
         
         //        let generator = BigInt([2] as [UInt32], negative: false)
 //        let exponent = BigInt([3116988641, 3983070910, 2701520770, 1363639321, 2557765447, 342272273, 2475071927, 2955743727, 2979479703, 715122230, 2343412841, 3499847595, 764462914, 263700299, 373275624, 1287566206] as [UInt32], negative: false)

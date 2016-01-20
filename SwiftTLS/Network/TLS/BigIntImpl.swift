@@ -157,39 +157,6 @@ struct BigIntImpl<U where U : UnsignedIntegerType> {
         self.init(bytes.reverse(), negative: negative)
     }
     
-    func toString() -> String
-    {
-        var s = self.sign ? "-" : ""
-        var onlyZeroesYet = true
-        let count = Int(parts.count)
-        
-        for i in (0..<count).reverse()
-        {
-            let part = self.parts[i].toUIntMax()
-            var c : UInt8
-            
-            var shift = (sizeof(PrimitiveType) - 1) * 8
-            var mask : UIntMax = UIntMax(0xff) << UIntMax(shift)
-            for _ in 0 ..< sizeof(PrimitiveType)
-            {
-                c = UInt8((part & mask) >> UIntMax(shift))
-                if !onlyZeroesYet || c != 0 {
-                    s += hexString(c)
-                    onlyZeroesYet = false
-                }
-                
-                mask = mask >> 8
-                shift = shift - 8
-            }
-        }
-        
-        if onlyZeroesYet {
-            return "0"
-        }
-        
-        return s
-    }
-
     mutating func normalize()
     {
         while parts.last != nil && parts.last! == 0 {
@@ -218,13 +185,10 @@ struct BigIntImpl<U where U : UnsignedIntegerType> {
     
     static func random<U : KnowsLargerIntType>(max : BigIntImpl<U>) -> BigIntImpl<U>
     {
-        let mask = UIntMax(1 << (sizeof(U) * 8) - 1)
         let num = max.parts.count
-        var n = BigIntImpl<U>(capacity: num)
-        for _ in 0 ..< num
-        {
-            n.parts.append(U(UIntMax(arc4random()) & mask))
-        }
+        var n = BigIntImpl<U>(count: num)
+
+        n.parts.withUnsafeMutableBufferPointer { arc4random_buf($0.baseAddress, num); return }
         
         n = n % max
         
@@ -232,16 +196,46 @@ struct BigIntImpl<U where U : UnsignedIntegerType> {
     }
 }
 
-extension BigIntImpl : CustomStringConvertible
-{
-    var description : String {
-        return self.toString()
+extension String {
+    init<T>(stringInterpolationSegment expr : BigIntImpl<T>)
+    {
+        var s = expr.sign ? "-" : ""
+        var onlyZeroesYet = true
+        let count = Int(expr.parts.count)
+        
+        for i in (0..<count).reverse()
+        {
+            let part = expr.parts[i].toUIntMax()
+            var c : UInt8
+            
+            var shift = (sizeof(BigIntImpl<T>.PrimitiveType.self) - 1) * 8
+            var mask : UIntMax = UIntMax(0xff) << UIntMax(shift)
+            for _ in 0 ..< sizeof(BigIntImpl<T>.PrimitiveType.self)
+            {
+                c = UInt8((part & mask) >> UIntMax(shift))
+                if !onlyZeroesYet || c != 0 {
+                    s += hexString(c)
+                    onlyZeroesYet = false
+                }
+                
+                mask = mask >> 8
+                shift = shift - 8
+            }
+        }
+        
+        if onlyZeroesYet {
+            s = "0"
+        }
+        
+        self.init(s)
     }
 }
 
-func toString<U>(x : BigIntImpl<U>) -> String
+extension BigIntImpl : CustomStringConvertible
 {
-    return x.toString()
+    var description : String {
+        return "\(self)"
+    }
 }
 
 func +<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>

@@ -148,8 +148,6 @@ struct RSA
         
         let paddedData = self.paddedData(derData, length: self.n.numberOfBits / 8, paddingType: paddingType!)!
         
-        print("padded \(paddedData)")
-        
         let m = BigInt(bigEndianParts: paddedData)
         let signature = modular_pow(m, d, n)
         
@@ -162,14 +160,10 @@ struct RSA
         
         let verification = modular_pow(signature, e, n)
         
-        print("verification \(verification.asBigEndianData())")
-        
         guard let unpaddedVerification = self.unpaddedData(verification.asBigEndianData(), length: self.n.numberOfBits / 8, paddingType: paddingType!) else {
             return false
         }
         
-        print("unpadded \(unpaddedVerification)")
-
         guard let sequence = ASN1Parser(data: unpaddedVerification).parseObject() as? ASN1Sequence where sequence.objects.count == 2 else {
             return false
         }
@@ -271,6 +265,8 @@ struct RSA
                 firstNonPaddingIndex = i
                 break
             }
+            
+            // FIXME: Check that we have the minimum amount of necessary padding
             
             guard firstNonPaddingIndex < paddedData.count && paddedData[firstNonPaddingIndex] == 0 else {
                 return nil
