@@ -48,7 +48,7 @@ func server()
     if let dhParametersPath = dhParametersPath {
         configuration.dhParameters = DiffieHellmanParameters.fromPEMFile(dhParametersPath)
     }
-    configuration.ecdhParameters = ECDiffieHellmanParameters(namedCurve: .secp256r1)
+    configuration.ecdhParameters = ECDiffieHellmanParameters(namedCurve: .secp521r1)
     
     let server = TLSSocket(configuration: configuration, isClient: false)
     let address = IPv4Address.localAddress()
@@ -80,7 +80,7 @@ func server()
     }
 }
 
-func client()
+func connectTo(host host : String, port : Int = 443)
 {
     var configuration = TLSConfiguration(protocolVersion: .TLS_v1_2)
     configuration.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256]
@@ -88,17 +88,13 @@ func client()
 //    configuration.cipherSuites = [.TLS_RSA_WITH_AES_256_CBC_SHA]
     
     let socket = TLSSocket(configuration: configuration)
-    //        var host = "195.50.155.66"
-    let (host, port) = ("85.13.145.53", 443) // nschmidt.name
-//    let (host, port) = ("104.86.58.252", 443)
-//    let (host, port) = ("64.41.200.100", 443)
-//    let (host, port) = ("104.85.251.151", 443) // autodesk license server or something
-//    let (host, port) = ("127.0.0.1", 4433)
     
     do {
         try socket.connect(IPAddress.addressWithString(host, port: port)!)
         
-        try socket.write([UInt8]("GET / HTTP/1.1\r\nHost: nschmidt.name\r\n\r\n".utf8))
+        print("Connection established using cipher suite ", socket.context.cipherSuite!)
+        
+        try socket.write([UInt8]("GET / HTTP/1.1\r\nHost: \(host)\r\n\r\n".utf8))
         let data = try socket.read(count: 4096)
         print("\(data.count) bytes read.")
         print("\(String.fromUTF8Bytes(data)!)")
@@ -166,8 +162,89 @@ func probeCipherSuitesForHost(host : String, port : Int)
     }
 }
 
-//client()
-server()
+guard Process.arguments.count >= 2 else {
+    print("Error: No command given")
+    exit(1)
+}
+
+let command = Process.arguments[1]
+
+switch command
+{
+case "client":
+    guard Process.arguments.count > 2 else {
+        print("Error: Missing arguments for subcommand \"\(command)\"")
+        exit(1)
+    }
+    
+    if Process.arguments.count == 3 {
+        connectTo(host: Process.arguments[2])
+    }
+    else {
+        guard let port = Int(Process.arguments[3]) else {
+            print("Error: Malformed port argument for subcommand \"\(command)\"")
+            exit(1)
+        }
+        
+        connectTo(host:Process.arguments[2], port: port)
+    }
+    
+    break
+    
+case "asn1parse":
+
+    guard Process.arguments.count > 2 else {
+        print("Error: Missing arguments for subcommand \"\(command)\"")
+        exit(1)
+    }
+
+    let file = Process.arguments[2]
+    let data = NSData(contentsOfFile: file)
+    if  let data = data,
+        let object = ASN1Parser(data: data).parseObject()
+    {
+        ASN1_printObject(object)
+    }
+    else {
+        print("Error: Could not parse \"\(file)\"")
+    }
+    
+    break
+
+case "p12":
+    
+    guard Process.arguments.count > 2 else {
+        print("Error: Missing arguments for subcommand \"\(command)\"")
+        exit(1)
+    }
+    
+    let file = Process.arguments[2]
+    let data = NSData(contentsOfFile: file)
+    if  let data = data,
+        let object = ASN1Parser(data: data).parseObject()
+    {
+        if let sequence = object as? ASN1Sequence,
+            let subSequence = sequence.objects[1] as? ASN1Sequence,
+            let oid = subSequence.objects.first as? ASN1ObjectIdentifier where OID(id: oid.identifier) == .PKCS7_data,
+            let taggedObject = subSequence.objects[1] as? ASN1TaggedObject,
+            let octetString = taggedObject.taggedObject as? ASN1OctetString
+        {
+            if let o = ASN1Parser(data: octetString.value).parseObject() {
+                ASN1_printObject(o)
+            }
+        }
+    }
+    else {
+        print("Error: Could not parse \"\(file)\"")
+    }
+    
+    break
+    
+default:
+    print("Error: Unknown command \"\(command)\"")
+}
+
+//server()
 //probeCipherSuitesForHost("77.74.169.27", port: 443)
 //probeCipherSuitesForHost("85.13.145.53", port: 443)
 //probeCipherSuitesForHost("62.153.105.15", port: 443)

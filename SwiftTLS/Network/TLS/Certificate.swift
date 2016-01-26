@@ -96,7 +96,7 @@ class Certificate
                 guard let oidObject = oidSequence.objects.first as? ASN1ObjectIdentifier else { continue }
                 guard let oid = OID(id: oidObject.identifier) else { continue }
                 
-                guard oid == OID.rsaEncryption else { continue }
+                guard oid == OID.RSAEncryption else { continue }
                 if let bitString = subSequence.objects[1] as? ASN1BitString {
                     return RSA(publicKey: bitString.value)
                 }

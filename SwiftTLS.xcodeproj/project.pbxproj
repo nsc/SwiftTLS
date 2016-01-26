@@ -401,7 +401,7 @@
 		034F126B1C3299D500AD1257 /* ECDSA.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ECDSA.swift; sourceTree = "<group>"; };
 		0350D6F91C0093560093C785 /* BigInt.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BigInt.swift; sourceTree = "<group>"; };
 		0356FBB41C397956003215A5 /* OID.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = OID.swift; sourceTree = "<group>"; };
-		03657D061B07BDEF00293CE3 /* swifttls-test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "swifttls-test"; sourceTree = BUILT_PRODUCTS_DIR; };
+		03657D061B07BDEF00293CE3 /* tlstool */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = tlstool; sourceTree = BUILT_PRODUCTS_DIR; };
 		0367947F1BFD0BF9006C5155 /* math.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = math.swift; sourceTree = "<group>"; };
 		036A7C131B07C26800AE46F8 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		036C47401AC70BEB007C5501 /* NSDataVsArrayPerformanceTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NSDataVsArrayPerformanceTests.swift; sourceTree = "<group>"; };
@@ -513,7 +513,7 @@
 				031868E91ADDA93400CB51E1 /* MyPlayground.playground */,
 				033AC3581AC473730004EEC1 /* SwiftTLS */,
 				033AC36B1AC473730004EEC1 /* SwiftTLSTests */,
-				0379D7571BA219040091634C /* SwiftTLS-Test */,
+				0379D7571BA219040091634C /* SwiftTLS Tool */,
 				033AC3571AC473730004EEC1 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -521,7 +521,7 @@
 		033AC3571AC473730004EEC1 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				03657D061B07BDEF00293CE3 /* swifttls-test */,
+				03657D061B07BDEF00293CE3 /* tlstool */,
 				03FA949F1B9E1A0500F08FB8 /* SwiftTLS.framework */,
 				03FA94A81B9E1A0500F08FB8 /* SwiftTLSTests.xctest */,
 			);
@@ -830,12 +830,12 @@
 			name = "Hello Extensions";
 			sourceTree = "<group>";
 		};
-		0379D7571BA219040091634C /* SwiftTLS-Test */ = {
+		0379D7571BA219040091634C /* SwiftTLS Tool */ = {
 			isa = PBXGroup;
 			children = (
 				03B4F7541BA2199B00753DD5 /* main.swift */,
 			);
-			name = "SwiftTLS-Test";
+			name = "SwiftTLS Tool";
 			path = SwiftTLS;
 			sourceTree = "<group>";
 		};
@@ -854,9 +854,9 @@
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
-		03657D051B07BDEF00293CE3 /* swifttls-test */ = {
+		03657D051B07BDEF00293CE3 /* tlstool */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 03657D0A1B07BDEF00293CE3 /* Build configuration list for PBXNativeTarget "swifttls-test" */;
+			buildConfigurationList = 03657D0A1B07BDEF00293CE3 /* Build configuration list for PBXNativeTarget "tlstool" */;
 			buildPhases = (
 				03657D021B07BDEF00293CE3 /* Sources */,
 				03657D031B07BDEF00293CE3 /* Frameworks */,
@@ -866,9 +866,9 @@
 			);
 			dependencies = (
 			);
-			name = "swifttls-test";
+			name = tlstool;
 			productName = "swifttls-test";
-			productReference = 03657D061B07BDEF00293CE3 /* swifttls-test */;
+			productReference = 03657D061B07BDEF00293CE3 /* tlstool */;
 			productType = "com.apple.product-type.tool";
 		};
 		03FA949E1B9E1A0500F08FB8 /* SwiftTLS */ = {
@@ -942,7 +942,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				03657D051B07BDEF00293CE3 /* swifttls-test */,
+				03657D051B07BDEF00293CE3 /* tlstool */,
 				03FA949E1B9E1A0500F08FB8 /* SwiftTLS */,
 				03FA94A71B9E1A0500F08FB8 /* SwiftTLSTests */,
 			);
@@ -1321,7 +1321,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_INCLUDE_PATHS = "${SRCROOT}/SwiftTLS/modulemaps/SwiftHelper ${SRCROOT}/SwiftTLS/modulemaps/CommonCrypto ${SRCROOT}/SwiftTLS/modulemaps/OpenSSL";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				"SWIFT_OPTIMIZATION_LEVEL[arch=*]" = "-Owholemodule";
+				"SWIFT_OPTIMIZATION_LEVEL[arch=*]" = "-Onone";
 			};
 			name = Debug;
 		};
@@ -1366,7 +1366,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_INCLUDE_PATHS = "${SRCROOT}/SwiftTLS/modulemaps/SwiftHelper ${SRCROOT}/SwiftTLS/modulemaps/CommonCrypto ${SRCROOT}/SwiftTLS/modulemaps/OpenSSL";
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
 			};
@@ -1439,7 +1439,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		03657D0A1B07BDEF00293CE3 /* Build configuration list for PBXNativeTarget "swifttls-test" */ = {
+		03657D0A1B07BDEF00293CE3 /* Build configuration list for PBXNativeTarget "tlstool" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				03657D0B1B07BDEF00293CE3 /* Debug */,

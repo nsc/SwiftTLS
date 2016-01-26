@@ -115,7 +115,7 @@ struct EllipticCurve
     let b : BigInt
     let G : EllipticCurvePoint
     let n : BigInt
-
+    
     private func isOnCurve(point : EllipticCurvePoint) -> Bool
     {
         let x = point.x
@@ -220,6 +220,14 @@ struct EllipticCurveKey
     let Q : EllipticCurvePoint
 }
 
+struct EllipticCurveParameters {
+    let P : BigInt
+    let A : BigInt
+    let B : BigInt
+    let G : EllipticCurvePoint
+    let N : BigInt
+}
+
 let prime192v1_P =  BigInt(bigEndianParts: [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
                                             0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
                                             0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF] as [UInt8])
@@ -245,35 +253,27 @@ let prime192v1_N =  BigInt(bigEndianParts: [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
                                             0x14, 0x6B, 0xC9, 0xB1, 0xB4, 0xD2, 0x28, 0x31] as [UInt8])
 
 
-let prime256v1_P =  BigInt(bigEndianParts: [0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x01,
-                                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                                            0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
-                                            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF] as[UInt8])
+let secp256r1 = EllipticCurve(
+    p: BigInt(hexString: "FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF")!,
+    a: BigInt(hexString: "FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFC")!,
+    b: BigInt(hexString: "5AC635D8AA3A93E7B3EBBD55769886BC651D06B0CC53B0F63BCE3C3E27D2604B")!,
+    G: EllipticCurvePoint(
+        x: BigInt(hexString: "6B17D1F2E12C4247F8BCE6E563A440F277037D812DEB33A0F4A13945D898C296")!,
+        y: BigInt(hexString: "4FE342E2FE1A7F9B8EE7EB4A7C0F9E162BCE33576B315ECECBB6406837BF51F5")!
+    ),
+    n: BigInt(hexString: "FFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551")!
+    )
 
-let prime256v1_A =  BigInt(bigEndianParts: [0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x01,
-                                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                                            0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
-                                            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFC] as [UInt8])
-
-let prime256v1_B =  BigInt(bigEndianParts: [0x5A, 0xC6, 0x35, 0xD8, 0xAA, 0x3A, 0x93, 0xE7,
-                                            0xB3, 0xEB, 0xBD, 0x55, 0x76, 0x98, 0x86, 0xBC,
-                                            0x65, 0x1D, 0x06, 0xB0, 0xCC, 0x53, 0xB0, 0xF6,
-                                            0x3B, 0xCE, 0x3C, 0x3E, 0x27, 0xD2, 0x60, 0x4B] as [UInt8])
-
-let prime256v1_Gx = BigInt(bigEndianParts: [0x6B, 0x17, 0xD1, 0xF2, 0xE1, 0x2C, 0x42, 0x47,
-                                            0xF8, 0xBC, 0xE6, 0xE5, 0x63, 0xA4, 0x40, 0xF2,
-                                            0x77, 0x03, 0x7D, 0x81, 0x2D, 0xEB, 0x33, 0xA0,
-                                            0xF4, 0xA1, 0x39, 0x45, 0xD8, 0x98, 0xC2, 0x96] as [UInt8])
-
-let prime256v1_Gy = BigInt(bigEndianParts: [0x4F, 0xE3, 0x42, 0xE2, 0xFE, 0x1A, 0x7F, 0x9B,
-                                            0x8E, 0xE7, 0xEB, 0x4A, 0x7C, 0x0F, 0x9E, 0x16,
-                                            0x2B, 0xCE, 0x33, 0x57, 0x6B, 0x31, 0x5E, 0xCE,
-                                            0xCB, 0xB6, 0x40, 0x68, 0x37, 0xBF, 0x51, 0xF5] as [UInt8])
-
-let prime256v1_N =  BigInt(bigEndianParts: [0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00,
-                                            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-                                            0xBC, 0xE6, 0xFA, 0xAD, 0xA7, 0x17, 0x9E, 0x84,
-                                            0xF3, 0xB9, 0xCA, 0xC2, 0xFC, 0x63, 0x25, 0x51] as [UInt8])
+let secp521r1 = EllipticCurve(
+    p: BigInt(hexString: "01FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")!,
+    a: BigInt(hexString: "01FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC")!,
+    b: BigInt(hexString: "0051953EB9618E1C9A1F929A21A0B68540EEA2DA725B99B315F3B8B489918EF109E156193951EC7E937B1652C0BD3BB1BF073573DF883D2C34F1EF451FD46B503F00")!,
+    G: EllipticCurvePoint(
+        x: BigInt(hexString: "00C6858E06B70404E9CD9E3ECB662395B4429C648139053FB521F828AF606B4D3DBAA14B5E77EFE75928FE1DC127A2FFA8DE3348B3C1856A429BF97E7E31C2E5BD66")!,
+        y: BigInt(hexString: "011839296A789A3BC0045C8A5FB42C7D1BD998F54449579B446817AFBD17273E662C97EE72995EF42640C550B9013FAD0761353C7086A272C24088BE94769FD16650")!
+    ),
+    n: BigInt(hexString: "01FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFA51868783BF2F966B7FCC0148F709A5D0899C47AEBB6FB71E91386409")!
+)
 
 
 extension EllipticCurve {
@@ -282,7 +282,13 @@ extension EllipticCurve {
         switch name
         {
         case .secp256r1:
-            return EllipticCurve(p: prime256v1_P, a: prime256v1_A, b: prime256v1_B, G: EllipticCurvePoint(x:prime256v1_Gx, y: prime256v1_Gy), n: prime256v1_N)
+            return secp256r1
+            
+//        case .secp384r1:
+//            break
+            
+        case .secp521r1:
+            return secp521r1
             
         default:
             return nil

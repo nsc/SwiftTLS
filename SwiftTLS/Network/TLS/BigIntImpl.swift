@@ -155,6 +155,7 @@ struct BigIntImpl<U where U : UnsignedIntegerType> {
         }
         
         self.init(bytes.reverse(), negative: negative)
+        self.normalize()
     }
     
     mutating func normalize()
@@ -182,6 +183,78 @@ struct BigIntImpl<U where U : UnsignedIntegerType> {
         
         return (self.parts[partNumber].toUIntMax() & (UIntMax(1) << UIntMax(bit))) != 0
     }
+    
+//    func square() -> BigIntImpl<U>
+//    {
+//        let count = self.parts.count;
+//        let resultCount = 2 * count
+//        
+//        var result = BigIntImpl<U>(count: resultCount)
+//        
+//        for i in 0 ..< count {
+//            
+//            var overflow    : Bool
+//            
+//            var lo      : UInt64 = 0
+//            var hi      : UInt64 = 0
+//            
+//            let x = self.parts[i].toUIntMax()
+//            NSC_multiply64(x, x, &lo, &hi)
+//
+//            (result.parts[2 * i], overflow) = U.addWithOverflow(result.parts[2 * i], U(lo.toUIntMax()))
+//            
+//            if overflow {
+//                hi += 1
+//            }
+//
+//            let c = hi
+//            result.parts[2 * i] = lo
+//            for j in 0 ..< (i + 1) {
+//                
+//                var lo      : UInt64 = 0
+//                var hi      : UInt64 = 0
+//                
+//                NSC_multiply64(self.parts[i].toUIntMax(), self.parts[j].toUIntMax(), &lo, &hi)
+//                
+//                if lo == 0 && hi == 0 {
+//                    continue
+//                }
+//                
+//                if sizeof(U) < sizeof(UIntMax) {
+//                    let shift : UIntMax = UIntMax(8 * sizeof(U))
+//                    let mask : UIntMax = (0xffffffffffffffff >> UIntMax(64 - shift))
+//                    hi = (lo & (mask << shift)) >> shift
+//                    lo = lo & mask
+//                }
+//                
+//                (result.parts[i + j], overflow) = U.addWithOverflow(result.parts[i + j], U(lo.toUIntMax()))
+//                
+//                if overflow {
+//                    hi += 1
+//                }
+//                
+//                var temp = hi
+//                var index = i + j + 1
+//                while true {
+//                    (result.parts[index], overflow) = U.addWithOverflow(result.parts[index], U(temp.toUIntMax()))
+//                    if overflow {
+//                        temp = 1
+//                        index += 1
+//                    }
+//                    else {
+//                        break
+//                    }
+//                }
+//            }
+//        }
+//        
+//        result.normalize()
+//        
+//        result.sign = false
+//        
+//        return result
+//
+//    }
     
     static func random<U : KnowsLargerIntType>(max : BigIntImpl<U>) -> BigIntImpl<U>
     {

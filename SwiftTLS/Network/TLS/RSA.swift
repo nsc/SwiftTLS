@@ -185,7 +185,7 @@ struct RSA
         let hashedData : [UInt8]
         switch oid
         {
-        case .sha1:
+        case .SHA1:
             guard let octetString = sequence.objects[1] as? ASN1OctetString else {
                 return false
             }
@@ -284,7 +284,7 @@ struct RSA
 //            return Hash_MD5(data)
             
         case .SHA1:
-            return OID.sha1
+            return OID.SHA1
             
 //        case .SHA224:
 //            return Hash_SHA224(data)

@@ -92,6 +92,7 @@ struct TLSSignedData : Streamable
 enum TLSError : ErrorType
 {
     case Error(String)
+    case Alert(alert : TLSAlert)
 }
 
 
@@ -355,7 +356,10 @@ public class TLSContext
         case .Alert:
             let alert = message as! TLSAlertMessage
             self.stateMachine.didReceiveAlert(alert)
-
+            if alert.alertLevel == .Fatal {
+                throw TLSError.Alert(alert: alert.alert)
+            }
+            
             break
             
         case .ApplicationData:
@@ -434,11 +438,14 @@ public class TLSContext
                     throw TLSError.Error("Unsupported curve type \(ecdhParameters.curveType)")
                 }
                 
-                guard let curve = EllipticCurve.named(ecdhParameters.namedCurve!)
+                guard
+                    let namedCurve = ecdhParameters.namedCurve,
+                    let curve = EllipticCurve.named(namedCurve)
                 else {
                     throw TLSError.Error("Unsupported curve \(ecdhParameters.namedCurve)")
                 }
-
+                print("Using curve \(namedCurve)")
+                
                 self.ecdhKeyExchange = ECDHKeyExchange(curve: curve)
                 self.ecdhKeyExchange!.peerPublicKey = ecdhParameters.publicKey
             }
@@ -530,7 +537,8 @@ public class TLSContext
             compressionMethods: [.NULL])
         
         if self.configuration.cipherSuites.contains({ if let descriptor = TLSCipherSuiteDescriptorForCipherSuite($0) { return descriptor.keyExchangeAlgorithm == .ECDHE_RSA} else { return false } }) {
-            clientHello.extensions.append(TLSEllipticCurvesExtension(ellipticCurves: [.secp256r1, .secp384r1, .secp521r1]))
+//            clientHello.extensions.append(TLSEllipticCurvesExtension(ellipticCurves: [.secp256r1, .secp384r1, .secp521r1]))
+            clientHello.extensions.append(TLSEllipticCurvesExtension(ellipticCurves: [.secp521r1]))
             clientHello.extensions.append(TLSEllipticCurvePointFormatsExtension(ellipticCurvePointFormats: [.uncompressed]))
         }
         
