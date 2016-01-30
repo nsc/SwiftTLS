@@ -68,7 +68,6 @@ class TLSMessage : Streamable
     }
     
     required init?(inputStream: InputStreamType, context: TLSContext) {
-        self.type = .Alert(.Warning, .CloseNotify)
         return nil
     }
     

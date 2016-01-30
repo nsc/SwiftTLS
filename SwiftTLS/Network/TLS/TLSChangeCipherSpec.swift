@@ -23,7 +23,6 @@ class TLSChangeCipherSpec : TLSMessage
             }
         }
 
-        super.init(type: .ChangeCipherSpec)
         return nil
     }
     

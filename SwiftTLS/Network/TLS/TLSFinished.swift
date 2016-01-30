@@ -25,8 +25,6 @@ class TLSFinished : TLSHandshakeMessage
             let (type, _) = TLSHandshakeMessage.readHeader(inputStream) where type == TLSHandshakeType.Finished,
             let verifyData : [UInt8] = inputStream.read(count: 12)
         else {
-            self.verifyData = []
-            super.init(type: .Handshake(.Finished))
             return nil
         }
         

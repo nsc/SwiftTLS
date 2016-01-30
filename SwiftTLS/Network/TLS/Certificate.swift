@@ -119,17 +119,12 @@ class Certificate
     init?(certificateData : NSData)
     {
         let unmanagedCert = SecCertificateCreateWithData(kCFAllocatorDefault, certificateData)
-        if let cert = unmanagedCert {
-            self.certificate = cert
-            var array = [UInt8](count:certificateData.length, repeatedValue: 0)
-            array.withUnsafeMutableBufferPointer { memcpy($0.baseAddress, certificateData.bytes, certificateData.length); return }
-            self.certificateData = array
-        }
-        else {
-            self.certificate = nil
-            self.certificateData = []
-            return nil
-        }
+        guard let cert = unmanagedCert else { return nil }
+        
+        self.certificate = cert
+        var array = [UInt8](count:certificateData.length, repeatedValue: 0)
+        array.withUnsafeMutableBufferPointer { memcpy($0.baseAddress, certificateData.bytes, certificateData.length); return }
+        self.certificateData = array
     }
 
     convenience init?(var certificateData : [UInt8])

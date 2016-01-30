@@ -221,11 +221,8 @@ class TLSServerKeyExchange : TLSHandshakeMessage
     required init?(inputStream : InputStreamType, context: TLSContext)
     {
         guard
-            let (type, bodyLength) = TLSHandshakeMessage.readHeader(inputStream) where type == TLSHandshakeType.ServerKeyExchange
+            let (type, _) = TLSHandshakeMessage.readHeader(inputStream) where type == TLSHandshakeType.ServerKeyExchange
         else {
-            self.signedParameters = TLSSignedData()
-            super.init(inputStream: inputStream, context: context)
-            
             return nil
         }
 
@@ -237,9 +234,6 @@ class TLSServerKeyExchange : TLSHandshakeMessage
                 let diffieHellmanParameters = DiffieHellmanParameters(inputStream: inputStream),
                 let signedParameters = TLSSignedData(inputStream: inputStream, context: context)
             else {
-                self.signedParameters = TLSSignedData()
-                super.init(inputStream: inputStream, context: context)
-
                 return nil
             }
 
@@ -258,9 +252,6 @@ class TLSServerKeyExchange : TLSHandshakeMessage
                 self.signedParameters = signedParameters
             }
             else {
-                self.signedParameters = TLSSignedData()
-                super.init(inputStream: inputStream, context: context)
-
                 return nil
             }
 

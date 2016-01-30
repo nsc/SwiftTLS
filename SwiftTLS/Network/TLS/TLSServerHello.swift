@@ -38,16 +38,7 @@ class TLSServerHello : TLSHandshakeMessage
             let rawSessionID : [UInt8] = inputStream.read(count: Int(sessionIDSize)),
             let rawCiperSuite : UInt16 = inputStream.read() where (CipherSuite(rawValue: rawCiperSuite) != nil),
             let rawCompressionMethod : UInt8 = inputStream.read() where (CompressionMethod(rawValue: rawCompressionMethod) != nil)
-        else
-        {
-            self.version = TLSProtocolVersion.TLS_v1_0
-            self.random = Random()
-            self.sessionID = nil
-            self.cipherSuite = CipherSuite.TLS_RSA_WITH_NULL_MD5
-            self.compressionMethod = CompressionMethod.NULL
-            
-            super.init(type: .Handshake(.ServerHello))
-            
+        else {
             return nil
         }
         

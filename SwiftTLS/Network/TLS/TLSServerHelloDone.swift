@@ -20,8 +20,6 @@ class TLSServerHelloDone : TLSHandshakeMessage
         guard
             let (type, bodyLength) = TLSHandshakeMessage.readHeader(inputStream) where type == TLSHandshakeType.ServerHelloDone && bodyLength == 0
         else {
-            super.init(type: .Handshake(.ServerHelloDone))
-
             return nil
         }
         

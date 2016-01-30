@@ -92,7 +92,7 @@ struct TLSSignedData : Streamable
 enum TLSError : ErrorType
 {
     case Error(String)
-    case Alert(alert : TLSAlert)
+    case Alert(alert : TLSAlert, alertLevel : TLSAlertLevel)
 }
 
 
@@ -357,7 +357,7 @@ public class TLSContext
             let alert = message as! TLSAlertMessage
             self.stateMachine.didReceiveAlert(alert)
             if alert.alertLevel == .Fatal {
-                throw TLSError.Alert(alert: alert.alert)
+                throw TLSError.Alert(alert: alert.alert, alertLevel: alert.alertLevel)
             }
             
             break

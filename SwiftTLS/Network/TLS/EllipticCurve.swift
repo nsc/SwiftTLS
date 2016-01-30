@@ -208,7 +208,7 @@ struct EllipticCurve
         
         let Q = self.multiplyPoint(self.G, d)
         
-        let onCurve = isOnCurve(Q)
+        assert(isOnCurve(Q))
         
         return (d: d, Q: Q)
     }

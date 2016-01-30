@@ -29,13 +29,13 @@ class TLSServerNameExtension : TLSHelloExtension
     }
     
     required init?(inputStream: InputStreamType) {
-        self.serverNames = []
-
         guard
             let serverNamesLength : UInt16 = inputStream.read()
         else {
             return nil
         }
+        
+        self.serverNames = []
         
         var bytesLeft = Int(serverNamesLength)
         while bytesLeft > 0 {

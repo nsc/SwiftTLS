@@ -69,6 +69,8 @@ func server()
                 switch tlserror {
                 case .Error(let message):
                     print("Error: \(message)")
+                case .Alert(let alert, let level):
+                    print("Alert: \(level) \(alert)")
                 }
                 
                 continue

@@ -38,9 +38,6 @@ class TLSCertificateMessage : TLSHandshakeMessage
         
         guard let (type, _) = TLSHandshakeMessage.readHeader(inputStream) where type == TLSHandshakeType.Certificate
         else {
-            self.certificates = []
-            super.init(type: .Handshake(.Certificate))
-            
             return nil
         }
         
@@ -83,10 +80,8 @@ class TLSCertificateMessage : TLSHandshakeMessage
             
             super.init(type: .Handshake(.Certificate))
         }
-        else {
-            self.certificates = []
-            super.init(type: .Handshake(.Certificate))
-            
+        else
+        {
             return nil
         }
     }

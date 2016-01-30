@@ -70,16 +70,6 @@ class TLSClientHello : TLSHandshakeMessage
             let random = Random(inputStream: inputStream),
             let sessionIDSize : UInt8 = inputStream.read()
         else {
-            
-            // FIXME: Once the compiler is smart enough, remove this pointless initialization
-            self.clientVersion = TLSProtocolVersion.TLS_v1_0
-            self.random = Random()
-            self.sessionID = nil
-            self.rawCipherSuites = []
-            self.compressionMethods = []
-            
-            super.init(type: .Handshake(.ClientHello))
-            
             return nil
         }
         
@@ -89,16 +79,6 @@ class TLSClientHello : TLSHandshakeMessage
             let rawCipherSuitesRead : [UInt16] = inputStream.read16(),
             let rawCompressionMethods : [UInt8] = inputStream.read8()
         else {
-            // FIXME: Once the compiler is smart enough, remove this pointless initialization
-
-            self.clientVersion = TLSProtocolVersion.TLS_v1_0
-            self.random = Random()
-            self.sessionID = nil
-            self.rawCipherSuites = []
-            self.compressionMethods = []
-            
-            super.init(type: .Handshake(.ClientHello))
-            
             return nil
         }
         
@@ -112,16 +92,6 @@ class TLSClientHello : TLSHandshakeMessage
                 let extensionsSize : UInt16 = inputStream.read(),
                 let extensionsData : [UInt8] = inputStream.read(count: Int(extensionsSize))
             else {
-                // FIXME: Once the compiler is smart enough, remove this pointless initialization
-                
-                self.clientVersion = TLSProtocolVersion.TLS_v1_0
-                self.random = Random()
-                self.sessionID = nil
-                self.rawCipherSuites = []
-                self.compressionMethods = []
-                
-                super.init(type: .Handshake(.ClientHello))
-                
                 return nil
             }
 

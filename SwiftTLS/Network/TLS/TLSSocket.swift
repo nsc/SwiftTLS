@@ -241,9 +241,6 @@ class Random : Streamable
             self.randomBytes = bytes
         }
         else {
-            self.gmtUnixTime = 0
-            self.randomBytes = []
-
             return nil
         }
     }

@@ -111,7 +111,6 @@ class SessionID : Streamable
             }
         }
         
-        self.sessionID = []
         return nil
     }
     

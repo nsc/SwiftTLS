@@ -666,7 +666,7 @@ func division<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, _ v : BigIntImp
                     break
                 }
                 
-                ++numIterationsThroughLoop
+                numIterationsThroughLoop += 1
                 
                 assert(numIterationsThroughLoop <= 2)
             }

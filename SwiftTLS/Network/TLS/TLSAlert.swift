@@ -66,8 +66,7 @@ class TLSAlertMessage : TLSMessage
             self.alert = alert
         }
         else {
-            self.alertLevel = .Warning
-            self.alert = .CloseNotify
+            return nil
         }
         
         super.init(type: .Alert(self.alertLevel, self.alert))

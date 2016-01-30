@@ -38,9 +38,6 @@ class PreMasterSecret : Streamable
             }
         }
 
-        self.clientVersion = .TLS_v1_0
-        self.random = []
-        
         return nil
     }
     
@@ -86,8 +83,6 @@ class TLSClientKeyExchange : TLSHandshakeMessage
     required init?(inputStream : InputStreamType, context: TLSContext)
     {
         guard let (type, _) = TLSHandshakeMessage.readHeader(inputStream) else {
-            super.init(type: .Handshake(.ClientKeyExchange))
-
             return nil
         }
         
@@ -124,9 +119,6 @@ class TLSClientKeyExchange : TLSHandshakeMessage
             
             return
         }
-
-        self.encryptedPreMasterSecret = []
-        super.init(type: .Handshake(.ClientKeyExchange))
         
         return nil        
     }

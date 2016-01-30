@@ -53,11 +53,7 @@ class TLSRecord : Streamable {
             self.protocolVersion = v
             self.body = b
         }
-        else {
-            self.contentType = .Alert
-            self.protocolVersion = .TLS_v1_0
-            self.body = []
-            
+        else {            
             return nil
         }
     }
