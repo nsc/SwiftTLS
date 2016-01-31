@@ -206,6 +206,8 @@ public class TLSContext
         }
     }
     
+    var hostNames : [String]?
+    
     var cipherSuite : CipherSuite?
     
     var stateMachine : TLSContextStateMachine!
@@ -536,9 +538,14 @@ public class TLSContext
 //            cipherSuites: [.TLS_RSA_WITH_NULL_SHA],
             compressionMethods: [.NULL])
         
+        if self.hostNames != nil {
+            clientHello.extensions.append(TLSServerNameExtension(serverNames: self.hostNames!))
+        }
+        
         if self.configuration.cipherSuites.contains({ if let descriptor = TLSCipherSuiteDescriptorForCipherSuite($0) { return descriptor.keyExchangeAlgorithm == .ECDHE_RSA} else { return false } }) {
 //            clientHello.extensions.append(TLSEllipticCurvesExtension(ellipticCurves: [.secp256r1, .secp384r1, .secp521r1]))
-            clientHello.extensions.append(TLSEllipticCurvesExtension(ellipticCurves: [.secp521r1]))
+//            clientHello.extensions.append(TLSEllipticCurvesExtension(ellipticCurves: [.secp521r1]))
+            clientHello.extensions.append(TLSEllipticCurvesExtension(ellipticCurves: [.secp256r1]))
             clientHello.extensions.append(TLSEllipticCurvePointFormatsExtension(ellipticCurvePointFormats: [.uncompressed]))
         }
         

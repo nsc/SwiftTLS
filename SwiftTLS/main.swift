@@ -82,19 +82,34 @@ func server()
     }
 }
 
-func connectTo(host host : String, port : Int = 443)
+func connectTo(host host : String, port : Int = 443, protocolVersion: TLSProtocolVersion = .TLS_v1_2)
 {
-    var configuration = TLSConfiguration(protocolVersion: .TLS_v1_2)
-    configuration.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256]
-//    configuration.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
-//    configuration.cipherSuites = [.TLS_RSA_WITH_AES_256_CBC_SHA]
+    var configuration = TLSConfiguration(protocolVersion: protocolVersion)
+    
+    if protocolVersion == .TLS_v1_2 {
+        configuration.cipherSuites = [
+            .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+            .TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+            .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
+            .TLS_RSA_WITH_AES_256_CBC_SHA
+        ]
+    }
+    else {
+        configuration.cipherSuites = [
+            .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
+            .TLS_RSA_WITH_AES_256_CBC_SHA
+        ]
+    }
     
     let socket = TLSSocket(configuration: configuration)
+    socket.context.hostNames = [host]
     
     do {
-        try socket.connect(IPAddress.addressWithString(host, port: port)!)
+        let address = IPAddress.addressWithString(host, port: port)!
+        print("Connecting to \(address.hostname) (\(address.string!))")
+        try socket.connect(address)
         
-        print("Connection established using cipher suite ", socket.context.cipherSuite!)
+        print("Connection established using cipher suite \(socket.context.cipherSuite!)")
         
         try socket.write([UInt8]("GET / HTTP/1.1\r\nHost: \(host)\r\n\r\n".utf8))
         let data = try socket.read(count: 4096)
@@ -171,6 +186,11 @@ guard Process.arguments.count >= 2 else {
 
 let command = Process.arguments[1]
 
+enum Error : ErrorType
+{
+    case Error(String)
+}
+
 switch command
 {
 case "client":
@@ -179,19 +199,84 @@ case "client":
         exit(1)
     }
     
-    if Process.arguments.count == 3 {
-        connectTo(host: Process.arguments[2])
-    }
-    else {
-        guard let port = Int(Process.arguments[3]) else {
-            print("Error: Malformed port argument for subcommand \"\(command)\"")
-            exit(1)
-        }
-        
-        connectTo(host:Process.arguments[2], port: port)
-    }
+    var host : String? = nil
+    var port : Int = 443
+    var protocolVersion = TLSProtocolVersion.TLS_v1_2
     
-    break
+    do {
+        var argumentIndex : Int = 2
+        while true
+        {
+            if Process.arguments.count <= argumentIndex {
+                break
+            }
+            
+            var argument = Process.arguments[argumentIndex]
+            
+            argumentIndex += 1
+            
+            switch argument
+            {
+            case "--connect":
+                if Process.arguments.count <= argumentIndex {
+                    throw Error.Error("Missing argument for --connect")
+                }
+                
+                var argument = Process.arguments[argumentIndex]
+                argumentIndex += 1
+                
+                if argument.containsString(":") {
+                    let components = argument.componentsSeparatedByString(":")
+                    host = components[0]
+                    guard let p = Int(components[1]) where p > 0 && p < 65536 else {
+                        throw Error.Error("\(components[1]) is not a valid port number")
+                    }
+                    
+                    port = p
+                }
+                else {
+                    host = argument
+                }
+                
+            case "--TLSVersion":
+                if Process.arguments.count <= argumentIndex {
+                    throw Error.Error("Missing argument for --TLSVersion")
+                }
+                
+                var argument = Process.arguments[argumentIndex]
+                argumentIndex += 1
+
+                switch argument
+                {
+                case "1.0":
+                    protocolVersion = .TLS_v1_0
+
+                case "1.1":
+                    protocolVersion = .TLS_v1_1
+
+                case "1.2":
+                    protocolVersion = .TLS_v1_2
+
+                default:
+                    throw Error.Error("\(argument) is not a valid TLS version")
+                }
+            default:
+                print("Error: Unknown argument \(argument)")
+                exit(1)
+            }
+        }
+    }
+    catch Error.Error(let message) {
+        print("Error: \(message)")
+        exit(1)
+    }
+
+    guard let hostName = host else {
+        print("Error: Missing argument --connect host[:port]")
+        exit(1)
+    }
+
+    connectTo(host: hostName, port: port, protocolVersion: protocolVersion)
     
 case "asn1parse":
 

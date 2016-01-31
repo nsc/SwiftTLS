@@ -15,6 +15,12 @@ public class IPAddress
         set {}
     }
     
+    internal var _hostname : String = ""
+    
+    var hostname : String {
+        get { return _hostname }
+    }
+    
     var string : String? {
         get {
             return ""
@@ -43,23 +49,57 @@ public class IPAddress
     
     init() {}
     
-    public class func addressWithString(address : String, port : Int? = nil) -> IPAddress?
+    public class func addressWithString(hostname : String, port : Int? = nil) -> IPAddress?
     {
-        if let ipv4address = IPv4Address(address) {
+        if let ipv4address = IPv4Address(hostname) {
             if let p = port {
                 ipv4address.port = UInt16(p)
             }
             return ipv4address
         }
         
-        if let ipv6address = IPv6Address(address) {
+        if let ipv6address = IPv6Address(hostname) {
             if let p = port {
                 ipv6address.port = UInt16(p)
             }
             return ipv6address
         }
         
-        return nil
+        let addressInfoPointer = UnsafeMutablePointer<UnsafeMutablePointer<addrinfo>>.alloc(1)
+        let address : IPAddress? = hostname.nulTerminatedUTF8.withUnsafeBufferPointer {
+            if getaddrinfo(UnsafePointer<Int8>($0.baseAddress), nil, nil, addressInfoPointer) != 0 {
+                print("Error: \(strerror(errno))")
+                return nil
+            }
+            
+            let addressInfo = addressInfoPointer.memory[0]
+            switch addressInfo.ai_family
+            {
+            case AF_INET:
+                let addr = IPv4Address()
+                memcpy(&addr.socketAddress, addressInfo.ai_addr, Int(addressInfo.ai_addrlen))
+                
+                return addr
+                
+            case AF_INET6:
+                let addr = IPv6Address()
+                memcpy(&addr.socketAddress, addressInfo.ai_addr, Int(addressInfo.ai_addrlen))
+                
+                return addr
+                
+            default:
+                return nil
+            }
+        }
+        
+        if address != nil {
+            if let p = port {
+                address!.port = UInt16(p)
+            }
+            address!._hostname = hostname
+        }
+        
+        return address
     }
     
 }

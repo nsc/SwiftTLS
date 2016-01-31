@@ -129,10 +129,10 @@ class Certificate
 
     convenience init?(var certificateData : [UInt8])
     {
-        if let object = ASN1Parser(data: certificateData).parseObject()
-        {
-            ASN1_printObject(object)
-        }
+//        if let object = ASN1Parser(data: certificateData).parseObject()
+//        {
+//            ASN1_printObject(object)
+//        }
 
         let data = NSData(bytesNoCopy: &certificateData, length: certificateData.count, freeWhenDone: false)
         self.init(certificateData: data)
