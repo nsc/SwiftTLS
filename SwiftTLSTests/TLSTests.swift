@@ -78,7 +78,7 @@ class TSLTests: XCTestCase {
         do {
             dispatch_async(serverQueue) {
                 do {
-                    let clientSocket = try server.acceptConnection(address)
+                    try server.acceptConnection(address)
                 } catch(let error) {
                     XCTFail("\(error)")
                 }

@@ -101,7 +101,7 @@ class TLSClientHelloTests: XCTestCase {
             let count = clientHello.extensions.count
             XCTAssertTrue(count == newClientHello.extensions.count)
             
-            for var i = 0; i < count; ++i
+            for i in 0..<count
             {
                 let e = clientHello.extensions[i]
                 let n = newClientHello.extensions[i]

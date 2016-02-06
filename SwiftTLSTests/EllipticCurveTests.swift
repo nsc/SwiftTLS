@@ -13,7 +13,7 @@ class EllipticCurveTests: XCTestCase {
 
     func test_secp256r1_exists()
     {
-        guard let curve = EllipticCurve.named(.secp256r1) else { XCTFail(); return }
+        guard EllipticCurve.named(.secp256r1) != nil else { XCTFail(); return }
     }
 
     func test_secp256r1_isConsistent()
@@ -25,7 +25,7 @@ class EllipticCurveTests: XCTestCase {
 
     func test_secp521r1_exists()
     {
-        guard let curve = EllipticCurve.named(.secp521r1) else { XCTFail(); return }
+        guard EllipticCurve.named(.secp521r1) != nil else { XCTFail(); return }
     }
 
     func test_secp521r1_isConsistent()

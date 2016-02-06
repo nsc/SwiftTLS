@@ -28,6 +28,7 @@ enum ASN1TypeTag : UInt8
     case T61STRING                  = 0x14
     case IA5STRING                  = 0x16
     case UTCTIME                    = 0x17
+    case GENERALIZEDTIME            = 0x18
 }
 
 let ASN1_CONSTRUCTED : UInt8        = 0x20
@@ -59,11 +60,11 @@ public func ==(lhs : ASN1Object, rhs : ASN1Object) -> Bool
 class ASN1TaggedObject : ASN1Object
 {
     var tag : Int
-    var taggedObject : ASN1Object
-    init(tag: Int, taggedObject: ASN1Object)
+    var object : ASN1Object
+    init(tag: Int, object: ASN1Object)
     {
         self.tag = tag
-        self.taggedObject = taggedObject
+        self.object = object
     }
     
     private override func isEqualTo(other : ASN1Object) -> Bool
@@ -72,7 +73,7 @@ class ASN1TaggedObject : ASN1Object
             return false
         }
         
-        return (self.tag == other.tag && self.taggedObject == other.taggedObject)
+        return (self.tag == other.tag && self.object == other.object)
     }
 }
 
@@ -258,7 +259,19 @@ class ASN1Set : ASN1Object
     }
 }
 
-class ASN1UTF8String : ASN1Object
+public protocol ASN1String : CustomStringConvertible {
+    var string : String { get }
+}
+
+public extension ASN1String {
+    var description : String {
+        get {
+            return "\(self.dynamicType) \(self.string)"
+        }
+    }
+}
+
+class ASN1UTF8String : ASN1Object, ASN1String
 {
     var string : String
     init(string: String)
@@ -276,7 +289,47 @@ class ASN1UTF8String : ASN1Object
     }
 }
 
-class ASN1UTCTime : ASN1Object
+class ASN1PrintableString : ASN1Object, ASN1String
+{
+    var string : String
+    init(string: String)
+    {
+        self.string = string
+    }
+    
+    private override func isEqualTo(other : ASN1Object) -> Bool
+    {
+        guard let other = other as? ASN1PrintableString else {
+            return false
+        }
+        
+        return self.string == other.string
+    }
+}
+
+class ASN1T61String : ASN1Object, ASN1String
+{
+    var string : String
+    init(string: String)
+    {
+        self.string = string
+    }
+    
+    private override func isEqualTo(other : ASN1Object) -> Bool
+    {
+        guard let other = other as? ASN1T61String else {
+            return false
+        }
+        
+        return self.string == other.string
+    }
+}
+
+protocol ASN1Time {
+    var string : String { get }
+}
+
+class ASN1UTCTime : ASN1Object, ASN1Time
 {
     var string : String
     init(string: String)
@@ -287,6 +340,24 @@ class ASN1UTCTime : ASN1Object
     private override func isEqualTo(other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1UTCTime else {
+            return false
+        }
+        
+        return self.string == other.string
+    }
+}
+
+class ASN1GeneralizedTime : ASN1Object, ASN1Time
+{
+    var string : String
+    init(string: String)
+    {
+        self.string = string
+    }
+    
+    private override func isEqualTo(other : ASN1Object) -> Bool
+    {
+        guard let other = other as? ASN1GeneralizedTime else {
             return false
         }
         
@@ -415,7 +486,7 @@ public class ASN1Parser
                 if contextSpecific {
 //                    self.cursor += contentLength
                     if let object = parseObject() {
-                        return ASN1TaggedObject(tag: Int(type), taggedObject: object)
+                        return ASN1TaggedObject(tag: Int(type), object: object)
                     }
                 }
                 
@@ -520,17 +591,40 @@ public class ASN1Parser
                     case .PRINTABLESTRING, .UTF8STRING, .T61STRING:
                         if let data = self.subData(cursor..<cursor + contentLength) {
                             if let s = String.fromUTF8Bytes(data) {
-                                object = ASN1UTF8String(string: s as String)
+                                switch asn1Type
+                                {
+                                case .UTF8STRING:
+                                    object = ASN1UTF8String(string: s as String)
+                                
+                                case .PRINTABLESTRING:
+                                    object = ASN1PrintableString(string: s as String)
+                                
+                                case .T61STRING:
+                                    object = ASN1T61String(string: s as String)
+                                
+                                default:
+                                    break
+                                }
                             }
                         }
                         self.cursor += contentLength
 
                         break
                         
-                    case .UTCTIME:
+                    case .UTCTIME, .GENERALIZEDTIME:
                         if let data = self.subData(cursor..<cursor + contentLength) {
                             if let s = String.fromUTF8Bytes(data) {
-                                object = ASN1UTCTime(string: s as String)
+                                switch asn1Type
+                                {
+                                case .UTCTIME:
+                                    object = ASN1UTCTime(string: s as String)
+                                
+                                case .GENERALIZEDTIME:
+                                    object = ASN1GeneralizedTime(string: s as String)
+                                    
+                                default:
+                                    break
+                                }
                             }
                         }
                         self.cursor += contentLength
@@ -569,7 +663,7 @@ public func ASN1_printObject(object: ASN1Object, depth : Int = 0)
     case let object as ASN1TaggedObject:
         
         print("[\(object.tag)]", terminator: "")
-        ASN1_printObject(object.taggedObject, depth: depth + 1)
+        ASN1_printObject(object.object, depth: depth + 1)
 
     case let object as ASN1Boolean:
         print("BOOLEAN " + (object.value ? "true" : "false"))
@@ -589,6 +683,9 @@ public func ASN1_printObject(object: ASN1Object, depth : Int = 0)
     case let object as ASN1ObjectIdentifier:
         
         print("OBJECT IDENTIFIER ", terminator: "")
+        if let oid = OID(id: object.identifier) {
+            print("\(oid) ", terminator: "")
+        }
         for i in 0 ..< object.identifier.count {
             if i != object.identifier.count - 1 {
                 print("\(object.identifier[i]).", terminator: "")
@@ -597,10 +694,11 @@ public func ASN1_printObject(object: ASN1Object, depth : Int = 0)
                 print("\(object.identifier[i])", terminator: "")
             }
         }
+
         print("")
 
-    case let object as ASN1UTF8String:
-        print("ASN1UTF8String \(object.string)")
+    case let object as ASN1String:
+        print("\(object.dynamicType) \(object.string)")
 
     case let object as ASN1Sequence:
         print("SEQUENCE (\(object.objects.count) objects)")
@@ -614,11 +712,11 @@ public func ASN1_printObject(object: ASN1Object, depth : Int = 0)
             ASN1_printObject(o, depth: depth + 1)
         }
 
-    case let object as ASN1UTCTime:
-        print("UTCTIME \(object.string)")
+    case let object as ASN1Time:
+        print("\(object.dynamicType) \(object.string)")
         
     case _ as ASN1Object:
-        print("ASN1Object")
+        print("Unhandled \(object)")
         
     default:
         print("")

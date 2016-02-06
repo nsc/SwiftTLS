@@ -327,7 +327,7 @@ class BigIntTests: XCTestCase {
             let n = Int(arc4random()) % max + min
             parts = [UInt8]()
             
-            for var i = 0; i < n; ++i
+            for _ in 0..<n
             {
                 parts.append(UInt8(arc4random() & 0xff))
             }
@@ -444,7 +444,7 @@ class BigIntTests: XCTestCase {
 
     func test_mod_twoNumbers_givesCorrectResult()
     {
-        for var i = 0; i < 100; ++i
+        for i in 0..<100
         {
             var u = randomBigInt()
             var v = randomBigInt()
@@ -475,7 +475,7 @@ class BigIntTests: XCTestCase {
 
     func test_mod_pow_withTwoRandomNumbers_givesCorrectResult()
     {
-        for var i = 0; i < 100; ++i
+        for i in 0..<100
         {
             let u = randomBigInt()
             let mod = randomBigInt()
@@ -500,7 +500,7 @@ class BigIntTests: XCTestCase {
 
     func test_mod_pow_withRandomBigIntExponent_givesCorrectResult()
     {
-        for var i = 0; i < 100; ++i
+        for i in 0..<100
         {
             let u = BigInt(3)
             let mod = randomBigInt()
@@ -597,7 +597,7 @@ class BigIntTests: XCTestCase {
         let result = BN_new()
 
         self.measureBlock() {
-            for var i=0; i < 100; ++i {
+            for _ in 0..<100 {
                 BN_mul(result, an, bn, context)
             }
 //
@@ -623,7 +623,7 @@ class BigIntTests: XCTestCase {
 //        let modulus = BigInt([1198843955, 3623894652, 503860470, 3793286365, 2731791378, 3614844779, 1771690793, 1464226003, 2319713261, 3985960860, 3087334159, 3712738611, 1867303570, 3504648053, 3649381001, 3663215638] as [UInt32], negative: false)
         
         self.measureBlock() {
-            for var i=0; i < 100; ++i {
+            for _ in 0..<100 {
                 exponent * modulus
 //                print(result.toString())
             }
@@ -661,7 +661,7 @@ class BigIntTests: XCTestCase {
         assert(bnString == modulusString)
         
         self.measureBlock() {
-            for var i=0; i < 1000; ++i {
+            for _ in 0..<1000 {
                 CBigIntMultiply(an, bn)
 //                print(self.hexStringFromCBigInt(result))
             }

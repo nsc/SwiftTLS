@@ -26,7 +26,7 @@ class TLSServerKeyExchangeTests: XCTestCase {
         let packetWithoutRecordHeader = [UInt8](rawPacket[5 ..< rawPacket.count])
         let message = TLSHandshakeMessage.handshakeMessageFromData(packetWithoutRecordHeader, context: context)
       
-        guard let keyExchange = message as? TLSServerKeyExchange else {
+        guard message as? TLSServerKeyExchange != nil else {
             XCTFail()
             return
         }

@@ -314,7 +314,7 @@ case "p12":
             let subSequence = sequence.objects[1] as? ASN1Sequence,
             let oid = subSequence.objects.first as? ASN1ObjectIdentifier where OID(id: oid.identifier) == .PKCS7_data,
             let taggedObject = subSequence.objects[1] as? ASN1TaggedObject,
-            let octetString = taggedObject.taggedObject as? ASN1OctetString
+            let octetString = taggedObject.object as? ASN1OctetString
         {
             if let o = ASN1Parser(data: octetString.value).parseObject() {
                 ASN1_printObject(o)

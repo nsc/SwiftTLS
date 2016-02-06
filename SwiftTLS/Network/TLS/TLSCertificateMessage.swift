@@ -59,6 +59,9 @@ class TLSCertificateMessage : TLSHandshakeMessage
                     let data : [UInt8]? = inputStream.read(count: bytesForCertificate)
                     
                     if let d = data {
+                        let x509Cert = X509.Certificate(DERData: d)
+                        print(x509Cert)
+                        
                         let certificate = Certificate(certificateData: d)
                         if let cert = certificate {
                             certificates!.append(cert)
