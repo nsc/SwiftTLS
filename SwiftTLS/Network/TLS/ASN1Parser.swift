@@ -46,6 +46,7 @@ enum ASN1Class : UInt8
 
 public class ASN1Object : Equatable
 {
+    var underlyingData : [UInt8]?
     private func isEqualTo(other : ASN1Object) -> Bool
     {
         return false
@@ -439,9 +440,8 @@ public class ASN1Parser
     
     func subData(range : Range<Int>) -> [UInt8]? {
         let length = self.data.count
-        if  range.startIndex >= 0 &&
-            range.startIndex <= length &&
-            range.endIndex > range.startIndex &&
+        
+        if  0..<length ~= range.startIndex &&
             range.endIndex <= length {
 
                 return [UInt8](self.data[range])
@@ -452,6 +452,8 @@ public class ASN1Parser
     
     public func parseObject() -> ASN1Object?
     {
+        let startCursor = cursor
+        
         if let t = self.subData(cursor..<cursor+1) {
             var type = t[0]
             cursor += 1
@@ -503,7 +505,7 @@ public class ASN1Parser
 
                     case .INTEGER:
                         if let data = self.subData(cursor..<cursor + contentLength) {
-                            object = ASN1Integer(value: data)
+                            object = ASN1Integer(value: [UInt8](data))
                             self.cursor += contentLength
                         }
 
@@ -512,7 +514,7 @@ public class ASN1Parser
                             let unusedBits = Int(u[0])
                             
                             if let data = self.subData(cursor+1..<cursor + contentLength) {
-                                object = ASN1BitString(unusedBits:unusedBits, data: data)
+                                object = ASN1BitString(unusedBits:unusedBits, data: [UInt8](data))
                             }
                         }
                         
@@ -520,7 +522,7 @@ public class ASN1Parser
 
                     case .OCTET_STRING:
                         if let data = self.subData(cursor..<cursor + contentLength) {
-                            object = ASN1OctetString(data: data)
+                            object = ASN1OctetString(data: [UInt8](data))
                             self.cursor += contentLength
                         }
 
@@ -590,7 +592,7 @@ public class ASN1Parser
                         
                     case .PRINTABLESTRING, .UTF8STRING, .T61STRING:
                         if let data = self.subData(cursor..<cursor + contentLength) {
-                            if let s = String.fromUTF8Bytes(data) {
+                            if let s = String.fromUTF8Bytes([UInt8](data)) {
                                 switch asn1Type
                                 {
                                 case .UTF8STRING:
@@ -613,7 +615,7 @@ public class ASN1Parser
                         
                     case .UTCTIME, .GENERALIZEDTIME:
                         if let data = self.subData(cursor..<cursor + contentLength) {
-                            if let s = String.fromUTF8Bytes(data) {
+                            if let s = String.fromUTF8Bytes([UInt8](data)) {
                                 switch asn1Type
                                 {
                                 case .UTCTIME:
@@ -637,6 +639,8 @@ public class ASN1Parser
                         
                         print("Error: unhandled ASN1 tag \(type)")
                     }
+                    
+                    object?.underlyingData = subData(startCursor..<self.cursor)
                     
                     return object
                 }

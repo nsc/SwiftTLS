@@ -191,8 +191,12 @@ struct X509
         var subject                 : Name
         var subjectPublicKeyInfo    : SubjectPublicKeyInfo
     
+        var DEREncodedCertificate   : [UInt8]?
+        
         init?(asn1Sequence sequence: ASN1Sequence)
         {
+            self.DEREncodedCertificate = sequence.underlyingData
+            
             guard sequence.objects.count >= 7 else { return nil }
             
             guard let asn1tbsCertVersion            = (sequence.objects[0] as? ASN1TaggedObject)?.object as? ASN1Integer   else { return nil }
@@ -221,7 +225,6 @@ struct X509
 
             guard let subjectPublicKeyInfo = SubjectPublicKeyInfo(asn1sequence: asn1subjectPublicKeyInfo) else { return nil }
             self.subjectPublicKeyInfo = subjectPublicKeyInfo
-
         }
     }
     

@@ -8,6 +8,113 @@
 
 import Foundation
 
+//let oids : [Int:Any] = [
+//    1 : [
+//        2 : [
+//            840 : [
+//                10045 : [
+//                    2 : [
+//                        1 : "ECPublicKey"
+//                    ],
+//                    4 : [
+//                        3 : [
+//                            2 : "ECDSAWithSHA256"
+//                        ]
+//                    ]
+//                ],
+//                113549 : [
+//                    1 : [
+//                        1 : [
+//                            1  : "RSAEncryption",
+//                            5  : "SHA1WithRSAEncryption",
+//                            11 : "SHA256WithRSAEncryption",
+//                            12 : "SHA384WithRSAEncryption",
+//                        ],
+//                        7 : [
+//                            0 : "PKCS7",
+//                            1 : "PKCS7_data"
+//                        ]
+//                    ]
+//                ],
+//            ]
+//        ],
+//        3 : [
+//            6 : [
+//                1 : [
+//                    4 : [
+//                        1 : [
+//                            311 : [
+//                                21 : [
+//                                    10 : "applicationCertPolicies"
+//                                ],
+//                                60 : [
+//                                    2 : [
+//                                        1 : [
+//                                            // 1.3.6.1.4.1.311.60.2.1
+//                                            2  : "stateOrProvince",
+//                                            3  : "jurisdictionOfIncorporationCountryName"
+//                                        ]
+//                                    ]
+//                                ]
+//                            ]
+//                        ]
+//                    ],
+//                    5 : [
+//                        5 : [
+//                            7 : [
+//                                1 : [
+//                                    1 : "authorityInfoAccess"
+//                                ]
+//                            ]
+//                        ]
+//                    ]
+//                ]
+//            ],
+//            14 : [
+//                3 : [
+//                    2 : [
+//                        26 : "SHA1"
+//                    ]
+//                ]
+//            ],
+//            132 : [
+//                0 : [
+//                    35 : "ansip521r1"
+//                ]
+//            ]
+//        ]
+//    ],
+//    2 : [
+//        5 : [
+//            4 : [
+//                // 1.2.5.4
+//                3  : "commonName",
+//                4  : "surName",
+//                5  : "serialNumber",
+//                6  : "countryName",
+//                7  : "localityName",
+//                8  : "stateOrProvinceName",
+//                9  : "streetAddress",
+//                10 : "organizationName",
+//                11 : "organizationalUnitName",
+//                15 : "businessCategory",
+//                
+//                17 : "postalCode"
+//            ],
+//            29 : [
+//                // 1.2.5.29
+//                14 : "subjectKeyIdentifier",
+//                15 : "certificateExtensionKeyUsage",
+//                17 : "subjectAlternativeName",
+//                19 : "crlDistributionPoints",
+//                32 : "certificatePolicies",
+//                35 : "authorityKeyIdentifier",
+//                37 : "certificateExtensionExtKeyUsage"
+//            ]
+//        ]
+//    ]
+//]
+
 enum OID : String
 {
     case ECPublicKey                                = "1.2.840.10045.2.1"

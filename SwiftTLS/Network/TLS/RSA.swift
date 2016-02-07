@@ -333,14 +333,14 @@ struct RSA
 
 extension RSA : Signing
 {
-    func sign(data : [UInt8], hashAlgorithm: HashAlgorithm) -> [UInt8]
+    func sign(data data : [UInt8], hashAlgorithm: HashAlgorithm) -> [UInt8]
     {
         let signature = self.signData(data, hashAlgorithm: hashAlgorithm)
         
         return signature.asBigEndianData()
     }
     
-    func verify(signature : [UInt8], data : [UInt8]) -> Bool
+    func verify(signature signature : [UInt8], data : [UInt8]) -> Bool
     {
         return self.verifySignature(BigInt(bigEndianParts: signature), data: data)
     }

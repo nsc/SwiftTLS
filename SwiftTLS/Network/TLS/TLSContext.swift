@@ -460,7 +460,7 @@ public class TLSContext
                     data += self.securityParameters.serverRandom!
                     data += keyExchangeMessage.parametersData
                     
-                    if !rsa.verify(signedData.signature, data: data) {
+                    if !rsa.verify(signature: signedData.signature, data: data) {
                         throw TLSError.Error("Signature error on server key exchange")
                     }
                 }
@@ -712,7 +712,7 @@ public class TLSContext
             fatalError("Unsupported signature algorithm \(self.configuration.signatureAlgorithm)")
         }
         
-        return signer.sign(data, hashAlgorithm: self.configuration.hashAlgorithm)
+        return signer.sign(data: data, hashAlgorithm: self.configuration.hashAlgorithm)
     }
     
     internal func PRF(secret secret : [UInt8], label : [UInt8], seed : [UInt8], outputLength : Int) -> [UInt8]

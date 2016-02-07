@@ -31,7 +31,7 @@ class RSATests: XCTestCase {
             return
         }
 
-        let m = rsa.verify(signature, data: data)
+        let m = rsa.verify(signature: signature, data: data)
         
         print(m)
     }
@@ -77,4 +77,21 @@ class RSATests: XCTestCase {
         XCTAssert(data == decrypted)
     }
 
+    func test_verify_signatureFromSelfSignedRSACertificate_verifies()
+    {
+        let certificatePath = NSBundle(forClass: self.dynamicType).pathForResource("Self Signed RSA Certificate.cer", ofType: "")!
+        let data = NSData(contentsOfFile: certificatePath)!.UInt8Array()
+        
+        guard let cert = X509.Certificate(DERData: data) else { XCTFail(); return }
+        
+        let tbsData     = cert.tbsCertificate.DEREncodedCertificate!
+        let publicKey   = cert.tbsCertificate.subjectPublicKeyInfo.subjectPublicKey
+        XCTAssert(publicKey.numberOfBits == publicKey.bits.count * 8)
+        
+        let rsa         = RSA(publicKey: publicKey.bits)
+
+        let verified = rsa!.verify(signature: cert.signatureValue.bits, data: tbsData)
+
+        XCTAssert(verified)
+    }
 }
