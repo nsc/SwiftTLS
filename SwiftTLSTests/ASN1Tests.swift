@@ -315,7 +315,7 @@ class ASN1Tests: XCTestCase {
     
     func test_Certificate_fromDEREncodedECDSACertificate_canBeReadCorrectly()
     {
-        let certificatePath = NSBundle(forClass: self.dynamicType).pathForResource("ECDSA Certificate.cer", ofType: "")!
+        let certificatePath = NSBundle(forClass: self.dynamicType).pathForResource("Self Signed ECDSA Certificate.cer", ofType: "")!
         let data = NSData(contentsOfFile: certificatePath)!.UInt8Array()
 
         guard X509.Certificate(DERData: data) != nil else { XCTFail(); return }
@@ -323,7 +323,7 @@ class ASN1Tests: XCTestCase {
     
     func test_Certificate_fromDEREncodedRSACertificate_canBeReadCorrectly()
     {
-        let certificatePath = NSBundle(forClass: self.dynamicType).pathForResource("certificate.cer", ofType: "")!
+        let certificatePath = NSBundle(forClass: self.dynamicType).pathForResource("Self Signed RSA Certificate.cer", ofType: "")!
         let data = NSData(contentsOfFile: certificatePath)!.UInt8Array()
         
         guard X509.Certificate(DERData: data) != nil else { XCTFail(); return }

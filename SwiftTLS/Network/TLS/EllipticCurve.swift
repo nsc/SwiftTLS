@@ -90,6 +90,25 @@ struct EllipticCurvePoint
     var x : BigInt
     var y : BigInt
     
+    init(x: BigInt, y: BigInt)
+    {
+        self.x = x
+        self.y = y
+    }
+    
+    init?(data: [UInt8])
+    {
+        // only uncompressed format is currently supported
+        if data[0] != 4 {
+            print("Error: only uncompressed curve points are supported")
+            return nil
+        }
+        
+        let numBytes = data.count/2
+        self.x = BigInt(bigEndianParts: [UInt8](data[1..<1+numBytes]))
+        self.y = BigInt(bigEndianParts: [UInt8](data[1+numBytes..<1+2*numBytes]))
+    }
+    
     func isOnCurve(curve : EllipticCurve) -> Bool
     {
         return curve.isOnCurve(self)
@@ -272,7 +291,7 @@ let secp521r1 = EllipticCurve(
         x: BigInt(hexString: "00C6858E06B70404E9CD9E3ECB662395B4429C648139053FB521F828AF606B4D3DBAA14B5E77EFE75928FE1DC127A2FFA8DE3348B3C1856A429BF97E7E31C2E5BD66")!,
         y: BigInt(hexString: "011839296A789A3BC0045C8A5FB42C7D1BD998F54449579B446817AFBD17273E662C97EE72995EF42640C550B9013FAD0761353C7086A272C24088BE94769FD16650")!
     ),
-    n: BigInt(hexString: "01FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFA51868783BF2F966B7FCC0148F709A5D0899C47AEBB6FB71E91386409")!
+    n: BigInt(hexString: "01FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFA51868783BF2F966B7FCC0148F709A5D03BB5C9B8899C47AEBB6FB71E91386409")!
 )
 
 

@@ -91,16 +91,8 @@ class TLSClientKeyExchange : TLSHandshakeMessage
 
             if context.ecdhKeyExchange != nil {
                 if let rawPublicKeyPoint : [UInt8] = inputStream.read8() {
-                    // only uncompressed format is currently supported
-                    if rawPublicKeyPoint[0] != 4 {
-                        fatalError("Error: only uncompressed curve points are supported")
-                    }
-
-                    // FIXME: How do we know what bit lenght these have?
-                    let numBytes = rawPublicKeyPoint.count/2
-                    let x = BigInt(bigEndianParts: [UInt8](rawPublicKeyPoint[1..<1+numBytes]))
-                    let y = BigInt(bigEndianParts: [UInt8](rawPublicKeyPoint[1+numBytes..<1+2*numBytes]))
-                    self.ecdhPublicKey = EllipticCurvePoint(x: x, y: y)
+                    guard let ecdhPublicKey = EllipticCurvePoint(data: rawPublicKeyPoint) else { return nil }
+                    self.ecdhPublicKey = ecdhPublicKey
                 }
             }
             else {

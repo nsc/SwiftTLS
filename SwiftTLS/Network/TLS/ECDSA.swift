@@ -22,6 +22,28 @@ struct ECDSA
         self.privateKey = privateKey
     }
     
+    init?(publicKeyInfo : X509.SubjectPublicKeyInfo)
+    {
+        assert(publicKeyInfo.subjectPublicKey.bits.count * 8 == publicKeyInfo.subjectPublicKey.numberOfBits)
+
+        let algorithmIdentifier = publicKeyInfo.algorithm
+        guard algorithmIdentifier.algorithm == .ECPublicKey else { return nil }
+        guard let curveName = algorithmIdentifier.parameters as? OID else { return nil }
+     
+        switch curveName
+        {
+        case .ansip521r1:
+            self.curve = EllipticCurve.named(.secp521r1)!
+            
+        default:
+            print("Unknown curve \(curveName)")
+            return nil
+        }
+
+        guard let publicKey = EllipticCurvePoint(data: publicKeyInfo.subjectPublicKey.bits) else { return nil }
+        self.publicKey = publicKey
+    }
+    
     func signData(data : [UInt8]) -> (BigInt, BigInt)
     {
         assert(self.privateKey != nil)
@@ -50,6 +72,16 @@ struct ECDSA
         return (r, s)
     }
     
+    func verifySignature(signature: [UInt8], data: [UInt8]) -> Bool
+    {
+        guard let points = ASN1Parser(data: signature).parseObject() as? ASN1Sequence else { return false }
+        guard points.objects.count == 2 else { return false }
+        guard let r = points.objects[0] as? ASN1Integer else { return false }
+        guard let s = points.objects[1] as? ASN1Integer else { return false }
+        
+        return self.verifySignature((BigInt(bigEndianParts: r.value), BigInt(bigEndianParts: s.value)), data: data)
+    }
+    
     func verifySignature(signature : (BigInt, BigInt), data: [UInt8]) -> Bool
     {
         let n = curve.n
@@ -63,7 +95,9 @@ struct ECDSA
         let u2 = (sInverse * r) % n
         let P = curve.addPoints(curve.multiplyPoint(G, u1), curve.multiplyPoint(H, u2))
         
-        return (r == P.x % n)
+        let verification = P.x % n
+        
+        return (r == verification)
     }
 }
 

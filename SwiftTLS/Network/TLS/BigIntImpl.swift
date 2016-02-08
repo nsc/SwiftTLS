@@ -261,7 +261,9 @@ struct BigIntImpl<U where U : UnsignedIntegerType> {
         let num = max.parts.count
         var n = BigIntImpl<U>(count: num)
 
-        n.parts.withUnsafeMutableBufferPointer { arc4random_buf($0.baseAddress, num); return }
+        n.parts.withUnsafeMutableBufferPointer { arc4random_buf($0.baseAddress, num * sizeof(U)); return }
+        
+        n.normalize()
         
         n = n % max
         

@@ -142,7 +142,7 @@ class EllipticCurveTests: XCTestCase {
 
     func test_sign_someData_verifies()
     {
-        guard let curve = EllipticCurve.named(.secp256r1) else {
+        guard let curve = EllipticCurve.named(.secp521r1) else {
             XCTFail()
             return
         }
