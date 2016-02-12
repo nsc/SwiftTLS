@@ -123,6 +123,7 @@ enum CipherType {
 
 enum BlockCipherMode {
     case CBC
+    case GCM
 }
 
 enum MACAlgorithm {

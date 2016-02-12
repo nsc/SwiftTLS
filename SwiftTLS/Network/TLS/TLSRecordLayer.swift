@@ -14,16 +14,18 @@ let TLSKeyExpansionLabel = [UInt8]("key expansion".utf8)
 class EncryptionParameters {
     var hmacDescriptor : HMACDescriptor
     var bulkCipherAlgorithm : CipherAlgorithm
+    var blockCipherMode : BlockCipherMode
     var MACKey  : [UInt8]
     var bulkKey : [UInt8]
     var blockLength : Int
     var IV      : [UInt8]
     var sequenceNumber : UInt64
     
-    init(hmacDescriptor : HMACDescriptor, MACKey: [UInt8], bulkCipherAlgorithm: CipherAlgorithm, bulkKey: [UInt8], blockLength: Int, IV: [UInt8], sequenceNumber: UInt64 = UInt64(0))
+    init(hmacDescriptor : HMACDescriptor, MACKey: [UInt8], bulkCipherAlgorithm: CipherAlgorithm, blockCipherMode: BlockCipherMode = .CBC, bulkKey: [UInt8], blockLength: Int, IV: [UInt8], sequenceNumber: UInt64 = UInt64(0))
     {
         self.hmacDescriptor = hmacDescriptor
         self.bulkCipherAlgorithm = bulkCipherAlgorithm
+        self.blockCipherMode = blockCipherMode
         self.MACKey = MACKey
         self.bulkKey = bulkKey
         self.blockLength = blockLength
@@ -110,8 +112,8 @@ public class TLSRecordLayer
         }
     }
 
-    private var encryptor : CCCryptorRef?
-    private var decryptor : CCCryptorRef?
+    private var encryptor : BlockCipher!
+    private var decryptor : BlockCipher!
 
     func activateReadEncryptionParameters()
     {
@@ -295,109 +297,38 @@ public class TLSRecordLayer
         return HMAC(secret: secret, data: data)
     }
     
-    private func CCCipherAlgorithmForCipherAlgorithm(cipherAlgorithm : CipherAlgorithm) -> CCAlgorithm?
-    {
-        switch (cipherAlgorithm)
-        {
-        case .AES:
-            return CCAlgorithm(kCCAlgorithmAES)
-            
-        case .TRIPLE_DES:
-            return CCAlgorithm(kCCAlgorithm3DES)
-            
-        case .NULL:
-            return nil
-        }
-    }
-
-    private func encrypt(data : [UInt8], var key : [UInt8], var IV : [UInt8]) -> [UInt8]?
+    private func encrypt(data : [UInt8], key : [UInt8], IV : [UInt8]) -> [UInt8]?
     {
         let encryptionParameters = self.currentWriteEncryptionParameters!
         
-        let algorithm = self.CCCipherAlgorithmForCipherAlgorithm(encryptionParameters.bulkCipherAlgorithm)
         if self.encryptor == nil
         {
-            if algorithm == nil {
-                return data
-            }
-            
-            var encryptor = CCCryptorRef()
-
-            let status = Int(CCCryptorCreate(CCOperation(kCCEncrypt), algorithm!, 0, &key, key.count, &IV, &encryptor))
-            if status != kCCSuccess {
-                print("Error: Could not create encryptor")
-                return nil
-            }
-            
-            self.encryptor = encryptor
+            self.encryptor = BlockCipher.encryptionBlockCipher(encryptionParameters.bulkCipherAlgorithm, mode: encryptionParameters.blockCipherMode, key: key, IV: IV)
         }
         
-        let outputLength : Int = CCCryptorGetOutputLength(self.encryptor!, data.count, false)
-        var outputData = [UInt8](count: outputLength, repeatedValue: 0)
-        
-        let status = outputData.withUnsafeMutableBufferPointer { (inout outputBuffer : UnsafeMutableBufferPointer<UInt8>) -> Int in
-            var outputDataWritten : Int = 0
-            
-            if self.protocolVersion >= TLSProtocolVersion.TLS_v1_1 {
-                CCCryptorReset(self.encryptor!, &IV)
-            }
-            
-            let status = Int(CCCryptorUpdate(self.encryptor!, data, data.count, outputBuffer.baseAddress, outputLength, &outputDataWritten))
-            assert(outputDataWritten == outputLength)
-            return status
+        if self.protocolVersion >= TLSProtocolVersion.TLS_v1_1 {
+            return self.encryptor.update(data: data, key: key, IV: IV)
         }
-        
-        if status != kCCSuccess {
-            print("Error: Could not encrypt data")
-            return nil
+        else {
+            return self.encryptor.update(data: data, key: key, IV: nil)
         }
-        
-        return outputData
     }
 
-    private func decrypt(data : [UInt8], var key : [UInt8], var IV : [UInt8]) -> [UInt8]?
+    private func decrypt(data : [UInt8], key : [UInt8], IV : [UInt8]) -> [UInt8]?
     {
         let encryptionParameters = self.currentReadEncryptionParameters!
         
-        let algorithm = self.CCCipherAlgorithmForCipherAlgorithm(encryptionParameters.bulkCipherAlgorithm)
         if self.decryptor == nil
         {
-            if algorithm == nil {
-                return data
-            }
-            
-            var decryptor = CCCryptorRef()
-            
-            let status = Int(CCCryptorCreate(CCOperation(kCCDecrypt), algorithm!, 0, &key, key.count, &IV, &decryptor))
-            if status != kCCSuccess {
-                print("Error: Could not create encryptor")
-                return nil
-            }
-            
-            self.decryptor = decryptor
+            self.decryptor = BlockCipher.decryptionBlockCipher(encryptionParameters.bulkCipherAlgorithm, mode: encryptionParameters.blockCipherMode, key: key, IV: IV)
         }
         
-        let outputLength : Int = CCCryptorGetOutputLength(self.decryptor!, data.count, false)
-        var outputData = [UInt8](count: outputLength, repeatedValue: 0)
-        
-        let status = outputData.withUnsafeMutableBufferPointer { (inout outputBuffer : UnsafeMutableBufferPointer<UInt8>) -> Int in
-            var outputDataWritten : Int = 0
-            
-            if self.protocolVersion >= TLSProtocolVersion.TLS_v1_1 {
-                CCCryptorReset(self.decryptor!, &IV)
-            }
-
-            let status = Int(CCCryptorUpdate(self.decryptor!, data, data.count, outputBuffer.baseAddress, outputLength, &outputDataWritten))
-            assert(outputDataWritten == outputLength)
-            return status
+        if self.protocolVersion >= TLSProtocolVersion.TLS_v1_1 {
+            return self.decryptor.update(data: data, key: key, IV: IV)
         }
-        
-        if status != kCCSuccess {
-            print("Error: Could not encrypt data")
-            return nil
+        else {
+            return self.decryptor.update(data: data, key: key, IV: nil)
         }
-        
-        return outputData
     }
 
     private func decryptAndVerifyMAC(contentType contentType : ContentType, var data : [UInt8]) -> [UInt8]?
