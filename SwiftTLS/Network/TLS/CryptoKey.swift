@@ -17,7 +17,7 @@ class CryptoKey
         self.key = key
     }
 
-    init?(keyType: CipherAlgorithm, var keyData: [UInt8])
+    init?(keyType: CipherAlgorithm, keyData: [UInt8])
     {
         var parameters = [String:String]()
         
@@ -33,8 +33,9 @@ class CryptoKey
             return nil
         }
         
+        var keyData = keyData
         let data = NSData(bytesNoCopy: &keyData, length: keyData.count, freeWhenDone: false)
-        var error : Unmanaged<CFErrorRef>? = nil
+        var error : Unmanaged<CFError>? = nil
 
         let key = SecKeyCreateFromData(parameters as CFDictionary, data, &error)
         if let k = key {
@@ -46,17 +47,18 @@ class CryptoKey
     }
     
     
-    func encryptCBC(var data : [UInt8], IV : [UInt8]) -> [UInt8]?
+    func encryptCBC(data : [UInt8], IV : [UInt8]) -> [UInt8]?
     {
-        let data = NSData(bytesNoCopy: &data, length: data.count, freeWhenDone: false)
+        var data = data
+        let nsdata = NSData(bytesNoCopy: &data, length: data.count, freeWhenDone: false)
         
         let transform: SecTransform = SecEncryptTransformCreate(self.key, nil)
         var success : Bool = false
-        success = SecTransformSetAttribute(transform, kSecTransformInputAttributeName, data, nil)
+        success = SecTransformSetAttribute(transform, kSecTransformInputAttributeName, nsdata, nil)
         success = SecTransformSetAttribute(transform, kSecModeCBCKey, true, nil)
         
         if (success) {
-            var error : Unmanaged<CFErrorRef>? = nil
+            var error : Unmanaged<CFError>? = nil
             let resultData: SecTransform! = SecTransformExecute(transform, &error)
             
             if resultData == nil {
@@ -93,17 +95,18 @@ class CryptoKey
         return crypt(encrypt: false, data: data)
     }
     
-    private func crypt(encrypt encrypt: Bool, var data : [UInt8]) -> [UInt8]?
+    private func crypt(encrypt encrypt: Bool, data : [UInt8]) -> [UInt8]?
     {
-        let data = NSData(bytesNoCopy: &data, length: data.count, freeWhenDone: false)
+        var data = data
+        let nsdata = NSData(bytesNoCopy: &data, length: data.count, freeWhenDone: false)
 
         if let transform: SecTransform = createTransform(encrypt: encrypt)
         {
             var success : Bool = false
-            success = SecTransformSetAttribute(transform, kSecTransformInputAttributeName, data, nil)
+            success = SecTransformSetAttribute(transform, kSecTransformInputAttributeName, nsdata, nil)
             
             if (success) {
-                var error : Unmanaged<CFErrorRef>? = nil
+                var error : Unmanaged<CFError>? = nil
                 let resultData: AnyObject! = SecTransformExecute(transform, &error)
 
                 if resultData == nil {

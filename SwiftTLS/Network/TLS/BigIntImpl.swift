@@ -313,7 +313,7 @@ extension BigIntImpl : CustomStringConvertible
     }
 }
 
-func +<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>
+func +<U>(a : BigIntImpl<U>, b : BigIntImpl<U>) -> BigIntImpl<U>
 {
     if a.sign != b.sign {
         if a.sign {
@@ -360,8 +360,11 @@ func +<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>
     return v
 }
 
-func -<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>
+func -<U>(a : BigIntImpl<U>, b : BigIntImpl<U>) -> BigIntImpl<U>
 {
+    var a = a
+    var b = b
+    
     a.normalize()
     b.normalize()
     
@@ -419,7 +422,7 @@ func -<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>
     return v
 }
 
-func *<U>(var a : BigIntImpl<U>, var b : BigIntImpl<U>) -> BigIntImpl<U>
+func *<U>(a : BigIntImpl<U>, b : BigIntImpl<U>) -> BigIntImpl<U>
 {
     let aCount = a.parts.count;
     let bCount = b.parts.count;
@@ -522,7 +525,7 @@ func /<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, v : Int) -> BigIntImpl
 }
 
 protocol KnowsLargerIntType : UnsignedIntegerType {
-    typealias LargerIntType : UnsignedIntegerType
+    associatedtype LargerIntType : UnsignedIntegerType
 }
 
 extension UInt8 : KnowsLargerIntType {
@@ -707,7 +710,7 @@ func division<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, _ v : BigIntImp
     return q
 }
 
-func /<U : UnsignedIntegerType where U : KnowsLargerIntType>(var u : BigIntImpl<U>, var v : BigIntImpl<U>) -> BigIntImpl<U>
+func /<U : UnsignedIntegerType where U : KnowsLargerIntType>(u : BigIntImpl<U>, v : BigIntImpl<U>) -> BigIntImpl<U>
 {
     // This is an implementation of Algorithm D in
     // "The Art of Computer Programming" by Donald E. Knuth, Volume 2, Seminumerical Algorithms, 3rd edition, p. 272
@@ -835,7 +838,8 @@ func > <U>(lhs : BigIntImpl<U>, rhs : BigIntImpl<U>) -> Bool
     return false
 }
 
-prefix func -<U>(var v : BigIntImpl<U>) -> BigIntImpl<U> {
+prefix func -<U>(v : BigIntImpl<U>) -> BigIntImpl<U> {
+    var v = v
     v.sign = !v.sign
     return v
 }

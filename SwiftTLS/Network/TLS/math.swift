@@ -51,9 +51,12 @@ public func modular_pow(base : BigInt, _ exponent : BigInt, _ mod : BigInt) -> B
     return result
 }
 
-func gcd<T : IntegerArithmeticType where T : IntegerLiteralConvertible>(var x : T, var _ y : T) -> T
+func gcd<T : IntegerArithmeticType where T : IntegerLiteralConvertible>(x : T, _ y : T) -> T
 {
     var g : T = y
+    
+    var x = x
+    var y = y
     
     while x > 0 {
         g = x

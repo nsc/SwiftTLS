@@ -11,7 +11,7 @@ import Security
 public class Identity
 {
     var name : String
-    var identity : SecIdentityRef!
+    var identity : SecIdentity!
     var privateKey  : CryptoKey!
     var certificate : Certificate!
     

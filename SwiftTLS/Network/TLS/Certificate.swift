@@ -10,7 +10,7 @@ import Foundation
 
 class Certificate
 {
-    private var certificate : SecCertificateRef!
+    private var certificate : SecCertificate!
     private var certificateData : [UInt8]
     
     private lazy var asn1certificate : ASN1Sequence? = {
@@ -106,8 +106,7 @@ class Certificate
         }
     }
     
-    init(certificate : SecCertificateRef)
-    {
+    init(certificate : SecCertificate)   {
         let data = SecCertificateCopyData(certificate) as NSData
         var array = [UInt8](count:data.length, repeatedValue: 0)
         array.withUnsafeMutableBufferPointer { memcpy($0.baseAddress, data.bytes, data.length); return }
@@ -127,13 +126,14 @@ class Certificate
         self.certificateData = array
     }
 
-    convenience init?(var certificateData : [UInt8])
+    convenience init?(certificateData : [UInt8])
     {
 //        if let object = ASN1Parser(data: certificateData).parseObject()
 //        {
 //            ASN1_printObject(object)
 //        }
 
+        var certificateData = certificateData
         let data = NSData(bytesNoCopy: &certificateData, length: certificateData.count, freeWhenDone: false)
         self.init(certificateData: data)
     }

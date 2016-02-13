@@ -96,12 +96,6 @@ enum TLSError : ErrorType
 }
 
 
-enum TLSDataProviderError : ErrorType
-{
-}
-
-
-
 protocol TLSDataProvider : class
 {
     func writeData(data : [UInt8]) throws
@@ -148,16 +142,9 @@ enum KeyExchangeAlgorithm
     case ECDHE_RSA
 }
 
-enum PRFAlgorithm {
-    case PRF_TLS_1_0
-}
-
-
-
 class TLSSecurityParameters
 {
     var connectionEnd : ConnectionEnd = .Client
-    var prfAlgorithm : PRFAlgorithm = .PRF_TLS_1_0
     var bulkCipherAlgorithm : CipherAlgorithm? = nil
     var cipherType : CipherType? = nil
     var encodeKeyLength : Int = 0
@@ -257,8 +244,9 @@ public class TLSContext
         self.stateMachine = TLSStateMachine(context: self)
     }
     
-    func copy(var isClient isClient: Bool? = nil) -> TLSContext
+    func copy(isClient isClient: Bool? = nil) -> TLSContext
     {
+        var isClient = isClient
         if isClient == nil {
             isClient = self.isClient
         }

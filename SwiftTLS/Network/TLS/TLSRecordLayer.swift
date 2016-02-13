@@ -331,7 +331,7 @@ public class TLSRecordLayer
         }
     }
 
-    private func decryptAndVerifyMAC(contentType contentType : ContentType, var data : [UInt8]) -> [UInt8]?
+    private func decryptAndVerifyMAC(contentType contentType : ContentType, data : [UInt8]) -> [UInt8]?
     {
         if let encryptionParameters = self.currentReadEncryptionParameters
         {
