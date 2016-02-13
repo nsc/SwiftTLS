@@ -117,18 +117,39 @@ class TLSStateMachine : TLSContextStateMachine
         self.state = .ChangeCipherSpecReceived
     }
 
-    func didReceiveHandshakeMessage(message : TLSHandshakeMessage) throws
+    func serverDidReceiveHandshakeMessage(message : TLSHandshakeMessage) throws
     {
-        print((self.context!.isClient ? "Client" : "Server" ) + ": did receive handshake message \(TLSMessageNameForType(message.type))")
-
+        print("Server: did receive handshake message \(TLSMessageNameForType(message.type))")
+        
         let handshakeType = message.handshakeType
-            
+        
         switch (handshakeType)
         {
         case .ClientHello:
             self.state = .ClientHelloReceived
             try self.context!.sendServerHello()
             
+        case .ClientKeyExchange:
+            self.state = .ClientKeyExchangeReceived
+            
+        case .Finished:
+            self.state = .FinishedReceived
+            
+            try self.context!.sendChangeCipherSpec()
+            
+        default:
+            print("unsupported handshake \(handshakeType.rawValue)")
+        }
+    }
+    
+    func clientDidReceiveHandshakeMessage(message : TLSHandshakeMessage) throws
+    {
+        print("Client: did receive handshake message \(TLSMessageNameForType(message.type))")
+
+        let handshakeType = message.handshakeType
+            
+        switch (handshakeType)
+        {
         case .ServerHello:
             self.state = .ServerHelloReceived
             
@@ -141,17 +162,10 @@ class TLSStateMachine : TLSContextStateMachine
         case .ServerHelloDone:
             self.state = .ServerHelloDoneReceived
             try self.context!.sendClientKeyExchange()
-            
-        case .ClientKeyExchange:
-            self.state = .ClientKeyExchangeReceived
-            
+
         case .Finished:
             self.state = .FinishedReceived
-            
-            if !self.context!.isClient {
-                try self.context!.sendChangeCipherSpec()
-            }
-            
+
         default:
             print("unsupported handshake \(handshakeType.rawValue)")
         }

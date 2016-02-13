@@ -165,7 +165,8 @@ protocol TLSContextStateMachine
     func didSendHandshakeMessage(message : TLSHandshakeMessage) throws
     func didSendChangeCipherSpec() throws
     func didReceiveChangeCipherSpec() throws
-    func didReceiveHandshakeMessage(message : TLSHandshakeMessage) throws
+    func clientDidReceiveHandshakeMessage(message : TLSHandshakeMessage) throws
+    func serverDidReceiveHandshakeMessage(message : TLSHandshakeMessage) throws
     func shouldContinueHandshakeWithMessage(message : TLSHandshakeMessage) -> Bool
     func didReceiveAlert(alert : TLSAlertMessage)
 }
@@ -176,7 +177,8 @@ extension TLSContextStateMachine
     func didSendHandshakeMessage(message : TLSHandshakeMessage) throws {}
     func didSendChangeCipherSpec() throws {}
     func didReceiveChangeCipherSpec() throws {}
-    func didReceiveHandshakeMessage(message : TLSHandshakeMessage) throws {}
+    func clientDidReceiveHandshakeMessage(message : TLSHandshakeMessage) throws {}
+    func serverDidReceiveHandshakeMessage(message : TLSHandshakeMessage) throws {}
     func shouldContinueHandshakeWithMessage(message : TLSHandshakeMessage) -> Bool
     {
         return true
@@ -358,37 +360,12 @@ public class TLSContext
         }
     }
 
-    func _didReceiveHandshakeMessage(message : TLSHandshakeMessage) throws
+    func handleClientHandshakeMessage(message : TLSHandshakeMessage) throws
     {
         let handshakeType = message.handshakeType
 
-        self.didReceiveHandshakeMessage(message)
-        
-        if (handshakeType != .Finished) {
-            // don't add the incoming Finished message to handshakeMessages.
-            // We need to verify it's data against the handshake messages before it.
-            self.handshakeMessages.append(message)
-        }
-        
         switch (handshakeType)
         {
-        case .ClientHello:
-            let clientHello = (message as! TLSClientHello)
-            if clientHello.clientVersion < self.configuration.protocolVersion {
-                self.negotiatedProtocolVersion = clientHello.clientVersion
-            }
-            self.securityParameters.clientRandom = DataBuffer(clientHello.random).buffer
-            
-            self.cipherSuite = self.selectCipherSuite(clientHello.cipherSuites)
-            
-            if self.cipherSuite == nil {
-                try self.sendAlert(.HandshakeFailure, alertLevel: .Fatal)
-                throw TLSError.Error("No shared cipher suites. Client supports:" + clientHello.cipherSuites.map({"\($0)"}).reduce("", combine: {$0 + "\n" + $1}))
-            }
-            else {
-                print("Selected cipher suite is \(self.cipherSuite!)")
-            }
-            
         case .ServerHello:
             let serverHello = message as! TLSServerHello
             let version = serverHello.version
@@ -414,17 +391,17 @@ public class TLSContext
             let keyExchangeMessage = message as! TLSServerKeyExchange
             
             if let diffieHellmanParameters = keyExchangeMessage.diffieHellmanParameters {
-
+                
                 let p = diffieHellmanParameters.p
                 let g = diffieHellmanParameters.g
                 let Ys = diffieHellmanParameters.Ys
                 
                 let dhKeyExchange = DHKeyExchange(primeModulus: p, generator: g)
                 dhKeyExchange.peerPublicKey = Ys
-
+                
                 self.dhKeyExchange = dhKeyExchange
             }
-            else if let ecdhParameters = keyExchangeMessage.ecdhParameters {                
+            else if let ecdhParameters = keyExchangeMessage.ecdhParameters {
                 if ecdhParameters.curveType != .NamedCurve {
                     throw TLSError.Error("Unsupported curve type \(ecdhParameters.curveType)")
                 }
@@ -432,8 +409,8 @@ public class TLSContext
                 guard
                     let namedCurve = ecdhParameters.namedCurve,
                     let curve = EllipticCurve.named(namedCurve)
-                else {
-                    throw TLSError.Error("Unsupported curve \(ecdhParameters.namedCurve)")
+                    else {
+                        throw TLSError.Error("Unsupported curve \(ecdhParameters.namedCurve)")
                 }
                 print("Using curve \(namedCurve)")
                 
@@ -457,6 +434,45 @@ public class TLSContext
             
         case .ServerHelloDone:
             break
+            
+        case .Finished:
+            if (self.verifyFinishedMessage(message as! TLSFinished, isClient: false)) {
+                print("Server: Finished verified.")
+            }
+            else {
+                print("Error: could not verify Finished message.")
+                try sendAlert(.DecryptionFailed, alertLevel: .Fatal)
+            }
+            
+        default:
+            throw TLSError.Error("Unsupported handshake \(handshakeType.rawValue)")
+        }
+    
+        try self.stateMachine!.clientDidReceiveHandshakeMessage(message)
+    }
+    
+    func handleServerHandshakeMessage(message : TLSHandshakeMessage) throws
+    {
+        let handshakeType = message.handshakeType
+
+        switch (handshakeType)
+        {
+        case .ClientHello:
+            let clientHello = (message as! TLSClientHello)
+            if clientHello.clientVersion < self.configuration.protocolVersion {
+                self.negotiatedProtocolVersion = clientHello.clientVersion
+            }
+            self.securityParameters.clientRandom = DataBuffer(clientHello.random).buffer
+            
+            self.cipherSuite = self.selectCipherSuite(clientHello.cipherSuites)
+            
+            if self.cipherSuite == nil {
+                try self.sendAlert(.HandshakeFailure, alertLevel: .Fatal)
+                throw TLSError.Error("No shared cipher suites. Client supports:" + clientHello.cipherSuites.map({"\($0)"}).reduce("", combine: {$0 + "\n" + $1}))
+            }
+            else {
+                print("Selected cipher suite is \(self.cipherSuite!)")
+            }
             
         case .ClientKeyExchange:
             let clientKeyExchange = message as! TLSClientKeyExchange
@@ -493,12 +509,10 @@ public class TLSContext
             self.setPreMasterSecretAndCommitSecurityParameters(preMasterSecret)
             
         case .Finished:
-            if (self.verifyFinishedMessage(message as! TLSFinished, isClient: !self.isClient)) {
-                print((self.isClient ? "Client" : "Server" ) + ": Finished verified.")
+            if (self.verifyFinishedMessage(message as! TLSFinished, isClient: true)) {
+                print("Server: Finished verified.")
                 
-                if !self.isClient {
-                    self.handshakeMessages.append(message)
-                }
+                self.handshakeMessages.append(message)
             }
             else {
                 print("Error: could not verify Finished message.")
@@ -509,7 +523,27 @@ public class TLSContext
             throw TLSError.Error("Unsupported handshake \(handshakeType.rawValue)")
         }
 
-        try self.stateMachine!.didReceiveHandshakeMessage(message)
+        try self.stateMachine!.serverDidReceiveHandshakeMessage(message)
+    }
+
+    func _didReceiveHandshakeMessage(message : TLSHandshakeMessage) throws
+    {
+        let handshakeType = message.handshakeType
+
+        self.didReceiveHandshakeMessage(message)
+        
+        if (handshakeType != .Finished) {
+            // don't add the incoming Finished message to handshakeMessages.
+            // We need to verify it's data against the handshake messages before it.
+            self.handshakeMessages.append(message)
+        }
+        
+        if self.isClient {
+            try self.handleClientHandshakeMessage(message)
+        }
+        else {
+            try self.handleServerHandshakeMessage(message)
+        }
         
         if handshakeType != .Finished {
             try self.receiveNextTLSMessage()
@@ -524,7 +558,6 @@ public class TLSContext
             random: clientHelloRandom,
             sessionID: nil,
             cipherSuites: self.configuration.cipherSuites,
-//            cipherSuites: [.TLS_RSA_WITH_NULL_SHA],
             compressionMethods: [.NULL])
         
         if self.hostNames != nil {
@@ -532,7 +565,6 @@ public class TLSContext
         }
         
         if self.configuration.cipherSuites.contains({ if let descriptor = TLSCipherSuiteDescriptorForCipherSuite($0) { return descriptor.keyExchangeAlgorithm == .ECDHE_RSA} else { return false } }) {
-//            clientHello.extensions.append(TLSEllipticCurvesExtension(ellipticCurves: [.secp256r1, .secp384r1, .secp521r1]))
             clientHello.extensions.append(TLSEllipticCurvesExtension(ellipticCurves: [.secp256r1, .secp521r1]))
             clientHello.extensions.append(TLSEllipticCurvePointFormatsExtension(ellipticCurvePointFormats: [.uncompressed]))
         }
