@@ -70,6 +70,28 @@ func hex(data : [UInt8]) -> String
     return s
 }
 
+/// XOR
+func ^(lhs: [UInt8], rhs: [UInt8]) -> [UInt8]
+{
+    let minimum = min(rhs.count, lhs.count)
+    
+    var result = [UInt8](count: minimum, repeatedValue: 0)
+    
+    for i in 0..<minimum {
+        result[i] = lhs[i] ^ rhs[i]
+    }
+    
+    return result
+}
+
+func xorBy(inout array : [UInt8], _ other : [UInt8]) {
+    let minimum = min(array.count, other.count)
+    
+    for i in 0..<minimum {
+        array[i] ^= other[i]
+    }
+}
+
 /// P_hash function as defined in RFC 2246, section 5, p. 11
 typealias HashFunction = (secret : [UInt8], data : [UInt8]) -> [UInt8]
 func P_hash(hashFunction : HashFunction, secret : [UInt8], seed : [UInt8], outputLength : Int) -> [UInt8]

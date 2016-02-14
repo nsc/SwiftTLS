@@ -42,8 +42,8 @@ public class TLSRecordLayer
     var protocolVersion: TLSProtocolVersion
     var isClient : Bool
     
-    private var currentReadEncryptionParameters : EncryptionParameters?
-    private var pendingReadEncryptionParameters : EncryptionParameters?
+    private var currentReadEncryptionParameters  : EncryptionParameters?
+    private var pendingReadEncryptionParameters  : EncryptionParameters?
     private var currentWriteEncryptionParameters : EncryptionParameters?
     private var pendingWriteEncryptionParameters : EncryptionParameters?
 

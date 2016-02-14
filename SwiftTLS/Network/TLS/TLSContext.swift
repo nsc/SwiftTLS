@@ -131,8 +131,29 @@ enum MACAlgorithm {
 enum CipherAlgorithm
 {
     case NULL
-    case TRIPLE_DES
-    case AES
+    case AES128
+    case AES256
+    
+    var blockSize : Int {
+        get {
+            switch self {
+            case .NULL: return 0
+            case .AES128: return 16
+            case .AES256: return 16
+            }
+            
+        }
+    }
+    
+    var keySize : Int {
+        get {
+            switch self {
+            case .NULL: return 0
+            case .AES128: return 16
+            case .AES256: return 32
+            }
+        }
+    }
 }
 
 enum KeyExchangeAlgorithm
@@ -805,13 +826,13 @@ public class TLSContext
         else {
             fatalError("Unkown cipher suite \(cipherSuite)")
         }
-        let cipherAlgorithmDescriptor = cipherSuiteDescriptor.bulkCipherAlgorithm
+        let cipherAlgorithm = cipherSuiteDescriptor.bulkCipherAlgorithm
 
-        self.securityParameters.bulkCipherAlgorithm  = cipherAlgorithmDescriptor.algorithm
-        self.securityParameters.encodeKeyLength      = cipherAlgorithmDescriptor.keySize
-        self.securityParameters.blockLength          = cipherAlgorithmDescriptor.blockSize
-        self.securityParameters.fixedIVLength        = cipherAlgorithmDescriptor.blockSize
-        self.securityParameters.recordIVLength       = cipherAlgorithmDescriptor.blockSize
+        self.securityParameters.bulkCipherAlgorithm  = cipherAlgorithm
+        self.securityParameters.encodeKeyLength      = cipherAlgorithm.keySize
+        self.securityParameters.blockLength          = cipherAlgorithm.blockSize
+        self.securityParameters.fixedIVLength        = cipherAlgorithm.blockSize
+        self.securityParameters.recordIVLength       = cipherAlgorithm.blockSize
         self.securityParameters.hmacDescriptor       = cipherSuiteDescriptor.hmacDescriptor
         
         self.securityParameters.masterSecret = calculateMasterSecret()

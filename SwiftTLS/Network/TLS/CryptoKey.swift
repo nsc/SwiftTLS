@@ -23,10 +23,7 @@ class CryptoKey
         
         switch (keyType)
         {
-        case .TRIPLE_DES:
-            parameters[kSecAttrKeyType as String] = kSecAttrKeyType3DES as String
-            
-        case .AES:
+        case .AES128, .AES256:
             parameters[kSecAttrKeyType as String] = kSecAttrKeyTypeAES as String
         
         default:
