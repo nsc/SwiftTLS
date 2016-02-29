@@ -278,6 +278,20 @@ case "client":
 
     connectTo(host: hostName, port: port, protocolVersion: protocolVersion)
     
+case "pem":
+    guard Process.arguments.count > 2 else {
+        print("Error: Missing arguments for subcommand \"\(command)\"")
+        exit(1)
+    }
+
+    let file = Process.arguments[2]
+
+    let sections = ASN1Parser.sectionsFromPEMFile(file)
+    for (name, section) in sections {
+        print("\(name):")
+        ASN1_printObject(section)
+    }
+
 case "asn1parse":
 
     guard Process.arguments.count > 2 else {
@@ -286,9 +300,12 @@ case "asn1parse":
     }
 
     let file = Process.arguments[2]
-    let data = NSData(contentsOfFile: file)
-    if  let data = data,
-        let object = ASN1Parser(data: data).parseObject()
+    guard let data = NSData(contentsOfFile: file) else {
+        print("Error: No such file \"\(file)\"")
+        exit(1)
+    }
+    
+    if let object = ASN1Parser(data: data).parseObject()
     {
         ASN1_printObject(object)
     }

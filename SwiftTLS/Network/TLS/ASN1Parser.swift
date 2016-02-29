@@ -326,6 +326,24 @@ class ASN1T61String : ASN1Object, ASN1String
     }
 }
 
+class ASN1IA5String : ASN1Object, ASN1String
+{
+    var string : String
+    init(string: String)
+    {
+        self.string = string
+    }
+    
+    private override func isEqualTo(other : ASN1Object) -> Bool
+    {
+        guard let other = other as? ASN1IA5String else {
+            return false
+        }
+        
+        return self.string == other.string
+    }
+}
+
 protocol ASN1Time {
     var string : String { get }
 }
@@ -590,7 +608,7 @@ public class ASN1Parser
 
                         break
                         
-                    case .PRINTABLESTRING, .UTF8STRING, .T61STRING:
+                    case .PRINTABLESTRING, .UTF8STRING, .T61STRING, .IA5STRING:
                         if let data = self.subData(cursor..<cursor + contentLength) {
                             if let s = String.fromUTF8Bytes([UInt8](data)) {
                                 switch asn1Type
@@ -603,7 +621,10 @@ public class ASN1Parser
                                 
                                 case .T61STRING:
                                     object = ASN1T61String(string: s as String)
-                                
+
+                                case .IA5STRING:
+                                    object = ASN1IA5String(string: s as String)
+
                                 default:
                                     break
                                 }
