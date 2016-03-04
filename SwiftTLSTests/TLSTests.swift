@@ -30,7 +30,8 @@ class TSLTests: XCTestCase {
         var configuration = TLSConfiguration(protocolVersion: TLSProtocolVersion.TLS_v1_2)
 //        configuration.cipherSuites = [.TLS_RSA_WITH_AES_256_CBC_SHA]
 //        configuration.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
-        configuration.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256]
+//        configuration.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256]
+        configuration.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256]
         let socket = TLSSocket(configuration: configuration)
 
 //        let (host, port) = ("195.50.155.66", 443)
@@ -78,7 +79,8 @@ class TSLTests: XCTestCase {
         do {
             dispatch_async(serverQueue) {
                 do {
-                    try server.acceptConnection(address)
+                    let client = try server.acceptConnection(address)
+                    try client.write([1,2,3])
                 } catch(let error) {
                     XCTFail("\(error)")
                 }
@@ -86,7 +88,10 @@ class TSLTests: XCTestCase {
             sleep(1)
             
             try client.connect(address)
-            expectation.fulfill()
+            let response = try client.read(count: 3)
+            if response == [1,2,3] as [UInt8] {
+                expectation.fulfill()
+            }
             client.close()
             server.close()
         }
@@ -104,7 +109,8 @@ class TSLTests: XCTestCase {
         let cipherSuites : [CipherSuite] = [
             .TLS_RSA_WITH_AES_256_CBC_SHA,
             .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
-            .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+            .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+            .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
         ]
         
         for cipherSuite in cipherSuites {

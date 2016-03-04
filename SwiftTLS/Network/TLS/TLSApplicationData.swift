@@ -18,9 +18,9 @@ class TLSApplicationData : TLSMessage
         super.init(type: .ApplicationData)
     }
     
+    // FIXME: This constructor is only needed to fulfill the TLSMessage requirement
     required init?(inputStream: InputStreamType, context: TLSContext)
     {
-        applicationData = []
-        super.init(type: .ApplicationData)
+        fatalError("This method is not implemented")
     }
 }

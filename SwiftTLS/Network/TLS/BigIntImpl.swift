@@ -525,7 +525,7 @@ func /<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, v : Int) -> BigIntImpl
 }
 
 protocol KnowsLargerIntType : UnsignedIntegerType {
-    typealias LargerIntType : UnsignedIntegerType
+    associatedtype LargerIntType : UnsignedIntegerType
 }
 
 extension UInt8 : KnowsLargerIntType {

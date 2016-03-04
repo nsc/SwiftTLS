@@ -82,12 +82,16 @@ func server()
     }
 }
 
-func connectTo(host host : String, port : Int = 443, protocolVersion: TLSProtocolVersion = .TLS_v1_2)
+func connectTo(host host : String, port : Int = 443, protocolVersion: TLSProtocolVersion = .TLS_v1_2, cipherSuite : CipherSuite? = nil)
 {
     var configuration = TLSConfiguration(protocolVersion: protocolVersion)
     
-    if protocolVersion == .TLS_v1_2 {
+    if let cipherSuite = cipherSuite {
+        configuration.cipherSuites = [cipherSuite]
+    }
+    else if protocolVersion == .TLS_v1_2 {
         configuration.cipherSuites = [
+            .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
             .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
             .TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
             .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
@@ -210,7 +214,8 @@ case "client":
     var host : String? = nil
     var port : Int = 443
     var protocolVersion = TLSProtocolVersion.TLS_v1_2
-    
+    var cipherSuite : CipherSuite? = nil
+
     do {
         var argumentIndex : Int = 2
         while true
@@ -268,6 +273,17 @@ case "client":
                 default:
                     throw Error.Error("\(argument) is not a valid TLS version")
                 }
+                
+            case "--cipherSuite":
+                if Process.arguments.count <= argumentIndex {
+                    throw Error.Error("Missing argument for --cipherSuite")
+                }
+                
+                var argument = Process.arguments[argumentIndex]
+                argumentIndex += 1
+
+                cipherSuite = CipherSuite(fromString:argument)
+                
             default:
                 print("Error: Unknown argument \(argument)")
                 exit(1)
@@ -284,7 +300,7 @@ case "client":
         exit(1)
     }
 
-    connectTo(host: hostName, port: port, protocolVersion: protocolVersion)
+    connectTo(host: hostName, port: port, protocolVersion: protocolVersion, cipherSuite: cipherSuite)
     
 case "probeCiphers":
     guard Process.arguments.count > 2 else {

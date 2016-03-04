@@ -113,6 +113,7 @@ enum ConnectionEnd {
 enum CipherType {
     case Block
     case Stream
+    case AEAD
 }
 
 enum BlockCipherMode {
@@ -121,6 +122,7 @@ enum BlockCipherMode {
 }
 
 enum MACAlgorithm {
+    case NULL
     case HMAC_MD5
     case HMAC_SHA1
     case HMAC_SHA256
@@ -174,7 +176,8 @@ class TLSSecurityParameters
 {
     var connectionEnd : ConnectionEnd = .Client
     var bulkCipherAlgorithm : CipherAlgorithm? = nil
-    var cipherType : CipherType? = nil
+    var blockCipherMode : BlockCipherMode? = nil
+    var cipherType : CipherType = .Block
     var encodeKeyLength : Int = 0
     var blockLength : Int = 0
     var fixedIVLength : Int = 0
@@ -843,12 +846,13 @@ public class TLSContext
         }
         let cipherAlgorithm = cipherSuiteDescriptor.bulkCipherAlgorithm
 
-        self.securityParameters.bulkCipherAlgorithm  = cipherAlgorithm
-        self.securityParameters.encodeKeyLength      = cipherAlgorithm.keySize
-        self.securityParameters.blockLength          = cipherAlgorithm.blockSize
-        self.securityParameters.fixedIVLength        = cipherAlgorithm.blockSize
-        self.securityParameters.recordIVLength       = cipherAlgorithm.blockSize
-        self.securityParameters.hmacDescriptor       = cipherSuiteDescriptor.hmacDescriptor
+        self.securityParameters.bulkCipherAlgorithm = cipherAlgorithm
+        self.securityParameters.blockCipherMode     = cipherSuiteDescriptor.blockCipherMode
+        self.securityParameters.encodeKeyLength     = cipherAlgorithm.keySize
+        self.securityParameters.blockLength         = cipherAlgorithm.blockSize
+        self.securityParameters.fixedIVLength       = cipherSuiteDescriptor.fixedIVLength
+        self.securityParameters.recordIVLength      = cipherSuiteDescriptor.recordIVLength
+        self.securityParameters.hmacDescriptor      = cipherSuiteDescriptor.hmacDescriptor
         
         self.securityParameters.masterSecret = calculateMasterSecret()
     }

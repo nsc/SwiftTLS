@@ -370,4 +370,16 @@ public enum CipherSuite : UInt16 {
             return false
         }
     }
+    
+    init?(fromString: String)
+    {
+        for value in CipherSuite.allValues {
+            if fromString == "\(value)" {
+                self = value
+                return
+            }
+        }
+        
+        return nil
+    }
 }

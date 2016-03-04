@@ -183,8 +183,8 @@ class BigIntTests: XCTestCase {
 
     func test_BigInt32init_withUInt64Array_givesCorrectResult() {
         
-        let a = BigIntImpl<UInt32>([UInt64]([0x56789abcdef02134, 0x1234]))
-        let expectedResult = BigIntImpl<UInt32>(hexString: "123456789abcdef02134")!
+        let a = BigInt([UInt64]([0x56789abcdef02134, 0x1234]))
+        let expectedResult = BigInt(hexString: "123456789abcdef02134")!
 
         XCTAssert(a == expectedResult)
     }
