@@ -47,14 +47,8 @@ public extension SocketProtocol
 
 class Socket : SocketProtocol
 {
-    private static var socketQueue : dispatch_queue_t = {
-        return dispatch_queue_create("com.savoysoftware.socketQueue", DISPATCH_QUEUE_SERIAL)
-    }()
-    
     var _readBuffer : [UInt8] = [UInt8](count: 64 * 1024, repeatedValue: 0)
     
-    var _socketAcceptSource : dispatch_source_t?
-
     var socketDescriptor : Int32?
     
     init()
@@ -219,9 +213,7 @@ class Socket : SocketProtocol
     
     internal func _close()
     {
-        if let socket = socketDescriptor {
-            _socketAcceptSource = nil
-            
+        if let socket = socketDescriptor {            
             Darwin.close(socket)
             
             socketDescriptor = nil

@@ -132,11 +132,11 @@ func parseASN1()
     ASN1_printObject(object!)
 }
 
-func probeCipherSuitesForHost(host : String, port : Int)
+func probeCipherSuitesForHost(host : String, port : Int, protocolVersion: TLSProtocolVersion = .TLS_v1_2)
 {
     class StateMachine : TLSContextStateMachine
     {
-        var socket : TLSSocket
+        weak var socket : TLSSocket!
         var cipherSuite : CipherSuite!
         init(socket : TLSSocket)
         {
@@ -147,7 +147,6 @@ func probeCipherSuitesForHost(host : String, port : Int)
         {
             if let hello = message as? TLSServerHello {
                 print("\(hello.cipherSuite)")
-                self.socket.close()
 
                 return false
             }
@@ -160,22 +159,31 @@ func probeCipherSuitesForHost(host : String, port : Int)
 //            print("NO")
         }
     }
-    
+
+    guard let address = IPAddress.addressWithString(host, port: port) else { print("Error: No such host \(host)"); return }
+
     for cipherSuite in CipherSuite.allValues {
-        let socket = TLSSocket(protocolVersion: .TLS_v1_2)
+        let socket = TLSSocket(protocolVersion: protocolVersion)
         let stateMachine = StateMachine(socket: socket)
         socket.context.stateMachine = stateMachine
 
         socket.context.configuration.cipherSuites = [cipherSuite]
         
-//        print("\(cipherSuite)\t: ", separator: "", terminator: "")
         do {
             stateMachine.cipherSuite = cipherSuite
-            try socket.connect(IPAddress.addressWithString(host, port: port)!)
-        } catch _ as SocketError {
-//            print("Error: \(error)")
+            try socket.connect(address)
+        } catch let error as SocketError {
+            switch error {
+            case SocketError.Closed:
+                socket.close()
+            
+            default:
+                print("Error: \(error)")
+            }
         }
-        catch {}
+        catch let error {
+            print("Unhandled error: \(error)")
+        }
     }
 }
 
@@ -278,6 +286,81 @@ case "client":
 
     connectTo(host: hostName, port: port, protocolVersion: protocolVersion)
     
+case "probeCiphers":
+    guard Process.arguments.count > 2 else {
+        print("Error: Missing arguments for subcommand \"\(command)\"")
+        exit(1)
+    }
+    
+    var host : String? = nil
+    var port : Int = 443
+    var protocolVersion = TLSProtocolVersion.TLS_v1_2
+    
+    do {
+        var argumentIndex : Int = 2
+        while true
+        {
+            if Process.arguments.count <= argumentIndex {
+                break
+            }
+            
+            var argument = Process.arguments[argumentIndex]
+            
+            argumentIndex += 1
+            
+            switch argument
+            {
+            case "--TLSVersion":
+                if Process.arguments.count <= argumentIndex {
+                    throw Error.Error("Missing argument for --TLSVersion")
+                }
+                
+                var argument = Process.arguments[argumentIndex]
+                argumentIndex += 1
+                
+                switch argument
+                {
+                case "1.0":
+                    protocolVersion = .TLS_v1_0
+                    
+                case "1.1":
+                    protocolVersion = .TLS_v1_1
+                    
+                case "1.2":
+                    protocolVersion = .TLS_v1_2
+                    
+                default:
+                    throw Error.Error("\(argument) is not a valid TLS version")
+                }
+                
+            default:
+                if argument.containsString(":") {
+                    let components = argument.componentsSeparatedByString(":")
+                    host = components[0]
+                    guard let p = Int(components[1]) where p > 0 && p < 65536 else {
+                        throw Error.Error("\(components[1]) is not a valid port number")
+                    }
+                    
+                    port = p
+                }
+                else {
+                    host = argument
+                }
+            }
+        }
+    }
+    catch Error.Error(let message) {
+        print("Error: \(message)")
+        exit(1)
+    }
+    
+    guard let hostName = host else {
+        print("Error: Missing argument --connect host[:port]")
+        exit(1)
+    }
+    
+    probeCipherSuitesForHost(hostName, port: port, protocolVersion: protocolVersion)
+    
 case "pem":
     guard Process.arguments.count > 2 else {
         print("Error: Missing arguments for subcommand \"\(command)\"")
@@ -352,8 +435,6 @@ default:
 //probeCipherSuitesForHost("77.74.169.27", port: 443)
 //probeCipherSuitesForHost("85.13.145.53", port: 443)
 //probeCipherSuitesForHost("62.153.105.15", port: 443)
-
-//dispatch_main()
 
 //let address = IPv4Address.localAddress()
 //address.port = UInt16(12345)
