@@ -8,6 +8,11 @@
 
 import Foundation
 
+enum KeyExchangeParameters {
+    case DHE(DiffieHellmanParameters)
+    case ECDHE(ECDiffieHellmanParameters)
+}
+
 public struct DiffieHellmanParameters
 {
     var p : BigInt
@@ -175,27 +180,28 @@ extension ECDiffieHellmanParameters : Streamable
 
 class TLSServerKeyExchange : TLSHandshakeMessage
 {
-    var diffieHellmanParameters : DiffieHellmanParameters?
-    var ecdhParameters : ECDiffieHellmanParameters?
+    var parameters : KeyExchangeParameters
     
     var signedParameters : TLSSignedData
     
     var parametersData : [UInt8] {
         get {
-            if let dhParams = diffieHellmanParameters {
+            switch parameters {
+            case .DHE(let dhParams):
                 return DataBuffer(dhParams).buffer
-            }
-            else if let ecdhParameters = self.ecdhParameters {
-                return DataBuffer(ecdhParameters).buffer
-            }
             
-            fatalError("Neither DH nor ECDH parameters in server key exchange")
+            case .ECDHE(let ecdhParameters):
+                return DataBuffer(ecdhParameters).buffer
+
+            default:
+                fatalError("Neither DH nor ECDH parameters in server key exchange")
+            }
         }
     }
     
     init(dhParameters: DiffieHellmanParameters, context: TLSContext)
     {
-        self.diffieHellmanParameters = dhParameters
+        self.parameters = .DHE(dhParameters)
         var data = context.securityParameters.clientRandom!
         data += context.securityParameters.serverRandom!
         data += DataBuffer(dhParameters).buffer
@@ -207,7 +213,7 @@ class TLSServerKeyExchange : TLSHandshakeMessage
     
     init(ecdhParameters: ECDiffieHellmanParameters, context: TLSContext)
     {
-        self.ecdhParameters = ecdhParameters
+        self.parameters = .ECDHE(ecdhParameters)
         
         var data = context.securityParameters.clientRandom!
         data += context.securityParameters.serverRandom!
@@ -237,8 +243,8 @@ class TLSServerKeyExchange : TLSHandshakeMessage
                 return nil
             }
 
-            self.diffieHellmanParameters    = diffieHellmanParameters
-            self.signedParameters           = signedParameters
+            self.parameters         = .DHE(diffieHellmanParameters)
+            self.signedParameters   = signedParameters
                         
             if context.negotiatedProtocolVersion == .TLS_v1_2 {
 //                assert(bodyLength == dh_pData.count + 2 + dh_gData.count + 2 + dh_YsData.count + 2 + signedParameters.signature.count + 4)
@@ -247,7 +253,8 @@ class TLSServerKeyExchange : TLSHandshakeMessage
             }
             
         case .ECDHE_RSA:
-            self.ecdhParameters = ECDiffieHellmanParameters(inputStream: inputStream)
+            guard let parameters = ECDiffieHellmanParameters(inputStream: inputStream) else { return nil }
+            self.parameters = .ECDHE(parameters)
             if let signedParameters = TLSSignedData(inputStream: inputStream, context: context) {
                 self.signedParameters = signedParameters
             }
@@ -258,8 +265,7 @@ class TLSServerKeyExchange : TLSHandshakeMessage
             break
             
         default:
-            self.signedParameters = TLSSignedData()
-            break
+            return nil
         }
         
         super.init(type: .Handshake(.ServerKeyExchange))
@@ -269,13 +275,14 @@ class TLSServerKeyExchange : TLSHandshakeMessage
     {
         var body = DataBuffer()
 
-        if let diffieHellmanParameters = self.diffieHellmanParameters {
+        switch parameters {
+        case .DHE(let diffieHellmanParameters):
             diffieHellmanParameters.writeTo(&body)
-        }
-        else if let ecdhParameters = self.ecdhParameters {
+        
+        case .ECDHE(let ecdhParameters):
             ecdhParameters.writeTo(&body)
         }
-
+        
         self.signedParameters.writeTo(&body)
         let bodyData = body.buffer
         

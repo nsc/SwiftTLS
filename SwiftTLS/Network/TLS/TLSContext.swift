@@ -163,6 +163,13 @@ enum KeyExchangeAlgorithm
     case ECDHE_RSA
 }
 
+enum KeyExchange
+{
+    case RSA
+    case DHE(DHKeyExchange)
+    case ECDHE(ECDHKeyExchange)
+}
+
 class TLSSecurityParameters
 {
     var connectionEnd : ConnectionEnd = .Client
@@ -239,8 +246,7 @@ public class TLSContext
     
     var recordLayer : TLSRecordLayer!
     
-    var dhKeyExchange : DHKeyExchange?
-    var ecdhKeyExchange : ECDHKeyExchange?
+    var keyExchange : KeyExchange
     
     var signer : Signing?
     
@@ -262,7 +268,8 @@ public class TLSContext
         self.isClient = isClient
         self.handshakeMessages = []
         self.securityParameters = TLSSecurityParameters()
-
+        self.keyExchange = .RSA
+        
         self.recordLayer = TLSRecordLayer(context: self, dataProvider: dataProvider)
         self.stateMachine = TLSStateMachine(context: self)
     }
@@ -411,7 +418,9 @@ public class TLSContext
         case .ServerKeyExchange:
             let keyExchangeMessage = message as! TLSServerKeyExchange
             
-            if let diffieHellmanParameters = keyExchangeMessage.diffieHellmanParameters {
+            switch keyExchangeMessage.parameters {
+            
+            case .DHE(let diffieHellmanParameters):
                 
                 let p = diffieHellmanParameters.p
                 let g = diffieHellmanParameters.g
@@ -420,9 +429,9 @@ public class TLSContext
                 let dhKeyExchange = DHKeyExchange(primeModulus: p, generator: g)
                 dhKeyExchange.peerPublicKey = Ys
                 
-                self.dhKeyExchange = dhKeyExchange
-            }
-            else if let ecdhParameters = keyExchangeMessage.ecdhParameters {
+                self.keyExchange = .DHE(dhKeyExchange)
+            
+            case .ECDHE(let ecdhParameters):
                 if ecdhParameters.curveType != .NamedCurve {
                     throw TLSError.Error("Unsupported curve type \(ecdhParameters.curveType)")
                 }
@@ -435,8 +444,9 @@ public class TLSContext
                 }
                 print("Using curve \(namedCurve)")
                 
-                self.ecdhKeyExchange = ECDHKeyExchange(curve: curve)
-                self.ecdhKeyExchange!.peerPublicKey = ecdhParameters.publicKey
+                let ecdhKeyExchange = ECDHKeyExchange(curve: curve)
+                ecdhKeyExchange.peerPublicKey = ecdhParameters.publicKey
+                self.keyExchange = .ECDHE(ecdhKeyExchange)
             }
             
             // verify signature
@@ -498,7 +508,11 @@ public class TLSContext
         case .ClientKeyExchange:
             let clientKeyExchange = message as! TLSClientKeyExchange
             var preMasterSecret : [UInt8]
-            if let dhKeyExchange = self.dhKeyExchange {
+            
+            
+            switch self.keyExchange {
+                
+            case .DHE(let dhKeyExchange):
                 // Diffie-Hellman
                 if let diffieHellmanPublicKey = clientKeyExchange.diffieHellmanPublicKey {
                     dhKeyExchange.peerPublicKey = diffieHellmanPublicKey
@@ -507,8 +521,8 @@ public class TLSContext
                 else {
                     fatalError("Client Key Exchange has no DH public key")
                 }
-            }
-            else if let ecdhKeyExchange = self.ecdhKeyExchange {
+            
+            case .ECDHE(let ecdhKeyExchange):
                 if let ecdhPublicKey = clientKeyExchange.ecdhPublicKey {
                     ecdhKeyExchange.peerPublicKey = ecdhPublicKey
                     preMasterSecret = ecdhKeyExchange.calculateSharedSecret()!.asBigEndianData()
@@ -516,8 +530,8 @@ public class TLSContext
                 else {
                     fatalError("Client Key Exchange has no ECDH public key")
                 }
-            }
-            else {
+            
+            case .RSA:
                 // RSA
                 if let encryptedPreMasterSecret = clientKeyExchange.encryptedPreMasterSecret {
                     preMasterSecret = self.configuration.identity!.privateKey.decrypt(encryptedPreMasterSecret)!
@@ -634,10 +648,12 @@ public class TLSContext
                 throw TLSError.Error("No DH parameters set in configuration")
             }
             
-            self.dhKeyExchange = DHKeyExchange(dhParameters: dhParameters)
+            let dhKeyExchange = DHKeyExchange(dhParameters: dhParameters)
 
             // use new public key for each key exchange
-            dhParameters.Ys = self.dhKeyExchange!.calculatePublicKey()
+            dhParameters.Ys = dhKeyExchange.calculatePublicKey()
+            
+            self.keyExchange = .DHE(dhKeyExchange)
             
             let message = TLSServerKeyExchange(dhParameters: dhParameters, context: self)
             try self.sendHandshakeMessage(message)
@@ -649,7 +665,7 @@ public class TLSContext
 
             let ecdhKeyExchange = ECDHKeyExchange(curve: ecdhParameters.curve)
             let Q = ecdhKeyExchange.calculatePublicKey()
-            self.ecdhKeyExchange = ecdhKeyExchange
+            self.keyExchange = .ECDHE(ecdhKeyExchange)
             
             ecdhParameters.publicKey = Q
             let message = TLSServerKeyExchange(ecdhParameters: ecdhParameters, context:self)
@@ -663,8 +679,8 @@ public class TLSContext
 
     func sendClientKeyExchange() throws
     {
-        if let diffieHellmanKeyExchange = self.dhKeyExchange
-        {
+        switch self.keyExchange {
+        case .DHE(let diffieHellmanKeyExchange):
             // Diffie-Hellman
             let publicKey = diffieHellmanKeyExchange.calculatePublicKey()
             let sharedSecret = diffieHellmanKeyExchange.calculateSharedSecret()!
@@ -673,9 +689,8 @@ public class TLSContext
             
             let message = TLSClientKeyExchange(diffieHellmanPublicKey: publicKey)
             try self.sendHandshakeMessage(message)
-        }
-        else if let ecdhKeyExchange = self.ecdhKeyExchange
-        {
+        
+        case .ECDHE(let ecdhKeyExchange):
             let Q = ecdhKeyExchange.calculatePublicKey()
             let sharedSecret = ecdhKeyExchange.calculateSharedSecret()!
             
@@ -683,8 +698,8 @@ public class TLSContext
             
             let message = TLSClientKeyExchange(ecdhPublicKey: Q)
             try self.sendHandshakeMessage(message)
-        }
-        else {
+        
+        case .RSA:
             if let serverKey = self.serverKey {
                 // RSA
                 let message = TLSClientKeyExchange(preMasterSecret: self.preMasterSecret!, publicKey: serverKey)

@@ -89,21 +89,21 @@ class TLSClientKeyExchange : TLSHandshakeMessage
         // TODO: check consistency of body length and the data following
         if type == TLSHandshakeType.ClientKeyExchange {
 
-            if context.ecdhKeyExchange != nil {
+            switch context.keyExchange {
+            case .ECDHE:
                 if let rawPublicKeyPoint : [UInt8] = inputStream.read8() {
                     guard let ecdhPublicKey = EllipticCurvePoint(data: rawPublicKeyPoint) else { return nil }
                     self.ecdhPublicKey = ecdhPublicKey
                 }
-            }
-            else {
+            
+            case .DHE:
                 if let data : [UInt8] = inputStream.read16() {
+                    self.diffieHellmanPublicKey = BigInt(bigEndianParts: data)
+                }
                     
-                    if context.dhKeyExchange != nil {
-                        self.diffieHellmanPublicKey = BigInt(bigEndianParts: data)
-                    }
-                    else {
+            case .RSA:
+                if let data : [UInt8] = inputStream.read16() {
                         self.encryptedPreMasterSecret = data
-                    }
                 }
             }
             

@@ -21,7 +21,14 @@ class EncryptionParameters {
     var IV      : [UInt8]
     var sequenceNumber : UInt64
     
-    init(hmacDescriptor : HMACDescriptor, MACKey: [UInt8], bulkCipherAlgorithm: CipherAlgorithm, blockCipherMode: BlockCipherMode = .CBC, bulkKey: [UInt8], blockLength: Int, IV: [UInt8], sequenceNumber: UInt64 = UInt64(0))
+    init(hmacDescriptor: HMACDescriptor,
+         MACKey: [UInt8],
+         bulkCipherAlgorithm: CipherAlgorithm,
+         blockCipherMode: BlockCipherMode = .CBC,
+         bulkKey: [UInt8],
+         blockLength: Int,
+         IV: [UInt8],
+         sequenceNumber: UInt64 = UInt64(0))
     {
         self.hmacDescriptor = hmacDescriptor
         self.bulkCipherAlgorithm = bulkCipherAlgorithm
