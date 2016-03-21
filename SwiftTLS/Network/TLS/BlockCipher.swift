@@ -156,6 +156,8 @@ class BlockCipher
             outputData[range].replaceRange(range, with: outputBlock.block)
         }
         
+        self.IV = iv.block
+        
         return outputData
     }
 }

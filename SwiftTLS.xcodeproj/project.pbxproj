@@ -1395,7 +1395,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_INCLUDE_PATHS = "${SRCROOT}/SwiftTLS/modulemaps/SwiftHelper ${SRCROOT}/SwiftTLS/modulemaps/CommonCrypto ${SRCROOT}/SwiftTLS/modulemaps/OpenSSL";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				"SWIFT_OPTIMIZATION_LEVEL[arch=*]" = "-Onone";
+				"SWIFT_OPTIMIZATION_LEVEL[arch=*]" = "-Owholemodule";
 			};
 			name = Debug;
 		};
