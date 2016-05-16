@@ -1,5 +1,9 @@
 - check padding
 - implement TLS 1.2 extension to choose hash function other than SHA256
+- generate correct alert messages
+
+- implement TLS 1.3
+
 
 - improve BigInt multiply and pow performance
 - implement support for explicit elliptic curves
