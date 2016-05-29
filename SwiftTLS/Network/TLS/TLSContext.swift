@@ -161,8 +161,14 @@ enum CipherAlgorithm
 enum KeyExchangeAlgorithm
 {
     case RSA
-    case DHE_RSA
-    case ECDHE_RSA
+    case DHE
+    case ECDHE
+}
+
+enum CertificateType
+{
+    case RSA
+    case ECDSA
 }
 
 enum KeyExchange
@@ -602,7 +608,7 @@ public class TLSContext
             clientHello.extensions.append(TLSServerNameExtension(serverNames: self.hostNames!))
         }
         
-        if self.configuration.cipherSuites.contains({ if let descriptor = TLSCipherSuiteDescriptorForCipherSuite($0) { return descriptor.keyExchangeAlgorithm == .ECDHE_RSA} else { return false } }) {
+        if self.configuration.cipherSuites.contains({ if let descriptor = TLSCipherSuiteDescriptorForCipherSuite($0) { return descriptor.keyExchangeAlgorithm == .ECDHE} else { return false } }) {
             clientHello.extensions.append(TLSEllipticCurvesExtension(ellipticCurves: [.secp256r1, .secp521r1]))
             clientHello.extensions.append(TLSEllipticCurvePointFormatsExtension(ellipticCurvePointFormats: [.uncompressed]))
         }
@@ -646,7 +652,7 @@ public class TLSContext
         
         switch cipherSuiteDescriptor.keyExchangeAlgorithm
         {
-        case .DHE_RSA:
+        case .DHE:
             guard var dhParameters = self.configuration.dhParameters else {
                 throw TLSError.Error("No DH parameters set in configuration")
             }
@@ -661,7 +667,7 @@ public class TLSContext
             let message = TLSServerKeyExchange(dhParameters: dhParameters, context: self)
             try self.sendHandshakeMessage(message)
             
-        case .ECDHE_RSA:
+        case .ECDHE:
             guard var ecdhParameters = self.configuration.ecdhParameters else {
                 throw TLSError.Error("No ECDH parameters set in configuration")
             }

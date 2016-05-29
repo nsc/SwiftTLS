@@ -235,7 +235,7 @@ class TLSServerKeyExchange : TLSHandshakeMessage
         switch TLSCipherSuiteDescriptorForCipherSuite(context.cipherSuite!)!.keyExchangeAlgorithm
         {
 
-        case .DHE_RSA:
+        case .DHE:
             guard
                 let diffieHellmanParameters = DiffieHellmanParameters(inputStream: inputStream),
                 let signedParameters = TLSSignedData(inputStream: inputStream, context: context)
@@ -252,7 +252,7 @@ class TLSServerKeyExchange : TLSHandshakeMessage
 //                assert(bodyLength == dh_pData.count + 2 + dh_gData.count + 2 + dh_YsData.count + 2 + signedParameters.signature.count + 2)
             }
             
-        case .ECDHE_RSA:
+        case .ECDHE:
             guard let parameters = ECDiffieHellmanParameters(inputStream: inputStream) else { return nil }
             self.parameters = .ECDHE(parameters)
             if let signedParameters = TLSSignedData(inputStream: inputStream, context: context) {

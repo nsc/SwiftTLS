@@ -18,6 +18,7 @@ struct CipherSuiteDescriptor {
     var cipherSuite : CipherSuite
     
     var keyExchangeAlgorithm : KeyExchangeAlgorithm
+    var certificateType : CertificateType
     var bulkCipherAlgorithm : CipherAlgorithm
     var cipherType : CipherType
     var blockCipherMode : BlockCipherMode?
@@ -27,6 +28,7 @@ struct CipherSuiteDescriptor {
     
     init(cipherSuite: CipherSuite,
          keyExchangeAlgorithm : KeyExchangeAlgorithm,
+         certificateType : CertificateType = .RSA,
          bulkCipherAlgorithm : CipherAlgorithm,
          cipherType : CipherType,
          blockCipherMode : BlockCipherMode? = nil,
@@ -37,6 +39,7 @@ struct CipherSuiteDescriptor {
     {
         self.cipherSuite = cipherSuite
         self.keyExchangeAlgorithm = keyExchangeAlgorithm
+        self.certificateType = certificateType
         self.bulkCipherAlgorithm = bulkCipherAlgorithm
         self.cipherType = cipherType
         self.blockCipherMode = blockCipherMode
@@ -61,22 +64,22 @@ struct CipherSuiteDescriptor {
 }
 
 
-let TLSCipherSuiteDescritions : [CipherSuite:CipherSuiteDescriptor] = [
-    CipherSuite.TLS_RSA_WITH_NULL_MD5: CipherSuiteDescriptor(
+let TLSCipherSuiteDescritions : [CipherSuiteDescriptor] = [
+    CipherSuiteDescriptor(
         cipherSuite: .TLS_RSA_WITH_NULL_MD5,
         keyExchangeAlgorithm: .RSA,
         bulkCipherAlgorithm: .NULL,
         cipherType: .Stream,
         hmacDescriptor: HMACDescriptor(algorithm: .HMAC_MD5, size: Int(CC_MD5_DIGEST_LENGTH))),
     
-    .TLS_RSA_WITH_NULL_SHA: CipherSuiteDescriptor(
+    CipherSuiteDescriptor(
         cipherSuite: .TLS_RSA_WITH_NULL_SHA,
         keyExchangeAlgorithm: .RSA,
         bulkCipherAlgorithm: .NULL,
         cipherType: .Stream,
         hmacDescriptor: HMACDescriptor(algorithm: .HMAC_SHA1, size: Int(CC_SHA1_DIGEST_LENGTH))),
 
-    .TLS_RSA_WITH_AES_256_CBC_SHA: CipherSuiteDescriptor(
+    CipherSuiteDescriptor(
         cipherSuite: .TLS_RSA_WITH_AES_256_CBC_SHA,
         keyExchangeAlgorithm: .RSA,
         bulkCipherAlgorithm: .AES256,
@@ -84,7 +87,7 @@ let TLSCipherSuiteDescritions : [CipherSuite:CipherSuiteDescriptor] = [
         blockCipherMode: .CBC,
         hmacDescriptor: HMACDescriptor(algorithm: .HMAC_SHA1, size: Int(CC_SHA1_DIGEST_LENGTH))),
 
-    .TLS_RSA_WITH_AES_256_CBC_SHA256: CipherSuiteDescriptor(
+    CipherSuiteDescriptor(
         cipherSuite: .TLS_RSA_WITH_AES_256_CBC_SHA256,
         keyExchangeAlgorithm: .RSA,
         bulkCipherAlgorithm: .AES256,
@@ -92,45 +95,66 @@ let TLSCipherSuiteDescritions : [CipherSuite:CipherSuiteDescriptor] = [
         blockCipherMode: .CBC,
         hmacDescriptor: HMACDescriptor(algorithm: .HMAC_SHA256, size: Int(CC_SHA256_DIGEST_LENGTH))),
 
-    .TLS_DHE_RSA_WITH_AES_256_CBC_SHA: CipherSuiteDescriptor(
+    CipherSuiteDescriptor(
         cipherSuite: .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
-        keyExchangeAlgorithm: .DHE_RSA,
+        keyExchangeAlgorithm: .DHE,
         bulkCipherAlgorithm: .AES256,
         cipherType: .Block,
         blockCipherMode: .CBC,
         hmacDescriptor: HMACDescriptor(algorithm: .HMAC_SHA1, size: Int(CC_SHA1_DIGEST_LENGTH))),
 
-    .TLS_DHE_RSA_WITH_AES_256_CBC_SHA256: CipherSuiteDescriptor(
+    CipherSuiteDescriptor(
         cipherSuite: .TLS_DHE_RSA_WITH_AES_256_CBC_SHA256,
-        keyExchangeAlgorithm: .DHE_RSA,
+        keyExchangeAlgorithm: .DHE,
         bulkCipherAlgorithm: .AES256,
         cipherType: .Block,
         blockCipherMode: .CBC,
         hmacDescriptor: HMACDescriptor(algorithm: .HMAC_SHA256, size: Int(CC_SHA256_DIGEST_LENGTH))),
         
-    .TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA: CipherSuiteDescriptor(
+    CipherSuiteDescriptor(
         cipherSuite: .TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-        keyExchangeAlgorithm: .ECDHE_RSA,
+        keyExchangeAlgorithm: .ECDHE,
         bulkCipherAlgorithm: .AES256,
         cipherType: .Stream,
         blockCipherMode: .CBC,
         hmacDescriptor: HMACDescriptor(algorithm: .HMAC_SHA1, size: Int(CC_SHA1_DIGEST_LENGTH))),
 
-    .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256: CipherSuiteDescriptor(
+    CipherSuiteDescriptor(
         cipherSuite: .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-        keyExchangeAlgorithm: .ECDHE_RSA,
+        keyExchangeAlgorithm: .ECDHE,
         bulkCipherAlgorithm: .AES128,
         cipherType: .Block,
         blockCipherMode: .CBC,
         hmacDescriptor: HMACDescriptor(algorithm: .HMAC_SHA256, size: Int(CC_SHA256_DIGEST_LENGTH))),
     
-    .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256: CipherSuiteDescriptor(
+    CipherSuiteDescriptor(
         cipherSuite: .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-        keyExchangeAlgorithm: .ECDHE_RSA,
+        keyExchangeAlgorithm: .ECDHE,
+        bulkCipherAlgorithm: .AES128,
+        cipherType: .AEAD,
+        blockCipherMode: .GCM,
+        fixedIVLength: 4,
+        recordIVLength: 8
+    ),
+    
+    CipherSuiteDescriptor(
+        cipherSuite: .TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+        keyExchangeAlgorithm: .ECDHE,
+        certificateType: .ECDSA,
         bulkCipherAlgorithm: .AES128,
         cipherType: .AEAD,
         blockCipherMode: .GCM,
         fixedIVLength: 4,
         recordIVLength: 8
     )
+
 ]
+
+let TLSCipherSuiteDescriptionDictionary : [CipherSuite:CipherSuiteDescriptor] = {
+    var dict = [CipherSuite:CipherSuiteDescriptor]()
+    for cipherSuite in TLSCipherSuiteDescritions {
+        dict[cipherSuite.cipherSuite] = cipherSuite
+    }
+    
+    return dict
+}()

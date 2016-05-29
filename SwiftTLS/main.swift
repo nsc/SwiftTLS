@@ -91,11 +91,11 @@ func connectTo(host host : String, port : Int = 443, protocolVersion: TLSProtoco
     }
     else if protocolVersion == .TLS_v1_2 {
         configuration.cipherSuites = [
-            .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-            .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-            .TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-            .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
-            .TLS_RSA_WITH_AES_256_CBC_SHA
+            .TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+//            .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+//            .TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+//            .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
+//            .TLS_RSA_WITH_AES_256_CBC_SHA
         ]
     }
     else {
@@ -185,8 +185,8 @@ func probeCipherSuitesForHost(host : String, port : Int, protocolVersion: TLSPro
                 print("Error: \(error)")
             }
         }
-        catch let error {
-            print("Unhandled error: \(error)")
+        catch {
+//            print("Unhandled error: \(error)")
         }
     }
 }

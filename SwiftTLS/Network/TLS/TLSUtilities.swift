@@ -405,7 +405,7 @@ func TLSMessageNameForType(messageType : TLSMessageType) -> String
 
 func TLSCipherSuiteDescriptorForCipherSuite(cipherSuite : CipherSuite) -> CipherSuiteDescriptor?
 {
-    guard let cipherSuiteDescriptor = TLSCipherSuiteDescritions[cipherSuite] else {
+    guard let cipherSuiteDescriptor = TLSCipherSuiteDescriptionDictionary[cipherSuite] else {
 //        fatalError("Unknown cipher suite")
         return nil
     }

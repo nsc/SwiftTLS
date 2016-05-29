@@ -360,10 +360,10 @@ public enum CipherSuite : UInt16 {
         
         switch keyExchangeAlgorithm
         {
-        case .DHE_RSA:
+        case .DHE:
             return true
 
-        case .ECDHE_RSA:
+        case .ECDHE:
             return true
 
         default:
