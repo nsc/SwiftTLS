@@ -50,7 +50,7 @@ struct RSA
                     return nil
                 }
                 
-                let objects = sequence.objects
+                let objects     = sequence.objects
                 let n           = BigInt(bigEndianParts:(objects[1] as! ASN1Integer).value)
                 let e           = BigInt(bigEndianParts:(objects[2] as! ASN1Integer).value)
                 let d           = BigInt(bigEndianParts:(objects[3] as! ASN1Integer).value)

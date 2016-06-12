@@ -1,0 +1,10 @@
+- Fix signing/verification bug with TLS 1.0 where the signature and hash algorithm wasn't part of the signed data
+- check padding
+- implement TLS 1.2 extension to choose hash function other than SHA256
+- generate correct alert messages
+
+- implement TLS 1.3
+
+
+- improve BigInt multiply and pow performance
+- implement support for explicit elliptic curves
