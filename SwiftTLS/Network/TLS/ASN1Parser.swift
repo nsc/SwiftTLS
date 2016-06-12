@@ -29,6 +29,8 @@ enum ASN1TypeTag : UInt8
     case IA5STRING                  = 0x16
     case UTCTIME                    = 0x17
     case GENERALIZEDTIME            = 0x18
+    case GRAPHICSTRING              = 0x19
+    case GENERALSTRING              = 0x1b
 }
 
 let ASN1_CONSTRUCTED : UInt8        = 0x20
@@ -344,6 +346,42 @@ class ASN1IA5String : ASN1Object, ASN1String
     }
 }
 
+class ASN1GraphicString : ASN1Object, ASN1String
+{
+    var string : String
+    init(string: String)
+    {
+        self.string = string
+    }
+    
+    private override func isEqualTo(other : ASN1Object) -> Bool
+    {
+        guard let other = other as? ASN1GraphicString else {
+            return false
+        }
+        
+        return self.string == other.string
+    }
+}
+
+class ASN1GeneralString : ASN1Object, ASN1String
+{
+    var string : String
+    init(string: String)
+    {
+        self.string = string
+    }
+    
+    private override func isEqualTo(other : ASN1Object) -> Bool
+    {
+        guard let other = other as? ASN1GeneralString else {
+            return false
+        }
+        
+        return self.string == other.string
+    }
+}
+
 protocol ASN1Time {
     var string : String { get }
 }
@@ -608,7 +646,7 @@ public class ASN1Parser
 
                         break
                         
-                    case .PRINTABLESTRING, .UTF8STRING, .T61STRING, .IA5STRING:
+                    case .PRINTABLESTRING, .UTF8STRING, .T61STRING, .IA5STRING, .GRAPHICSTRING, .GENERALSTRING:
                         if let data = self.subData(cursor..<cursor + contentLength) {
                             if let s = String.fromUTF8Bytes([UInt8](data)) {
                                 switch asn1Type
@@ -624,6 +662,12 @@ public class ASN1Parser
 
                                 case .IA5STRING:
                                     object = ASN1IA5String(string: s as String)
+
+                                case .GRAPHICSTRING:
+                                    object = ASN1GraphicString(string: s as String)
+
+                                case .GENERALSTRING:
+                                    object = ASN1GeneralString(string: s as String)
 
                                 default:
                                     break
