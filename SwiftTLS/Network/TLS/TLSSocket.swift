@@ -1,6 +1,5 @@
 //
 //  TLSSocket.swift
-//  Chat
 //
 //  Created by Nico Schmidt on 12.03.15.
 //  Copyright (c) 2015 Nico Schmidt. All rights reserved.

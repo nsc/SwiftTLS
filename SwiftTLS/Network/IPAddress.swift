@@ -1,6 +1,5 @@
 //
 //  IPAddress.swift
-//  Chat
 //
 //  Created by Nico Schmidt on 09.06.14.
 //  Copyright (c) 2014 Nico Schmidt. All rights reserved.

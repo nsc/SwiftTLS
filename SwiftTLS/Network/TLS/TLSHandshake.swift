@@ -1,6 +1,5 @@
 //
 //  TLSHandshake.swift
-//  Chat
 //
 //  Created by Nico Schmidt on 14.03.15.
 //  Copyright (c) 2015 Nico Schmidt. All rights reserved.
