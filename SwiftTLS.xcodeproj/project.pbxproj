@@ -1411,6 +1411,7 @@
 				SWIFT_INCLUDE_PATHS = "${SRCROOT}/SwiftTLS/modulemaps/SwiftHelper ${SRCROOT}/SwiftTLS/modulemaps/CommonCrypto ${SRCROOT}/SwiftTLS/modulemaps/OpenSSL";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				"SWIFT_OPTIMIZATION_LEVEL[arch=*]" = "-Onone";
+				SWIFT_VERSION = 2.3;
 			};
 			name = Debug;
 		};
@@ -1431,6 +1432,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_INCLUDE_PATHS = "${SRCROOT}/SwiftTLS/modulemaps/SwiftHelper ${SRCROOT}/SwiftTLS/modulemaps/CommonCrypto ${SRCROOT}/SwiftTLS/modulemaps/OpenSSL";
 				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
+				SWIFT_VERSION = 2.3;
 			};
 			name = Release;
 		};
@@ -1456,6 +1458,7 @@
 				SKIP_INSTALL = YES;
 				SWIFT_INCLUDE_PATHS = "${SRCROOT}/SwiftTLS/modulemaps/SwiftHelper ${SRCROOT}/SwiftTLS/modulemaps/CommonCrypto ${SRCROOT}/SwiftTLS/modulemaps/OpenSSL";
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 2.3;
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
 			};
@@ -1482,6 +1485,7 @@
 				SKIP_INSTALL = YES;
 				SWIFT_INCLUDE_PATHS = "${SRCROOT}/SwiftTLS/modulemaps/SwiftHelper ${SRCROOT}/SwiftTLS/modulemaps/CommonCrypto ${SRCROOT}/SwiftTLS/modulemaps/OpenSSL";
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 2.3;
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
 			};
@@ -1500,6 +1504,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.savoysoftware.SwiftTLSTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 2.3;
 			};
 			name = Debug;
 		};
@@ -1514,6 +1519,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.savoysoftware.SwiftTLSTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 2.3;
 			};
 			name = Release;
 		};

@@ -56,7 +56,7 @@ class Certificate
             assert(err == errSecSuccess)
             
             if let trust = trustPtr {
-                var trustResult = SecTrustResultType()
+                var trustResult = SecTrustResultType.Unspecified
                 err = SecTrustEvaluate(trust, &trustResult)
                 assert(err == errSecSuccess)
                 
