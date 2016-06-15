@@ -10,27 +10,27 @@ import Foundation
 
 enum TLSState
 {
-    case Idle
-    case ClientHelloSent
-    case ClientHelloReceived
-    case ServerHelloSent
-    case ServerHelloReceived
-    case ServerKeyExchangeSent
-    case ServerKeyExchangeReceived
-    case ServerHelloDoneSent
-    case ServerHelloDoneReceived
-    case CertificateSent
-    case CertificateReceived
-    case ClientKeyExchangeSent
-    case ClientKeyExchangeReceived
-    case ChangeCipherSpecSent
-    case ChangeCipherSpecReceived
-    case FinishedSent
-    case FinishedReceived
-    case Connected
-    case CloseSent
-    case CloseReceived
-    case Error
+    case idle
+    case clientHelloSent
+    case clientHelloReceived
+    case serverHelloSent
+    case serverHelloReceived
+    case serverKeyExchangeSent
+    case serverKeyExchangeReceived
+    case serverHelloDoneSent
+    case serverHelloDoneReceived
+    case certificateSent
+    case certificateReceived
+    case clientKeyExchangeSent
+    case clientKeyExchangeReceived
+    case changeCipherSpecSent
+    case changeCipherSpecReceived
+    case finishedSent
+    case finishedReceived
+    case connected
+    case closeSent
+    case closeReceived
+    case error
 }
 
 
@@ -40,7 +40,7 @@ class TLSStateMachine : TLSContextStateMachine
 {
     weak var context : TLSContext?
     
-    var state : TLSState = .Idle {
+    var state : TLSState = .idle {
         willSet {
             if !checkStateTransition(newValue) {
                 fatalError((self.context!.isClient ? "Client" : "Server" ) + ": Illegal state transition \(self.state) -> \(newValue)")
@@ -52,29 +52,29 @@ class TLSStateMachine : TLSContextStateMachine
     init(context : TLSContext)
     {
         self.context = context
-        self.state = .Idle
+        self.state = .idle
     }
     
-    func didSendMessage(message : TLSMessage)
+    func didSendMessage(_ message : TLSMessage)
     {
         print((self.context!.isClient ? "Client" : "Server" ) + ": did send message \(TLSMessageNameForType(message.type))")
     }
     
-    func didSendHandshakeMessage(message : TLSHandshakeMessage) throws
+    func didSendHandshakeMessage(_ message : TLSHandshakeMessage) throws
     {
         self.didSendMessage(message)
         
         switch message.handshakeType
         {
-        case .ClientHello:
-            self.state = .ClientHelloSent
+        case .clientHello:
+            self.state = .clientHelloSent
             
-        case .ServerHello:
-            self.state = .ServerHelloSent
+        case .serverHello:
+            self.state = .serverHelloSent
             try self.context!.sendCertificate()
             
-        case .Certificate:
-            self.state = .CertificateSent
+        case .certificate:
+            self.state = .certificateSent
             
             if !self.context!.isClient {
                 if self.context!.cipherSuite!.needsServerKeyExchange() {
@@ -85,19 +85,19 @@ class TLSStateMachine : TLSContextStateMachine
                 }
             }
             
-        case .ServerKeyExchange:
-            self.state = .ServerKeyExchangeSent
+        case .serverKeyExchange:
+            self.state = .serverKeyExchangeSent
             try self.context!.sendServerHelloDone()
 
-        case .ServerHelloDone:
-            self.state = .ServerHelloDoneSent
+        case .serverHelloDone:
+            self.state = .serverHelloDoneSent
 
-        case .ClientKeyExchange:
-            self.state = .ClientKeyExchangeSent
+        case .clientKeyExchange:
+            self.state = .clientKeyExchangeSent
             try self.context!.sendChangeCipherSpec()
 
-        case .Finished:
-            self.state = .FinishedSent
+        case .finished:
+            self.state = .finishedSent
             
         default:
             print("Unsupported handshake \(message.handshakeType)")
@@ -107,17 +107,17 @@ class TLSStateMachine : TLSContextStateMachine
     func didSendChangeCipherSpec() throws
     {
         print("did send change cipher spec")
-        self.state = .ChangeCipherSpecSent
+        self.state = .changeCipherSpecSent
         try self.context!.sendFinished()
     }
     
     func didReceiveChangeCipherSpec()
     {
         print("did receive change cipher spec")
-        self.state = .ChangeCipherSpecReceived
+        self.state = .changeCipherSpecReceived
     }
 
-    func serverDidReceiveHandshakeMessage(message : TLSHandshakeMessage) throws
+    func serverDidReceiveHandshakeMessage(_ message : TLSHandshakeMessage) throws
     {
         print("Server: did receive handshake message \(TLSMessageNameForType(message.type))")
         
@@ -125,15 +125,15 @@ class TLSStateMachine : TLSContextStateMachine
         
         switch (handshakeType)
         {
-        case .ClientHello:
-            self.state = .ClientHelloReceived
+        case .clientHello:
+            self.state = .clientHelloReceived
             try self.context!.sendServerHello()
             
-        case .ClientKeyExchange:
-            self.state = .ClientKeyExchangeReceived
+        case .clientKeyExchange:
+            self.state = .clientKeyExchangeReceived
             
-        case .Finished:
-            self.state = .FinishedReceived
+        case .finished:
+            self.state = .finishedReceived
             
             try self.context!.sendChangeCipherSpec()
             
@@ -142,7 +142,7 @@ class TLSStateMachine : TLSContextStateMachine
         }
     }
     
-    func clientDidReceiveHandshakeMessage(message : TLSHandshakeMessage) throws
+    func clientDidReceiveHandshakeMessage(_ message : TLSHandshakeMessage) throws
     {
         print("Client: did receive handshake message \(TLSMessageNameForType(message.type))")
 
@@ -150,32 +150,32 @@ class TLSStateMachine : TLSContextStateMachine
             
         switch (handshakeType)
         {
-        case .ServerHello:
-            self.state = .ServerHelloReceived
+        case .serverHello:
+            self.state = .serverHelloReceived
             
-        case .Certificate:
-            self.state = .CertificateReceived
+        case .certificate:
+            self.state = .certificateReceived
             
-        case .ServerKeyExchange:
-            self.state = .ServerKeyExchangeReceived
+        case .serverKeyExchange:
+            self.state = .serverKeyExchangeReceived
             
-        case .ServerHelloDone:
-            self.state = .ServerHelloDoneReceived
+        case .serverHelloDone:
+            self.state = .serverHelloDoneReceived
             try self.context!.sendClientKeyExchange()
 
-        case .Finished:
-            self.state = .FinishedReceived
+        case .finished:
+            self.state = .finishedReceived
 
         default:
             print("unsupported handshake \(handshakeType.rawValue)")
         }
     }
 
-    func didReceiveAlert(alert: TLSAlertMessage) {
+    func didReceiveAlert(_ alert: TLSAlertMessage) {
         print((self.context!.isClient ? "Client" : "Server" ) + ": did receive message \(alert.alertLevel) \(alert.alert)")
     }
 
-    func advanceState(state : TLSState) -> Bool
+    func advanceState(_ state : TLSState) -> Bool
     {
         if checkStateTransition(state) {
             self.state = state
@@ -187,51 +187,51 @@ class TLSStateMachine : TLSContextStateMachine
     }
     
     
-    func checkClientStateTransition(state : TLSState) -> Bool
+    func checkClientStateTransition(_ state : TLSState) -> Bool
     {
         switch (self.state)
         {
-        case .Idle where state == .ClientHelloSent:
+        case .idle where state == .clientHelloSent:
             return true
             
-        case .ClientHelloSent where state == .ServerHelloReceived:
+        case .clientHelloSent where state == .serverHelloReceived:
             return true
             
-        case .ServerHelloReceived where state == .CertificateReceived:
+        case .serverHelloReceived where state == .certificateReceived:
             return true
             
-        case .CertificateReceived:
+        case .certificateReceived:
             if self.context!.cipherSuite!.needsServerKeyExchange() {
-                if state == .ServerKeyExchangeReceived {
+                if state == .serverKeyExchangeReceived {
                     return true
                 }
             }
-            else if state == .ServerHelloDoneReceived {
+            else if state == .serverHelloDoneReceived {
                 return true
             }
             
-        case .ServerKeyExchangeReceived where state == .ServerHelloDoneReceived:
+        case .serverKeyExchangeReceived where state == .serverHelloDoneReceived:
             return true
             
-        case .ServerHelloDoneReceived where state == .ClientKeyExchangeSent:
+        case .serverHelloDoneReceived where state == .clientKeyExchangeSent:
             return true
             
-        case .ClientKeyExchangeSent where state == .ChangeCipherSpecSent:
+        case .clientKeyExchangeSent where state == .changeCipherSpecSent:
             return true
             
-        case .ChangeCipherSpecSent where state == .FinishedSent:
+        case .changeCipherSpecSent where state == .finishedSent:
             return true
             
-        case .FinishedSent where state == .ChangeCipherSpecReceived:
+        case .finishedSent where state == .changeCipherSpecReceived:
             return true
             
-        case .ChangeCipherSpecReceived where state == .FinishedReceived:
+        case .changeCipherSpecReceived where state == .finishedReceived:
             return true
             
-        case .FinishedReceived where state == .Connected:
+        case .finishedReceived where state == .connected:
             return true
             
-        case .Connected where (state == .CloseReceived || state == .CloseSent):
+        case .connected where (state == .closeReceived || state == .closeSent):
             return true
             
         default:
@@ -241,48 +241,48 @@ class TLSStateMachine : TLSContextStateMachine
         return false
     }
     
-    func checkServerStateTransition(state : TLSState) -> Bool
+    func checkServerStateTransition(_ state : TLSState) -> Bool
     {
         switch (self.state)
         {
-        case .Idle where state == .ClientHelloReceived:
+        case .idle where state == .clientHelloReceived:
             return true
 
-        case .ClientHelloReceived where state == .ServerHelloSent:
+        case .clientHelloReceived where state == .serverHelloSent:
             return true
             
-        case .ServerHelloSent where state == .CertificateSent:
+        case .serverHelloSent where state == .certificateSent:
             return true
             
-        case .CertificateSent:
+        case .certificateSent:
             if self.context!.cipherSuite!.needsServerKeyExchange() {
-                if state == .ServerKeyExchangeSent {
+                if state == .serverKeyExchangeSent {
                     return true
                 }
             }
-            else if state == .ServerHelloDoneSent {
+            else if state == .serverHelloDoneSent {
                 return true
             }
             
-        case .ServerKeyExchangeSent where state == .ServerHelloDoneSent:
+        case .serverKeyExchangeSent where state == .serverHelloDoneSent:
             return true
             
-        case .ServerHelloDoneSent where state == .ClientKeyExchangeReceived:
+        case .serverHelloDoneSent where state == .clientKeyExchangeReceived:
             return true
             
-        case .ClientKeyExchangeReceived where state == .ChangeCipherSpecReceived:
+        case .clientKeyExchangeReceived where state == .changeCipherSpecReceived:
             return true
             
-        case .ChangeCipherSpecReceived where state == .FinishedReceived:
+        case .changeCipherSpecReceived where state == .finishedReceived:
             return true
             
-        case .FinishedReceived where state == .ChangeCipherSpecSent:
+        case .finishedReceived where state == .changeCipherSpecSent:
             return true
             
-        case .ChangeCipherSpecSent where state == .FinishedSent:
+        case .changeCipherSpecSent where state == .finishedSent:
             return true
             
-        case .FinishedSent where state == .Connected:
+        case .finishedSent where state == .connected:
             return true
             
         default:
@@ -292,7 +292,7 @@ class TLSStateMachine : TLSContextStateMachine
         return false
     }
     
-    func checkStateTransition(state : TLSState) -> Bool
+    func checkStateTransition(_ state : TLSState) -> Bool
     {
         if self.context!.isClient {
             return checkClientStateTransition(state)

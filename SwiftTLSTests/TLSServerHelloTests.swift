@@ -13,11 +13,11 @@ extension TLSContext {
     convenience init() {
         class EmptyDataProvider : TLSDataProvider
         {
-            func writeData(data : [UInt8]) throws{}
-            func readData(count count : Int) throws -> [UInt8] { return []}
+            func writeData(_ data : [UInt8]) throws{}
+            func readData(count : Int) throws -> [UInt8] { return []}
         }
         
-        self.init(configuration: TLSConfiguration(protocolVersion: .TLS_v1_0), dataProvider: EmptyDataProvider())
+        self.init(configuration: TLSConfiguration(protocolVersion: .v1_0), dataProvider: EmptyDataProvider())
     }
 }
 
@@ -26,29 +26,29 @@ class TLSServerHelloTests: XCTestCase {
     func test_writeTo__givesCorrectBinaryRepresentation() {
         let random = Random()
         let clientHello = TLSServerHello(
-            serverVersion: TLSProtocolVersion.TLS_v1_0,
+            serverVersion: TLSProtocolVersion.v1_0,
             random: random,
             sessionID: nil,
             cipherSuite: .TLS_RSA_WITH_RC4_128_SHA,
-            compressionMethod: .NULL)
+            compressionMethod: .null)
         
         var buffer = DataBuffer()
         clientHello.writeTo(&buffer)
         
-        var expectedData = [UInt8]([TLSHandshakeType.ServerHello.rawValue, 0, 0, 38, 3, 1])
+        var expectedData = [UInt8]([TLSHandshakeType.serverHello.rawValue, 0, 0, 38, 3, 1])
         var randomData = DataBuffer()
         random.writeTo(&randomData)
-        expectedData.appendContentsOf(randomData.buffer)
-        expectedData.appendContentsOf([0, 0, 5, 0])
+        expectedData.append(contentsOf: randomData.buffer)
+        expectedData.append(contentsOf: [0, 0, 5, 0])
         XCTAssert(buffer.buffer == expectedData)
     }
     
     var testServerHelloData : [UInt8] {
         get {
             let rc4_md5  = CipherSuite.TLS_RSA_WITH_RC4_128_MD5.rawValue
-            let nullCompressionMethod = CompressionMethod.NULL.rawValue
+            let nullCompressionMethod = CompressionMethod.null.rawValue
             
-            return [UInt8]([TLSHandshakeType.ServerHello.rawValue, 0, 0, 41, 3, 1,
+            return [UInt8]([TLSHandshakeType.serverHello.rawValue, 0, 0, 41, 3, 1,
                 // random
                 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,
                 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,

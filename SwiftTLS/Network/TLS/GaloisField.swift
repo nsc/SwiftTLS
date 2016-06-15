@@ -53,7 +53,7 @@ struct GF2_128_Element {
         return GF2_128_Element(hi: rhi, lo: rlo)
     }
     
-    func isBitSet(n : Int) -> Bool {
+    func isBitSet(_ n : Int) -> Bool {
         var n = n
         precondition(n >= 0)
 
@@ -98,22 +98,22 @@ func *(x : GF2_128_Element, y : GF2_128_Element) -> GF2_128_Element {
     return z
 }
 
-func ghashUpdate(ghash: GF2_128_Element, h: GF2_128_Element, x: [UInt8]) -> GF2_128_Element
+func ghashUpdate(_ ghash: GF2_128_Element, h: GF2_128_Element, x: [UInt8]) -> GF2_128_Element
 {
     let blockSize = 16 // byte, which is 128 bit
     var countX = x.count
     
     var y = ghash
     var startIndex = 0
-    var xBlock = [UInt8](count: 16, repeatedValue: 0)
+    var xBlock = [UInt8](repeating: 0, count: 16)
     while countX > 0 {
         let length = (countX >= blockSize) ? blockSize : countX
         // copy next chunk from x to xBlock filling with zeros
         xBlock.withUnsafeMutableBufferPointer { dst in
             x.withUnsafeBufferPointer { src in
-                memcpy(dst.baseAddress, src.baseAddress + startIndex, length)
+                memcpy(dst.baseAddress, src.baseAddress! + startIndex, length)
                 if length < blockSize {
-                    memset(dst.baseAddress + length, 0, blockSize - length)
+                    memset(dst.baseAddress! + length, 0, blockSize - length)
                 }
             }
         }
@@ -127,7 +127,7 @@ func ghashUpdate(ghash: GF2_128_Element, h: GF2_128_Element, x: [UInt8]) -> GF2_
     return y
 }
 
-func ghash(h : GF2_128_Element, authData: [UInt8], x : [UInt8]) -> GF2_128_Element
+func ghash(_ h : GF2_128_Element, authData: [UInt8], x : [UInt8]) -> GF2_128_Element
 {
     var y = ghashUpdate(GF2_128_Element(), h: h, x: authData)
     y = ghashUpdate(y, h: h, x: x)

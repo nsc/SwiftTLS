@@ -28,7 +28,7 @@ public class IPAddress
     
     var unsafeSockAddrPointer : UnsafePointer<sockaddr> {
         get {
-            return UnsafePointer<sockaddr>(nil)
+            return UnsafePointer<sockaddr>(nil)!
         }
     }
     
@@ -36,8 +36,8 @@ public class IPAddress
         let localAddress = IPv6Address()
 
         var ipv6address = sockaddr_in6()
-        memset(&ipv6address, 0, sizeof(sockaddr_in6))
-        ipv6address.sin6_len = UInt8(sizeof(sockaddr_in6))
+        memset(&ipv6address, 0, sizeof(sockaddr_in6.self))
+        ipv6address.sin6_len = UInt8(sizeof(sockaddr_in6.self))
         ipv6address.sin6_family = sa_family_t(AF_INET6)
         ipv6address.sin6_port = 0
         ipv6address.sin6_addr = in6addr_loopback
@@ -48,7 +48,7 @@ public class IPAddress
     
     init() {}
     
-    public class func addressWithString(hostname : String, port : Int? = nil) -> IPAddress?
+    public class func addressWithString(_ hostname : String, port : Int? = nil) -> IPAddress?
     {
         if let ipv4address = IPv4Address(hostname) {
             if let p = port {
@@ -64,14 +64,14 @@ public class IPAddress
             return ipv6address
         }
         
-        let addressInfoPointer = UnsafeMutablePointer<UnsafeMutablePointer<addrinfo>>.alloc(1)
+        var addressInfoPointer: UnsafeMutablePointer<addrinfo>? = nil
         let address : IPAddress? = hostname.nulTerminatedUTF8.withUnsafeBufferPointer {
-            if getaddrinfo(UnsafePointer<Int8>($0.baseAddress), nil, nil, addressInfoPointer) != 0 {
+            if getaddrinfo(UnsafePointer<Int8>($0.baseAddress), nil, nil, &addressInfoPointer) != 0 {
                 print("Error: \(strerror(errno))")
                 return nil
             }
             
-            let addressInfo = addressInfoPointer.memory[0]
+            let addressInfo = addressInfoPointer!.pointee
             switch addressInfo.ai_family
             {
             case AF_INET:
@@ -130,7 +130,7 @@ public class IPv4Address : IPAddress
             resultCode = inet_pton(AF_INET, p, &self.socketAddress.sin_addr)
             if resultCode == 1 {
                 self.socketAddress.sin_family = sa_family_t(AF_INET)
-                self.socketAddress.sin_len = UInt8(sizeof(sockaddr_in))
+                self.socketAddress.sin_len = UInt8(sizeof(sockaddr_in.self))
             }
         }
         
@@ -142,14 +142,14 @@ public class IPv4Address : IPAddress
     override var string : String?
         {
         get {
-            var buffer = Array<CChar>(count: Int(INET_ADDRSTRLEN), repeatedValue: 0)
+            var buffer = Array<CChar>(repeating: 0, count: Int(INET_ADDRSTRLEN))
             let result = inet_ntop(AF_INET,
                 &socketAddress.sin_addr,
                 &buffer,
                 socklen_t(INET_ADDRSTRLEN))
             
             if result != nil {
-                return String.fromCString(result)
+                return String(cString: result!)
             }
             
             return nil
@@ -169,8 +169,8 @@ public class IPv4Address : IPAddress
         let localAddress = IPv4Address()
         
         var address = sockaddr_in()
-        memset(&address, 0, sizeof(sockaddr_in))
-        address.sin_len = UInt8(sizeof(sockaddr_in))
+        memset(&address, 0, sizeof(sockaddr_in.self))
+        address.sin_len = UInt8(sizeof(sockaddr_in.self))
         address.sin_family = sa_family_t(AF_INET)
         address.sin_port = 0
         address.sin_addr.s_addr = 0
@@ -208,7 +208,7 @@ public class IPv6Address : IPAddress
             resultCode = inet_pton(AF_INET6, p, &self.socketAddress.sin6_addr)
             if resultCode == 1 {
                 self.socketAddress.sin6_family = sa_family_t(AF_INET6)
-                self.socketAddress.sin6_len = UInt8(sizeof(sockaddr_in))
+                self.socketAddress.sin6_len = UInt8(sizeof(sockaddr_in.self))
             }
         }
         
@@ -220,14 +220,14 @@ public class IPv6Address : IPAddress
     override var string : String?
     {
         get {
-            var buffer = Array<CChar>(count: Int(INET6_ADDRSTRLEN), repeatedValue: 0)
+            var buffer = Array<CChar>(repeating: 0, count: Int(INET6_ADDRSTRLEN))
             let result = inet_ntop(AF_INET6,
                 &socketAddress.sin6_addr,
                 &buffer,
                 socklen_t(INET6_ADDRSTRLEN))
             
             if result != nil {
-                return String.fromCString(result)
+                return String(cString: result!)
             }
             
             return nil

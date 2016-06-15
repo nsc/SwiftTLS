@@ -9,7 +9,7 @@
 import Foundation
 import CommonCrypto
 
-func hexDigit(d : UInt8) -> String
+func hexDigit(_ d : UInt8) -> String
 {
     switch (d & 0xf)
     {
@@ -51,12 +51,12 @@ func hexDigit(d : UInt8) -> String
     }
 }
 
-func hexString(c : UInt8) -> String
+func hexString(_ c : UInt8) -> String
 {
     return hexDigit((c & 0xf0) >> 4) + hexDigit(c & 0xf)
 }
 
-func hex(data : [UInt8]) -> String
+func hex(_ data : [UInt8]) -> String
 {
     var s = ""
     for i in 0 ..< data.count {
@@ -75,7 +75,7 @@ func ^(lhs: [UInt8], rhs: [UInt8]) -> [UInt8]
 {
     let minimum = min(rhs.count, lhs.count)
     
-    var result = [UInt8](count: minimum, repeatedValue: 0)
+    var result = [UInt8](repeating: 0, count: minimum)
     
     for i in 0..<minimum {
         result[i] = lhs[i] ^ rhs[i]
@@ -84,7 +84,7 @@ func ^(lhs: [UInt8], rhs: [UInt8]) -> [UInt8]
     return result
 }
 
-func xorBy(inout array : [UInt8], _ other : [UInt8]) {
+func xorBy(_ array : inout [UInt8], _ other : [UInt8]) {
     let minimum = min(array.count, other.count)
     
     for i in 0..<minimum {
@@ -94,7 +94,7 @@ func xorBy(inout array : [UInt8], _ other : [UInt8]) {
 
 /// P_hash function as defined in RFC 2246, section 5, p. 11
 typealias HashFunction = (secret : [UInt8], data : [UInt8]) -> [UInt8]
-func P_hash(hashFunction : HashFunction, secret : [UInt8], seed : [UInt8], outputLength : Int) -> [UInt8]
+func P_hash(_ hashFunction : HashFunction, secret : [UInt8], seed : [UInt8], outputLength : Int) -> [UInt8]
 {
     var outputData = [UInt8]()
     var A : [UInt8] = seed
@@ -104,7 +104,7 @@ func P_hash(hashFunction : HashFunction, secret : [UInt8], seed : [UInt8], outpu
         A = hashFunction(secret: secret, data: A)
         var output = hashFunction(secret: secret, data: A + seed)
         let bytesFromOutput = min(bytesLeftToWrite, output.count)
-        outputData.appendContentsOf(output[0..<bytesFromOutput])
+        outputData.append(contentsOf: output[0..<bytesFromOutput])
         
         bytesLeftToWrite -= bytesFromOutput
     }
@@ -114,10 +114,10 @@ func P_hash(hashFunction : HashFunction, secret : [UInt8], seed : [UInt8], outpu
 
 
 
-func HMAC_MD5(secret : [UInt8], data : [UInt8]) -> [UInt8]
+func HMAC_MD5(_ secret : [UInt8], data : [UInt8]) -> [UInt8]
 {
-    var output = [UInt8](count: Int(CC_MD5_DIGEST_LENGTH), repeatedValue: 0)
-    output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
+    var output = [UInt8](repeating: 0, count: Int(CC_MD5_DIGEST_LENGTH))
+    output.withUnsafeMutableBufferPointer { (buffer : inout UnsafeMutableBufferPointer<UInt8>) -> () in
         CCHmac(UInt32(kCCHmacAlgMD5), secret, secret.count, data, data.count, buffer.baseAddress)
     }
     
@@ -126,10 +126,10 @@ func HMAC_MD5(secret : [UInt8], data : [UInt8]) -> [UInt8]
 
 
 
-func HMAC_SHA1(secret : [UInt8], data : [UInt8]) -> [UInt8]
+func HMAC_SHA1(_ secret : [UInt8], data : [UInt8]) -> [UInt8]
 {
-    var output = [UInt8](count: Int(CC_SHA1_DIGEST_LENGTH), repeatedValue: 0)
-    output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
+    var output = [UInt8](repeating: 0, count: Int(CC_SHA1_DIGEST_LENGTH))
+    output.withUnsafeMutableBufferPointer { (buffer : inout UnsafeMutableBufferPointer<UInt8>) -> () in
         CCHmac(UInt32(kCCHmacAlgSHA1), secret, secret.count, data, data.count, buffer.baseAddress)
     }
     
@@ -138,10 +138,10 @@ func HMAC_SHA1(secret : [UInt8], data : [UInt8]) -> [UInt8]
 
 
 
-func HMAC_SHA256(secret : [UInt8], data : [UInt8]) -> [UInt8]
+func HMAC_SHA256(_ secret : [UInt8], data : [UInt8]) -> [UInt8]
 {
-    var output = [UInt8](count: Int(CC_SHA256_DIGEST_LENGTH), repeatedValue: 0)
-    output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
+    var output = [UInt8](repeating: 0, count: Int(CC_SHA256_DIGEST_LENGTH))
+    output.withUnsafeMutableBufferPointer { (buffer : inout UnsafeMutableBufferPointer<UInt8>) -> () in
         CCHmac(UInt32(kCCHmacAlgSHA256), secret, secret.count, data, data.count, buffer.baseAddress)
     }
     
@@ -150,10 +150,10 @@ func HMAC_SHA256(secret : [UInt8], data : [UInt8]) -> [UInt8]
 
 
 
-func HMAC_SHA384(secret : [UInt8], data : [UInt8]) -> [UInt8]
+func HMAC_SHA384(_ secret : [UInt8], data : [UInt8]) -> [UInt8]
 {
-    var output = [UInt8](count: Int(CC_SHA384_DIGEST_LENGTH), repeatedValue: 0)
-    output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
+    var output = [UInt8](repeating: 0, count: Int(CC_SHA384_DIGEST_LENGTH))
+    output.withUnsafeMutableBufferPointer { (buffer : inout UnsafeMutableBufferPointer<UInt8>) -> () in
         CCHmac(UInt32(kCCHmacAlgSHA384), secret, secret.count, data, data.count, buffer.baseAddress)
     }
     
@@ -162,10 +162,10 @@ func HMAC_SHA384(secret : [UInt8], data : [UInt8]) -> [UInt8]
 
 
 
-func HMAC_SHA512(secret : [UInt8], data : [UInt8]) -> [UInt8]
+func HMAC_SHA512(_ secret : [UInt8], data : [UInt8]) -> [UInt8]
 {
-    var output = [UInt8](count: Int(CC_SHA512_DIGEST_LENGTH), repeatedValue: 0)
-    output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
+    var output = [UInt8](repeating: 0, count: Int(CC_SHA512_DIGEST_LENGTH))
+    output.withUnsafeMutableBufferPointer { (buffer : inout UnsafeMutableBufferPointer<UInt8>) -> () in
         CCHmac(UInt32(kCCHmacAlgSHA512), secret, secret.count, data, data.count, buffer.baseAddress)
     }
     
@@ -174,10 +174,10 @@ func HMAC_SHA512(secret : [UInt8], data : [UInt8]) -> [UInt8]
 
 
 
-func Hash_MD5(data : [UInt8]) -> [UInt8]
+func Hash_MD5(_ data : [UInt8]) -> [UInt8]
 {
-    var output = [UInt8](count: Int(CC_MD5_DIGEST_LENGTH), repeatedValue: 0)
-    output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
+    var output = [UInt8](repeating: 0, count: Int(CC_MD5_DIGEST_LENGTH))
+    output.withUnsafeMutableBufferPointer { (buffer : inout UnsafeMutableBufferPointer<UInt8>) -> () in
         CC_MD5(data, CC_LONG(data.count), buffer.baseAddress)
     }
     
@@ -186,10 +186,10 @@ func Hash_MD5(data : [UInt8]) -> [UInt8]
 
 
 
-func Hash_SHA1(data : [UInt8]) -> [UInt8]
+func Hash_SHA1(_ data : [UInt8]) -> [UInt8]
 {
-    var output = [UInt8](count: Int(CC_SHA1_DIGEST_LENGTH), repeatedValue: 0)
-    output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
+    var output = [UInt8](repeating: 0, count: Int(CC_SHA1_DIGEST_LENGTH))
+    output.withUnsafeMutableBufferPointer { (buffer : inout UnsafeMutableBufferPointer<UInt8>) -> () in
         CC_SHA1(data, CC_LONG(data.count), buffer.baseAddress)
     }
     
@@ -198,10 +198,10 @@ func Hash_SHA1(data : [UInt8]) -> [UInt8]
 
 
 
-func Hash_SHA224(data : [UInt8]) -> [UInt8]
+func Hash_SHA224(_ data : [UInt8]) -> [UInt8]
 {
-    var output = [UInt8](count: Int(CC_SHA224_DIGEST_LENGTH), repeatedValue: 0)
-    output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
+    var output = [UInt8](repeating: 0, count: Int(CC_SHA224_DIGEST_LENGTH))
+    output.withUnsafeMutableBufferPointer { (buffer : inout UnsafeMutableBufferPointer<UInt8>) -> () in
         CC_SHA224(data, CC_LONG(data.count), buffer.baseAddress)
     }
     
@@ -210,10 +210,10 @@ func Hash_SHA224(data : [UInt8]) -> [UInt8]
 
 
 
-func Hash_SHA256(data : [UInt8]) -> [UInt8]
+func Hash_SHA256(_ data : [UInt8]) -> [UInt8]
 {
-    var output = [UInt8](count: Int(CC_SHA256_DIGEST_LENGTH), repeatedValue: 0)
-    output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
+    var output = [UInt8](repeating: 0, count: Int(CC_SHA256_DIGEST_LENGTH))
+    output.withUnsafeMutableBufferPointer { (buffer : inout UnsafeMutableBufferPointer<UInt8>) -> () in
         CC_SHA256(data, CC_LONG(data.count), buffer.baseAddress)
     }
     
@@ -222,10 +222,10 @@ func Hash_SHA256(data : [UInt8]) -> [UInt8]
 
 
 
-func Hash_SHA384(data : [UInt8]) -> [UInt8]
+func Hash_SHA384(_ data : [UInt8]) -> [UInt8]
 {
-    var output = [UInt8](count: Int(CC_SHA384_DIGEST_LENGTH), repeatedValue: 0)
-    output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
+    var output = [UInt8](repeating: 0, count: Int(CC_SHA384_DIGEST_LENGTH))
+    output.withUnsafeMutableBufferPointer { (buffer : inout UnsafeMutableBufferPointer<UInt8>) -> () in
         CC_SHA384(data, CC_LONG(data.count), buffer.baseAddress)
     }
     
@@ -234,10 +234,10 @@ func Hash_SHA384(data : [UInt8]) -> [UInt8]
 
 
 
-func Hash_SHA512(data : [UInt8]) -> [UInt8]
+func Hash_SHA512(_ data : [UInt8]) -> [UInt8]
 {
-    var output = [UInt8](count: Int(CC_SHA512_DIGEST_LENGTH), repeatedValue: 0)
-    output.withUnsafeMutableBufferPointer { (inout buffer : UnsafeMutableBufferPointer<UInt8>) -> () in
+    var output = [UInt8](repeating: 0, count: Int(CC_SHA512_DIGEST_LENGTH))
+    output.withUnsafeMutableBufferPointer { (buffer : inout UnsafeMutableBufferPointer<UInt8>) -> () in
         CC_SHA512(data, CC_LONG(data.count), buffer.baseAddress)
     }
     
@@ -245,45 +245,45 @@ func Hash_SHA512(data : [UInt8]) -> [UInt8]
 }
 
 
-func TLSHandshakeMessageNameForType(handshakeType : TLSHandshakeType) -> String
+func TLSHandshakeMessageNameForType(_ handshakeType : TLSHandshakeType) -> String
 {
     var messageName : String
     switch (handshakeType)
     {
-    case .HelloRequest:
+    case .helloRequest:
         messageName = "HelloRequest"
         
-    case .ClientHello:
+    case .clientHello:
         messageName = "ClientHello"
         
-    case .ServerHello:
+    case .serverHello:
         messageName = "ServerHello"
         
-    case .Certificate:
+    case .certificate:
         messageName = "Certificate"
         
-    case .ServerKeyExchange:
+    case .serverKeyExchange:
         messageName = "ServerKeyExchange"
         
-    case .CertificateRequest:
+    case .certificateRequest:
         messageName = "CertificateRequest"
         
-    case .ServerHelloDone:
+    case .serverHelloDone:
         messageName = "ServerHelloDone"
         
-    case .CertificateVerify:
+    case .certificateVerify:
         messageName = "CertificateVerify"
         
-    case .ClientKeyExchange:
+    case .clientKeyExchange:
         messageName = "ClientKeyExchange"
         
-    case .Finished:
+    case .finished:
         messageName = "Finished"
         
-    case .CertificateURL:
+    case .certificateURL:
         messageName = "CertificateURL"
         
-    case .CertificateStatus:
+    case .certificateStatus:
         messageName = "CertificateStatus"
     }
     
@@ -292,110 +292,110 @@ func TLSHandshakeMessageNameForType(handshakeType : TLSHandshakeType) -> String
 
 
 
-func TLSMessageNameForType(messageType : TLSMessageType) -> String
+func TLSMessageNameForType(_ messageType : TLSMessageType) -> String
 {
     var messageName : String
     switch (messageType)
     {
-    case .ChangeCipherSpec:
+    case .changeCipherSpec:
         messageName = "ChangeCipherSpec"
         
-    case .Handshake(let handshakeType):
+    case .handshake(let handshakeType):
         let handshakeMessageName = TLSHandshakeMessageNameForType(handshakeType)
         messageName = "Handshake(\(handshakeMessageName))"
         
-    case .Alert(let alertLevel, let alertDescription):
+    case .alert(let alertLevel, let alertDescription):
         let alertLevelString : String
         let alertDescriptionString : String
         
         switch (alertDescription)
         {
-        case .CloseNotify:
+        case .closeNotify:
             alertDescriptionString = "CloseNotify"
             
-        case .UnexpectedMessage:
+        case .unexpectedMessage:
             alertDescriptionString = "UnexpectedMessage"
             
-        case .BadRecordMAC:
+        case .badRecordMAC:
             alertDescriptionString = "BadRecordMAC"
             
-        case .DecryptionFailed:
+        case .decryptionFailed:
             alertDescriptionString = "DecryptionFailed"
             
-        case .RecordOverflow:
+        case .recordOverflow:
             alertDescriptionString = "RecordOverflow"
             
-        case .DecompressionFailure:
+        case .decompressionFailure:
             alertDescriptionString = "DecompressionFailure"
             
-        case .HandshakeFailure:
+        case .handshakeFailure:
             alertDescriptionString = "HandshakeFailure"
             
-        case .NoCertificate:
+        case .noCertificate:
             alertDescriptionString = "NoCertificate"
             
-        case .BadCertificate:
+        case .badCertificate:
             alertDescriptionString = "BadCertificate"
             
-        case .UnsupportedCertificate:
+        case .unsupportedCertificate:
             alertDescriptionString = "UnsupportedCertificate"
             
-        case .CertificateRevoked:
+        case .certificateRevoked:
             alertDescriptionString = "CertificateRevoked"
             
-        case .CertificateExpired:
+        case .certificateExpired:
             alertDescriptionString = "CertificateExpired"
             
-        case .CertificateUnknown:
+        case .certificateUnknown:
             alertDescriptionString = "CertificateUnknown"
             
-        case .IllegalParameter:
+        case .illegalParameter:
             alertDescriptionString = "IllegalParameter"
             
-        case .UnknownCA:
+        case .unknownCA:
             alertDescriptionString = "UnknownCA"
             
-        case .AccessDenied:
+        case .accessDenied:
             alertDescriptionString = "AccessDenied"
             
-        case .DecodeError:
+        case .decodeError:
             alertDescriptionString = "DecodeError"
             
-        case .DecryptError:
+        case .decryptError:
             alertDescriptionString = "DecryptError"
             
-        case .ExportRestriction:
+        case .exportRestriction:
             alertDescriptionString = "ExportRestriction"
             
-        case .ProtocolVersion:
+        case .protocolVersion:
             alertDescriptionString = "ProtocolVersion"
             
-        case .InsufficientSecurity:
+        case .insufficientSecurity:
             alertDescriptionString = "InsufficientSecurity"
             
-        case .InternalError:
+        case .internalError:
             alertDescriptionString = "InternalError"
             
-        case .UserCancelled:
+        case .userCancelled:
             alertDescriptionString = "UserCancelled"
             
-        case .NoRenegotiation:
+        case .noRenegotiation:
             alertDescriptionString = "NoRenegotiation"
             
         }
         
         switch (alertLevel)
         {
-        case .Warning:
+        case .warning:
             alertLevelString = "Warning"
             
-        case .Fatal:
+        case .fatal:
             alertLevelString = "Fatal"
         }
         
         messageName = "Alert(\(alertLevelString), \(alertDescriptionString))"
         
-    case .ApplicationData:
+    case .applicationData:
         messageName = "ApplicationData"
         
     }
@@ -403,7 +403,7 @@ func TLSMessageNameForType(messageType : TLSMessageType) -> String
     return messageName
 }
 
-func TLSCipherSuiteDescriptorForCipherSuite(cipherSuite : CipherSuite) -> CipherSuiteDescriptor?
+func TLSCipherSuiteDescriptorForCipherSuite(_ cipherSuite : CipherSuite) -> CipherSuiteDescriptor?
 {
     guard let cipherSuiteDescriptor = TLSCipherSuiteDescriptionDictionary[cipherSuite] else {
 //        fatalError("Unknown cipher suite")
@@ -414,11 +414,10 @@ func TLSCipherSuiteDescriptorForCipherSuite(cipherSuite : CipherSuite) -> Cipher
 }
 
 public extension String {
-    static func fromUTF8Bytes(bytes : [UInt8]) -> String? {
+    static func fromUTF8Bytes(_ bytes : [UInt8]) -> String? {
         let buffer = UnsafeBufferPointer(start: bytes, count: bytes.count)
         var string  = ""
-        let hadError = transcode(UTF8.self, UTF32.self, buffer.generate(),
-            { string.append(UnicodeScalar($0)) }, stopOnError: false)
+        let hadError = transcode(buffer.makeIterator(), from: UTF8.self, to: UTF32.self, stoppingOnError: false) { string.append(UnicodeScalar($0)) }
         
         if !hadError {
             return string

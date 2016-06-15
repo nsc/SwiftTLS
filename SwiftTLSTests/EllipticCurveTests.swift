@@ -153,11 +153,11 @@ class EllipticCurveTests: XCTestCase {
         
         let data = [1,2,3,4,5,6,7,8] as [UInt8]
         
-        let signature = ecdsa.signData(data)
+        let signature = ecdsa.sign(data: data)
         
         // use ECDSA only with a public key for verification
         let ecdsa2 = ECDSA(curve: curve, publicKey: publicKey)
-        let verified = ecdsa2.verifySignature(signature, data: data)
+        let verified = ecdsa2.verify(signature: signature, data: data)
         
         XCTAssert(verified)
     }

@@ -15,7 +15,7 @@ class TLSHandshakeMessage : TLSMessage
         get {
             switch (self.type)
             {
-            case .Handshake(let handshakeType):
+            case .handshake(let handshakeType):
                 return handshakeType
             default:
                 assert(false)
@@ -24,7 +24,7 @@ class TLSHandshakeMessage : TLSMessage
         }
     }
     
-    class func handshakeMessageFromData(data : [UInt8], context: TLSContext) -> TLSHandshakeMessage? {
+    class func handshakeMessageFromData(_ data : [UInt8], context: TLSContext) -> TLSHandshakeMessage? {
         guard let (handshakeType, _) = readHeader(BinaryInputStream(data)) else {
             return nil
         }
@@ -33,25 +33,25 @@ class TLSHandshakeMessage : TLSMessage
         
         switch (handshakeType)
         {
-        case .ClientHello:
+        case .clientHello:
             message = TLSClientHello(inputStream: BinaryInputStream(data), context: context)
             
-        case .ServerHello:
+        case .serverHello:
             message = TLSServerHello(inputStream: BinaryInputStream(data), context: context)
             
-        case .Certificate:
+        case .certificate:
             message = TLSCertificateMessage(inputStream: BinaryInputStream(data), context: context)
             
-        case .ServerHelloDone:
+        case .serverHelloDone:
             message = TLSServerHelloDone(inputStream: BinaryInputStream(data), context: context)
             
-        case .ServerKeyExchange:
+        case .serverKeyExchange:
             message = TLSServerKeyExchange(inputStream: BinaryInputStream(data), context: context)
             
-        case .ClientKeyExchange:
+        case .clientKeyExchange:
             message = TLSClientKeyExchange(inputStream: BinaryInputStream(data), context: context)
             
-        case .Finished:
+        case .finished:
             message = TLSFinished(inputStream: BinaryInputStream(data), context: context)
             
         default:
@@ -66,7 +66,7 @@ class TLSHandshakeMessage : TLSMessage
         return nil
     }
     
-    internal func writeHeader<Target : OutputStreamType>(type type : TLSHandshakeType, bodyLength: Int, inout target: Target)
+    internal func writeHeader<Target : OutputStreamType>(type : TLSHandshakeType, bodyLength: Int, target: inout Target)
     {
         target.write(type.rawValue)
     
@@ -75,9 +75,9 @@ class TLSHandshakeMessage : TLSMessage
         target.write(UInt8((bodyLength >>  0) & 0xff))
     }
     
-    class func readHeader(inputStream : InputStreamType) -> (type: TLSHandshakeType, bodyLength: Int)? {
+    class func readHeader(_ inputStream : InputStreamType) -> (type: TLSHandshakeType, bodyLength: Int)? {
         if  let type : UInt8 = inputStream.read(),
-            handshakeType = TLSHandshakeType(rawValue: type),
+            let handshakeType = TLSHandshakeType(rawValue: type),
             let bodyLength = inputStream.readUInt24()
         {
             return (handshakeType, bodyLength)
@@ -86,7 +86,7 @@ class TLSHandshakeMessage : TLSMessage
         return nil
     }
     
-    override func writeTo<Target : OutputStreamType>(inout target: Target)
+    override func writeTo<Target : OutputStreamType>(_ target: inout Target)
     {
     }
 }
@@ -113,7 +113,7 @@ class SessionID : Streamable
         return nil
     }
     
-    func writeTo<Target : OutputStreamType>(inout target: Target) {
+    func writeTo<Target : OutputStreamType>(_ target: inout Target) {
         target.write(UInt8(sessionID.count))
         target.write(sessionID)
     }

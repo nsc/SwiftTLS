@@ -28,7 +28,7 @@ struct CipherSuiteDescriptor {
     
     init(cipherSuite: CipherSuite,
          keyExchangeAlgorithm : KeyExchangeAlgorithm,
-         certificateType : CertificateType = .RSA,
+         certificateType : CertificateType = .rsa,
          bulkCipherAlgorithm : CipherAlgorithm,
          cipherType : CipherType,
          blockCipherMode : BlockCipherMode? = nil,
@@ -58,7 +58,7 @@ struct CipherSuiteDescriptor {
             self.hmacDescriptor = hmacDescriptor
         }
         else {
-            self.hmacDescriptor = HMACDescriptor(algorithm: .NULL, size: 0)
+            self.hmacDescriptor = HMACDescriptor(algorithm: .null, size: 0)
         }
     }
 }
@@ -67,83 +67,83 @@ struct CipherSuiteDescriptor {
 let TLSCipherSuiteDescritions : [CipherSuiteDescriptor] = [
     CipherSuiteDescriptor(
         cipherSuite: .TLS_RSA_WITH_NULL_MD5,
-        keyExchangeAlgorithm: .RSA,
-        bulkCipherAlgorithm: .NULL,
-        cipherType: .Stream,
-        hmacDescriptor: HMACDescriptor(algorithm: .HMAC_MD5, size: Int(CC_MD5_DIGEST_LENGTH))),
+        keyExchangeAlgorithm: .rsa,
+        bulkCipherAlgorithm: .null,
+        cipherType: .stream,
+        hmacDescriptor: HMACDescriptor(algorithm: .hmac_md5, size: Int(CC_MD5_DIGEST_LENGTH))),
     
     CipherSuiteDescriptor(
         cipherSuite: .TLS_RSA_WITH_NULL_SHA,
-        keyExchangeAlgorithm: .RSA,
-        bulkCipherAlgorithm: .NULL,
-        cipherType: .Stream,
-        hmacDescriptor: HMACDescriptor(algorithm: .HMAC_SHA1, size: Int(CC_SHA1_DIGEST_LENGTH))),
-
+        keyExchangeAlgorithm: .rsa,
+        bulkCipherAlgorithm: .null,
+        cipherType: .stream,
+        hmacDescriptor: HMACDescriptor(algorithm: .hmac_sha1, size: Int(CC_SHA1_DIGEST_LENGTH))),
+    
     CipherSuiteDescriptor(
         cipherSuite: .TLS_RSA_WITH_AES_256_CBC_SHA,
-        keyExchangeAlgorithm: .RSA,
-        bulkCipherAlgorithm: .AES256,
-        cipherType: .Block,
-        blockCipherMode: .CBC,
-        hmacDescriptor: HMACDescriptor(algorithm: .HMAC_SHA1, size: Int(CC_SHA1_DIGEST_LENGTH))),
-
+        keyExchangeAlgorithm: .rsa,
+        bulkCipherAlgorithm: .aes256,
+        cipherType: .block,
+        blockCipherMode: .cbc,
+        hmacDescriptor: HMACDescriptor(algorithm: .hmac_sha1, size: Int(CC_SHA1_DIGEST_LENGTH))),
+    
     CipherSuiteDescriptor(
         cipherSuite: .TLS_RSA_WITH_AES_256_CBC_SHA256,
-        keyExchangeAlgorithm: .RSA,
-        bulkCipherAlgorithm: .AES256,
-        cipherType: .Block,
-        blockCipherMode: .CBC,
-        hmacDescriptor: HMACDescriptor(algorithm: .HMAC_SHA256, size: Int(CC_SHA256_DIGEST_LENGTH))),
-
+        keyExchangeAlgorithm: .rsa,
+        bulkCipherAlgorithm: .aes256,
+        cipherType: .block,
+        blockCipherMode: .cbc,
+        hmacDescriptor: HMACDescriptor(algorithm: .hmac_sha256, size: Int(CC_SHA256_DIGEST_LENGTH))),
+    
     CipherSuiteDescriptor(
         cipherSuite: .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
-        keyExchangeAlgorithm: .DHE,
-        bulkCipherAlgorithm: .AES256,
-        cipherType: .Block,
-        blockCipherMode: .CBC,
-        hmacDescriptor: HMACDescriptor(algorithm: .HMAC_SHA1, size: Int(CC_SHA1_DIGEST_LENGTH))),
-
+        keyExchangeAlgorithm: .dhe,
+        bulkCipherAlgorithm: .aes256,
+        cipherType: .block,
+        blockCipherMode: .cbc,
+        hmacDescriptor: HMACDescriptor(algorithm: .hmac_sha1, size: Int(CC_SHA1_DIGEST_LENGTH))),
+    
     CipherSuiteDescriptor(
         cipherSuite: .TLS_DHE_RSA_WITH_AES_256_CBC_SHA256,
-        keyExchangeAlgorithm: .DHE,
-        bulkCipherAlgorithm: .AES256,
-        cipherType: .Block,
-        blockCipherMode: .CBC,
-        hmacDescriptor: HMACDescriptor(algorithm: .HMAC_SHA256, size: Int(CC_SHA256_DIGEST_LENGTH))),
-        
+        keyExchangeAlgorithm: .dhe,
+        bulkCipherAlgorithm: .aes256,
+        cipherType: .block,
+        blockCipherMode: .cbc,
+        hmacDescriptor: HMACDescriptor(algorithm: .hmac_sha256, size: Int(CC_SHA256_DIGEST_LENGTH))),
+
     CipherSuiteDescriptor(
-        cipherSuite: .TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-        keyExchangeAlgorithm: .ECDHE,
-        bulkCipherAlgorithm: .AES256,
-        cipherType: .Stream,
-        blockCipherMode: .CBC,
-        hmacDescriptor: HMACDescriptor(algorithm: .HMAC_SHA1, size: Int(CC_SHA1_DIGEST_LENGTH))),
+        cipherSuite: .TLS_RSA_WITH_NULL_MD5,
+        keyExchangeAlgorithm: .rsa,
+        bulkCipherAlgorithm: .null,
+        cipherType: .stream,
+        blockCipherMode: .cbc,
+        hmacDescriptor: HMACDescriptor(algorithm: .hmac_sha1, size: Int(CC_SHA1_DIGEST_LENGTH))),
 
     CipherSuiteDescriptor(
         cipherSuite: .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-        keyExchangeAlgorithm: .ECDHE,
-        bulkCipherAlgorithm: .AES128,
-        cipherType: .Block,
-        blockCipherMode: .CBC,
-        hmacDescriptor: HMACDescriptor(algorithm: .HMAC_SHA256, size: Int(CC_SHA256_DIGEST_LENGTH))),
+        keyExchangeAlgorithm: .ecdhe,
+        bulkCipherAlgorithm: .aes128,
+        cipherType: .block,
+        blockCipherMode: .cbc,
+        hmacDescriptor: HMACDescriptor(algorithm: .hmac_sha256, size: Int(CC_SHA256_DIGEST_LENGTH))),
     
     CipherSuiteDescriptor(
         cipherSuite: .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-        keyExchangeAlgorithm: .ECDHE,
-        bulkCipherAlgorithm: .AES128,
-        cipherType: .AEAD,
-        blockCipherMode: .GCM,
+        keyExchangeAlgorithm: .ecdhe,
+        bulkCipherAlgorithm: .aes128,
+        cipherType: .aead,
+        blockCipherMode: .gcm,
         fixedIVLength: 4,
         recordIVLength: 8
     ),
     
     CipherSuiteDescriptor(
         cipherSuite: .TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-        keyExchangeAlgorithm: .ECDHE,
-        certificateType: .ECDSA,
-        bulkCipherAlgorithm: .AES128,
-        cipherType: .AEAD,
-        blockCipherMode: .GCM,
+        keyExchangeAlgorithm: .ecdhe,
+        certificateType: .ecdsa,
+        bulkCipherAlgorithm: .aes128,
+        cipherType: .aead,
+        blockCipherMode: .gcm,
         fixedIVLength: 4,
         recordIVLength: 8
     )

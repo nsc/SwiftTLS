@@ -208,10 +208,10 @@ class BigIntTests: XCTestCase {
         let hexString = "1234567890abcdefABCDEF"
         let a = BigInt(hexString: hexString)!
         
-        XCTAssert(hexString.lowercaseString == String(a).lowercaseString)
+        XCTAssert(hexString.lowercased() == String(a).lowercased())
     }
     
-    func BIGNUM_multiply(a : String, _ b : String) -> String
+    func BIGNUM_multiply(_ a : String, _ b : String) -> String
     {
         var an = BN_new()
         BN_hex2bn(&an, a)
@@ -223,10 +223,10 @@ class BigIntTests: XCTestCase {
         let result = BN_new()
         BN_mul(result, an, bn, context)
         
-        return String.fromCString(BN_bn2hex(result))!
+        return String(validatingUTF8: BN_bn2hex(result))!
     }
     
-    func BIGNUM_divide(a : String, _ b : String) -> String
+    func BIGNUM_divide(_ a : String, _ b : String) -> String
     {
         var an = BN_new()
         BN_hex2bn(&an, a)
@@ -238,10 +238,10 @@ class BigIntTests: XCTestCase {
         let result = BN_new()
         BN_div(result, nil, an, bn, context)
         
-        return String.fromCString(BN_bn2hex(result))!
+        return String(validatingUTF8: BN_bn2hex(result))!
     }
 
-    func BIGNUM_mod(a : String, _ b : String) -> String
+    func BIGNUM_mod(_ a : String, _ b : String) -> String
     {
         var an = BN_new()
         BN_hex2bn(&an, a)
@@ -253,10 +253,10 @@ class BigIntTests: XCTestCase {
         let result = BN_new()
         BN_div(nil, result, an, bn, context)
         
-        return String.fromCString(BN_bn2hex(result))!
+        return String(validatingUTF8: BN_bn2hex(result))!
     }
 
-    func BIGNUM_pow(a : String, _ b : String) -> String
+    func BIGNUM_pow(_ a : String, _ b : String) -> String
     {
         var an = BN_new()
         BN_hex2bn(&an, a)
@@ -268,10 +268,10 @@ class BigIntTests: XCTestCase {
         let result = BN_new()
         BN_exp(result, an, bn, context)
         
-        return String.fromCString(BN_bn2hex(result))!
+        return String(validatingUTF8: BN_bn2hex(result))!
     }
 
-    func BIGNUM_mod_pow(a : String, _ b : String, _ mod : String) -> String
+    func BIGNUM_mod_pow(_ a : String, _ b : String, _ mod : String) -> String
     {
         var an = BN_new()
         BN_hex2bn(&an, a)
@@ -286,7 +286,7 @@ class BigIntTests: XCTestCase {
         let result = BN_new()
         BN_mod_exp_simple(result, an, bn, modn, context)
         
-        return String.fromCString(BN_bn2hex(result))!
+        return String(validatingUTF8: BN_bn2hex(result))!
     }
 
     func test_multiply_aNumberWithItself_givesCorrectResult()
@@ -299,7 +299,7 @@ class BigIntTests: XCTestCase {
         
         let nString = String(nSquared)
         
-        XCTAssert(nString.lowercaseString == s.lowercaseString)
+        XCTAssert(nString.lowercased() == s.lowercased())
     }
     
     func test_multiply_twoNumbers_givesCorrectResult()
@@ -314,7 +314,7 @@ class BigIntTests: XCTestCase {
         
         let productHex = String(product)
         
-        XCTAssert(productHex.lowercaseString == s.lowercaseString)
+        XCTAssert(productHex.lowercased() == s.lowercased())
     }
 
     func randomBigInt() -> BigInt
@@ -389,14 +389,14 @@ class BigIntTests: XCTestCase {
             
             let divHex = String(div)
             
-            if divHex.lowercaseString != s.lowercaseString {
+            if divHex.lowercased() != s.lowercased() {
 //                print("\(i):")
                 print("Wrong division result for \(u) / \(v)")
                 print("    Should be       \(s)\n" +
                       "    but is actually \(divHex)")
             }
             
-            XCTAssert(divHex.lowercaseString == s.lowercaseString, "Wrong division result for \(u) / \(v)")
+            XCTAssert(divHex.lowercased() == s.lowercased(), "Wrong division result for \(u) / \(v)")
         }
     }
 
@@ -417,27 +417,27 @@ class BigIntTests: XCTestCase {
         
         for (uHex, vHex) in uvValues {
             print(uHex)
-            let u = CBigIntCreateWithHexString(uHex)
-            let v = CBigIntCreateWithHexString(vHex)
+            let u = CBigIntCreateWithHexString(uHex)!
+            let v = CBigIntCreateWithHexString(vHex)!
             print(uHex)
             
             let s = BIGNUM_divide(uHex, vHex)
             print(uHex)
             
-            let div = CBigIntDivide(u, v, nil)
+            let div = CBigIntDivide(u, v, nil)!
             print(uHex)
             
             let divHex = hexStringFromCBigInt(div)
             print(divHex)
             
-            if divHex.lowercaseString != s.lowercaseString {
+            if divHex.lowercased() != s.lowercased() {
 //                print("\(i):")
                 print("Wrong division result for \(hexStringFromCBigInt(u)) / \(hexStringFromCBigInt(v))")
                 print("    Should be       \(s)\n" +
                     "    but is actually \(divHex)")
             }
             
-            XCTAssert(divHex.lowercaseString == s.lowercaseString, "Wrong division result for \(u) / \(v)")
+            XCTAssert(divHex.lowercased() == s.lowercased(), "Wrong division result for \(u) / \(v)")
         }
     }
 
@@ -461,14 +461,14 @@ class BigIntTests: XCTestCase {
             
             let divHex = String(div)
             
-            if divHex.lowercaseString != s.lowercaseString {
+            if divHex.lowercased() != s.lowercased() {
                 print("\(i):")
                 print("Wrong mod result for \(u) % \(v)")
                 print("    Should be       \(s)\n" +
                     "    but is actually \(divHex)")
             }
            
-            XCTAssert(divHex.lowercaseString == s.lowercaseString, "Wrong division result for \(u) / \(v)")
+            XCTAssert(divHex.lowercased() == s.lowercased(), "Wrong division result for \(u) / \(v)")
         }
     }
 
@@ -486,14 +486,14 @@ class BigIntTests: XCTestCase {
             
             let divHex = String(result)
             
-            if divHex.lowercaseString != s.lowercaseString {
+            if divHex.lowercased() != s.lowercased() {
                 print("\(i):")
                 print("Wrong mod_pow result for \(u) % \(n)")
                 print("    Should be       \(s)\n" +
                     "    but is actually \(divHex)")
             }
             
-            XCTAssert(divHex.lowercaseString == s.lowercaseString, "Wrong mod_pow result for \(u) ^ \(n) % \(mod)")
+            XCTAssert(divHex.lowercased() == s.lowercased(), "Wrong mod_pow result for \(u) ^ \(n) % \(mod)")
         }
     }
 
@@ -511,14 +511,14 @@ class BigIntTests: XCTestCase {
             
             let divHex = String(result)
             
-            if divHex.lowercaseString != s.lowercaseString {
+            if divHex.lowercased() != s.lowercased() {
                 print("\(i):")
                 print("Wrong mod_pow result for \(u) % \(n)")
                 print("    Should be       \(s)\n" +
                     "    but is actually \(divHex)")
             }
             
-            XCTAssert(divHex.lowercaseString == s.lowercaseString, "Wrong mod_pow result for \(u) ^ \(n) % \(mod)")
+            XCTAssert(divHex.lowercased() == s.lowercased(), "Wrong mod_pow result for \(u) ^ \(n) % \(mod)")
         }
     }
 

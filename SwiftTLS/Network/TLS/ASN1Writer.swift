@@ -8,7 +8,7 @@
 
 import Foundation
 
-func highestBit(n : Int) -> Int
+func highestBit(_ n : Int) -> Int
 {
     var n = n
     
@@ -24,7 +24,7 @@ func highestBit(n : Int) -> Int
 
 public class ASN1Writer
 {
-    private func dataForContentLength(contentLength : Int) -> [UInt8]
+    private func dataForContentLength(_ contentLength : Int) -> [UInt8]
     {
         if contentLength < 0x80 {
             return [UInt8(contentLength)]
@@ -50,7 +50,7 @@ public class ASN1Writer
         }
     }
     
-    private func dataForObjectType(type : ASN1TypeTag, content : [UInt8]) -> [UInt8]
+    private func dataForObjectType(_ type : ASN1TypeTag, content : [UInt8]) -> [UInt8]
     {
         let constructed : Bool
         switch type
@@ -65,7 +65,7 @@ public class ASN1Writer
         return [type.rawValue | (constructed ? ASN1_CONSTRUCTED : 0)] + dataForContentLength(content.count) + content
     }
     
-    func dataFromObject(object : ASN1Object) -> [UInt8]
+    func dataFromObject(_ object : ASN1Object) -> [UInt8]
     {
         switch object
         {
@@ -111,7 +111,7 @@ public class ASN1Writer
                 } while v != 0
                 
                 // values are reversed (little endian)
-                data += values[1 ..< values.count].reverse().map {UInt8(0x80 | $0)}
+                data += values[1 ..< values.count].reversed().map {UInt8(0x80 | $0)}
                 data += [UInt8(values[0])]
             }
             

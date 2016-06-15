@@ -15,7 +15,7 @@ class PreMasterSecret : Streamable
     {
         self.clientVersion = clientVersion
         
-        self.random = [UInt8](count: PreMasterSecret.NumberOfRandomBytes, repeatedValue: 0)
+        self.random = [UInt8](repeating: 0, count: PreMasterSecret.NumberOfRandomBytes)
         
         arc4random_buf(&self.random, PreMasterSecret.NumberOfRandomBytes)
     }
@@ -40,7 +40,7 @@ class PreMasterSecret : Streamable
         return nil
     }
     
-    func writeTo<Target : OutputStreamType>(inout target: Target) {
+    func writeTo<Target : OutputStreamType>(_ target: inout Target) {
         target.write(self.clientVersion.rawValue)
         target.write(random)
     }
@@ -62,21 +62,21 @@ class TLSClientKeyExchange : TLSHandshakeMessage
             assert(false)
         }
         
-        super.init(type: .Handshake(.ClientKeyExchange))
+        super.init(type: .handshake(.clientKeyExchange))
     }
     
     init(diffieHellmanPublicKey : BigInt)
     {
         self.diffieHellmanPublicKey = diffieHellmanPublicKey
         
-        super.init(type: .Handshake(.ClientKeyExchange))
+        super.init(type: .handshake(.clientKeyExchange))
     }
     
     init(ecdhPublicKey : EllipticCurvePoint)
     {
         self.ecdhPublicKey = ecdhPublicKey
         
-        super.init(type: .Handshake(.ClientKeyExchange))
+        super.init(type: .handshake(.clientKeyExchange))
     }
 
     required init?(inputStream : InputStreamType, context: TLSContext)
@@ -86,27 +86,27 @@ class TLSClientKeyExchange : TLSHandshakeMessage
         }
         
         // TODO: check consistency of body length and the data following
-        if type == TLSHandshakeType.ClientKeyExchange {
+        if type == TLSHandshakeType.clientKeyExchange {
 
             switch context.keyExchange {
-            case .ECDHE:
+            case .ecdhe:
                 if let rawPublicKeyPoint : [UInt8] = inputStream.read8() {
                     guard let ecdhPublicKey = EllipticCurvePoint(data: rawPublicKeyPoint) else { return nil }
                     self.ecdhPublicKey = ecdhPublicKey
                 }
             
-            case .DHE:
+            case .dhe:
                 if let data : [UInt8] = inputStream.read16() {
                     self.diffieHellmanPublicKey = BigInt(bigEndianParts: data)
                 }
                     
-            case .RSA:
+            case .rsa:
                 if let data : [UInt8] = inputStream.read16() {
                         self.encryptedPreMasterSecret = data
                 }
             }
             
-            super.init(type: .Handshake(.ClientKeyExchange))
+            super.init(type: .handshake(.clientKeyExchange))
             
             return
         }
@@ -114,17 +114,17 @@ class TLSClientKeyExchange : TLSHandshakeMessage
         return nil        
     }
 
-    override func writeTo<Target : OutputStreamType>(inout target: Target)
+    override func writeTo<Target : OutputStreamType>(_ target: inout Target)
     {
         if let encryptedPreMasterSecret = self.encryptedPreMasterSecret {
-            self.writeHeader(type: .ClientKeyExchange, bodyLength: encryptedPreMasterSecret.count + 2, target: &target)
+            self.writeHeader(type: .clientKeyExchange, bodyLength: encryptedPreMasterSecret.count + 2, target: &target)
             target.write(UInt16(encryptedPreMasterSecret.count))
             target.write(encryptedPreMasterSecret)
         }
         else if let diffieHellmanPublicKey = self.diffieHellmanPublicKey {
             let diffieHellmanPublicKeyData = diffieHellmanPublicKey.asBigEndianData()
 
-            self.writeHeader(type: .ClientKeyExchange, bodyLength: diffieHellmanPublicKeyData.count + 2, target: &target)
+            self.writeHeader(type: .clientKeyExchange, bodyLength: diffieHellmanPublicKeyData.count + 2, target: &target)
             target.write(UInt16(diffieHellmanPublicKeyData.count))
             target.write(diffieHellmanPublicKeyData)
         }
@@ -132,7 +132,7 @@ class TLSClientKeyExchange : TLSHandshakeMessage
             let Q = ecdhPublicKey
             let data = Q.x.asBigEndianData() + Q.y.asBigEndianData()
             
-            self.writeHeader(type: .ClientKeyExchange, bodyLength: data.count + 2, target: &target)
+            self.writeHeader(type: .clientKeyExchange, bodyLength: data.count + 2, target: &target)
             target.write(UInt8(data.count + 1))
             target.write(UInt8(4)) // uncompressed ECPoint encoding
             target.write(data)

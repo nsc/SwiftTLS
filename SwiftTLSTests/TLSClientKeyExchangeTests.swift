@@ -34,7 +34,7 @@ class TLSClientKeyExchangeTests: XCTestCase {
                     1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,
                     1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]
                 let data = DataBuffer()
-                data.write(TLSHandshakeType.ClientKeyExchange.rawValue)
+                data.write(TLSHandshakeType.clientKeyExchange.rawValue)
                 data.writeUInt24(encryptedPreMasterSecret.count)
                 data.write(UInt16(encryptedPreMasterSecret.count))
                 data.write(encryptedPreMasterSecret)

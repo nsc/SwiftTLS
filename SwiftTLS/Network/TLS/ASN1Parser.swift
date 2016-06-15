@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import SwiftHelper
 
 enum ASN1TypeTag : UInt8
 {
@@ -49,7 +50,7 @@ enum ASN1Class : UInt8
 public class ASN1Object : Equatable
 {
     var underlyingData : [UInt8]?
-    private func isEqualTo(other : ASN1Object) -> Bool
+    private func isEqualTo(_ other : ASN1Object) -> Bool
     {
         return false
     }
@@ -70,7 +71,7 @@ class ASN1TaggedObject : ASN1Object
         self.object = object
     }
     
-    private override func isEqualTo(other : ASN1Object) -> Bool
+    private override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1TaggedObject else {
             return false
@@ -89,7 +90,7 @@ class ASN1Boolean : ASN1Object
         self.value = value
     }
     
-    private override func isEqualTo(other : ASN1Object) -> Bool
+    private override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1Boolean else {
             return false
@@ -108,7 +109,7 @@ class ASN1Integer : ASN1Object
         self.value = value
     }
     
-    private override func isEqualTo(other : ASN1Object) -> Bool
+    private override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1Integer else {
             return false
@@ -124,7 +125,7 @@ class ASN1BitString : ASN1Object
     var value : [UInt8]
     
     var bitValue : [UInt] {
-        let size = sizeof(UInt)
+        let size = sizeof(UInt.self)
         var values : [UInt] = []
         
         let unusedBits : UInt = UInt(self.unusedBits)
@@ -164,7 +165,7 @@ class ASN1BitString : ASN1Object
         }
     }
     
-    private override func isEqualTo(other : ASN1Object) -> Bool
+    private override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1BitString else {
             return false
@@ -183,7 +184,7 @@ class ASN1OctetString : ASN1Object
         self.value = data
     }
 
-    private override func isEqualTo(other : ASN1Object) -> Bool
+    private override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1OctetString else {
             return false
@@ -195,7 +196,7 @@ class ASN1OctetString : ASN1Object
 
 class ASN1Null : ASN1Object
 {
-    private override func isEqualTo(other : ASN1Object) -> Bool
+    private override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         return other is ASN1Null
     }
@@ -214,7 +215,7 @@ class ASN1ObjectIdentifier : ASN1Object
         self.identifier = oid.identifier
     }
 
-    private override func isEqualTo(other : ASN1Object) -> Bool
+    private override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1ObjectIdentifier else {
             return false
@@ -233,7 +234,7 @@ class ASN1Sequence : ASN1Object
         self.objects = objects
     }
 
-    private override func isEqualTo(other : ASN1Object) -> Bool
+    private override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1Sequence else {
             return false
@@ -252,7 +253,7 @@ class ASN1Set : ASN1Object
         self.objects = objects
     }
     
-    private override func isEqualTo(other : ASN1Object) -> Bool
+    private override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1Set else {
             return false
@@ -282,7 +283,7 @@ class ASN1UTF8String : ASN1Object, ASN1String
         self.string = string
     }
 
-    private override func isEqualTo(other : ASN1Object) -> Bool
+    private override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1UTF8String else {
             return false
@@ -300,7 +301,7 @@ class ASN1PrintableString : ASN1Object, ASN1String
         self.string = string
     }
     
-    private override func isEqualTo(other : ASN1Object) -> Bool
+    private override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1PrintableString else {
             return false
@@ -318,7 +319,7 @@ class ASN1T61String : ASN1Object, ASN1String
         self.string = string
     }
     
-    private override func isEqualTo(other : ASN1Object) -> Bool
+    private override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1T61String else {
             return false
@@ -336,7 +337,7 @@ class ASN1IA5String : ASN1Object, ASN1String
         self.string = string
     }
     
-    private override func isEqualTo(other : ASN1Object) -> Bool
+    private override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1IA5String else {
             return false
@@ -354,7 +355,7 @@ class ASN1GraphicString : ASN1Object, ASN1String
         self.string = string
     }
     
-    private override func isEqualTo(other : ASN1Object) -> Bool
+    private override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1GraphicString else {
             return false
@@ -372,7 +373,7 @@ class ASN1GeneralString : ASN1Object, ASN1String
         self.string = string
     }
     
-    private override func isEqualTo(other : ASN1Object) -> Bool
+    private override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1GeneralString else {
             return false
@@ -394,7 +395,7 @@ class ASN1UTCTime : ASN1Object, ASN1Time
         self.string = string
     }
     
-    private override func isEqualTo(other : ASN1Object) -> Bool
+    private override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1UTCTime else {
             return false
@@ -412,7 +413,7 @@ class ASN1GeneralizedTime : ASN1Object, ASN1Time
         self.string = string
     }
     
-    private override func isEqualTo(other : ASN1Object) -> Bool
+    private override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1GeneralizedTime else {
             return false
@@ -433,12 +434,12 @@ public class ASN1Parser
         self.cursor = 0
     }
     
-    public convenience init(data : NSData)
+    public convenience init(data : Data)
     {
-        self.init(data: [UInt8](UnsafeBufferPointer<UInt8>(start: UnsafePointer<UInt8>(data.bytes), count: data.length)))
+        self.init(data: [UInt8](UnsafeBufferPointer<UInt8>(start: UnsafePointer<UInt8>((data as NSData).bytes), count: data.count)))
     }
     
-    public class func objectFromPEMFile(PEMFile : String) -> ASN1Object?
+    public class func objectFromPEMFile(_ PEMFile : String) -> ASN1Object?
     {
         let sections = self.sectionsFromPEMFile(PEMFile)
         
@@ -449,56 +450,41 @@ public class ASN1Parser
         return sections.values.first
     }
     
-    public class func sectionsFromPEMFile(PEMFile : String) -> [String : ASN1Object]
+    public class func sectionsFromPEMFile(_ PEMFile : String) -> [String : ASN1Object]
     {
         var sectionDictionary : [String : ASN1Object] = [:]
         do {
-            var base64string = try NSString(contentsOfFile: PEMFile, encoding: NSUTF8StringEncoding)
-            repeat {
-                let beginRange = base64string.rangeOfString("-----BEGIN ")
-                var rangeOfBase64Block = NSRange()
-                guard beginRange.location != NSNotFound else {
-                    return sectionDictionary
-                }
+            let base64string = try String(contentsOfFile: PEMFile, encoding: String.Encoding.utf8)
             
-                let eol = base64string.rangeOfString("----\n", options: NSStringCompareOptions(rawValue: 0), range: NSRange(location: beginRange.location, length: base64string.length - beginRange.location))
-                let startIndex = beginRange.location + beginRange.length
-                let sectionNameRange = NSRange(location: startIndex, length: eol.location - startIndex - 1)
-                let sectionName = base64string.substringWithRange(sectionNameRange)
-                rangeOfBase64Block.location = eol.location + 1
-            
-                let endRange = base64string.rangeOfString("-----END ",
-                    options: NSStringCompareOptions(rawValue: 0),
-                    range: NSRange(location: rangeOfBase64Block.location, length: base64string.length - rangeOfBase64Block.location))
-                
-                if endRange.location != NSNotFound {
-                    rangeOfBase64Block.length = endRange.location - 1 - rangeOfBase64Block.location
+            for (sectionName, base64) in base64Blocks(base64string)! {
+                // FIXME: the option here is obviously bullshit, but currently Data has only a bogus
+                // constructor taking encoding options instead of decoding options and this is the numerical
+                // equivalent, i.e. the raw value is 0
+                if let data = Data(base64Encoded: base64, options: .ignoreUnknownCharacters) {
                     
-                    let base64 = base64string.substringWithRange(rangeOfBase64Block)
-                    if let data = NSData(base64EncodedString:base64, options: .IgnoreUnknownCharacters) {
-                        
-                        let parser = ASN1Parser(data: [UInt8](UnsafeBufferPointer<UInt8>(start: UnsafePointer<UInt8>(data.bytes), count: data.length)))
+                    data.withUnsafeBytes { (bytes: UnsafePointer<UInt8>) -> () in
+                        let parser = ASN1Parser(data: [UInt8](UnsafeBufferPointer<UInt8>(start: bytes, count: data.count)))
                         guard let object = parser.parseObject() else {
-                            return sectionDictionary
+                            return
                         }
                         
                         sectionDictionary[sectionName] = object
+                        
+                        return
                     }
                 }
-                
-                base64string = base64string.substringFromIndex(endRange.location + endRange.length)
-            } while true
+            }
         } catch _ {
         }
-        
+    
         return sectionDictionary
     }
-    
-    func subData(range : Range<Int>) -> [UInt8]? {
+
+    func subData(_ range : Range<Int>) -> [UInt8]? {
         let length = self.data.count
         
-        if  0..<length ~= range.startIndex &&
-            range.endIndex <= length {
+        if  0..<length ~= range.lowerBound &&
+            range.upperBound <= length {
 
                 return [UInt8](self.data[range])
         }
@@ -721,7 +707,7 @@ public class ASN1Parser
 
 }
 
-public func ASN1_printObject(object: ASN1Object, depth : Int = 0)
+public func ASN1_printObject(_ object: ASN1Object, depth : Int = 0)
 {
     for _ in 0 ..< depth {
         print("    ", terminator: "")

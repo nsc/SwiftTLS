@@ -46,8 +46,8 @@ struct X509
         {
             var attributes = [OID:Any]()
             for o in asn1sequence.objects {
-                guard let set = o as? ASN1Set where set.objects.count == 1 else { return nil  }
-                guard let attribute = set.objects[0] as? ASN1Sequence where attribute.objects.count == 2 else { return nil  }
+                guard let set = o as? ASN1Set, set.objects.count == 1 else { return nil  }
+                guard let attribute = set.objects[0] as? ASN1Sequence, attribute.objects.count == 2 else { return nil  }
                 guard let asn1oid = attribute.objects[0] as? ASN1ObjectIdentifier else { return nil }
                 guard let oid = OID(id: asn1oid.identifier) else { return nil }
 
@@ -62,18 +62,18 @@ struct X509
     
     enum Time
     {
-        case UTCTime(String)            // YYMMDDHHMMSSZ
-        case GeneralizedTime(String)    // YYYYMMDDHHMMSSZ
+        case utcTime(String)            // YYMMDDHHMMSSZ
+        case generalizedTime(String)    // YYYYMMDDHHMMSSZ
         
         init?(time : ASN1Time)
         {
             switch time
             {
             case let t as ASN1UTCTime:
-                self = .UTCTime(t.string)
+                self = .utcTime(t.string)
 
             case let t as ASN1GeneralizedTime:
-                self = .GeneralizedTime(t.string)
+                self = .generalizedTime(t.string)
                 
             default:
                 return nil

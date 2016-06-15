@@ -24,7 +24,7 @@ public struct TLSConfiguration
     {
         self.protocolVersion = protocolVersion
         self.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256]
-        self.hashAlgorithm = .SHA1
-        self.signatureAlgorithm = .RSA
+        self.hashAlgorithm = .sha1
+        self.signatureAlgorithm = .rsa
     }
 }

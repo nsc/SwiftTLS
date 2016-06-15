@@ -20,13 +20,13 @@ class TSLTests: XCTestCase {
     }
 
     func test_connectTLS() {
-        let certificatePath = NSBundle(forClass: self.dynamicType).URLForResource("mycert.pem", withExtension: nil)!.path!
-        let opensslServer = NSTask.launchedTaskWithLaunchPath("/usr/bin/openssl", arguments: ["s_server",  "-cert", certificatePath, "-www",  "-debug", "-cipher", "ALL:NULL" ])
+        let certificatePath = Bundle(for: self.dynamicType).urlForResource("mycert.pem", withExtension: nil)!.path!
+        let opensslServer = Task.launchedTask(withLaunchPath: "/usr/bin/openssl", arguments: ["s_server",  "-cert", certificatePath, "-www",  "-debug", "-cipher", "ALL:NULL" ])
         
         // wait for server to be up
         sleep(1)
         
-        var configuration = TLSConfiguration(protocolVersion: TLSProtocolVersion.TLS_v1_2)
+        var configuration = TLSConfiguration(protocolVersion: TLSProtocolVersion.v1_2)
 //        configuration.cipherSuites = [.TLS_RSA_WITH_AES_256_CBC_SHA]
 //        configuration.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
 //        configuration.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256]
@@ -53,14 +53,14 @@ class TSLTests: XCTestCase {
         opensslServer.terminate()
     }
     
-    func test_clientServerWithCipherSuite(cipherSuite : CipherSuite)
+    func test_clientServerWithCipherSuite(_ cipherSuite : CipherSuite)
     {
-        var configuration = TLSConfiguration(protocolVersion: .TLS_v1_2)
+        var configuration = TLSConfiguration(protocolVersion: .v1_2)
         
         configuration.cipherSuites = [cipherSuite]
         configuration.identity = Identity(name: "Internet Widgits Pty Ltd")!
-        configuration.certificatePath = NSBundle(forClass: self.dynamicType).URLForResource("mycert.pem", withExtension: nil)!.path!
-        let dhParametersPath = NSBundle(forClass: self.dynamicType).URLForResource("dhparams.pem", withExtension: nil)!.path!
+        configuration.certificatePath = Bundle(for: self.dynamicType).urlForResource("mycert.pem", withExtension: nil)!.path!
+        let dhParametersPath = Bundle(for: self.dynamicType).urlForResource("dhparams.pem", withExtension: nil)!.path!
         configuration.dhParameters = DiffieHellmanParameters.fromPEMFile(dhParametersPath)
         configuration.ecdhParameters = ECDiffieHellmanParameters(namedCurve: .secp256r1)
         
@@ -69,14 +69,14 @@ class TSLTests: XCTestCase {
         
         let server = TLSSocket(configuration: configuration, isClient: false)
         
-        let client = TLSSocket(protocolVersion: .TLS_v1_2)
+        let client = TLSSocket(protocolVersion: .v1_2)
         client.context.configuration.cipherSuites = [cipherSuite]
         
-        let expectation = self.expectationWithDescription("accept connection successfully")
+        let expectation = self.expectation(description: "accept connection successfully")
         
-        let serverQueue = dispatch_queue_create("server queue", nil)
+        let serverQueue = DispatchQueue(label: "server queue", attributes: [])
         do {
-            dispatch_async(serverQueue) {
+            serverQueue.async {
                 do {
                     let client = try server.acceptConnection(address)
                     try client.write([1,2,3])
@@ -98,7 +98,7 @@ class TSLTests: XCTestCase {
             XCTFail("\(error)")
         }
         
-        self.waitForExpectationsWithTimeout(2.0) {
+        self.waitForExpectations(timeout: 2.0) {
             (error : NSError?) -> Void in
         }
     }

@@ -17,10 +17,10 @@ class TLSServerKeyExchangeTests: XCTestCase {
         
         
         let context = TLSContext()
-        context.configuration.protocolVersion = .TLS_v1_2
+        context.configuration.protocolVersion = .v1_2
         context.negotiatedProtocolVersion = context.configuration.protocolVersion
-        context.configuration.hashAlgorithm = .SHA1
-        context.configuration.signatureAlgorithm = .RSA
+        context.configuration.hashAlgorithm = .sha1
+        context.configuration.signatureAlgorithm = .rsa
         context.cipherSuite = .TLS_DHE_RSA_WITH_AES_256_CBC_SHA
         
         let packetWithoutRecordHeader = [UInt8](rawPacket[5 ..< rawPacket.count])

@@ -23,20 +23,20 @@ class TLSServerHello : TLSHandshakeMessage
         self.cipherSuite = cipherSuite
         self.compressionMethod = compressionMethod
         
-        super.init(type: .Handshake(.ServerHello))
+        super.init(type: .handshake(.serverHello))
     }
     
     required init?(inputStream : InputStreamType, context: TLSContext)
     {
         guard
-            let (type, _) = TLSHandshakeMessage.readHeader(inputStream) where type == TLSHandshakeType.ServerHello,
+            let (type, _) = TLSHandshakeMessage.readHeader(inputStream), type == TLSHandshakeType.serverHello,
             let major : UInt8 = inputStream.read(),
-            let minor : UInt8 = inputStream.read() where (TLSProtocolVersion(major: major, minor: minor) != nil),
+            let minor : UInt8 = inputStream.read(), (TLSProtocolVersion(major: major, minor: minor) != nil),
             let random = Random(inputStream: inputStream),
             let sessionIDSize : UInt8 = inputStream.read(),
             let rawSessionID : [UInt8] = inputStream.read(count: Int(sessionIDSize)),
-            let rawCiperSuite : UInt16 = inputStream.read() where (CipherSuite(rawValue: rawCiperSuite) != nil),
-            let rawCompressionMethod : UInt8 = inputStream.read() where (CompressionMethod(rawValue: rawCompressionMethod) != nil)
+            let rawCiperSuite : UInt16 = inputStream.read(), (CipherSuite(rawValue: rawCiperSuite) != nil),
+            let rawCompressionMethod : UInt8 = inputStream.read(), (CompressionMethod(rawValue: rawCompressionMethod) != nil)
         else {
             return nil
         }
@@ -47,10 +47,10 @@ class TLSServerHello : TLSHandshakeMessage
         self.cipherSuite = CipherSuite(rawValue: rawCiperSuite)!
         self.compressionMethod = CompressionMethod(rawValue: rawCompressionMethod)!
         
-        super.init(type: .Handshake(.ServerHello))
+        super.init(type: .handshake(.serverHello))
     }
     
-    override func writeTo<Target : OutputStreamType>(inout target: Target)
+    override func writeTo<Target : OutputStreamType>(_ target: inout Target)
     {
         var buffer = DataBuffer()
         
@@ -71,7 +71,7 @@ class TLSServerHello : TLSHandshakeMessage
         
         let data = buffer.buffer
         
-        self.writeHeader(type: .ServerHello, bodyLength: data.count, target: &target)
+        self.writeHeader(type: .serverHello, bodyLength: data.count, target: &target)
         target.write(data)
     }
 }

@@ -14,20 +14,20 @@ class TLSClientHelloTests: XCTestCase {
     func test_writeTo__givesCorrectBinaryRepresentation() {
         let random = Random()
         let clientHello = TLSClientHello(
-            clientVersion: TLSProtocolVersion.TLS_v1_0,
+            clientVersion: .v1_0,
             random: random,
             sessionID: nil,
             cipherSuites: [.TLS_RSA_WITH_RC4_128_SHA],
-            compressionMethods: [.NULL])
+            compressionMethods: [.null])
         
         var buffer = DataBuffer()
         clientHello.writeTo(&buffer)
         
-        var expectedData = [UInt8]([TLSHandshakeType.ClientHello.rawValue, 0, 0, 41, 3, 1])
+        var expectedData = [UInt8]([TLSHandshakeType.clientHello.rawValue, 0, 0, 41, 3, 1])
         var randomData = DataBuffer()
         random.writeTo(&randomData)
-        expectedData.appendContentsOf(randomData.buffer)
-        expectedData.appendContentsOf([0, 0, 2, 0, 5, 1, 0])
+        expectedData.append(contentsOf: randomData.buffer)
+        expectedData.append(contentsOf: [0, 0, 2, 0, 5, 1, 0])
         XCTAssert(buffer.buffer == expectedData)
     }
     
@@ -39,7 +39,7 @@ class TLSClientHelloTests: XCTestCase {
             let (rc4_md5_hi,  rc4_md5_lo)  = (UInt8((rc4_md5)  >> 8), UInt8(rc4_md5  & 0xff))
             let (rc4_sha1_hi, rc4_sha1_lo) = (UInt8((rc4_sha1) >> 8), UInt8(rc4_sha1 & 0xff))
             
-            return [UInt8]([TLSHandshakeType.ClientHello.rawValue, 0, 0, 41, 3, 1,
+            return [UInt8]([TLSHandshakeType.clientHello.rawValue, 0, 0, 41, 3, 1,
                 // random
                 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,
                 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
@@ -83,11 +83,11 @@ class TLSClientHelloTests: XCTestCase {
     {
         let random = Random()
         let clientHello = TLSClientHello(
-            clientVersion: TLSProtocolVersion.TLS_v1_0,
+            clientVersion: .v1_0,
             random: random,
             sessionID: nil,
             cipherSuites: [.TLS_RSA_WITH_RC4_128_SHA],
-            compressionMethods: [.NULL])
+            compressionMethods: [.null])
         
         clientHello.extensions = [TLSServerNameExtension(serverNames: ["www.example.com", "www.example2.com", "www.example3.com"])]
 

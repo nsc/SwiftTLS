@@ -28,9 +28,9 @@ class SocketTests: XCTestCase {
         let address = IPv4Address.localAddress()
         address.port = UInt16(12345)
         
-        let expectation = self.expectationWithDescription("accept connection successfully")
+        let expectation = self.expectation(description: "accept connection successfully")
 
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), {
+        DispatchQueue.global(attributes: DispatchQueue.GlobalAttributes.qosDefault).async {
             do {
                 try server.acceptConnection(address)
                 
@@ -39,7 +39,7 @@ class SocketTests: XCTestCase {
 
             } catch {
             }
-        })
+        }
         
         sleep(2)
         
@@ -50,7 +50,7 @@ class SocketTests: XCTestCase {
                 
                 client.close()
                 
-                self.waitForExpectationsWithTimeout(50.0, handler: { (error : NSError?) -> Void in
+                self.waitForExpectations(timeout: 50.0, handler: { (error : NSError?) -> Void in
                 })
             }
             catch let error as SocketError {

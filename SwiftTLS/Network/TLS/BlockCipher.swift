@@ -61,34 +61,34 @@ class BlockCipher
         
         switch cipher
         {
-        case .AES128:
-            self.cipher = .AES128
+        case .aes128:
+            self.cipher = .aes128
         
-        case .AES256:
-            self.cipher = .AES256
+        case .aes256:
+            self.cipher = .aes256
             
         default:
             return nil
         }
     }
     
-    private class func CCCipherAlgorithmForCipherAlgorithm(cipherAlgorithm : CipherAlgorithm) -> CCAlgorithm?
+    private class func CCCipherAlgorithmForCipherAlgorithm(_ cipherAlgorithm : CipherAlgorithm) -> CCAlgorithm?
     {
         switch (cipherAlgorithm)
         {
-        case .AES128, .AES256:
+        case .aes128, .aes256:
             return CCAlgorithm(kCCAlgorithmAES)
             
-        case .NULL:
+        case .null:
             return nil
         }
     }
     
-    class func encryptionBlockCipher(cipherAlgorithm : CipherAlgorithm, mode: BlockCipherMode, key : [UInt8], IV : [UInt8]) -> BlockCipher?
+    class func encryptionBlockCipher(_ cipherAlgorithm : CipherAlgorithm, mode: BlockCipherMode, key : [UInt8], IV : [UInt8]) -> BlockCipher?
     {
         guard let algorithm = CCCipherAlgorithmForCipherAlgorithm(cipherAlgorithm) else { return nil }
         
-        var encryptor : CCCryptorRef = nil
+        var encryptor : CCCryptorRef? = nil
         
         var key = key
         var IV = IV
@@ -98,52 +98,52 @@ class BlockCipher
             return nil
         }
 
-        let cipher = BlockCipher(encrypt: true, cryptor: encryptor, mode: mode, cipher: cipherAlgorithm)
+        let cipher = BlockCipher(encrypt: true, cryptor: encryptor!, mode: mode, cipher: cipherAlgorithm)
         cipher!._IV = IV
         print(cipher!.IV)
         
         return cipher
     }
     
-    class func decryptionBlockCipher(cipherAlgorithm : CipherAlgorithm, mode: BlockCipherMode, key : [UInt8], IV : [UInt8]) -> BlockCipher?
+    class func decryptionBlockCipher(_ cipherAlgorithm : CipherAlgorithm, mode: BlockCipherMode, key : [UInt8], IV : [UInt8]) -> BlockCipher?
     {
         guard let algorithm = CCCipherAlgorithmForCipherAlgorithm(cipherAlgorithm) else { return nil }
         
-        var decryptor : CCCryptorRef = nil
+        var decryptor : CCCryptorRef? = nil
         
         var key = key
         var IV = IV
-        let operation = (mode == .GCM) ? CCOperation(kCCEncrypt) : CCOperation(kCCDecrypt)
+        let operation = (mode == .gcm) ? CCOperation(kCCEncrypt) : CCOperation(kCCDecrypt)
         let status = Int(CCCryptorCreate(operation, algorithm, UInt32(kCCOptionECBMode), &key, key.count, &IV, &decryptor))
         if status != kCCSuccess {
             return nil
         }
         
-        let cipher = BlockCipher(encrypt: false, cryptor: decryptor, mode: mode, cipher: cipherAlgorithm)
+        let cipher = BlockCipher(encrypt: false, cryptor: decryptor!, mode: mode, cipher: cipherAlgorithm)
         cipher!._IV = IV
         
         return cipher
     }
 
-    func update(data data : [UInt8], key : [UInt8], IV : [UInt8]?) -> [UInt8]?
+    func update(data : [UInt8], key : [UInt8], IV : [UInt8]?) -> [UInt8]?
     {
         return update(data: data, authData: nil, key: key, IV: IV)
     }
     
-    func update(data data : [UInt8], authData: [UInt8]?, key : [UInt8], IV : [UInt8]?) -> [UInt8]?
+    func update(data : [UInt8], authData: [UInt8]?, key : [UInt8], IV : [UInt8]?) -> [UInt8]?
     {
         switch self.mode
         {
-        case .CBC:
+        case .cbc:
             return updateCBC(data: data, key: key, IV: IV)
 
-        case .GCM:
+        case .gcm:
             return updateGCM(data: data, authData: authData, key: key, IV: IV)
 
         }
     }
     
-    private func cryptorUpdate(inputBlock inputBlock: MemoryBlock, inout outputBlock: MemoryBlock) -> Bool {
+    private func cryptorUpdate(inputBlock: MemoryBlock, outputBlock: inout MemoryBlock) -> Bool {
         var outputDataWritten: Int = 0
         let blockSize = self.cipher.blockSize
         precondition(blockSize == inputBlock.block.count)
@@ -154,7 +154,7 @@ class BlockCipher
         return status == kCCSuccess
     }
     
-    private func cryptorOutputLengthForInputLength(inputLength: Int) -> Int {
+    private func cryptorOutputLengthForInputLength(_ inputLength: Int) -> Int {
         return inputLength
 //        return CCCryptorGetOutputLength(self.cryptor, inputLength, false)
     }
@@ -163,7 +163,7 @@ class BlockCipher
     {
         let outputLength = cryptorOutputLengthForInputLength(inputData.count)
         
-        var outputData = [UInt8](count: outputLength, repeatedValue: 0)
+        var outputData = [UInt8](repeating: 0, count: outputLength)
         
         if let IV = IV {
             self.IV = IV
@@ -200,7 +200,7 @@ class BlockCipher
                 iv = outputBlock
             }
 
-            outputData[range].replaceRange(range, with: outputBlock.block)
+            outputData[range].replaceSubrange(range, with: outputBlock.block)
         }
         
         self.IV = iv.block
@@ -212,7 +212,7 @@ class BlockCipher
     {
         let outputLength = cryptorOutputLengthForInputLength(inputData.count)
         
-        var outputData = [UInt8](count: outputLength, repeatedValue: 0)
+        var outputData = [UInt8](repeating: 0, count: outputLength)
         
         let blockSize = self.cipher.blockSize
         var numSteps = outputLength / blockSize
@@ -246,12 +246,12 @@ class BlockCipher
 
         var mac = GF2_128_Element(0)
         
-        if let authData = authData where authData.count > 0 {
+        if let authData = authData, authData.count > 0 {
             mac = ghashUpdate(mac, h: H, x: authData)
         }
         
         if IV.count == 12 {
-            IV.appendContentsOf([0,0,0,1] as [UInt8])
+            IV.append(contentsOf: [0,0,0,1] as [UInt8])
         }
         
         var counter = MemoryBlock(IV, blockSize: blockSize)
@@ -296,7 +296,7 @@ class BlockCipher
                 mac = ghashUpdate(mac, h: H, x: inputBlock.block)
             }
             
-            outputData[range].replaceRange(range, with: encrypted.block)
+            outputData[range].replaceSubrange(range, with: encrypted.block)
         }
         
         if inputData.count + authDataCount > 0 {
@@ -321,7 +321,7 @@ struct MemoryBlock
     {
         var array = array
         if array.count < blockSize {
-            array.appendContentsOf([UInt8](count: blockSize - array.count, repeatedValue: 0))
+            array.append(contentsOf: [UInt8](repeating: 0, count: blockSize - array.count))
         }
         else if blockSize < array.count {
             array.removeLast(array.count - blockSize)
@@ -337,11 +337,11 @@ struct MemoryBlock
     
     init(blockSize: Int = 16)
     {
-        self = MemoryBlock([UInt8](count: blockSize, repeatedValue: 0), blockSize: blockSize)
+        self = MemoryBlock([UInt8](repeating: 0, count: blockSize), blockSize: blockSize)
     }
 }
 
-func ^= (inout lhs : MemoryBlock, other : MemoryBlock)
+func ^= (lhs : inout MemoryBlock, other : MemoryBlock)
 {
     precondition(lhs.block.count == other.block.count)
     

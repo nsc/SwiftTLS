@@ -16,28 +16,28 @@ class TLSFinished : TLSHandshakeMessage
     {
         self.verifyData = verifyData
         
-        super.init(type: .Handshake(.Finished))
+        super.init(type: .handshake(.finished))
     }
     
     required init?(inputStream : InputStreamType, context: TLSContext)
     {
         guard
-            let (type, _) = TLSHandshakeMessage.readHeader(inputStream) where type == TLSHandshakeType.Finished,
+            let (type, _) = TLSHandshakeMessage.readHeader(inputStream), type == TLSHandshakeType.finished,
             let verifyData : [UInt8] = inputStream.read(count: 12)
         else {
             return nil
         }
         
         self.verifyData = verifyData
-        super.init(type: .Handshake(.Finished))
+        super.init(type: .handshake(.finished))
     }
     
-    override func writeTo<Target : OutputStreamType>(inout target: Target)
+    override func writeTo<Target : OutputStreamType>(_ target: inout Target)
     {
         let data = DataBuffer()
         data.write(self.verifyData)
         
-        self.writeHeader(type: .Finished, bodyLength: data.buffer.count, target: &target)
+        self.writeHeader(type: .finished, bodyLength: data.buffer.count, target: &target)
         target.write(data.buffer)
     }
 }

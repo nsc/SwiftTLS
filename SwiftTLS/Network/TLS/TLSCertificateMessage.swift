@@ -28,14 +28,14 @@ class TLSCertificateMessage : TLSHandshakeMessage
     {
         self.certificates = certificates
         
-        super.init(type: .Handshake(.Certificate))
+        super.init(type: .handshake(.certificate))
     }
     
     required init?(inputStream : InputStreamType, context: TLSContext)
     {
         var certificates : [Certificate]?
         
-        guard let (type, _) = TLSHandshakeMessage.readHeader(inputStream) where type == TLSHandshakeType.Certificate
+        guard let (type, _) = TLSHandshakeMessage.readHeader(inputStream), type == TLSHandshakeType.certificate
         else {
             return nil
         }
@@ -80,7 +80,7 @@ class TLSCertificateMessage : TLSHandshakeMessage
         {
             self.certificates = certs
             
-            super.init(type: .Handshake(.Certificate))
+            super.init(type: .handshake(.certificate))
         }
         else
         {
@@ -88,7 +88,7 @@ class TLSCertificateMessage : TLSHandshakeMessage
         }
     }
 
-    override func writeTo<Target : OutputStreamType>(inout target: Target)
+    override func writeTo<Target : OutputStreamType>(_ target: inout Target)
     {
         let buffer = DataBuffer()
         
@@ -101,7 +101,7 @@ class TLSCertificateMessage : TLSHandshakeMessage
         let data = buffer.buffer
 
         let bodyLength = data.count + 3 // add 3 bytes for the 24 bit length of the certifacte data below
-        self.writeHeader(type: .Certificate, bodyLength: bodyLength, target: &target)
+        self.writeHeader(type: .certificate, bodyLength: bodyLength, target: &target)
         target.writeUInt24(data.count)
         target.write(data)
     }

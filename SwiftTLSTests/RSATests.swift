@@ -24,7 +24,7 @@ class RSATests: XCTestCase {
             print(object)
         }
         
-        let certificatePath = NSBundle(forClass: self.dynamicType).URLForResource("mycert.pem", withExtension: nil)!.path!
+        let certificatePath = Bundle(for: self.dynamicType).urlForResource("mycert.pem", withExtension: nil)!.path!
         
         guard let rsa = RSA.fromCertificateFile(certificatePath) else {
             XCTFail()
@@ -38,7 +38,7 @@ class RSATests: XCTestCase {
     
     func test_sign_someData_verifies()
     {
-        let certificatePath = NSBundle(forClass: self.dynamicType).URLForResource("mycert.pem", withExtension: nil)!.path!
+        let certificatePath = Bundle(for: self.dynamicType).urlForResource("mycert.pem", withExtension: nil)!.path!
 
         guard let rsa = RSA.fromCertificateFile(certificatePath) else {
             XCTFail()
@@ -47,7 +47,7 @@ class RSATests: XCTestCase {
         
         let data = [1,2,3,4,5,6,7,8] as [UInt8]
         
-        let signature = rsa.signData(data, hashAlgorithm: .SHA1)
+        let signature = rsa.signData(data, hashAlgorithm: .sha1)
         
         print(signature)
         
@@ -59,7 +59,7 @@ class RSATests: XCTestCase {
 
     func test_decrypt_encryptedData_givesOriginalData()
     {
-        let certificatePath = NSBundle(forClass: self.dynamicType).URLForResource("mycert.pem", withExtension: nil)!.path!
+        let certificatePath = Bundle(for: self.dynamicType).urlForResource("mycert.pem", withExtension: nil)!.path!
         
         guard let rsa = RSA.fromCertificateFile(certificatePath) else {
             XCTFail()
@@ -79,8 +79,8 @@ class RSATests: XCTestCase {
 
     func test_verify_signatureFromSelfSignedRSACertificate_verifies()
     {
-        let certificatePath = NSBundle(forClass: self.dynamicType).pathForResource("Self Signed RSA Certificate.cer", ofType: "")!
-        let data = NSData(contentsOfFile: certificatePath)!.UInt8Array()
+        let certificatePath = Bundle(for: self.dynamicType).pathForResource("Self Signed RSA Certificate.cer", ofType: "")!
+        let data = (try! Data(contentsOf: URL(fileURLWithPath: certificatePath))).UInt8Array()
         
         guard let cert = X509.Certificate(DERData: data) else { XCTFail(); return }
         

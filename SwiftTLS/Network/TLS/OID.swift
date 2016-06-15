@@ -171,7 +171,7 @@ enum OID : String
     
     var identifier : [Int] {
         get {
-            return rawValue.characters.split(".").map {Int(String($0))!}
+            return rawValue.characters.split(separator: ".").map {Int(String($0))!}
         }
     }
 }

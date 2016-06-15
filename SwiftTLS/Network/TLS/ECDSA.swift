@@ -44,7 +44,7 @@ struct ECDSA
         self.publicKey = publicKey
     }
     
-    func signData(data : [UInt8]) -> (BigInt, BigInt)
+    func sign(data : [UInt8]) -> (BigInt, BigInt)
     {
         assert(self.privateKey != nil)
         
@@ -72,17 +72,17 @@ struct ECDSA
         return (r, s)
     }
     
-    func verifySignature(signature: [UInt8], data: [UInt8]) -> Bool
+    func verify(signature: [UInt8], data: [UInt8]) -> Bool
     {
         guard let points = ASN1Parser(data: signature).parseObject() as? ASN1Sequence else { return false }
         guard points.objects.count == 2 else { return false }
         guard let r = points.objects[0] as? ASN1Integer else { return false }
         guard let s = points.objects[1] as? ASN1Integer else { return false }
         
-        return self.verifySignature((BigInt(bigEndianParts: r.value), BigInt(bigEndianParts: s.value)), data: data)
+        return self.verify(signature: (BigInt(bigEndianParts: r.value), BigInt(bigEndianParts: s.value)), data: data)
     }
     
-    func verifySignature(signature : (BigInt, BigInt), data: [UInt8]) -> Bool
+    func verify(signature : (BigInt, BigInt), data: [UInt8]) -> Bool
     {
         let n = curve.n
         let G = curve.G

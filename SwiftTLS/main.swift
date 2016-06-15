@@ -33,7 +33,7 @@ func server()
     
     print("Listening on port \(port)")
     
-    var configuration = TLSConfiguration(protocolVersion: .TLS_v1_2)
+    var configuration = TLSConfiguration(protocolVersion: .v1_2)
     
     let cipherSuites : [CipherSuite] = [
 //        .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
@@ -67,9 +67,9 @@ func server()
         catch(let error) {
             if let tlserror = error as? TLSError {
                 switch tlserror {
-                case .Error(let message):
+                case .error(let message):
                     print("Error: \(message)")
-                case .Alert(let alert, let level):
+                case .alert(let alert, let level):
                     print("Alert: \(level) \(alert)")
                 }
                 
@@ -82,14 +82,14 @@ func server()
     }
 }
 
-func connectTo(host host : String, port : Int = 443, protocolVersion: TLSProtocolVersion = .TLS_v1_2, cipherSuite : CipherSuite? = nil)
+func connectTo(host : String, port : Int = 443, protocolVersion: TLSProtocolVersion = .v1_2, cipherSuite : CipherSuite? = nil)
 {
     var configuration = TLSConfiguration(protocolVersion: protocolVersion)
     
     if let cipherSuite = cipherSuite {
         configuration.cipherSuites = [cipherSuite]
     }
-    else if protocolVersion == .TLS_v1_2 {
+    else if protocolVersion == .v1_2 {
         configuration.cipherSuites = [
             .TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
             .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
@@ -129,14 +129,14 @@ func connectTo(host host : String, port : Int = 443, protocolVersion: TLSProtoco
 
 func parseASN1()
 {
-    let data = NSData(contentsOfFile: "embedded.mobileprovision")
+    let data = try! Data(contentsOf: URL(fileURLWithPath: "embedded.mobileprovision"))
     
-    let object = ASN1Parser(data: data!).parseObject()
+    let object = ASN1Parser(data: data).parseObject()
     
     ASN1_printObject(object!)
 }
 
-func probeCipherSuitesForHost(host : String, port : Int, protocolVersion: TLSProtocolVersion = .TLS_v1_2)
+func probeCipherSuitesForHost(host : String, port : Int, protocolVersion: TLSProtocolVersion = .v1_2)
 {
     class StateMachine : TLSContextStateMachine
     {
@@ -178,7 +178,7 @@ func probeCipherSuitesForHost(host : String, port : Int, protocolVersion: TLSPro
             try socket.connect(address)
         } catch let error as SocketError {
             switch error {
-            case SocketError.Closed:
+            case SocketError.closed:
                 socket.close()
             
             default:
@@ -198,7 +198,7 @@ guard Process.arguments.count >= 2 else {
 
 let command = Process.arguments[1]
 
-enum Error : ErrorType
+enum Error : ErrorProtocol
 {
     case Error(String)
 }
@@ -213,7 +213,7 @@ case "client":
     
     var host : String? = nil
     var port : Int = 443
-    var protocolVersion = TLSProtocolVersion.TLS_v1_2
+    var protocolVersion = TLSProtocolVersion.v1_2
     var cipherSuite : CipherSuite? = nil
 
     do {
@@ -238,10 +238,10 @@ case "client":
                 var argument = Process.arguments[argumentIndex]
                 argumentIndex += 1
                 
-                if argument.containsString(":") {
-                    let components = argument.componentsSeparatedByString(":")
+                if argument.contains(":") {
+                    let components = argument.components(separatedBy: ":")
                     host = components[0]
-                    guard let p = Int(components[1]) where p > 0 && p < 65536 else {
+                    guard let p = Int(components[1]), p > 0 && p < 65536 else {
                         throw Error.Error("\(components[1]) is not a valid port number")
                     }
                     
@@ -262,13 +262,13 @@ case "client":
                 switch argument
                 {
                 case "1.0":
-                    protocolVersion = .TLS_v1_0
+                    protocolVersion = .v1_0
 
                 case "1.1":
-                    protocolVersion = .TLS_v1_1
+                    protocolVersion = .v1_1
 
                 case "1.2":
-                    protocolVersion = .TLS_v1_2
+                    protocolVersion = .v1_2
 
                 default:
                     throw Error.Error("\(argument) is not a valid TLS version")
@@ -310,7 +310,7 @@ case "probeCiphers":
     
     var host : String? = nil
     var port : Int = 443
-    var protocolVersion = TLSProtocolVersion.TLS_v1_2
+    var protocolVersion = TLSProtocolVersion.v1_2
     
     do {
         var argumentIndex : Int = 2
@@ -337,23 +337,23 @@ case "probeCiphers":
                 switch argument
                 {
                 case "1.0":
-                    protocolVersion = .TLS_v1_0
+                    protocolVersion = .v1_0
                     
                 case "1.1":
-                    protocolVersion = .TLS_v1_1
+                    protocolVersion = .v1_1
                     
                 case "1.2":
-                    protocolVersion = .TLS_v1_2
+                    protocolVersion = .v1_2
                     
                 default:
                     throw Error.Error("\(argument) is not a valid TLS version")
                 }
                 
             default:
-                if argument.containsString(":") {
-                    let components = argument.componentsSeparatedByString(":")
+                if argument.contains(":") {
+                    let components = argument.components(separatedBy: ":")
                     host = components[0]
-                    guard let p = Int(components[1]) where p > 0 && p < 65536 else {
+                    guard let p = Int(components[1]), p > 0 && p < 65536 else {
                         throw Error.Error("\(components[1]) is not a valid port number")
                     }
                     
@@ -375,7 +375,7 @@ case "probeCiphers":
         exit(1)
     }
     
-    probeCipherSuitesForHost(hostName, port: port, protocolVersion: protocolVersion)
+    probeCipherSuitesForHost(host: hostName, port: port, protocolVersion: protocolVersion)
     
 case "pem":
     guard Process.arguments.count > 2 else {
@@ -399,7 +399,7 @@ case "asn1parse":
     }
 
     let file = Process.arguments[2]
-    guard let data = NSData(contentsOfFile: file) else {
+    guard let data = try? Data(contentsOf: URL(fileURLWithPath: file)) else {
         print("Error: No such file \"\(file)\"")
         exit(1)
     }
@@ -422,13 +422,13 @@ case "p12":
     }
     
     let file = Process.arguments[2]
-    let data = NSData(contentsOfFile: file)
+    let data = try? Data(contentsOf: URL(fileURLWithPath: file))
     if  let data = data,
         let object = ASN1Parser(data: data).parseObject()
     {
         if let sequence = object as? ASN1Sequence,
             let subSequence = sequence.objects[1] as? ASN1Sequence,
-            let oid = subSequence.objects.first as? ASN1ObjectIdentifier where OID(id: oid.identifier) == .PKCS7_data,
+            let oid = subSequence.objects.first as? ASN1ObjectIdentifier, OID(id: oid.identifier) == .PKCS7_data,
             let taggedObject = subSequence.objects[1] as? ASN1TaggedObject,
             let octetString = taggedObject.object as? ASN1OctetString
         {

@@ -23,16 +23,16 @@ class DataBuffer : OutputStreamType
         streamable.writeTo(&s)
     }
     
-    func write(data : [UInt8]) {
-        buffer.appendContentsOf(data)
+    func write(_ data : [UInt8]) {
+        buffer.append(contentsOf: data)
     }
     
 }
 
-extension RangeReplaceableCollectionType where Generator.Element == UInt8
+extension RangeReplaceableCollection where Iterator.Element == UInt8
 {
-    mutating func write(data : [UInt8]) {
-        self.appendContentsOf(data)
+    mutating func write(_ data : [UInt8]) {
+        self.append(contentsOf: data)
     }
 }
 
@@ -48,7 +48,7 @@ class BinaryInputStream : InputStreamType
         self.length = data.count
     }
 
-    func read(count count: Int) -> [UInt8]? {
+    func read(count: Int) -> [UInt8]? {
         if index + count <= self.length {
             let s = data[index..<index + count]
             index += count

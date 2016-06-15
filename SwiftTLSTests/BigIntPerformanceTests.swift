@@ -11,11 +11,11 @@ import OpenSSL
 import SwiftHelper
 @testable import SwiftTLS
 
-func hexStringFromCBigInt(a : UnsafePointer<CBigInt>) -> String
+func hexStringFromCBigInt(_ a : UnsafePointer<CBigInt>) -> String
 {
-    let s = CBigIntHexString(a)
+    let s = CBigIntHexString(a)!
     
-    let result = String.fromCString(s)!
+    let result = String(validatingUTF8: s)!
     free(UnsafeMutablePointer<Void>(s))
     
     return result
@@ -44,7 +44,7 @@ class BigIntPerformanceTests: XCTestCase {
         let context = BN_CTX_new()
         let result = BN_new()
         
-        self.measureBlock() {
+        self.measure() {
             for _ in 0..<1000 {
                 BN_mul(result, an, bn, context)
             }
@@ -70,9 +70,9 @@ class BigIntPerformanceTests: XCTestCase {
         //        let exponent = BigInt([3116988641, 3983070910, 2701520770, 1363639321, 2557765447, 342272273, 2475071927, 2955743727, 2979479703, 715122230, 2343412841, 3499847595, 764462914, 263700299, 373275624, 1287566206] as [UInt32], negative: false)
         //        let modulus = BigInt([1198843955, 3623894652, 503860470, 3793286365, 2731791378, 3614844779, 1771690793, 1464226003, 2319713261, 3985960860, 3087334159, 3712738611, 1867303570, 3504648053, 3649381001, 3663215638] as [UInt32], negative: false)
         
-        self.measureBlock() {
+        self.measure() {
             for _ in 0..<1_000 {
-                exponent * modulus
+                _ = exponent * modulus
                 //                print(result.toString())
             }
         }
@@ -89,8 +89,8 @@ class BigIntPerformanceTests: XCTestCase {
         let an = CBigIntCreateWithHexString(exponentString)
         let bn = CBigIntCreateWithHexString(modulusString)
         
-        let anString = hexStringFromCBigInt(an)
-        let bnString = hexStringFromCBigInt(bn)
+        let anString = hexStringFromCBigInt(an!)
+        let bnString = hexStringFromCBigInt(bn!)
         
         print(anString)
         print(bnString)
@@ -98,7 +98,7 @@ class BigIntPerformanceTests: XCTestCase {
         assert(anString == exponentString)
         assert(bnString == modulusString)
         
-        self.measureBlock() {
+        self.measure() {
             for _ in 0..<1000 {
                 CBigIntMultiply(an, bn)
                 //                print(self.hexStringFromCBigInt(result))
@@ -124,7 +124,7 @@ class BigIntPerformanceTests: XCTestCase {
         let context = BN_CTX_new()
         let result = BN_new()
         
-        self.measureBlock() {
+        self.measure {
             //            for var i=0; i < 100; ++i {
             BN_mod_exp(result, generator, exponent, modulus, context)
             //                print(String.fromCString(BN_bn2hex(result))!)
@@ -142,7 +142,7 @@ class BigIntPerformanceTests: XCTestCase {
         let generator = CBigIntCreateWithHexString(generatorString)
         let modulus = CBigIntCreateWithHexString(modulusString)
         
-        self.measureBlock() {
+        self.measure() {
             //            for var i=0; i < 100; ++i {
             let result = CBigIntModularPowerWithBigIntExponent(generator, exponent, modulus)
             //                print(self.hexStringFromCBigInt(result))
@@ -161,8 +161,8 @@ class BigIntPerformanceTests: XCTestCase {
         let exponent = BigInt(hexString: exponentString)!
         let modulus = BigInt(hexString: modulusString)!
         
-        self.measureBlock() {
-            modular_pow(generator, exponent, modulus)
+        self.measure {
+            _ = modular_pow(generator, exponent, modulus)
         }
         
 //        self.measureBlock() {

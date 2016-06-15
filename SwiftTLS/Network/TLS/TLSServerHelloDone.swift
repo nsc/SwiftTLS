@@ -11,22 +11,22 @@ class TLSServerHelloDone : TLSHandshakeMessage
 {
     init()
     {
-        super.init(type: .Handshake(.ServerHelloDone))
+        super.init(type: .handshake(.serverHelloDone))
     }
     
     required init?(inputStream : InputStreamType, context: TLSContext)
     {
         guard
-            let (type, bodyLength) = TLSHandshakeMessage.readHeader(inputStream) where type == TLSHandshakeType.ServerHelloDone && bodyLength == 0
+            let (type, bodyLength) = TLSHandshakeMessage.readHeader(inputStream), type == TLSHandshakeType.serverHelloDone && bodyLength == 0
         else {
             return nil
         }
         
-        super.init(type: .Handshake(.ServerHelloDone))
+        super.init(type: .handshake(.serverHelloDone))
     }
     
-    override func writeTo<Target : OutputStreamType>(inout target: Target)
+    override func writeTo<Target : OutputStreamType>(_ target: inout Target)
     {
-        self.writeHeader(type: .ServerHelloDone, bodyLength: 0, target: &target)
+        self.writeHeader(type: .serverHelloDone, bodyLength: 0, target: &target)
     }
 }

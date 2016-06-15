@@ -5,7 +5,7 @@
 //  Copyright (c) 2015 Nico Schmidt. All rights reserved.
 //
 
-#include <stdint.h>
+#import <Foundation/Foundation.h>
 
 #include "CBigInt.h"
 
@@ -26,3 +26,5 @@ static inline void NSC_divide64(uint64_t uhi, uint64_t ulo, uint64_t v, uint64_t
     *divlo = q & 0xffffffffffffffffUL;
     *rem = u % v;
 }
+
+NSDictionary<NSString *, NSString *> *base64Blocks(NSString *base64Data);

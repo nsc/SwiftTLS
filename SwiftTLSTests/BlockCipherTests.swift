@@ -21,19 +21,19 @@ class BlockCipherTests : XCTestCase {
         let blockLength = 16
         let paddingLength = blockLength - ((data.count) % blockLength)
         if paddingLength != 0 {
-            let padding = [UInt8](count: paddingLength, repeatedValue: UInt8(paddingLength - 1))
+            let padding = [UInt8](repeating: UInt8(paddingLength - 1), count: paddingLength)
             
-            data.appendContentsOf(padding)
+            data.append(contentsOf: padding)
         }
 
         print(data)
         
-        let encryptor = BlockCipher.encryptionBlockCipher(.AES128, mode: .CBC, key: key, IV: iv)!
+        let encryptor = BlockCipher.encryptionBlockCipher(.aes128, mode: .cbc, key: key, IV: iv)!
         
         let cipherText = encryptor.update(data: data, key: key, IV: nil)!
         print(cipherText)
         
-        let decryptor = BlockCipher.decryptionBlockCipher(.AES128, mode: .CBC, key: key, IV: iv)!
+        let decryptor = BlockCipher.decryptionBlockCipher(.aes128, mode: .cbc, key: key, IV: iv)!
         
         let plainText = decryptor.update(data: cipherText, key: key, IV: nil)!
         
@@ -42,7 +42,7 @@ class BlockCipherTests : XCTestCase {
         XCTAssert(plainText == data)
     }
     
-    func UInt8ArrayFromHexString(string : String) -> [UInt8]
+    func UInt8ArrayFromHexString(_ string : String) -> [UInt8]
     {
         var v : UInt8 = 0
         var i = 0
@@ -142,7 +142,7 @@ class BlockCipherTests : XCTestCase {
             let authData = UInt8ArrayFromHexString(authDataString)
             let authTag = UInt8ArrayFromHexString(authTagString)
             
-            let encryptor = BlockCipher.encryptionBlockCipher(.AES128, mode: .GCM, key: key, IV: iv)!
+            let encryptor = BlockCipher.encryptionBlockCipher(.aes128, mode: .gcm, key: key, IV: iv)!
             
             let cipherText = encryptor.update(data: plainText, authData: authData, key: key, IV: iv)!
             XCTAssert(cipherText == expectedCipherText, "\(testCaseName) failed")
@@ -162,7 +162,7 @@ class BlockCipherTests : XCTestCase {
             let authData = UInt8ArrayFromHexString(authDataString)
             let authTag = UInt8ArrayFromHexString(authTagString)
             
-            let encryptor = BlockCipher.decryptionBlockCipher(.AES128, mode: .GCM, key: key, IV: iv)!
+            let encryptor = BlockCipher.decryptionBlockCipher(.aes128, mode: .gcm, key: key, IV: iv)!
             
             let plainText = encryptor.update(data: cipherText, authData: authData, key: key, IV: iv)!
             XCTAssert(plainText == expectedPlainText, "\(testCaseName) failed")

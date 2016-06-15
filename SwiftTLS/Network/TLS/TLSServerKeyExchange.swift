@@ -9,8 +9,8 @@
 import Foundation
 
 enum KeyExchangeParameters {
-    case DHE(DiffieHellmanParameters)
-    case ECDHE(ECDiffieHellmanParameters)
+    case dhe(DiffieHellmanParameters)
+    case ecdhe(ECDiffieHellmanParameters)
 }
 
 public struct DiffieHellmanParameters
@@ -19,7 +19,7 @@ public struct DiffieHellmanParameters
     var g : BigInt
     var Ys : BigInt
     
-    public static func fromPEMFile(file : String) -> DiffieHellmanParameters?
+    public static func fromPEMFile(_ file : String) -> DiffieHellmanParameters?
     {
         guard let sequence = ASN1Parser.objectFromPEMFile(file) as? ASN1Sequence else {
             return nil
@@ -64,7 +64,7 @@ public struct DiffieHellmanParameters
 
 extension DiffieHellmanParameters : Streamable
 {
-    func writeTo<Target : OutputStreamType>(inout target: Target)
+    func writeTo<Target : OutputStreamType>(_ target: inout Target)
     {
         let dh_p  = self.p.asBigEndianData()
         let dh_g  = self.g.asBigEndianData()
@@ -83,9 +83,9 @@ extension DiffieHellmanParameters : Streamable
 
 enum ECCurveType : UInt8
 {
-    case ExplicitPrime  = 1
-    case ExplicitChar2  = 2
-    case NamedCurve     = 3
+    case explicitPrime  = 1
+    case explicitChar2  = 2
+    case namedCurve     = 3
 }
 
 struct ECDiffieHellmanParameters
@@ -99,7 +99,7 @@ struct ECDiffieHellmanParameters
         get {
             switch self.curveType
             {
-            case .NamedCurve:
+            case .namedCurve:
                 guard let curve = EllipticCurve.named(self.namedCurve!) else {
                     fatalError("Unsuppored curve \(self.namedCurve)")
                 }
@@ -113,7 +113,7 @@ struct ECDiffieHellmanParameters
     
     init(namedCurve: NamedCurve)
     {
-        self.curveType = .NamedCurve
+        self.curveType = .namedCurve
         self.namedCurve = namedCurve
     }
     
@@ -130,7 +130,7 @@ struct ECDiffieHellmanParameters
         
         switch curveType
         {
-        case .NamedCurve:
+        case .namedCurve:
             guard
                 let rawNamedCurve : UInt16 = inputStream.read(),
                 let namedCurve = NamedCurve(rawValue: rawNamedCurve),
@@ -159,16 +159,16 @@ struct ECDiffieHellmanParameters
 
 extension ECDiffieHellmanParameters : Streamable
 {
-    func writeTo<Target : OutputStreamType>(inout target: Target)
+    func writeTo<Target : OutputStreamType>(_ target: inout Target)
     {
         switch self.curveType
         {
-        case .NamedCurve:
+        case .namedCurve:
             
             target.write(self.curveType.rawValue)
             target.write(self.namedCurve!.rawValue)
             let Q = self.publicKey
-            let curvePointData : [UInt8] = [4] + Q.x.asBigEndianData() + Q.y.asBigEndianData()
+            let curvePointData : [UInt8] = [4] + Q!.x.asBigEndianData() + Q!.y.asBigEndianData()
             target.write(UInt8(curvePointData.count))
             target.write(curvePointData)
             
@@ -187,10 +187,10 @@ class TLSServerKeyExchange : TLSHandshakeMessage
     var parametersData : [UInt8] {
         get {
             switch parameters {
-            case .DHE(let dhParams):
+            case .dhe(let dhParams):
                 return DataBuffer(dhParams).buffer
             
-            case .ECDHE(let ecdhParameters):
+            case .ecdhe(let ecdhParameters):
                 return DataBuffer(ecdhParameters).buffer
 
             default:
@@ -201,19 +201,19 @@ class TLSServerKeyExchange : TLSHandshakeMessage
     
     init(dhParameters: DiffieHellmanParameters, context: TLSContext)
     {
-        self.parameters = .DHE(dhParameters)
+        self.parameters = .dhe(dhParameters)
         var data = context.securityParameters.clientRandom!
         data += context.securityParameters.serverRandom!
         data += DataBuffer(dhParameters).buffer
 
         self.signedParameters = TLSSignedData(data: data, context:context)
         
-        super.init(type: .Handshake(.ServerKeyExchange))
+        super.init(type: .handshake(.serverKeyExchange))
     }
     
     init(ecdhParameters: ECDiffieHellmanParameters, context: TLSContext)
     {
-        self.parameters = .ECDHE(ecdhParameters)
+        self.parameters = .ecdhe(ecdhParameters)
         
         var data = context.securityParameters.clientRandom!
         data += context.securityParameters.serverRandom!
@@ -221,13 +221,13 @@ class TLSServerKeyExchange : TLSHandshakeMessage
 
         self.signedParameters = TLSSignedData(data: data, context:context)
         
-        super.init(type: .Handshake(.ServerKeyExchange))
+        super.init(type: .handshake(.serverKeyExchange))
     }
 
     required init?(inputStream : InputStreamType, context: TLSContext)
     {
         guard
-            let (type, _) = TLSHandshakeMessage.readHeader(inputStream) where type == TLSHandshakeType.ServerKeyExchange
+            let (type, _) = TLSHandshakeMessage.readHeader(inputStream), type == TLSHandshakeType.serverKeyExchange
         else {
             return nil
         }
@@ -235,7 +235,7 @@ class TLSServerKeyExchange : TLSHandshakeMessage
         switch TLSCipherSuiteDescriptorForCipherSuite(context.cipherSuite!)!.keyExchangeAlgorithm
         {
 
-        case .DHE:
+        case .dhe:
             guard
                 let diffieHellmanParameters = DiffieHellmanParameters(inputStream: inputStream),
                 let signedParameters = TLSSignedData(inputStream: inputStream, context: context)
@@ -243,18 +243,18 @@ class TLSServerKeyExchange : TLSHandshakeMessage
                 return nil
             }
 
-            self.parameters         = .DHE(diffieHellmanParameters)
+            self.parameters         = .dhe(diffieHellmanParameters)
             self.signedParameters   = signedParameters
                         
-            if context.negotiatedProtocolVersion == .TLS_v1_2 {
+            if context.negotiatedProtocolVersion == .v1_2 {
 //                assert(bodyLength == dh_pData.count + 2 + dh_gData.count + 2 + dh_YsData.count + 2 + signedParameters.signature.count + 4)
             } else {
 //                assert(bodyLength == dh_pData.count + 2 + dh_gData.count + 2 + dh_YsData.count + 2 + signedParameters.signature.count + 2)
             }
             
-        case .ECDHE:
+        case .ecdhe:
             guard let parameters = ECDiffieHellmanParameters(inputStream: inputStream) else { return nil }
-            self.parameters = .ECDHE(parameters)
+            self.parameters = .ecdhe(parameters)
             if let signedParameters = TLSSignedData(inputStream: inputStream, context: context) {
                 self.signedParameters = signedParameters
             }
@@ -268,25 +268,25 @@ class TLSServerKeyExchange : TLSHandshakeMessage
             return nil
         }
         
-        super.init(type: .Handshake(.ServerKeyExchange))
+        super.init(type: .handshake(.serverKeyExchange))
     }
 
-    override func writeTo<Target : OutputStreamType>(inout target: Target)
+    override func writeTo<Target : OutputStreamType>(_ target: inout Target)
     {
         var body = DataBuffer()
 
         switch parameters {
-        case .DHE(let diffieHellmanParameters):
+        case .dhe(let diffieHellmanParameters):
             diffieHellmanParameters.writeTo(&body)
         
-        case .ECDHE(let ecdhParameters):
+        case .ecdhe(let ecdhParameters):
             ecdhParameters.writeTo(&body)
         }
         
         self.signedParameters.writeTo(&body)
         let bodyData = body.buffer
         
-        self.writeHeader(type: .ServerKeyExchange, bodyLength: bodyData.count, target: &target)
+        self.writeHeader(type: .serverKeyExchange, bodyLength: bodyData.count, target: &target)
         target.write(bodyData)
     }
 }

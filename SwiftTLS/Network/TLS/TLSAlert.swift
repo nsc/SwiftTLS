@@ -10,36 +10,36 @@ import Foundation
 
 enum TLSAlertLevel : UInt8
 {
-    case Warning = 1
-    case Fatal = 2
+    case warning = 1
+    case fatal = 2
 }
 
 enum TLSAlert : UInt8
 {
-    case CloseNotify = 0
-    case UnexpectedMessage = 10
-    case BadRecordMAC = 20
-    case DecryptionFailed = 21
-    case RecordOverflow = 22
-    case DecompressionFailure = 30
-    case HandshakeFailure = 40
-    case NoCertificate = 41 // SSLv3 only
-    case BadCertificate = 42
-    case UnsupportedCertificate = 43
-    case CertificateRevoked = 44
-    case CertificateExpired = 45
-    case CertificateUnknown = 46
-    case IllegalParameter = 47
-    case UnknownCA = 48
-    case AccessDenied = 49
-    case DecodeError = 50
-    case DecryptError = 51
-    case ExportRestriction = 60
-    case ProtocolVersion = 70
-    case InsufficientSecurity = 71
-    case InternalError = 80
-    case UserCancelled = 90
-    case NoRenegotiation = 100
+    case closeNotify = 0
+    case unexpectedMessage = 10
+    case badRecordMAC = 20
+    case decryptionFailed = 21
+    case recordOverflow = 22
+    case decompressionFailure = 30
+    case handshakeFailure = 40
+    case noCertificate = 41 // SSLv3 only
+    case badCertificate = 42
+    case unsupportedCertificate = 43
+    case certificateRevoked = 44
+    case certificateExpired = 45
+    case certificateUnknown = 46
+    case illegalParameter = 47
+    case unknownCA = 48
+    case accessDenied = 49
+    case decodeError = 50
+    case decryptError = 51
+    case exportRestriction = 60
+    case protocolVersion = 70
+    case insufficientSecurity = 71
+    case internalError = 80
+    case userCancelled = 90
+    case noRenegotiation = 100
 }
 
 class TLSAlertMessage : TLSMessage
@@ -52,15 +52,15 @@ class TLSAlertMessage : TLSMessage
         self.alertLevel = alertLevel
         self.alert = alert
         
-        super.init(type: .Alert(alertLevel, alert))
+        super.init(type: .alert(alertLevel, alert))
     }
 
     required init?(inputStream: InputStreamType, context: TLSContext)
     {
         if  let level : UInt8 = inputStream.read(),
-            alertLevel = TLSAlertLevel(rawValue: level),
+            let alertLevel = TLSAlertLevel(rawValue: level),
             let rawAlert : UInt8 = inputStream.read(),
-            alert = TLSAlert(rawValue: rawAlert)
+            let alert = TLSAlert(rawValue: rawAlert)
         {
             self.alertLevel = alertLevel
             self.alert = alert
@@ -69,16 +69,16 @@ class TLSAlertMessage : TLSMessage
             return nil
         }
         
-        super.init(type: .Alert(self.alertLevel, self.alert))
+        super.init(type: .alert(self.alertLevel, self.alert))
     }
 
-    override func writeTo<Target : OutputStreamType>(inout target: Target)
+    override func writeTo<Target : OutputStreamType>(_ target: inout Target)
     {
         let data = [alertLevel.rawValue, alert.rawValue]
         target.write(data)
     }
 
-    class func alertFromData(data : [UInt8], context: TLSContext) -> TLSAlertMessage?
+    class func alertFromData(_ data : [UInt8], context: TLSContext) -> TLSAlertMessage?
     {
         return TLSAlertMessage(inputStream: BinaryInputStream(data), context: context)
     }

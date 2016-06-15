@@ -109,7 +109,7 @@ struct EllipticCurvePoint
         self.y = BigInt(bigEndianParts: [UInt8](data[1+numBytes..<1+2*numBytes]))
     }
     
-    func isOnCurve(curve : EllipticCurve) -> Bool
+    func isOnCurve(_ curve : EllipticCurve) -> Bool
     {
         return curve.isOnCurve(self)
     }
@@ -135,7 +135,7 @@ struct EllipticCurve
     let G : EllipticCurvePoint
     let n : BigInt
     
-    private func isOnCurve(point : EllipticCurvePoint) -> Bool
+    private func isOnCurve(_ point : EllipticCurvePoint) -> Bool
     {
         let x = point.x
         let y = point.y
@@ -146,7 +146,7 @@ struct EllipticCurve
         return rhs == lhs
     }
     
-    func addPoints(p1 : EllipticCurvePoint, _ p2 : EllipticCurvePoint) -> EllipticCurvePoint
+    func addPoints(_ p1 : EllipticCurvePoint, _ p2 : EllipticCurvePoint) -> EllipticCurvePoint
     {
         assert(p1 != p2)
         
@@ -169,7 +169,7 @@ struct EllipticCurve
         return EllipticCurvePoint(x: x, y: y)
     }
     
-    func doublePoint(p : EllipticCurvePoint) -> EllipticCurvePoint
+    func doublePoint(_ p : EllipticCurvePoint) -> EllipticCurvePoint
     {
         let lambda = modular_inverse(3 * (p.x * p.x) + self.a, 2 * p.y, mod: self.p)
 
@@ -190,7 +190,7 @@ struct EllipticCurve
         return EllipticCurvePoint(x: x, y: y)
     }
     
-    func multiplyPoint(point : EllipticCurvePoint, _ d : BigInt) -> EllipticCurvePoint
+    func multiplyPoint(_ point : EllipticCurvePoint, _ d : BigInt) -> EllipticCurvePoint
     {
         var point = point
         
@@ -296,7 +296,7 @@ let secp521r1 = EllipticCurve(
 
 
 extension EllipticCurve {
-    static func named(name : NamedCurve) -> EllipticCurve?
+    static func named(_ name : NamedCurve) -> EllipticCurve?
     {
         switch name
         {

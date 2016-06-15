@@ -24,8 +24,8 @@ class TLSCertificateMessageTests: XCTestCase {
 
     func test_writeTo_withOneCertificate_givesDataFromWhichTheSameMessageCanBeConstructed()
     {
-        let certificateURL = NSBundle(forClass: self.dynamicType).URLForResource("certificate", withExtension: "cer")!
-        let certificateData = NSData(contentsOfURL:certificateURL)!
+        let certificateURL = Bundle(for: self.dynamicType).urlForResource("certificate", withExtension: "cer")!
+        let certificateData = try! Data(contentsOf: certificateURL)
         let certificate = Certificate(certificateData: certificateData)!
         let sut = TLSCertificateMessage(certificates: [certificate])
 

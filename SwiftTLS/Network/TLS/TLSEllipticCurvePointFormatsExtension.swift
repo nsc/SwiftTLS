@@ -10,7 +10,7 @@ class TLSEllipticCurvePointFormatsExtension : TLSHelloExtension
 {
     var extensionType : TLSHelloExtensionType {
         get {
-            return .ECPointFormats
+            return .ecPointFormats
         }
     }
     
@@ -41,7 +41,7 @@ class TLSEllipticCurvePointFormatsExtension : TLSHelloExtension
         }
     }
     
-    func writeTo<Target : OutputStreamType>(inout target: Target) {
+    func writeTo<Target : OutputStreamType>(_ target: inout Target) {
         let data = DataBuffer()
         for ec in self.ellipticCurvePointFormats {
             data.write(ec.rawValue)

@@ -10,8 +10,8 @@ import Foundation
 
 enum RSA_PKCS1PaddingType : UInt8
 {
-    case None  = 0
-    case Type1 = 1
+    case none  = 0
+    case type1 = 1
 }
 
 struct RSA
@@ -26,7 +26,7 @@ struct RSA
     let exponent2 : BigInt?
     let coefficient : BigInt?
     
-    static func fromCertificateFile(file : String) -> RSA?
+    static func fromCertificateFile(_ file : String) -> RSA?
     {
         for (section, object) in ASN1Parser.sectionsFromPEMFile(file)
         {
@@ -126,7 +126,7 @@ struct RSA
         self.coefficient = nil
     }
     
-    func signData(data : [UInt8], hashAlgorithm: HashAlgorithm, paddingType: RSA_PKCS1PaddingType? = .Type1) -> BigInt
+    func signData(_ data : [UInt8], hashAlgorithm: HashAlgorithm, paddingType: RSA_PKCS1PaddingType? = .type1) -> BigInt
     {
         guard let d = self.d else {
             precondition(self.d != nil)
@@ -154,7 +154,7 @@ struct RSA
         return signature
     }
     
-    func verifySignature(signature : BigInt, data: [UInt8], paddingType: RSA_PKCS1PaddingType? = .Type1) -> Bool
+    func verifySignature(_ signature : BigInt, data: [UInt8], paddingType: RSA_PKCS1PaddingType? = .type1) -> Bool
     {
         let e = self.e
         
@@ -164,13 +164,13 @@ struct RSA
             return false
         }
         
-        guard let sequence = ASN1Parser(data: unpaddedVerification).parseObject() as? ASN1Sequence where sequence.objects.count == 2 else {
+        guard let sequence = ASN1Parser(data: unpaddedVerification).parseObject() as? ASN1Sequence, sequence.objects.count == 2 else {
             return false
         }
         
         ASN1_printObject(sequence)
         
-        guard let subSequence = sequence.objects[0] as? ASN1Sequence where subSequence.objects.count >= 1 else {
+        guard let subSequence = sequence.objects[0] as? ASN1Sequence, subSequence.objects.count >= 1 else {
             return false
         }
         
@@ -201,7 +201,7 @@ struct RSA
         return hash == (m % n).asBigEndianData()
     }
 
-    func encrypt(data: [UInt8]) -> [UInt8]
+    func encrypt(_ data: [UInt8]) -> [UInt8]
     {
         let m = BigInt(bigEndianParts: data) % n
         let encrypted = modular_pow(m, e, n)
@@ -209,7 +209,7 @@ struct RSA
         return encrypted.asBigEndianData()
     }
     
-    func decrypt(data: [UInt8]) -> [UInt8]
+    func decrypt(_ data: [UInt8]) -> [UInt8]
     {
         precondition(self.d != nil)
         
@@ -219,14 +219,14 @@ struct RSA
         return decrypted.asBigEndianData()
     }
     
-    private func paddedData(data : [UInt8], length: Int, paddingType : RSA_PKCS1PaddingType) -> [UInt8]?
+    private func paddedData(_ data : [UInt8], length: Int, paddingType : RSA_PKCS1PaddingType) -> [UInt8]?
     {
         switch paddingType
         {
-        case .None:
+        case .none:
             return data
             
-        case .Type1:
+        case .type1:
             let dataLength = data.count
             if dataLength + 3 > length {
                 return nil
@@ -234,7 +234,7 @@ struct RSA
             
             var paddedData : [UInt8] = [0,1]
             let paddingLength = length - 3 - dataLength
-            paddedData += [UInt8](count: paddingLength, repeatedValue: 0xff)
+            paddedData += [UInt8](repeating: 0xff, count: paddingLength)
             paddedData += [0]
             paddedData += data
             
@@ -242,14 +242,14 @@ struct RSA
         }
     }
     
-    private func unpaddedData(paddedData : [UInt8], length: Int, paddingType : RSA_PKCS1PaddingType) -> [UInt8]?
+    private func unpaddedData(_ paddedData : [UInt8], length: Int, paddingType : RSA_PKCS1PaddingType) -> [UInt8]?
     {
         switch paddingType
         {
-        case .None:
+        case .none:
             return paddedData
             
-        case .Type1:
+        case .type1:
             guard paddedData.count + 1 == length && paddedData[0] == 1 else {
                 return nil
             }
@@ -276,14 +276,14 @@ struct RSA
         }
     }
     
-    private func oidForHashAlgorithm(hashAlgorithm : HashAlgorithm) -> OID
+    private func oidForHashAlgorithm(_ hashAlgorithm : HashAlgorithm) -> OID
     {
         switch hashAlgorithm
         {
 //        case .MD5:
 //            return Hash_MD5(data)
             
-        case .SHA1:
+        case .sha1:
             return OID.SHA1
             
 //        case .SHA224:
@@ -303,26 +303,26 @@ struct RSA
         }
     }
     
-    private func hash(data : [UInt8], hashAlgorithm: HashAlgorithm) -> [UInt8]
+    private func hash(_ data : [UInt8], hashAlgorithm: HashAlgorithm) -> [UInt8]
     {
         switch hashAlgorithm
         {
-        case .MD5:
+        case .md5:
             return Hash_MD5(data)
             
-        case .SHA1:
+        case .sha1:
             return Hash_SHA1(data)
             
-        case .SHA224:
+        case .sha224:
             return Hash_SHA224(data)
             
-        case .SHA256:
+        case .sha256:
             return Hash_SHA256(data)
             
-        case .SHA384:
+        case .sha384:
             return Hash_SHA384(data)
             
-        case .SHA512:
+        case .sha512:
             return Hash_SHA512(data)
             
         default:
@@ -333,14 +333,14 @@ struct RSA
 
 extension RSA : Signing
 {
-    func sign(data data : [UInt8], hashAlgorithm: HashAlgorithm) -> [UInt8]
+    func sign(data : [UInt8], hashAlgorithm: HashAlgorithm) -> [UInt8]
     {
         let signature = self.signData(data, hashAlgorithm: hashAlgorithm)
         
         return signature.asBigEndianData()
     }
     
-    func verify(signature signature : [UInt8], data : [UInt8]) -> Bool
+    func verify(signature : [UInt8], data : [UInt8]) -> Bool
     {
         return self.verifySignature(BigInt(bigEndianParts: signature), data: data)
     }

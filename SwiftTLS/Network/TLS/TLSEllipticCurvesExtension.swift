@@ -10,7 +10,7 @@ class TLSEllipticCurvesExtension : TLSHelloExtension
 {
     var extensionType : TLSHelloExtensionType {
         get {
-            return .EllipticCurves
+            return .ellipticCurves
         }
     }
     
@@ -41,7 +41,7 @@ class TLSEllipticCurvesExtension : TLSHelloExtension
         }
     }
     
-    func writeTo<Target : OutputStreamType>(inout target: Target) {
+    func writeTo<Target : OutputStreamType>(_ target: inout Target) {
         let data = DataBuffer()
         for ec in self.ellipticCurves {
             data.write(ec.rawValue)

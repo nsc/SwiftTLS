@@ -18,9 +18,9 @@ class Certificate
     
     var data : [UInt8] {
         get {
-            let data = SecCertificateCopyData(self.certificate) as NSData
-            var buffer = [UInt8](count: data.length, repeatedValue: 0)
-            data.getBytes(&buffer, length: data.length)
+            let data = SecCertificateCopyData(self.certificate) as Data
+            var buffer = [UInt8](repeating: 0, count: data.count)
+            (data as NSData).getBytes(&buffer, length: data.count)
             
             return buffer
         }
@@ -56,7 +56,7 @@ class Certificate
             assert(err == errSecSuccess)
             
             if let trust = trustPtr {
-                var trustResult = SecTrustResultType.Unspecified
+                var trustResult = SecTrustResultType.unspecified
                 err = SecTrustEvaluate(trust, &trustResult)
                 assert(err == errSecSuccess)
                 
@@ -90,8 +90,8 @@ class Certificate
             
             for object in firstSequence.objects
             {
-                guard let subSequence = object as? ASN1Sequence where subSequence.objects.count == 2 else { continue }
-                guard let oidSequence = subSequence.objects[0] as? ASN1Sequence where oidSequence.objects.count == 2 else { continue }
+                guard let subSequence = object as? ASN1Sequence, subSequence.objects.count == 2 else { continue }
+                guard let oidSequence = subSequence.objects[0] as? ASN1Sequence, oidSequence.objects.count == 2 else { continue }
                 guard let oidObject = oidSequence.objects.first as? ASN1ObjectIdentifier else { continue }
                 guard let oid = OID(id: oidObject.identifier) else { continue }
                 
@@ -106,22 +106,22 @@ class Certificate
     }
     
     init(certificate : SecCertificate)   {
-        let data = SecCertificateCopyData(certificate) as NSData
-        var array = [UInt8](count:data.length, repeatedValue: 0)
-        array.withUnsafeMutableBufferPointer { memcpy($0.baseAddress, data.bytes, data.length); return }
+        let data = SecCertificateCopyData(certificate) as Data
+        var array = [UInt8](repeating: 0, count: data.count)
+        array.withUnsafeMutableBufferPointer { memcpy($0.baseAddress, (data as NSData).bytes, data.count); return }
         
         self.certificateData = array
         self.certificate = certificate
     }
     
-    init?(certificateData : NSData)
+    init?(certificateData : Data)
     {
         let unmanagedCert = SecCertificateCreateWithData(kCFAllocatorDefault, certificateData)
         guard let cert = unmanagedCert else { return nil }
         
         self.certificate = cert
-        var array = [UInt8](count:certificateData.length, repeatedValue: 0)
-        array.withUnsafeMutableBufferPointer { memcpy($0.baseAddress, certificateData.bytes, certificateData.length); return }
+        var array = [UInt8](repeating: 0, count: certificateData.count)
+        array.withUnsafeMutableBufferPointer { memcpy($0.baseAddress, (certificateData as NSData).bytes, certificateData.count); return }
         self.certificateData = array
     }
 
@@ -133,7 +133,7 @@ class Certificate
 //        }
 
         var certificateData = certificateData
-        let data = NSData(bytesNoCopy: &certificateData, length: certificateData.count, freeWhenDone: false)
+        let data = Data(bytesNoCopy: &certificateData, count: certificateData.count, deallocator: .none)
         self.init(certificateData: data)
     }
 }

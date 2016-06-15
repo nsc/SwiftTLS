@@ -6,7 +6,7 @@
 //  Copyright © 2015 Nico Schmidt. All rights reserved.
 //
 
-func division<T : IntegerArithmeticType>(a : T, _ b : T, inout remainder: T?) -> T
+func division<T : IntegerArithmetic>(_ a : T, _ b : T, remainder: inout T?) -> T
 {
     if remainder != nil {
         remainder = a % b
@@ -15,9 +15,9 @@ func division<T : IntegerArithmeticType>(a : T, _ b : T, inout remainder: T?) ->
     return a / b
 }
 
-public func modular_pow(base : BigInt, _ exponent : Int, _ mod : BigInt) -> BigInt
+public func modular_pow(_ base : BigInt, _ exponent : Int, _ mod : BigInt) -> BigInt
 {
-    let numBits = sizeof(Int) * 8
+    let numBits = sizeof(Int.self) * 8
     
     var result = BigInt(1)
     var r = base % mod
@@ -33,7 +33,7 @@ public func modular_pow(base : BigInt, _ exponent : Int, _ mod : BigInt) -> BigI
     return result
 }
 
-public func modular_pow(base : BigInt, _ exponent : BigInt, _ mod : BigInt) -> BigInt
+public func modular_pow(_ base : BigInt, _ exponent : BigInt, _ mod : BigInt) -> BigInt
 {
     let numBits = exponent.numberOfBits
     
@@ -51,7 +51,7 @@ public func modular_pow(base : BigInt, _ exponent : BigInt, _ mod : BigInt) -> B
     return result
 }
 
-func gcd<T : IntegerArithmeticType where T : IntegerLiteralConvertible>(x : T, _ y : T) -> T
+func gcd<T : IntegerArithmetic where T : IntegerLiteralConvertible>(_ x : T, _ y : T) -> T
 {
     var g : T = y
     
@@ -67,7 +67,7 @@ func gcd<T : IntegerArithmeticType where T : IntegerLiteralConvertible>(x : T, _
     return g
 }
 
-func extended_euclid<T : IntegerArithmeticType where T : IntegerLiteralConvertible>(z z : T, a : T) -> T
+func extended_euclid<T : IntegerArithmetic where T : IntegerLiteralConvertible>(z : T, a : T) -> T
 {
     var i = a
     var j = z
@@ -92,7 +92,7 @@ func extended_euclid<T : IntegerArithmeticType where T : IntegerLiteralConvertib
     return y2 % a
 }
 
-public func modular_inverse<T : IntegerArithmeticType where T : IntegerLiteralConvertible>(x : T, _ y : T, mod : T) -> T
+public func modular_inverse<T : IntegerArithmetic where T : IntegerLiteralConvertible>(_ x : T, _ y : T, mod : T) -> T
 {
     let x = x > 0 ? x : x + mod
     let y = y > 0 ? y : y + mod

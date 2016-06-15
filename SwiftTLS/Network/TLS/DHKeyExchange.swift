@@ -47,7 +47,7 @@ public class DHKeyExchange
         
         if self.privateKey == nil {
             print("Recalculate private key")
-            self.calculatePublicKey()
+            _ = self.calculatePublicKey()
         }
         
         assert(peerPublicKey != self.privateKey!)

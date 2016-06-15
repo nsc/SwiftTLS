@@ -15,7 +15,7 @@ class TLSApplicationData : TLSMessage
     init(applicationData: [UInt8])
     {
         self.applicationData = applicationData
-        super.init(type: .ApplicationData)
+        super.init(type: .applicationData)
     }
     
     // FIXME: This constructor is only needed to fulfill the TLSMessage requirement

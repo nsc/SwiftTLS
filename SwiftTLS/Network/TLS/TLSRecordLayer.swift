@@ -41,14 +41,14 @@ class EncryptionParameters {
         
         if let blockCipherMode = self.blockCipherMode {
             switch blockCipherMode {
-            case .CBC:
-                self.cipherType = .Block
-            case .GCM:
-                self.cipherType = .AEAD
+            case .cbc:
+                self.cipherType = .block
+            case .gcm:
+                self.cipherType = .aead
             }
         }
         else {
-            self.cipherType = .Stream
+            self.cipherType = .stream
         }
         
         self.MACKey = MACKey
@@ -76,7 +76,7 @@ public class TLSRecordLayer
 
     var pendingSecurityParameters  : TLSSecurityParameters? {
         didSet {
-            if let s = pendingSecurityParameters, hmacDescriptor = s.hmacDescriptor {
+            if let s = pendingSecurityParameters, let hmacDescriptor = s.hmacDescriptor {
                 
                 let numberOfKeyMaterialBytes = 2 * (hmacDescriptor.size + s.encodeKeyLength + s.fixedIVLength)
                 var keyBlock = self.context!.PRF(secret: s.masterSecret!, label: TLSKeyExpansionLabel, seed: s.serverRandom! + s.clientRandom!, outputLength: numberOfKeyMaterialBytes)
@@ -176,26 +176,26 @@ public class TLSRecordLayer
     }
     
     
-    func sendData(contentType contentType: ContentType, data: [UInt8]) throws
+    func sendData(contentType: ContentType, data: [UInt8]) throws
     {
         if let encryptionParameters = self.currentWriteEncryptionParameters {
             let secret = encryptionParameters.MACKey
             
-            let isAEAD = (encryptionParameters.cipherType == .AEAD)
+            let isAEAD = (encryptionParameters.cipherType == .aead)
 
             let IV : [UInt8]
             let recordIV : [UInt8]
             switch self.protocolVersion
             {
-            case .TLS_v1_0:
+            case .v1_0:
                 IV = encryptionParameters.fixedIV
                 recordIV = IV
                 
-            case .TLS_v1_1:
+            case .v1_1:
                 IV = TLSRandomBytes(encryptionParameters.recordIVLength)
                 recordIV = IV
 
-            case .TLS_v1_2:
+            case .v1_2:
                 recordIV = TLSRandomBytes(encryptionParameters.recordIVLength)
                 IV = (isAEAD ? encryptionParameters.fixedIV : []) + recordIV
             }
@@ -206,7 +206,7 @@ public class TLSRecordLayer
                 MAC = []
             }
             else {
-                guard let mac = calculateMessageMAC(secret: secret, contentType: contentType, data: data, isRead: false) else { throw TLSError.Error("Could not MAC")}
+                guard let mac = calculateMessageMAC(secret: secret, contentType: contentType, data: data, isRead: false) else { throw TLSError.error("Could not MAC")}
                 
                 MAC = mac
             }
@@ -216,9 +216,9 @@ public class TLSRecordLayer
             if !isAEAD && blockLength > 0 {
                 let paddingLength = blockLength - ((plainTextRecordData.count) % blockLength)
                 if paddingLength != 0 {
-                    let padding = [UInt8](count: paddingLength, repeatedValue: UInt8(paddingLength - 1))
+                    let padding = [UInt8](repeating: UInt8(paddingLength - 1), count: paddingLength)
                     
-                    plainTextRecordData.appendContentsOf(padding)
+                    plainTextRecordData.append(contentsOf: padding)
                 }
             }
             
@@ -226,15 +226,15 @@ public class TLSRecordLayer
             let macHeader = isAEAD ? self.MACHeader(forContentType: contentType, dataLength: plainTextRecordData.count, isRead: false) : []
             if let b = encrypt(plainTextRecordData, authData: macHeader, key: encryptionParameters.bulkKey, IV: IV) {
                 cipherText = b
-                if self.protocolVersion >= TLSProtocolVersion.TLS_v1_1 {
-                    if let cipherMode = encryptionParameters.blockCipherMode where cipherMode == .GCM {
+                if self.protocolVersion >= TLSProtocolVersion.v1_1 {
+                    if let cipherMode = encryptionParameters.blockCipherMode, cipherMode == .gcm {
                         cipherText = cipherText + self.encryptor.authTag!
                     }
                     cipherText = recordIV + cipherText
                 }
             }
             else {
-                throw TLSError.Error("Could not encrypt")
+                throw TLSError.error("Could not encrypt")
             }
             
             encryptionParameters.sequenceNumber += 1
@@ -249,7 +249,7 @@ public class TLSRecordLayer
         }
     }
     
-    func sendMessage(message : TLSMessage) throws
+    func sendMessage(_ message : TLSMessage) throws
     {
         let contentType = message.contentType
         let messageData = DataBuffer(message).buffer
@@ -267,7 +267,7 @@ public class TLSRecordLayer
             
         guard
             let (contentType, bodyLength) = TLSRecord.probeHeader(header) else {
-                throw TLSError.Error("Probe failed with malformed header \(header)")
+                throw TLSError.error("Probe failed with malformed header \(header)")
         }
         
         let body = try self.dataProvider!.readData(count: bodyLength)
@@ -289,16 +289,16 @@ public class TLSRecordLayer
         let message : TLSMessage?
         switch (contentType)
         {
-        case .ChangeCipherSpec:
+        case .changeCipherSpec:
             message = TLSChangeCipherSpec(inputStream: BinaryInputStream(messageBody), context: self.context!)
             
-        case .Alert:
+        case .alert:
             message = TLSAlertMessage.alertFromData(messageBody, context: self.context!)
             
-        case .Handshake:
+        case .handshake:
             message = TLSHandshakeMessage.handshakeMessageFromData(messageBody, context: self.context!)
             
-        case .ApplicationData:
+        case .applicationData:
             return TLSApplicationData(applicationData: messageBody)
         }
         
@@ -312,7 +312,7 @@ public class TLSRecordLayer
             return message
         }
         else {
-            throw TLSError.Error("Could not create TLSMessage")
+            throw TLSError.error("Could not create TLSMessage")
         }
     }
 
@@ -328,35 +328,35 @@ public class TLSRecordLayer
         return macData.buffer
     }
     
-    private func calculateMessageMAC(secret secret: [UInt8], contentType : ContentType, data : [UInt8], isRead : Bool) -> [UInt8]?
+    private func calculateMessageMAC(secret: [UInt8], contentType : ContentType, data : [UInt8], isRead : Bool) -> [UInt8]?
     {
         guard let MACHeader = self.MACHeader(forContentType: contentType, dataLength: data.count, isRead: isRead) else { return nil }
         
         return self.calculateMAC(secret: secret, data: MACHeader + data, isRead: isRead)
     }
     
-    private func calculateMAC(secret secret : [UInt8], data : [UInt8], isRead : Bool) -> [UInt8]?
+    private func calculateMAC(secret : [UInt8], data : [UInt8], isRead : Bool) -> [UInt8]?
     {
         var HMAC : (secret : [UInt8], data : [UInt8]) -> [UInt8]
         if let algorithm = isRead ? self.currentReadEncryptionParameters?.hmacDescriptor.algorithm : self.currentWriteEncryptionParameters?.hmacDescriptor.algorithm {
             switch (algorithm)
             {
-            case .HMAC_MD5:
+            case .hmac_md5:
                 HMAC = HMAC_MD5
                 
-            case .HMAC_SHA1:
+            case .hmac_sha1:
                 HMAC = HMAC_SHA1
 
-            case .HMAC_SHA256:
+            case .hmac_sha256:
                 HMAC = HMAC_SHA256
 
-            case .HMAC_SHA384:
+            case .hmac_sha384:
                 HMAC = HMAC_SHA384
 
-            case .HMAC_SHA512:
+            case .hmac_sha512:
                 HMAC = HMAC_SHA512
 
-            case .NULL:
+            case .null:
                 return nil
             }
         }
@@ -367,7 +367,7 @@ public class TLSRecordLayer
         return HMAC(secret: secret, data: data)
     }
     
-    private func encrypt(data : [UInt8], authData: [UInt8]?, key : [UInt8], IV : [UInt8]) -> [UInt8]?
+    private func encrypt(_ data : [UInt8], authData: [UInt8]?, key : [UInt8], IV : [UInt8]) -> [UInt8]?
     {
         let encryptionParameters = self.currentWriteEncryptionParameters!
         
@@ -376,7 +376,7 @@ public class TLSRecordLayer
             self.encryptor = BlockCipher.encryptionBlockCipher(encryptionParameters.bulkCipherAlgorithm, mode: encryptionParameters.blockCipherMode!, key: key, IV: IV)
         }
         
-        if self.protocolVersion >= TLSProtocolVersion.TLS_v1_1 {
+        if self.protocolVersion >= TLSProtocolVersion.v1_1 {
             return self.encryptor.update(data: data, authData: authData, key: key, IV: IV)
         }
         else {
@@ -384,7 +384,7 @@ public class TLSRecordLayer
         }
     }
 
-    private func decrypt(data : [UInt8], authData: [UInt8]?, key : [UInt8], IV : [UInt8]) -> [UInt8]?
+    private func decrypt(_ data : [UInt8], authData: [UInt8]?, key : [UInt8], IV : [UInt8]) -> [UInt8]?
     {
         let encryptionParameters = self.currentReadEncryptionParameters!
         
@@ -393,7 +393,7 @@ public class TLSRecordLayer
             self.decryptor = BlockCipher.decryptionBlockCipher(encryptionParameters.bulkCipherAlgorithm, mode: encryptionParameters.blockCipherMode!, key: key, IV: IV)
         }
         
-        if self.protocolVersion >= TLSProtocolVersion.TLS_v1_1 {
+        if self.protocolVersion >= TLSProtocolVersion.v1_1 {
             return self.decryptor.update(data: data, authData: authData, key: key, IV: IV)
         }
         else {
@@ -401,28 +401,28 @@ public class TLSRecordLayer
         }
     }
 
-    private func decryptAndVerifyMAC(contentType contentType : ContentType, data : [UInt8]) -> [UInt8]?
+    private func decryptAndVerifyMAC(contentType : ContentType, data : [UInt8]) -> [UInt8]?
     {
         if let encryptionParameters = self.currentReadEncryptionParameters
         {
-            let isAEAD = (encryptionParameters.cipherType == .AEAD)
+            let isAEAD = (encryptionParameters.cipherType == .aead)
             
             let IV : [UInt8]
             let cipherText : [UInt8]
             var authTag : [UInt8]? = nil
             switch self.protocolVersion
             {
-            case .TLS_v1_0:
+            case .v1_0:
                 IV = encryptionParameters.fixedIV
                 cipherText = data
                 
-            case .TLS_v1_1:
+            case .v1_1:
                 IV = [UInt8](data[0..<encryptionParameters.recordIVLength])
                 cipherText = [UInt8](data[encryptionParameters.recordIVLength..<data.count])
                 
-            case .TLS_v1_2:
+            case .v1_2:
                 IV = (isAEAD ? encryptionParameters.fixedIV : []) + [UInt8](data[0..<encryptionParameters.recordIVLength])
-                if let cipherMode = encryptionParameters.blockCipherMode where cipherMode == .GCM {
+                if let cipherMode = encryptionParameters.blockCipherMode, cipherMode == .gcm {
                     cipherText = [UInt8](data[encryptionParameters.recordIVLength..<(data.count - encryptionParameters.blockLength)])
                     authTag = [UInt8](data[(data.count - encryptionParameters.blockLength)..<data.count])
                 }
@@ -465,7 +465,7 @@ public class TLSRecordLayer
                 
                 let messageMAC = self.calculateMessageMAC(secret: encryptionParameters.MACKey, contentType: contentType, data: messageContent, isRead: true)
                 
-                if let messageMAC = messageMAC where MAC == messageMAC {
+                if let messageMAC = messageMAC, MAC == messageMAC {
                     return messageContent
                 }
                 else {

@@ -23,7 +23,7 @@ class ASN1Tests: XCTestCase {
     }
 
     func test_read_DHParams () {
-        let dhParametersPath = NSBundle(forClass: self.dynamicType).URLForResource("dhparams.pem", withExtension: nil)!.path!
+        let dhParametersPath = Bundle(for: self.dynamicType).urlForResource("dhparams.pem", withExtension: nil)!.path!
         guard let object = ASN1Parser.objectFromPEMFile(dhParametersPath) else {
             XCTFail()
             return
@@ -169,7 +169,7 @@ class ASN1Tests: XCTestCase {
             [2],
             [1, 2, 3, 4],
             [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-            [UInt8](count:1000, repeatedValue: 15)
+            [UInt8](repeating: 15, count: 1000)
         ]
         
         for value in testVectors
@@ -315,16 +315,16 @@ class ASN1Tests: XCTestCase {
     
     func test_Certificate_fromDEREncodedECDSACertificate_canBeReadCorrectly()
     {
-        let certificatePath = NSBundle(forClass: self.dynamicType).pathForResource("Self Signed ECDSA Certificate.cer", ofType: "")!
-        let data = NSData(contentsOfFile: certificatePath)!.UInt8Array()
+        let certificatePath = Bundle(for: self.dynamicType).pathForResource("Self Signed ECDSA Certificate.cer", ofType: "")!
+        let data = (try! Data(contentsOf: URL(fileURLWithPath: certificatePath))).UInt8Array()
 
         guard X509.Certificate(DERData: data) != nil else { XCTFail(); return }
     }
     
     func test_Certificate_fromDEREncodedRSACertificate_canBeReadCorrectly()
     {
-        let certificatePath = NSBundle(forClass: self.dynamicType).pathForResource("Self Signed RSA Certificate.cer", ofType: "")!
-        let data = NSData(contentsOfFile: certificatePath)!.UInt8Array()
+        let certificatePath = Bundle(for: self.dynamicType).pathForResource("Self Signed RSA Certificate.cer", ofType: "")!
+        let data = (try! Data(contentsOf: URL(fileURLWithPath: certificatePath))).UInt8Array()
         
         guard X509.Certificate(DERData: data) != nil else { XCTFail(); return }
     }

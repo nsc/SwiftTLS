@@ -22,7 +22,7 @@ class CryptoKey
         
         switch (keyType)
         {
-        case .AES128, .AES256:
+        case .aes128, .aes256:
             parameters[kSecAttrKeyType as String] = kSecAttrKeyTypeAES as String
         
         default:
@@ -30,7 +30,7 @@ class CryptoKey
         }
         
         var keyData = keyData
-        let data = NSData(bytesNoCopy: &keyData, length: keyData.count, freeWhenDone: false)
+        let data = Data(bytesNoCopy: &keyData, count: keyData.count, deallocator: .none)
         var error : Unmanaged<CFError>? = nil
 
         let key = SecKeyCreateFromData(parameters as CFDictionary, data, &error)
@@ -43,10 +43,10 @@ class CryptoKey
     }
     
     
-    func encryptCBC(data : [UInt8], IV : [UInt8]) -> [UInt8]?
+    func encryptCBC(_ data : [UInt8], IV : [UInt8]) -> [UInt8]?
     {
         var data = data
-        let nsdata = NSData(bytesNoCopy: &data, length: data.count, freeWhenDone: false)
+        let nsdata = Data(bytesNoCopy: &data, count: data.count, deallocator: .none)
         
         let transform: SecTransform = SecEncryptTransformCreate(self.key, nil)
         var success : Bool = false
@@ -61,15 +61,15 @@ class CryptoKey
                 print("\(error?.takeUnretainedValue())")
             }
             
-            if let data = resultData as? NSData {
-                return [UInt8](UnsafeBufferPointer<UInt8>(start: UnsafePointer<UInt8>(data.bytes), count: data.length))
+            if let data = resultData as? Data {
+                return [UInt8](UnsafeBufferPointer<UInt8>(start: UnsafePointer<UInt8>((data as NSData).bytes), count: data.count))
             }
         }
     
         return nil
     }
 
-    private func createTransform(encrypt encrypt : Bool) -> SecTransform
+    private func createTransform(encrypt : Bool) -> SecTransform
     {
         switch encrypt
         {
@@ -81,20 +81,20 @@ class CryptoKey
         }
     }
     
-    func encrypt(data : [UInt8]) -> [UInt8]?
+    func encrypt(_ data : [UInt8]) -> [UInt8]?
     {
         return crypt(encrypt: true, data: data)
     }
     
-    func decrypt(data : [UInt8]) -> [UInt8]?
+    func decrypt(_ data : [UInt8]) -> [UInt8]?
     {
         return crypt(encrypt: false, data: data)
     }
     
-    private func crypt(encrypt encrypt: Bool, data : [UInt8]) -> [UInt8]?
+    private func crypt(encrypt: Bool, data : [UInt8]) -> [UInt8]?
     {
         var data = data
-        let nsdata = NSData(bytesNoCopy: &data, length: data.count, freeWhenDone: false)
+        let nsdata = Data(bytesNoCopy: &data, count: data.count, deallocator: .none)
 
         if let transform: SecTransform = createTransform(encrypt: encrypt)
         {
@@ -109,8 +109,8 @@ class CryptoKey
                     print("\(error?.takeUnretainedValue())")
                 }
                 
-                if let data = resultData as? NSData {
-                    let result = [UInt8](UnsafeBufferPointer<UInt8>(start: UnsafePointer<UInt8>(data.bytes), count: data.length))
+                if let data = resultData as? Data {
+                    let result = [UInt8](UnsafeBufferPointer<UInt8>(start: UnsafePointer<UInt8>((data as NSData).bytes), count: data.count))
                     
                     return result
                 }

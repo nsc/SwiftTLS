@@ -8,10 +8,10 @@
 import Foundation
 
 enum ContentType : UInt8 {
-    case ChangeCipherSpec = 20
-    case Alert = 21
-    case Handshake = 22
-    case ApplicationData = 23
+    case changeCipherSpec = 20
+    case alert = 21
+    case handshake = 22
+    case applicationData = 23
 }
 
 let TLS_RecordHeaderLength = 5
@@ -34,8 +34,8 @@ class TLSRecord : Streamable {
         }
         
         if let major : UInt8? = inputStream.read(),
-            minor : UInt8? = inputStream.read(),
-            v = TLSProtocolVersion(major: major!, minor: minor!)
+           let minor : UInt8? = inputStream.read(),
+           let v = TLSProtocolVersion(major: major!, minor: minor!)
         {
             protocolVersion = v
         }
@@ -70,7 +70,7 @@ class TLSRecord : Streamable {
         }
     }
     
-    class func probeHeader(headerData : [UInt8]) -> (contentType: ContentType, bodyLength : Int)?
+    class func probeHeader(_ headerData : [UInt8]) -> (contentType: ContentType, bodyLength : Int)?
     {
         if headerData.count < TLS_RecordHeaderLength {
             return nil
@@ -85,14 +85,14 @@ class TLSRecord : Streamable {
         return nil
     }
     
-    class func writeRecordHeader<Target : OutputStreamType>(inout target: Target, contentType: ContentType, protocolVersion : TLSProtocolVersion, contentLength : Int)
+    class func writeRecordHeader<Target : OutputStreamType>(_ target: inout Target, contentType: ContentType, protocolVersion : TLSProtocolVersion, contentLength : Int)
     {
         target.write(contentType.rawValue)
         target.write(protocolVersion.rawValue)
         target.write(UInt16(contentLength))
     }
     
-    func writeTo<Target : OutputStreamType>(inout target: Target)
+    func writeTo<Target : OutputStreamType>(_ target: inout Target)
     {
         self.dynamicType.writeRecordHeader(&target, contentType: self.contentType, protocolVersion: self.protocolVersion, contentLength: self.body.count)
         target.write(self.body)

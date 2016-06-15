@@ -8,31 +8,31 @@
 import Foundation
 
 enum TLSHandshakeType : UInt8 {
-    case HelloRequest = 0
-    case ClientHello = 1
-    case ServerHello = 2
-    case Certificate = 11
-    case ServerKeyExchange = 12
-    case CertificateRequest = 13
-    case ServerHelloDone = 14
-    case CertificateVerify = 15
-    case ClientKeyExchange = 16
-    case Finished = 20
-    case CertificateURL = 21
-    case CertificateStatus = 22
+    case helloRequest = 0
+    case clientHello = 1
+    case serverHello = 2
+    case certificate = 11
+    case serverKeyExchange = 12
+    case certificateRequest = 13
+    case serverHelloDone = 14
+    case certificateVerify = 15
+    case clientKeyExchange = 16
+    case finished = 20
+    case certificateURL = 21
+    case certificateStatus = 22
 }
 
 enum TLSMessageType
 {
-    case ChangeCipherSpec
-    case Handshake(TLSHandshakeType)
-    case Alert(TLSAlertLevel, TLSAlert)
-    case ApplicationData
+    case changeCipherSpec
+    case handshake(TLSHandshakeType)
+    case alert(TLSAlertLevel, TLSAlert)
+    case applicationData
 }
 
 enum TLSChangeCipherSpecType : UInt8
 {
-    case ChangeCipherSpec = 1
+    case changeCipherSpec = 1
 }
 
 class TLSMessage : Streamable
@@ -44,17 +44,17 @@ class TLSMessage : Streamable
             let contentType : ContentType
             switch (self.type)
             {
-            case .ChangeCipherSpec:
-                contentType = .ChangeCipherSpec
+            case .changeCipherSpec:
+                contentType = .changeCipherSpec
                 
-            case .Alert:
-                contentType = .Alert
+            case .alert:
+                contentType = .alert
                 
-            case .Handshake:
-                contentType = .Handshake
+            case .handshake:
+                contentType = .handshake
                 
-            case .ApplicationData:
-                contentType = .ApplicationData
+            case .applicationData:
+                contentType = .applicationData
             }
 
             return contentType
@@ -70,7 +70,7 @@ class TLSMessage : Streamable
         return nil
     }
     
-    func writeTo<Target : OutputStreamType>(inout target: Target)
+    func writeTo<Target : OutputStreamType>(_ target: inout Target)
     {
     }
 }

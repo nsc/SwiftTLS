@@ -11,13 +11,13 @@ class TLSChangeCipherSpec : TLSMessage
 {
     init()
     {
-        super.init(type: .ChangeCipherSpec)
+        super.init(type: .changeCipherSpec)
     }
     
     required init?(inputStream: InputStreamType, context: TLSContext) {
         if let type : UInt8? = inputStream.read() {
             if type == 1 {
-                super.init(type: .ChangeCipherSpec)
+                super.init(type: .changeCipherSpec)
                 return
             }
         }
@@ -25,7 +25,7 @@ class TLSChangeCipherSpec : TLSMessage
         return nil
     }
     
-    override func writeTo<Target : OutputStreamType>(inout target: Target) {
-        target.write(TLSChangeCipherSpecType.ChangeCipherSpec.rawValue)
+    override func writeTo<Target : OutputStreamType>(_ target: inout Target) {
+        target.write(TLSChangeCipherSpecType.changeCipherSpec.rawValue)
     }
 }

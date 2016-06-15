@@ -10,14 +10,14 @@ import Foundation
 
 enum TLSServerNameType : UInt8
 {
-    case HostName = 0
+    case hostName = 0
 }
 
 class TLSServerNameExtension : TLSHelloExtension
 {
     var extensionType : TLSHelloExtensionType {
         get {
-            return .ServerName
+            return .serverName
         }
     }
     
@@ -56,11 +56,11 @@ class TLSServerNameExtension : TLSHelloExtension
         }
     }
     
-    func writeTo<Target : OutputStreamType>(inout target: Target) {
+    func writeTo<Target : OutputStreamType>(_ target: inout Target) {
         let data = DataBuffer()
         for serverName in self.serverNames {
             let utf8 = [UInt8](serverName.utf8)
-            data.write(TLSServerNameType.HostName.rawValue)
+            data.write(TLSServerNameType.hostName.rawValue)
             data.write(UInt16(utf8.count))
             data.write(utf8)
         }

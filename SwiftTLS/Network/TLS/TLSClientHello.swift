@@ -7,9 +7,9 @@
 
 enum TLSHelloExtensionType : UInt16
 {
-    case ServerName = 0
-    case EllipticCurves = 10
-    case ECPointFormats = 11
+    case serverName = 0
+    case ellipticCurves = 10
+    case ecPointFormats = 11
 }
 
 protocol TLSHelloExtension : Streamable
@@ -54,7 +54,7 @@ class TLSClientHello : TLSHandshakeMessage
         self.rawCipherSuites = []
         self.compressionMethods = compressionMethods
         
-        super.init(type: .Handshake(.ClientHello))
+        super.init(type: .handshake(.clientHello))
         
         self.cipherSuites = cipherSuites
     }
@@ -62,7 +62,7 @@ class TLSClientHello : TLSHandshakeMessage
     required init?(inputStream : InputStreamType, context: TLSContext)
     {
         guard
-            let (type, bodyLength) = TLSHandshakeMessage.readHeader(inputStream) where type == TLSHandshakeType.ClientHello,
+            let (type, bodyLength) = TLSHandshakeMessage.readHeader(inputStream), type == TLSHandshakeType.clientHello,
             let major : UInt8? = inputStream.read(),
             let minor : UInt8? = inputStream.read(),
             let clientVersion = TLSProtocolVersion(major: major!, minor: minor!),
@@ -116,17 +116,17 @@ class TLSClientHello : TLSHandshakeMessage
 
                         switch (extensionType)
                         {
-                        case .ServerName:
+                        case .serverName:
                             if let serverName = TLSServerNameExtension(inputStream: BinaryInputStream(extensionData)) {
                                 self.extensions.append(serverName)
                             }
                             
-                        case .EllipticCurves:
+                        case .ellipticCurves:
                             if let ellipticCurves = TLSEllipticCurvesExtension(inputStream: BinaryInputStream(extensionData)) {
                                 self.extensions.append(ellipticCurves)
                             }
 
-                        case .ECPointFormats:
+                        case .ecPointFormats:
                             if let pointFormats = TLSEllipticCurvePointFormatsExtension(inputStream: BinaryInputStream(extensionData)) {
                                 self.extensions.append(pointFormats)
                             }
@@ -154,10 +154,10 @@ class TLSClientHello : TLSHandshakeMessage
         self.rawCipherSuites = rawCipherSuitesRead
         self.compressionMethods = rawCompressionMethods.map {CompressionMethod(rawValue: $0)!}
         
-        super.init(type: .Handshake(.ClientHello))
+        super.init(type: .handshake(.clientHello))
     }
 
-    override func writeTo<Target : OutputStreamType>(inout target: Target)
+    override func writeTo<Target : OutputStreamType>(_ target: inout Target)
     {
         var buffer = DataBuffer()
         
@@ -172,7 +172,7 @@ class TLSClientHello : TLSHandshakeMessage
             buffer.write(UInt8(0))
         }
         
-        buffer.write(UInt16(rawCipherSuites.count * sizeof(UInt16)))
+        buffer.write(UInt16(rawCipherSuites.count * sizeof(UInt16.self)))
         buffer.write( rawCipherSuites)
         
         buffer.write(UInt8(compressionMethods.count))
@@ -191,7 +191,7 @@ class TLSClientHello : TLSHandshakeMessage
         
         let data = buffer.buffer
         
-        self.writeHeader(type: .ClientHello, bodyLength: data.count, target: &target)
+        self.writeHeader(type: .clientHello, bodyLength: data.count, target: &target)
         target.write(data)
     }
 }

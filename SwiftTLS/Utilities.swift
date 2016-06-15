@@ -8,8 +8,8 @@
 
 import Foundation
 
-extension NSData {
+extension Data {
     func UInt8Array() -> [UInt8] {
-        return [UInt8](UnsafeBufferPointer<UInt8>(start: UnsafePointer<UInt8>(self.bytes), count: self.length))
+        return [UInt8](UnsafeBufferPointer<UInt8>(start: UnsafePointer<UInt8>((self as NSData).bytes), count: self.count))
     }
 }
