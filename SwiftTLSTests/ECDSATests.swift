@@ -16,7 +16,7 @@ class ECDSATests: XCTestCase {
         let certificatePath = Bundle(for: self.dynamicType).pathForResource("Self Signed ECDSA Certificate.cer", ofType: "")!
         let data = (try! Data(contentsOf: URL(fileURLWithPath: certificatePath))).UInt8Array()
         
-        guard let cert = X509.Certificate(DERData: data) else { XCTFail(); return }
+        guard let cert = X509.Certificate(derData: data) else { XCTFail(); return }
         
         let tbsData         = cert.tbsCertificate.DEREncodedCertificate!
         let publicKeyInfo   = cert.tbsCertificate.subjectPublicKeyInfo

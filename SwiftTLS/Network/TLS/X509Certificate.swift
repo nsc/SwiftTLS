@@ -6,6 +6,8 @@
 //  Copyright © 2016 Nico Schmidt. All rights reserved.
 //
 
+import Foundation
+
 struct X509
 {
     enum CertificateVersion : Int
@@ -130,19 +132,19 @@ struct X509
             
             switch algorithmOID
             {
-            case .SHA1WithRSAEncryption:
+            case .sha1WithRSAEncryption:
                 break
                 
-            case .SHA256WithRSAEncryption:
+            case .sha256WithRSAEncryption:
                 break
                 
-            case .RSAEncryption:
+            case .rsaEncryption:
                 break
                 
-            case .ECDSAWithSHA256:
+            case .ecdsaWithSHA256:
                 break
 
-            case .ECPublicKey:
+            case .ecPublicKey:
                 guard let curveType = asn1sequence.objects[1] as? ASN1ObjectIdentifier else { return nil }
                 guard let oid = OID(id: curveType.identifier) else { return nil }
                 
@@ -234,9 +236,26 @@ struct X509
         var signatureAlgorithm  : AlgorithmIdentifier
         var signatureValue      : BitString
         
-        init?(DERData : [UInt8])
+        let data: [UInt8]
+        
+        var rsa: RSA? {
+            let publicKeyInfo = tbsCertificate.subjectPublicKeyInfo
+            return RSA(publicKey: publicKeyInfo.subjectPublicKey.bits)
+        }
+        
+        var publicKeySigner: Signing? {
+            return self.rsa
+        }
+        
+        var commonName: String? {
+            return self.tbsCertificate.subject.relativeDistinguishedName[.commonName] as? String
+        }
+        
+        init?(derData : [UInt8])
         {
-            guard let certificate = ASN1Parser(data:DERData).parseObject() as? ASN1Sequence else { return nil }
+            self.data = derData
+            
+            guard let certificate = ASN1Parser(data:derData).parseObject() as? ASN1Sequence else { return nil }
             guard certificate.objects.count == 3 else { return nil }
 
             ASN1_printObject(certificate)
@@ -252,6 +271,10 @@ struct X509
             self.tbsCertificate = tbsCertificate
             self.signatureAlgorithm = signatureAlgorithm
             self.signatureValue = signature
+        }
+    
+        init?(derData : Data) {
+            self.init(derData: derData.UInt8Array())
         }
     }
 }

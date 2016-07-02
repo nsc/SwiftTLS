@@ -456,7 +456,7 @@ public class ASN1Parser
         do {
             let base64string = try String(contentsOfFile: PEMFile, encoding: String.Encoding.utf8)
             
-            for (sectionName, base64) in base64Blocks(base64string)! {
+            for (sectionName, base64) in base64Blocks(with: base64string) {
                 // FIXME: the option here is obviously bullshit, but currently Data has only a bogus
                 // constructor taking encoding options instead of decoding options and this is the numerical
                 // equivalent, i.e. the raw value is 0
@@ -778,3 +778,38 @@ public func ASN1_printObject(_ object: ASN1Object, depth : Int = 0)
         break
     }
 }
+
+func base64Blocks(with base64String : String) -> [String:String]
+{
+    var base64String = base64String
+    
+    var result = [String:String]()
+    
+    let beginRegEx = try! RegularExpression(pattern: "-----BEGIN (.*)-----\\R")
+    let endRegEx = try! RegularExpression(pattern: "-----END (.*)-----\\R")
+    
+    while true {
+        guard let beginMatch = beginRegEx.firstMatch(in: base64String, options: [], range: NSMakeRange(0, base64String.utf8.count)) else {
+            break
+        }
+        
+        let beginRange = beginMatch.range
+        let nameRange = beginMatch.range(at: 1)
+        
+        let name = (base64String as NSString).substring(with: nameRange)
+        guard let endMatch = endRegEx.firstMatch(in: base64String, options: [], range: NSMakeRange(0, base64String.utf8.count)) else {
+            break
+        }
+        
+        let end = endMatch.range
+        
+        let base64Block = (base64String as NSString).substring(with: NSMakeRange(beginRange.location + beginRange.length, end.location - (beginRange.location + beginRange.length)))
+        
+        result[name] = base64Block
+        
+        base64String = (base64String as NSString).substring(from: end.location + end.length)
+    }
+    
+    return result
+}
+

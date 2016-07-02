@@ -11,6 +11,22 @@ class CryptoKey
 {
     private let key : SecKey!
     
+    var data : Data! {
+        var error : Unmanaged<CFError>? = nil
+        if #available(OSX 10.12, *) {
+            if let data = SecKeyCopyExternalRepresentation(key, &error) {
+                return data as Data
+            }
+            else {
+                print("Error: \(error?.takeRetainedValue())")
+                return nil
+            }
+        } else {
+            // Fallback on earlier versions
+            return nil
+        }
+    }
+    
     init(key : SecKey)
     {
         self.key = key

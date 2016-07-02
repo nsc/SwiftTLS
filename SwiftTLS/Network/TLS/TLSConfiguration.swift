@@ -8,23 +8,23 @@
 
 public struct TLSConfiguration
 {
-    var protocolVersion : TLSProtocolVersion
-    var cipherSuites : [CipherSuite]
+    var protocolVersion: TLSProtocolVersion
+    var cipherSuites: [CipherSuite]
 
-    var certificatePath : String?
-    var dhParameters : DiffieHellmanParameters?
-    var ecdhParameters : ECDiffieHellmanParameters?
+    var dhParameters: DiffieHellmanParameters?
+    var ecdhParameters: ECDiffieHellmanParameters?
     
-    var hashAlgorithm : HashAlgorithm
-    var signatureAlgorithm : SignatureAlgorithm
+    var hashAlgorithm: HashAlgorithm
+    var signatureAlgorithm: SignatureAlgorithm
     
-    var identity : Identity?
+    var identity: Identity?
     
-    init(protocolVersion : TLSProtocolVersion)
+    init(protocolVersion: TLSProtocolVersion, identity: Identity? = nil)
     {
         self.protocolVersion = protocolVersion
         self.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256]
         self.hashAlgorithm = .sha1
         self.signatureAlgorithm = .rsa
+        self.identity = identity
     }
 }

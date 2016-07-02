@@ -43,8 +43,8 @@ func server()
         ]
     
     configuration.cipherSuites = cipherSuites
-    configuration.identity = Identity(name: "Internet Widgits Pty Ltd")!
-    configuration.certificatePath = certificatePath
+//    configuration.identity = Identity(name: "Internet Widgits Pty Ltd")!
+    configuration.identity = PEMFileIdentity(pemFile: certificatePath!)
     if let dhParametersPath = dhParametersPath {
         configuration.dhParameters = DiffieHellmanParameters.fromPEMFile(dhParametersPath)
     }
@@ -93,7 +93,6 @@ func connectTo(host : String, port : Int = 443, protocolVersion: TLSProtocolVers
         configuration.cipherSuites = [
             .TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
             .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-            .TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
             .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
             .TLS_RSA_WITH_AES_256_CBC_SHA
         ]
@@ -178,7 +177,7 @@ func probeCipherSuitesForHost(host : String, port : Int, protocolVersion: TLSPro
             try socket.connect(address)
         } catch let error as SocketError {
             switch error {
-            case SocketError.closed:
+            case .closed:
                 socket.close()
             
             default:
@@ -428,7 +427,7 @@ case "p12":
     {
         if let sequence = object as? ASN1Sequence,
             let subSequence = sequence.objects[1] as? ASN1Sequence,
-            let oid = subSequence.objects.first as? ASN1ObjectIdentifier, OID(id: oid.identifier) == .PKCS7_data,
+            let oid = subSequence.objects.first as? ASN1ObjectIdentifier, OID(id: oid.identifier) == .pkcs7_data,
             let taggedObject = subSequence.objects[1] as? ASN1TaggedObject,
             let octetString = taggedObject.object as? ASN1OctetString
         {

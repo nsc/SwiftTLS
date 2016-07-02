@@ -117,24 +117,25 @@ import Foundation
 
 enum OID : String
 {
-    case ECPublicKey                                = "1.2.840.10045.2.1"
-    case ECDSAWithSHA256                            = "1.2.840.10045.4.3.2"
+    case ecPublicKey                                = "1.2.840.10045.2.1"
+    case ecdsaWithSHA256                            = "1.2.840.10045.4.3.2"
     
-    case RSAEncryption                              = "1.2.840.113549.1.1.1"
-    case SHA1WithRSAEncryption                      = "1.2.840.113549.1.1.5"
-    case SHA256WithRSAEncryption                    = "1.2.840.113549.1.1.11"
-    case SHA384WithRSAEncryption                    = "1.2.840.113549.1.1.12"
+    case rsaEncryption                              = "1.2.840.113549.1.1.1"
+    case sha1WithRSAEncryption                      = "1.2.840.113549.1.1.5"
+    case sha256WithRSAEncryption                    = "1.2.840.113549.1.1.11"
+    case sha384WithRSAEncryption                    = "1.2.840.113549.1.1.12"
     
-    case PKCS7                                      = "1.2.840.113549.1.7"
-    case PKCS7_data                                 = "1.2.840.113549.1.7.1"
-
+    case pkcs7                                      = "1.2.840.113549.1.7"
+    case pkcs7_data                                 = "1.2.840.113549.1.7.1"
+    case pkcs9_emailAddress                         = "1.2.840.113549.1.9.1"
+    
     case applicationCertPolicies                    = "1.3.6.1.4.1.311.21.10"
     case stateOrProvince                            = "1.3.6.1.4.1.311.60.2.1.2"
     case jurisdictionOfIncorporationCountryName     = "1.3.6.1.4.1.311.60.2.1.3"
 
     case authorityInfoAccess                        = "1.3.6.1.5.5.7.1.1"
 
-    case SHA1                                       = "1.3.14.3.2.26"
+    case sha1                                       = "1.3.14.3.2.26"
 
     case ansip521r1                                 = "1.3.132.0.35"
     case commonName                                 = "2.5.4.3"
@@ -159,6 +160,8 @@ enum OID : String
     case authorityKeyIdentifier                     = "2.5.29.35"
     case certificateExtensionExtKeyUsage            = "2.5.29.37"
 
+    case sha256                                     = "2.16.840.1.101.3.4.2.1"
+    
     init?(id : [Int])
     {
         guard id.count >= 1 else {
@@ -166,7 +169,13 @@ enum OID : String
         }
         
         let identifier = id[1..<id.count].reduce("\(id[0])", combine: {$0 + ".\($1)"})
-        self.init(rawValue: identifier)
+        if let oid = OID(rawValue: identifier) {
+            self = oid
+        }
+        else {
+            print("Error: unknown OID \(identifier)")
+            return nil
+        }
     }
     
     var identifier : [Int] {

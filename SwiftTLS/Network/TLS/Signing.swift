@@ -1,5 +1,5 @@
 //
-//  Crypto.swift
+//  Signing.swift
 //  SwiftTLS
 //
 //  Created by Nico Schmidt on 29.12.15.

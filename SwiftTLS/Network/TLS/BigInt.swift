@@ -37,7 +37,7 @@ public struct BigInt : IntegerArithmetic, IntegerLiteralConvertible
     
     func asBigEndianData() -> [UInt8]
     {
-        return BigIntImpl<UInt8>(impl.parts).parts.reversed()
+        return BigIntImpl<UInt8>(impl.parts, normalized: false).parts.reversed()
     }
 
     public init(_ a : Int) {
@@ -336,7 +336,7 @@ private struct BigIntImpl<U where U : UnsignedInteger> {
     }
     
     /// parts are given in little endian order
-    init<T where T : UnsignedInteger>(_ parts : [T], negative: Bool = false)
+    init<T where T : UnsignedInteger>(_ parts : [T], negative: Bool = false, normalized: Bool = true)
     {
         let numberInPrimitiveType = sizeof(PrimitiveType.self)/sizeof(T.self)
         
@@ -394,8 +394,10 @@ private struct BigIntImpl<U where U : UnsignedInteger> {
                 }
             }
             
-            while number.last != nil && number.last! == 0 {
-                number.removeLast()
+            if normalized {
+                while number.last != nil && number.last! == 0 {
+                    number.removeLast()
+                }
             }
             
             self.parts = number

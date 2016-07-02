@@ -27,7 +27,7 @@ struct ECDSA
         assert(publicKeyInfo.subjectPublicKey.bits.count * 8 == publicKeyInfo.subjectPublicKey.numberOfBits)
 
         let algorithmIdentifier = publicKeyInfo.algorithm
-        guard algorithmIdentifier.algorithm == .ECPublicKey else { return nil }
+        guard algorithmIdentifier.algorithm == .ecPublicKey else { return nil }
         guard let curveName = algorithmIdentifier.parameters as? OID else { return nil }
      
         switch curveName

@@ -10,21 +10,9 @@ import Security
 
 class TLSCertificateMessage : TLSHandshakeMessage
 {
-    var certificates : [Certificate]
+    var certificates : [X509.Certificate]
     
-    var publicKey : CryptoKey? {
-        get {
-            if certificates.count < 1 {
-                return nil
-            }
-            
-            let certificate = certificates[0]
-            print("\(certificate.commonName)")
-            return certificate.publicKey
-        }
-    }
-    
-    init(certificates : [Certificate])
+    init(certificates : [X509.Certificate])
     {
         self.certificates = certificates
         
@@ -33,7 +21,7 @@ class TLSCertificateMessage : TLSHandshakeMessage
     
     required init?(inputStream : InputStreamType, context: TLSContext)
     {
-        var certificates : [Certificate]?
+        var certificates : [X509.Certificate]?
         
         guard let (type, _) = TLSHandshakeMessage.readHeader(inputStream), type == TLSHandshakeType.certificate
         else {
@@ -58,11 +46,10 @@ class TLSCertificateMessage : TLSHandshakeMessage
                     let data : [UInt8]? = inputStream.read(count: bytesForCertificate)
                     
                     if let d = data {
-                        let x509Cert = X509.Certificate(DERData: d)
+                        let x509Cert = X509.Certificate(derData: d)
                         print(x509Cert)
                         
-                        let certificate = Certificate(certificateData: d)
-                        if let cert = certificate {
+                        if let cert = x509Cert {
                             certificates!.append(cert)
                             print("common name: \(cert.commonName)")
                         }

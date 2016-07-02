@@ -58,8 +58,8 @@ class TSLTests: XCTestCase {
         var configuration = TLSConfiguration(protocolVersion: .v1_2)
         
         configuration.cipherSuites = [cipherSuite]
-        configuration.identity = Identity(name: "Internet Widgits Pty Ltd")!
-        configuration.certificatePath = Bundle(for: self.dynamicType).urlForResource("mycert.pem", withExtension: nil)!.path!
+//        configuration.identity = Identity(name: "Internet Widgits Pty Ltd")!
+        configuration.identity = PEMFileIdentity(pemFile: Bundle(for: self.dynamicType).urlForResource("mycert.pem", withExtension: nil)!.path!)
         let dhParametersPath = Bundle(for: self.dynamicType).urlForResource("dhparams.pem", withExtension: nil)!.path!
         configuration.dhParameters = DiffieHellmanParameters.fromPEMFile(dhParametersPath)
         configuration.ecdhParameters = ECDiffieHellmanParameters(namedCurve: .secp256r1)
@@ -106,7 +106,7 @@ class TSLTests: XCTestCase {
     func test_acceptConnection_whenClientConnects_works()
     {
         let cipherSuites : [CipherSuite] = [
-            .TLS_RSA_WITH_AES_256_CBC_SHA,
+//            .TLS_RSA_WITH_AES_256_CBC_SHA,
             .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
             .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
             .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
@@ -121,16 +121,16 @@ class TSLTests: XCTestCase {
 //    {
 //        let serverIdentity = Identity(name: "Internet Widgits Pty Ltd")
 //        
-//        let server = TLSSocket(protocolVersion: .TLS_v1_2, isClient: false, identity: serverIdentity!)
+//        let server = TLSSocket(protocolVersion: .v1_2, isClient: false, identity: serverIdentity!)
 //        let address = IPv4Address.localAddress()
 //        address.port = UInt16(12345)
 //        
 //        let sentData = [UInt8]("12345678".utf8)
 //        var receivedData : [UInt8]? = nil
 //
-//        let client = TLSSocket(protocolVersion: .TLS_v1_2)
+//        let client = TLSSocket(protocolVersion: .v1_2)
 //
-//        let expectation = self.expectationWithDescription("receive data")
+//        let expectation = self.expectation(withDescription: "receive data")
 //        server.listen(address) {
 //            (clientSocket, error) -> () in
 //            
@@ -152,11 +152,10 @@ class TSLTests: XCTestCase {
 //        
 //        sleep(1)
 //        
-//        client.connect(address) { (error: SocketError?) -> () in
-//            client.write(sentData)
-//        }
+//        try! client.connect(address)
+//        try! client.write(sentData)
 //        
-//        self.waitForExpectationsWithTimeout(5.0) {
+//        self.waitForExpectations(withTimeout: 5.0) {
 //            (error : NSError?) -> Void in
 //            
 //            if let receivedData = receivedData {
@@ -182,7 +181,7 @@ class TSLTests: XCTestCase {
 //            }
 //        }
 //        
-//        var version = TLSProtocolVersion.TLS_v1_0
+//        var version = TLSProtocolVersion.v1_0
 //        
 //        var socket = TLSSocket(protocolVersion: version)
 //        var myContext = MyContext(protocolVersion: version, dataProvider: socket, isClient: true)
@@ -193,8 +192,8 @@ class TSLTests: XCTestCase {
 //        socket.connect(IPAddress.addressWithString(host, port: port)!) { (error : TLSSocketError?) -> () in
 //        }
 //        
-//        var expectation = self.expectationWithDescription("successfully connected")
-//        self.waitForExpectationsWithTimeout(50.0, handler: { (error : NSError!) -> Void in
+//        var expectation = self.expectation(withDescription: "successfully connected")
+//        self.waitForExpectations(withTimeout: 50.0, handler: { (error : NSError!) -> Void in
 //        })
 //
 //    }

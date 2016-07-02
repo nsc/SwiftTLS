@@ -14,7 +14,7 @@ class OIDTests: XCTestCase {
     func test_identifier_withSomeTestVectors_givesCorrectResult()
     {
         let values : [OID] = [
-            .SHA1
+            .sha1
         ]
         
         for oid in values

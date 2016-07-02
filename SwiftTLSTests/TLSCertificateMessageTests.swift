@@ -26,7 +26,7 @@ class TLSCertificateMessageTests: XCTestCase {
     {
         let certificateURL = Bundle(for: self.dynamicType).urlForResource("certificate", withExtension: "cer")!
         let certificateData = try! Data(contentsOf: certificateURL)
-        let certificate = Certificate(certificateData: certificateData)!
+        let certificate = X509.Certificate(derData: certificateData)!
         let sut = TLSCertificateMessage(certificates: [certificate])
 
         var data = DataBuffer()

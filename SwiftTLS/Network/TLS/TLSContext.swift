@@ -34,13 +34,6 @@ struct TLSSignedData : Streamable
     var signatureAlgorithm : SignatureAlgorithm?
     
     var signature : [UInt8]
-
-    // FIXME: this is only needed to quiet the compiler because of the bug that you have to initialize
-    // all ivars even when a failable initializer fails
-    init()
-    {
-        self.signature = []
-    }
     
     init(data: [UInt8], context: TLSContext)
     {
@@ -238,11 +231,11 @@ public class TLSContext
     
     var stateMachine : TLSContextStateMachine!
     
-    var serverKey : CryptoKey?
-    var clientKey : CryptoKey?
+    var serverKey : RSA?
+    var clientKey : RSA?
     
-    var serverCertificates : [Certificate]?
-    var clientCertificates : [Certificate]?
+    var serverCertificates : [X509.Certificate]?
+    var clientCertificates : [X509.Certificate]?
     
     var preMasterSecret     : [UInt8]? = nil
     
@@ -264,9 +257,9 @@ public class TLSContext
     {
         self.configuration = configuration
         if !isClient {
-            if let certificatePath = self.configuration.certificatePath {
+            if let identity = self.configuration.identity {
                 // we are currently only supporting RSA
-                if let rsa = RSA.fromCertificateFile(certificatePath) {
+                if let rsa = identity.rsa {
                     self.signer = rsa
                 }
             }
@@ -421,7 +414,7 @@ public class TLSContext
         case .certificate:
             let certificateMessage = message as! TLSCertificateMessage
             self.serverCertificates = certificateMessage.certificates
-            self.serverKey = certificateMessage.publicKey
+            self.serverKey = serverCertificates!.first!.rsa
             
         case .serverKeyExchange:
             let keyExchangeMessage = message as! TLSServerKeyExchange
@@ -542,7 +535,7 @@ public class TLSContext
             case .rsa:
                 // RSA
                 if let encryptedPreMasterSecret = clientKeyExchange.encryptedPreMasterSecret {
-                    preMasterSecret = self.configuration.identity!.privateKey.decrypt(encryptedPreMasterSecret)!
+                    preMasterSecret = self.configuration.identity!.rsa!.decrypt(encryptedPreMasterSecret)
                 }
                 else {
                     fatalError("Client Key Exchange has no encrypted master secret")
@@ -633,7 +626,7 @@ public class TLSContext
     func sendCertificate() throws
     {
         let certificate = self.configuration.identity!.certificate
-        let certificateMessage = TLSCertificateMessage(certificates: [certificate!])
+        let certificateMessage = TLSCertificateMessage(certificates: [certificate])
         
         try self.sendHandshakeMessage(certificateMessage);
     }
@@ -708,9 +701,9 @@ public class TLSContext
             try self.sendHandshakeMessage(message)
         
         case .rsa:
-            if let serverKey = self.serverKey {
+            if let rsa = self.serverKey {
                 // RSA
-                let message = TLSClientKeyExchange(preMasterSecret: self.preMasterSecret!, publicKey: serverKey)
+                let message = TLSClientKeyExchange(preMasterSecret: self.preMasterSecret!, rsa: rsa)
                 try self.sendHandshakeMessage(message)
             }
         }

@@ -52,15 +52,9 @@ class TLSClientKeyExchange : TLSHandshakeMessage
     var diffieHellmanPublicKey : BigInt?
     var ecdhPublicKey : EllipticCurvePoint?
     
-    init(preMasterSecret : [UInt8], publicKey : CryptoKey)
+    init(preMasterSecret : [UInt8], rsa : RSA)
     {
-        if let crypttext = publicKey.encrypt(preMasterSecret) {
-            self.encryptedPreMasterSecret = crypttext
-        }
-        else {
-            self.encryptedPreMasterSecret = []
-            assert(false)
-        }
+        self.encryptedPreMasterSecret = rsa.encrypt(preMasterSecret)
         
         super.init(type: .handshake(.clientKeyExchange))
     }
