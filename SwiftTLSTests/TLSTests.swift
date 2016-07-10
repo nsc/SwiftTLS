@@ -21,16 +21,16 @@ class TSLTests: XCTestCase {
 
     func test_connectTLS() {
         let certificatePath = Bundle(for: self.dynamicType).urlForResource("mycert.pem", withExtension: nil)!.path!
-        let opensslServer = Task.launchedTask(withLaunchPath: "/usr/bin/openssl", arguments: ["s_server",  "-cert", certificatePath, "-www",  "-debug", "-cipher", "ALL:NULL" ])
+        let opensslServer = Task.launchedTask(withLaunchPath: "/usr/local/bin/openssl", arguments: ["s_server",  "-cert", certificatePath, "-www",  "-debug", "-cipher", "ALL:NULL" ])
         
         // wait for server to be up
         sleep(1)
         
         var configuration = TLSConfiguration(protocolVersion: TLSProtocolVersion.v1_2)
-//        configuration.cipherSuites = [.TLS_RSA_WITH_AES_256_CBC_SHA]
+        configuration.cipherSuites = [.TLS_RSA_WITH_AES_256_CBC_SHA]
 //        configuration.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
 //        configuration.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256]
-        configuration.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256]
+//        configuration.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256]
         let socket = TLSSocket(configuration: configuration)
 
 //        let (host, port) = ("195.50.155.66", 443)

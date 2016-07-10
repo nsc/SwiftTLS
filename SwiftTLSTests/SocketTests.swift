@@ -32,7 +32,7 @@ class SocketTests: XCTestCase {
 
         DispatchQueue.global(attributes: DispatchQueue.GlobalAttributes.qosDefault).async {
             do {
-                try server.acceptConnection(address)
+                _ = try server.acceptConnection(address)
                 
                 expectation.fulfill()
                 server.close()
