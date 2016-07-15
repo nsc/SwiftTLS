@@ -29,10 +29,54 @@ struct RSA
     
     static func fromPEMFile(_ file : String) -> RSA?
     {
-        for (section, object) in ASN1Parser.sectionsFromPEMFile(file)
+        for (section, var object) in ASN1Parser.sectionsFromPEMFile(file)
         {
             switch section
             {
+            case "PRIVATE KEY":
+                // PrivateKeyInfo ::= SEQUENCE {
+                //     version         Version,
+                //     algorithm       AlgorithmIdentifier,
+                //     PrivateKey      BIT STRING
+                // }
+                //
+                // AlgorithmIdentifier ::= SEQUENCE {
+                //     algorithm       OBJECT IDENTIFIER,
+                //     parameters      ANY DEFINED BY algorithm OPTIONAL
+                // }
+                guard let sequence = object as? ASN1Sequence else {
+                    return nil
+                }
+
+                let objects     = sequence.objects
+                guard objects.count == 3 else {
+                    return nil
+                }
+
+                let algorithmIdentifier = (sequence.objects[1] as! ASN1Sequence)
+                let algorithm = (algorithmIdentifier.objects[0] as! ASN1ObjectIdentifier).identifier
+                guard let oid = OID(id: algorithm) where oid == .rsaEncryption else {
+                    return nil
+                }
+                
+                var data: [UInt8]
+                if let bitString = (objects[2] as? ASN1BitString) {
+                    data = bitString.value
+                }
+                else if let octetString = (objects[2] as? ASN1OctetString) {
+                    data = octetString.value
+                }
+                else {
+                    return nil
+                }
+                guard let rsaPrivateKey = ASN1Parser(data: data).parseObject() else {
+                    return nil
+                }
+                
+                object = rsaPrivateKey
+                
+                fallthrough
+                
             case "RSA PRIVATE KEY":
                 // RSAPrivateKey ::= SEQUENCE {
                 //     version           Version,
@@ -52,6 +96,10 @@ struct RSA
                 }
                 
                 let objects     = sequence.objects
+                guard objects.count == 9 else {
+                    return nil
+                }
+                
                 let n           = BigInt(bigEndianParts:(objects[1] as! ASN1Integer).value)
                 let e           = BigInt(bigEndianParts:(objects[2] as! ASN1Integer).value)
                 let d           = BigInt(bigEndianParts:(objects[3] as! ASN1Integer).value)

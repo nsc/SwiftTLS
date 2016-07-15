@@ -240,6 +240,7 @@ public class TLSRecordLayer
             encryptionParameters.sequenceNumber += 1
             
             let record = TLSRecord(contentType: contentType, protocolVersion: self.protocolVersion, body: cipherText)
+            print("send data: \(data)")
             try self.dataProvider?.writeData(DataBuffer(record).buffer)
         }
         else {

@@ -16,19 +16,19 @@ func server()
     var port = 12345
     var certificatePath : String?
     var dhParametersPath : String?
-    if Process.arguments.count >= 2 {
-        let portString = Process.arguments[1]
+    if Process.arguments.count >= 3 {
+        let portString = Process.arguments[2]
         if let portNumber = Int(portString) {
             port = portNumber
         }
     }
 
-    if Process.arguments.count >= 3 {
-        certificatePath = Process.arguments[2]
+    if Process.arguments.count >= 4{
+        certificatePath = (Process.arguments[3] as NSString).expandingTildeInPath
     }
 
-    if Process.arguments.count >= 4 {
-        dhParametersPath = Process.arguments[3]
+    if Process.arguments.count >= 5 {
+        dhParametersPath = Process.arguments[4]
     }
     
     print("Listening on port \(port)")
@@ -36,10 +36,10 @@ func server()
     var configuration = TLSConfiguration(protocolVersion: .v1_2)
     
     let cipherSuites : [CipherSuite] = [
-//        .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-        .TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+//        .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+        .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
 //        .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
-//        .TLS_RSA_WITH_AES_256_CBC_SHA
+        .TLS_RSA_WITH_AES_256_CBC_SHA
         ]
     
     configuration.cipherSuites = cipherSuites
@@ -48,7 +48,7 @@ func server()
     if let dhParametersPath = dhParametersPath {
         configuration.dhParameters = DiffieHellmanParameters.fromPEMFile(dhParametersPath)
     }
-    configuration.ecdhParameters = ECDiffieHellmanParameters(namedCurve: .secp521r1)
+    configuration.ecdhParameters = ECDiffieHellmanParameters(namedCurve: .secp256r1)
     
     let server = TLSSocket(configuration: configuration, isClient: false)
     let address = IPv4Address.localAddress()
@@ -58,11 +58,14 @@ func server()
         do {
             let clientSocket = try server.acceptConnection(address)
             
-            while true {
-                let data = try clientSocket.read(count: 1024)
-                print(String.fromUTF8Bytes(data)!)
-                try clientSocket.write(data)
-            }
+//            while true {
+            let data = try clientSocket.read(count: 1024)
+            let string = String.fromUTF8Bytes(data)!
+            let contentLength = string.utf8.count
+            let response = "200 OK\nConnection: Close\nContent-Length: \(contentLength)\n\n\(string)"
+            try clientSocket.write(response)
+            clientSocket.close()
+//            }
         }
         catch(let error) {
             if let tlserror = error as? TLSError {
@@ -300,6 +303,9 @@ case "client":
     }
 
     connectTo(host: hostName, port: port, protocolVersion: protocolVersion, cipherSuite: cipherSuite)
+    
+case "server":
+    server()
     
 case "probeCiphers":
     guard Process.arguments.count > 2 else {

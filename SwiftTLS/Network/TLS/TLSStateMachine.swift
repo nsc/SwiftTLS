@@ -55,6 +55,14 @@ class TLSStateMachine : TLSContextStateMachine
         self.state = .idle
     }
     
+    func transitionTo(state: TLSState) throws {
+        if !checkStateTransition(state) {
+            throw TLSError.error((self.context!.isClient ? "Client" : "Server" ) + ": Illegal state transition \(self.state) -> \(state)")
+        }
+        
+        self.state = state
+    }
+    
     func didSendMessage(_ message : TLSMessage)
     {
         print((self.context!.isClient ? "Client" : "Server" ) + ": did send message \(TLSMessageNameForType(message.type))")
@@ -67,14 +75,14 @@ class TLSStateMachine : TLSContextStateMachine
         switch message.handshakeType
         {
         case .clientHello:
-            self.state = .clientHelloSent
+            try self.transitionTo(state: .clientHelloSent)
             
         case .serverHello:
-            self.state = .serverHelloSent
+            try self.transitionTo(state: .serverHelloSent)
             try self.context!.sendCertificate()
             
         case .certificate:
-            self.state = .certificateSent
+            try self.transitionTo(state: .certificateSent)
             
             if !self.context!.isClient {
                 if self.context!.cipherSuite!.needsServerKeyExchange() {
@@ -86,18 +94,18 @@ class TLSStateMachine : TLSContextStateMachine
             }
             
         case .serverKeyExchange:
-            self.state = .serverKeyExchangeSent
+            try self.transitionTo(state: .serverKeyExchangeSent)
             try self.context!.sendServerHelloDone()
 
         case .serverHelloDone:
-            self.state = .serverHelloDoneSent
+            try self.transitionTo(state: .serverHelloDoneSent)
 
         case .clientKeyExchange:
-            self.state = .clientKeyExchangeSent
+            try self.transitionTo(state: .clientKeyExchangeSent)
             try self.context!.sendChangeCipherSpec()
 
         case .finished:
-            self.state = .finishedSent
+            try self.transitionTo(state: .finishedSent)
             
         default:
             print("Unsupported handshake \(message.handshakeType)")
@@ -107,14 +115,14 @@ class TLSStateMachine : TLSContextStateMachine
     func didSendChangeCipherSpec() throws
     {
         print("did send change cipher spec")
-        self.state = .changeCipherSpecSent
+        try self.transitionTo(state: .changeCipherSpecSent)
         try self.context!.sendFinished()
     }
     
-    func didReceiveChangeCipherSpec()
+    func didReceiveChangeCipherSpec() throws
     {
         print("did receive change cipher spec")
-        self.state = .changeCipherSpecReceived
+        try self.transitionTo(state: .changeCipherSpecReceived)
     }
 
     func serverDidReceiveHandshakeMessage(_ message : TLSHandshakeMessage) throws
@@ -126,14 +134,14 @@ class TLSStateMachine : TLSContextStateMachine
         switch (handshakeType)
         {
         case .clientHello:
-            self.state = .clientHelloReceived
+            try self.transitionTo(state: .clientHelloReceived)
             try self.context!.sendServerHello()
             
         case .clientKeyExchange:
-            self.state = .clientKeyExchangeReceived
+            try self.transitionTo(state: .clientKeyExchangeReceived)
             
         case .finished:
-            self.state = .finishedReceived
+            try self.transitionTo(state: .finishedReceived)
             
             try self.context!.sendChangeCipherSpec()
             
@@ -151,20 +159,20 @@ class TLSStateMachine : TLSContextStateMachine
         switch (handshakeType)
         {
         case .serverHello:
-            self.state = .serverHelloReceived
-            
+            try self.transitionTo(state: .serverHelloReceived)
+
         case .certificate:
-            self.state = .certificateReceived
-            
+            try self.transitionTo(state: .certificateReceived)
+
         case .serverKeyExchange:
-            self.state = .serverKeyExchangeReceived
-            
+            try self.transitionTo(state: .serverKeyExchangeReceived)
+
         case .serverHelloDone:
-            self.state = .serverHelloDoneReceived
+            try self.transitionTo(state: .serverHelloDoneReceived)
             try self.context!.sendClientKeyExchange()
 
         case .finished:
-            self.state = .finishedReceived
+            try self.transitionTo(state: .finishedReceived)
 
         default:
             print("unsupported handshake \(handshakeType.rawValue)")

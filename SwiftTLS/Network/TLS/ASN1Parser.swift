@@ -474,7 +474,8 @@ public class ASN1Parser
                     }
                 }
             }
-        } catch _ {
+        } catch let error {
+            print("Error: \(error)")
         }
     
         return sectionDictionary

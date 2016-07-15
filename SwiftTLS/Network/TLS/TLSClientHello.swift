@@ -152,8 +152,10 @@ class TLSClientHello : TLSHandshakeMessage
         }
         
         self.rawCipherSuites = rawCipherSuitesRead
-        self.compressionMethods = rawCompressionMethods.map {CompressionMethod(rawValue: $0)!}
-        
+        print("compression methods: \(rawCompressionMethods)")
+        self.compressionMethods = rawCompressionMethods.flatMap {CompressionMethod(rawValue: $0)}
+        print("Known compression methods: \(self.compressionMethods)")
+
         super.init(type: .handshake(.clientHello))
     }
 
