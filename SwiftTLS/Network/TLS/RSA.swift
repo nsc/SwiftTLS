@@ -178,7 +178,7 @@ struct RSA
         self.coefficient = nil
     }
     
-    func signData(_ data : [UInt8], hashAlgorithm: HashAlgorithm, paddingType: RSA_PKCS1PaddingType? = .type2) -> BigInt
+    func signData(_ data : [UInt8], hashAlgorithm: HashAlgorithm, paddingType: RSA_PKCS1PaddingType? = .type1) -> BigInt
     {
         guard let d = self.d else {
             precondition(self.d != nil)
@@ -264,7 +264,7 @@ struct RSA
 
     func encrypt(_ data: [UInt8]) -> [UInt8]
     {
-        let padded = paddedData(data, paddingType: .type2)!
+        let padded = paddedData(data, paddingType: .type1)!
         let m = BigInt(bigEndianParts: padded) % n
         let encrypted = modular_pow(m, e, n)
         
@@ -427,7 +427,10 @@ struct RSA
             
         case .sha1:
             return OID.sha1
-            
+
+        case .sha256:
+            return OID.sha256
+
 //        case .SHA224:
 //            return Hash_SHA224(data)
 //            

@@ -9,6 +9,7 @@
 public struct TLSConfiguration
 {
     var protocolVersion: TLSProtocolVersion
+    var minimumFallbackVersion: TLSProtocolVersion
     var cipherSuites: [CipherSuite]
 
     var dhParameters: DiffieHellmanParameters?
@@ -22,8 +23,9 @@ public struct TLSConfiguration
     init(protocolVersion: TLSProtocolVersion, identity: Identity? = nil)
     {
         self.protocolVersion = protocolVersion
+        self.minimumFallbackVersion = protocolVersion
         self.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256]
-        self.hashAlgorithm = .sha1
+        self.hashAlgorithm = .sha256
         self.signatureAlgorithm = .rsa
         self.identity = identity
     }

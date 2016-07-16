@@ -10,7 +10,7 @@ import Foundation
 
 protocol Identity
 {
-    var certificate: X509.Certificate { get }
+    var certificateChain: [X509.Certificate] { get }
     var signer: Signing { get }
     var rsa: RSA? { get }
 }

@@ -36,10 +36,11 @@ func server()
     var configuration = TLSConfiguration(protocolVersion: .v1_2)
     
     let cipherSuites : [CipherSuite] = [
-//        .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+        .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
         .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+        .TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
 //        .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
-        .TLS_RSA_WITH_AES_256_CBC_SHA
+//        .TLS_RSA_WITH_AES_256_CBC_SHA
         ]
     
     configuration.cipherSuites = cipherSuites
@@ -94,10 +95,11 @@ func connectTo(host : String, port : Int = 443, protocolVersion: TLSProtocolVers
     }
     else if protocolVersion == .v1_2 {
         configuration.cipherSuites = [
-            .TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-            .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-            .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
-            .TLS_RSA_WITH_AES_256_CBC_SHA
+//            .TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+            .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+//            .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+//            .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
+//            .TLS_RSA_WITH_AES_256_CBC_SHA
         ]
     }
     else {
@@ -451,22 +453,3 @@ case "p12":
 default:
     print("Error: Unknown command \"\(command)\"")
 }
-
-//server()
-//probeCipherSuitesForHost("77.74.169.27", port: 443)
-//probeCipherSuitesForHost("85.13.145.53", port: 443)
-//probeCipherSuitesForHost("62.153.105.15", port: 443)
-
-//let address = IPv4Address.localAddress()
-//address.port = UInt16(12345)
-////let server = TLSSocket(protocolVersion: .TLS_v1_2, isClient: false, identity: Identity(name: "Internet Widgits Pty Ltd")!)
-////try server.acceptConnection(address)
-//
-//do {
-//    let client = TLSSocket(protocolVersion: .TLS_v1_2)
-//    try client.connect(address)
-//    try client.write("abc\n")
-//    client.close()
-//} catch let error as SocketError {
-//    print("Error: \(error)")
-//}

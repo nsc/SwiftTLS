@@ -10,7 +10,7 @@ import Foundation
 
 class PEMFileIdentity : Identity
 {
-    var certificate: X509.Certificate
+    var certificateChain: [X509.Certificate]
     var rsa: RSA?
     var signer: Signing {
         return _signing
@@ -18,26 +18,30 @@ class PEMFileIdentity : Identity
     
     private var _signing: Signing
     
-    init?(pemFile: String)
+    init?(certificateFile: String, privateKeyFile: String)
     {
-        self.rsa = RSA.fromPEMFile(pemFile)
+        self.rsa = RSA.fromPEMFile(privateKeyFile)
         _signing = self.rsa!
         
-        var certificate: X509.Certificate? = nil
-        for (section, object) in ASN1Parser.sectionsFromPEMFile(pemFile) {
+        certificateChain = []
+        for (section, object) in ASN1Parser.sectionsFromPEMFile(certificateFile) {
             switch section {
             case "CERTIFICATE":
-                certificate = X509.Certificate(derData: object.underlyingData!)
+                if let certificate = X509.Certificate(derData: object.underlyingData!) {
+                    certificateChain.append(certificate)
+                }
             default:
                 break
             }
         }
         
-        if let cert = certificate {
-            self.certificate = cert
-        }
-        else {
+        if certificateChain.count == 0 {
             return nil
         }
+    }
+    
+    convenience init?(pemFile: String)
+    {
+        self.init(certificateFile: pemFile, privateKeyFile: pemFile)
     }
 }

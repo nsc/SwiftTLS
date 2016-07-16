@@ -1,3 +1,5 @@
+- implement secure renegotiation support
+
 - check padding
 - implement TLS 1.2 extension to choose hash function other than SHA256
 - generate correct alert messages

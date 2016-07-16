@@ -447,12 +447,12 @@ public class ASN1Parser
             return nil
         }
         
-        return sections.values.first
+        return sections.first?.object
     }
     
-    public class func sectionsFromPEMFile(_ PEMFile : String) -> [String : ASN1Object]
+    public class func sectionsFromPEMFile(_ PEMFile : String) -> [(section: String, object: ASN1Object)]
     {
-        var sectionDictionary : [String : ASN1Object] = [:]
+        var sections : [(section: String, object: ASN1Object)] = []
         do {
             let base64string = try String(contentsOfFile: PEMFile, encoding: String.Encoding.utf8)
             
@@ -468,7 +468,7 @@ public class ASN1Parser
                             return
                         }
                         
-                        sectionDictionary[sectionName] = object
+                        sections.append((sectionName, object))
                         
                         return
                     }
@@ -478,7 +478,7 @@ public class ASN1Parser
             print("Error: \(error)")
         }
     
-        return sectionDictionary
+        return sections
     }
 
     func subData(_ range : Range<Int>) -> [UInt8]? {
@@ -780,11 +780,11 @@ public func ASN1_printObject(_ object: ASN1Object, depth : Int = 0)
     }
 }
 
-func base64Blocks(with base64String : String) -> [String:String]
+func base64Blocks(with base64String : String) -> [(String,String)]
 {
     var base64String = base64String
     
-    var result = [String:String]()
+    var result: [(String, String)] = []
     
     let beginRegEx = try! RegularExpression(pattern: "-----BEGIN (.*)-----\\R")
     let endRegEx = try! RegularExpression(pattern: "-----END (.*)-----\\R")
@@ -806,7 +806,7 @@ func base64Blocks(with base64String : String) -> [String:String]
         
         let base64Block = (base64String as NSString).substring(with: NSMakeRange(beginRange.location + beginRange.length, end.location - (beginRange.location + beginRange.length)))
         
-        result[name] = base64Block
+        result.append((name, base64Block))
         
         base64String = (base64String as NSString).substring(from: end.location + end.length)
     }

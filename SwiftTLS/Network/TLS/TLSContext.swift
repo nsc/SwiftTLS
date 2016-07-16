@@ -228,7 +228,6 @@ public class TLSContext
     var hostNames : [String]?
     
     var cipherSuite : CipherSuite?
-    
     var stateMachine : TLSContextStateMachine!
     
     var serverKey : RSA?
@@ -250,6 +249,8 @@ public class TLSContext
     var keyExchange : KeyExchange
     
     var signer : Signing?
+    
+    var hmac: HashFunction?
     
     private var connectionEstablishedCompletionBlock : ((error : TLSError?) -> ())?
 
@@ -400,6 +401,11 @@ public class TLSContext
             let version = serverHello.version
             print("Server wants to speak \(version)")
             
+            if version < self.configuration.minimumFallbackVersion {
+                try self.sendAlert(.handshakeFailure, alertLevel: .fatal)
+                throw TLSError.alert(alert: .handshakeFailure, alertLevel: .fatal)
+            }
+            
             self.recordLayer.protocolVersion = version
             self.negotiatedProtocolVersion = version
             
@@ -491,9 +497,13 @@ public class TLSContext
         {
         case .clientHello:
             let clientHello = (message as! TLSClientHello)
-            if clientHello.clientVersion < self.configuration.protocolVersion {
-                self.negotiatedProtocolVersion = clientHello.clientVersion
+            
+            if clientHello.clientVersion < self.configuration.minimumFallbackVersion {
+                try self.sendAlert(.handshakeFailure, alertLevel: .fatal)
+                throw TLSError.alert(alert: .handshakeFailure, alertLevel: .fatal)
             }
+
+            self.negotiatedProtocolVersion = clientHello.clientVersion
             self.securityParameters.clientRandom = DataBuffer(clientHello.random).buffer
             
             self.cipherSuite = self.selectCipherSuite(clientHello.cipherSuites)
@@ -625,8 +635,8 @@ public class TLSContext
     
     func sendCertificate() throws
     {
-        let certificate = self.configuration.identity!.certificate
-        let certificateMessage = TLSCertificateMessage(certificates: [certificate])
+        let certificates = self.configuration.identity!.certificateChain
+        let certificateMessage = TLSCertificateMessage(certificates: certificates)
         
         try self.sendHandshakeMessage(certificateMessage);
     }
@@ -804,7 +814,7 @@ public class TLSContext
             return output
         }
         else {
-            return P_hash(HMAC_SHA256, secret: secret, seed: label + seed, outputLength: outputLength)
+            return P_hash(self.hmac!, secret: secret, seed: label + seed, outputLength: outputLength)
         }
     }
     
@@ -852,6 +862,27 @@ public class TLSContext
         self.securityParameters.recordIVLength      = cipherSuiteDescriptor.recordIVLength
         self.securityParameters.hmacDescriptor      = cipherSuiteDescriptor.hmacDescriptor
         
+        switch self.securityParameters.hmacDescriptor!.algorithm {
+        case .hmac_md5:
+            self.hmac = HMAC_MD5
+            
+        case .hmac_sha1:
+            self.hmac = HMAC_SHA1
+            
+        case .hmac_sha256:
+            self.hmac = HMAC_SHA256
+            
+        case .hmac_sha384:
+            self.hmac = HMAC_SHA384
+            
+        case .hmac_sha512:
+            self.hmac = HMAC_SHA512
+            
+        case .null:
+            fatalError("CipherSuite \(cipherSuite) is missing an HMAC specification")
+            break
+        }
+
         self.securityParameters.masterSecret = calculateMasterSecret()
     }
     

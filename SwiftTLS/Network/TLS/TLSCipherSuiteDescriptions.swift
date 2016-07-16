@@ -34,7 +34,7 @@ struct CipherSuiteDescriptor {
          blockCipherMode : BlockCipherMode? = nil,
          fixedIVLength : Int = 0,
          recordIVLength : Int = 0,
-         hmacDescriptor : HMACDescriptor? = nil
+         hmacDescriptor : HMACDescriptor
     )
     {
         self.cipherSuite = cipherSuite
@@ -54,12 +54,7 @@ struct CipherSuiteDescriptor {
             self.recordIVLength = bulkCipherAlgorithm.blockSize
         }
 
-        if let hmacDescriptor = hmacDescriptor {
-            self.hmacDescriptor = hmacDescriptor
-        }
-        else {
-            self.hmacDescriptor = HMACDescriptor(algorithm: .null, size: 0)
-        }
+        self.hmacDescriptor = hmacDescriptor
     }
 }
 
@@ -134,9 +129,21 @@ let TLSCipherSuiteDescritions : [CipherSuiteDescriptor] = [
         cipherType: .aead,
         blockCipherMode: .gcm,
         fixedIVLength: 4,
-        recordIVLength: 8
+        recordIVLength: 8,
+        hmacDescriptor: HMACDescriptor(algorithm: .hmac_sha256, size: Int(CC_SHA256_DIGEST_LENGTH))
     ),
     
+    CipherSuiteDescriptor(
+        cipherSuite: .TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+        keyExchangeAlgorithm: .ecdhe,
+        bulkCipherAlgorithm: .aes256,
+        cipherType: .aead,
+        blockCipherMode: .gcm,
+        fixedIVLength: 4,
+        recordIVLength: 8,
+        hmacDescriptor: HMACDescriptor(algorithm: .hmac_sha384, size: Int(CC_SHA384_DIGEST_LENGTH))
+    ),
+
     CipherSuiteDescriptor(
         cipherSuite: .TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
         keyExchangeAlgorithm: .ecdhe,
@@ -145,7 +152,8 @@ let TLSCipherSuiteDescritions : [CipherSuiteDescriptor] = [
         cipherType: .aead,
         blockCipherMode: .gcm,
         fixedIVLength: 4,
-        recordIVLength: 8
+        recordIVLength: 8,
+        hmacDescriptor: HMACDescriptor(algorithm: .hmac_sha256, size: Int(CC_SHA256_DIGEST_LENGTH))
     )
 
 ]
