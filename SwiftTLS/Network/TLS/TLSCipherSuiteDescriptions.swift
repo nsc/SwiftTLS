@@ -121,7 +121,23 @@ let TLSCipherSuiteDescritions : [CipherSuiteDescriptor] = [
         cipherType: .block,
         blockCipherMode: .cbc,
         hmacDescriptor: HMACDescriptor(algorithm: .hmac_sha256, size: Int(CC_SHA256_DIGEST_LENGTH))),
-    
+
+    CipherSuiteDescriptor(
+        cipherSuite: .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+        keyExchangeAlgorithm: .ecdhe,
+        bulkCipherAlgorithm: .aes128,
+        cipherType: .block,
+        blockCipherMode: .cbc,
+        hmacDescriptor: HMACDescriptor(algorithm: .hmac_sha1, size: Int(CC_SHA1_DIGEST_LENGTH))),
+
+    CipherSuiteDescriptor(
+        cipherSuite: .TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+        keyExchangeAlgorithm: .ecdhe,
+        bulkCipherAlgorithm: .aes256,
+        cipherType: .block,
+        blockCipherMode: .cbc,
+        hmacDescriptor: HMACDescriptor(algorithm: .hmac_sha1, size: Int(CC_SHA1_DIGEST_LENGTH))),
+
     CipherSuiteDescriptor(
         cipherSuite: .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
         keyExchangeAlgorithm: .ecdhe,

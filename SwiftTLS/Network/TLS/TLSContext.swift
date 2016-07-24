@@ -862,27 +862,26 @@ public class TLSContext
         self.securityParameters.recordIVLength      = cipherSuiteDescriptor.recordIVLength
         self.securityParameters.hmacDescriptor      = cipherSuiteDescriptor.hmacDescriptor
         
-        switch self.securityParameters.hmacDescriptor!.algorithm {
-        case .hmac_md5:
-            self.hmac = HMAC_MD5
-            
-        case .hmac_sha1:
-            self.hmac = HMAC_SHA1
-            
-        case .hmac_sha256:
-            self.hmac = HMAC_SHA256
-            
-        case .hmac_sha384:
-            self.hmac = HMAC_SHA384
-            
-        case .hmac_sha512:
-            self.hmac = HMAC_SHA512
-            
-        case .null:
-            fatalError("CipherSuite \(cipherSuite) is missing an HMAC specification")
-            break
-        }
+        let isAEAD = (self.securityParameters.cipherType == .aead)
 
+        if !isAEAD {
+            // for non AEAD cipher suites TLS 1.2 uses SHA256 for its PRF
+            self.hmac = HMAC_SHA256
+        }
+        else {
+            switch self.securityParameters.hmacDescriptor!.algorithm {
+            case .hmac_sha256:
+                self.hmac = HMAC_SHA256
+                
+            case .hmac_sha384:
+                self.hmac = HMAC_SHA384
+                
+            default:
+                fatalError("AEAD cipher suites can only use SHA256 or SHA384")
+                break
+            }
+        }
+        
         self.securityParameters.masterSecret = calculateMasterSecret()
     }
     

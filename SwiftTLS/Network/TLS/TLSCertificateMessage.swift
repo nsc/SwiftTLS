@@ -47,7 +47,6 @@ class TLSCertificateMessage : TLSHandshakeMessage
                     
                     if let d = data {
                         let x509Cert = X509.Certificate(derData: d)
-                        print(x509Cert)
                         
                         if let cert = x509Cert {
                             certificates!.append(cert)

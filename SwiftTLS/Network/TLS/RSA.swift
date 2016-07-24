@@ -210,8 +210,6 @@ struct RSA
     
     func verifySignature(_ signature : BigInt, data: [UInt8]) -> Bool
     {
-        print("verifySignature with n = \(self.n)")
-
         let e = self.e
         
         let verification = modular_pow(signature, e, n)
