@@ -178,7 +178,7 @@ struct RSA
         self.coefficient = nil
     }
     
-    func signData(_ data : [UInt8], hashAlgorithm: HashAlgorithm, paddingType: RSA_PKCS1PaddingType? = .type1) -> BigInt
+    func signData(_ data : [UInt8], hashAlgorithm: HashAlgorithm) -> BigInt
     {
         guard let d = self.d else {
             precondition(self.d != nil)
@@ -200,7 +200,7 @@ struct RSA
         
         let derData = writer.dataFromObject(sequence)
         
-        let paddedData = self.paddedData(derData, paddingType: paddingType!)!
+        let paddedData = self.paddedData(derData, paddingType: .type1)!
         
         let m = BigInt(bigEndianParts: paddedData)
         let signature = modular_pow(m, d, n)
@@ -262,7 +262,7 @@ struct RSA
 
     func encrypt(_ data: [UInt8]) -> [UInt8]
     {
-        let padded = paddedData(data, paddingType: .type1)!
+        let padded = paddedData(data, paddingType: .type2)!
         let m = BigInt(bigEndianParts: padded) % n
         let encrypted = modular_pow(m, e, n)
         
