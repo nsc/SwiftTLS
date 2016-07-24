@@ -11,25 +11,10 @@ import Foundation
 import OpenSSL
 import SwiftHelper
 
-func server()
+func server(port: Int = 443, certificatePath: String, dhParametersPath : String? = nil, cipherSuite: CipherSuite? = nil)
 {
-    var port = 12345
-    var certificatePath : String?
-    var dhParametersPath : String?
-    if Process.arguments.count >= 3 {
-        let portString = Process.arguments[2]
-        if let portNumber = Int(portString) {
-            port = portNumber
-        }
-    }
-
-    if Process.arguments.count >= 4{
-        certificatePath = (Process.arguments[3] as NSString).expandingTildeInPath
-    }
-
-    if Process.arguments.count >= 5 {
-        dhParametersPath = Process.arguments[4]
-    }
+    var certificatePath = certificatePath
+    certificatePath = (certificatePath as NSString).expandingTildeInPath
     
     print("Listening on port \(port)")
     
@@ -45,7 +30,7 @@ func server()
     
     configuration.cipherSuites = cipherSuites
 //    configuration.identity = Identity(name: "Internet Widgits Pty Ltd")!
-    configuration.identity = PEMFileIdentity(pemFile: certificatePath!)
+    configuration.identity = PEMFileIdentity(pemFile: certificatePath)
     if let dhParametersPath = dhParametersPath {
         configuration.dhParameters = DiffieHellmanParameters.fromPEMFile(dhParametersPath)
     }
@@ -207,19 +192,33 @@ enum Error : ErrorProtocol
     case Error(String)
 }
 
+enum Mode {
+    case client
+    case server
+}
+
+var mode: Mode? = nil
 switch command
 {
 case "client":
+    mode = .client
+    fallthrough
+case "server":
+    if mode == nil {
+        mode = .server
+    }
     guard Process.arguments.count > 2 else {
         print("Error: Missing arguments for subcommand \"\(command)\"")
         exit(1)
     }
     
-    var host : String? = nil
-    var port : Int = 443
+    var host: String? = nil
+    var port: Int = 443
     var protocolVersion = TLSProtocolVersion.v1_2
-    var cipherSuite : CipherSuite? = nil
-
+    var cipherSuite: CipherSuite? = nil
+    var certificatePath: String? = nil
+    var dhParameters: String? = nil
+    
     do {
         var argumentIndex : Int = 2
         while true
@@ -232,29 +231,9 @@ case "client":
             
             argumentIndex += 1
             
+            
             switch argument
             {
-            case "--connect":
-                if Process.arguments.count <= argumentIndex {
-                    throw Error.Error("Missing argument for --connect")
-                }
-                
-                var argument = Process.arguments[argumentIndex]
-                argumentIndex += 1
-                
-                if argument.contains(":") {
-                    let components = argument.components(separatedBy: ":")
-                    host = components[0]
-                    guard let p = Int(components[1]), p > 0 && p < 65536 else {
-                        throw Error.Error("\(components[1]) is not a valid port number")
-                    }
-                    
-                    port = p
-                }
-                else {
-                    host = argument
-                }
-                
             case "--TLSVersion":
                 if Process.arguments.count <= argumentIndex {
                     throw Error.Error("Missing argument for --TLSVersion")
@@ -262,22 +241,24 @@ case "client":
                 
                 var argument = Process.arguments[argumentIndex]
                 argumentIndex += 1
-
+                
                 switch argument
                 {
                 case "1.0":
                     protocolVersion = .v1_0
-
+                    
                 case "1.1":
                     protocolVersion = .v1_1
-
+                    
                 case "1.2":
                     protocolVersion = .v1_2
-
+                    
                 default:
                     throw Error.Error("\(argument) is not a valid TLS version")
                 }
                 
+                continue
+
             case "--cipherSuite":
                 if Process.arguments.count <= argumentIndex {
                     throw Error.Error("Missing argument for --cipherSuite")
@@ -285,12 +266,86 @@ case "client":
                 
                 var argument = Process.arguments[argumentIndex]
                 argumentIndex += 1
-
+                
                 cipherSuite = CipherSuite(fromString:argument)
                 
+                continue
+                
             default:
-                print("Error: Unknown argument \(argument)")
-                exit(1)
+                break
+            }
+
+            if mode! == .server {
+                switch argument
+                {
+                case "--port":
+                    if Process.arguments.count <= argumentIndex {
+                        throw Error.Error("Missing argument for --port")
+                    }
+                    
+                    var argument = Process.arguments[argumentIndex]
+                    argumentIndex += 1
+                    
+                    if let p = Int(argument) {
+                        port = p
+                    }
+                
+                case "--certificate":
+                    if Process.arguments.count <= argumentIndex {
+                        throw Error.Error("Missing argument for --certificate")
+                    }
+                    
+                    var argument = Process.arguments[argumentIndex]
+                    argumentIndex += 1
+
+                    certificatePath = argument
+                
+                case "--dhParameters":
+                    if Process.arguments.count <= argumentIndex {
+                        throw Error.Error("Missing argument for --dhParameters")
+                    }
+                    
+                    var argument = Process.arguments[argumentIndex]
+                    argumentIndex += 1
+                    
+                    dhParameters = argument
+                
+                    
+                default:
+                    print("Error: Unknown argument \(argument)")
+                    exit(1)
+                    
+                }
+            }
+            else if mode! == .client {
+                switch argument
+                {
+                case "--connect":
+                    if Process.arguments.count <= argumentIndex {
+                        throw Error.Error("Missing argument for --connect")
+                    }
+                    
+                    var argument = Process.arguments[argumentIndex]
+                    argumentIndex += 1
+                    
+                    if argument.contains(":") {
+                        let components = argument.components(separatedBy: ":")
+                        host = components[0]
+                        guard let p = Int(components[1]), p > 0 && p < 65536 else {
+                            throw Error.Error("\(components[1]) is not a valid port number")
+                        }
+                        
+                        port = p
+                    }
+                    else {
+                        host = argument
+                    }
+                    
+                default:
+                    print("Error: Unknown argument \(argument)")
+                    exit(1)
+                    
+                }
             }
         }
     }
@@ -299,15 +354,21 @@ case "client":
         exit(1)
     }
 
-    guard let hostName = host else {
-        print("Error: Missing argument --connect host[:port]")
-        exit(1)
-    }
+    if let mode = mode {
+        switch mode
+        {
+        case .client:
+            guard let hostName = host else {
+                print("Error: Missing argument --connect host[:port]")
+                exit(1)
+            }
+            
+            connectTo(host: hostName, port: port, protocolVersion: protocolVersion, cipherSuite: cipherSuite)
 
-    connectTo(host: hostName, port: port, protocolVersion: protocolVersion, cipherSuite: cipherSuite)
-    
-case "server":
-    server()
+        case .server:
+            server(port: port, certificatePath: certificatePath!, dhParametersPath: dhParameters, cipherSuite: cipherSuite)
+        }
+    }
     
 case "probeCiphers":
     guard Process.arguments.count > 2 else {
