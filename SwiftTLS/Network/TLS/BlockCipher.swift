@@ -224,7 +224,7 @@ class BlockCipher
         let isDecrypting = !encrypt
         
         var hBlock = MemoryBlock(blockSize: blockSize)
-        cryptorUpdate(inputBlock: hBlock, outputBlock: &hBlock)
+        _ = cryptorUpdate(inputBlock: hBlock, outputBlock: &hBlock)
         let H = GF2_128_Element(hBlock.block)!
         
         var IV : [UInt8]

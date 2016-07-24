@@ -55,7 +55,7 @@ struct RSA
 
                 let algorithmIdentifier = (sequence.objects[1] as! ASN1Sequence)
                 let algorithm = (algorithmIdentifier.objects[0] as! ASN1ObjectIdentifier).identifier
-                guard let oid = OID(id: algorithm) where oid == .rsaEncryption else {
+                guard let oid = OID(id: algorithm), oid == .rsaEncryption else {
                     return nil
                 }
                 
@@ -223,9 +223,7 @@ struct RSA
         guard let sequence = ASN1Parser(data: unpaddedVerification).parseObject() as? ASN1Sequence, sequence.objects.count == 2 else {
             return false
         }
-        
-        ASN1_printObject(sequence)
-        
+
         guard let subSequence = sequence.objects[0] as? ASN1Sequence, subSequence.objects.count >= 1 else {
             return false
         }

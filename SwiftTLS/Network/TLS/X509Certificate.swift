@@ -257,8 +257,6 @@ struct X509
             
             guard let certificate = ASN1Parser(data:derData).parseObject() as? ASN1Sequence else { return nil }
             guard certificate.objects.count == 3 else { return nil }
-
-            ASN1_printObject(certificate)
             
             guard let asn1tbsCertificate        = certificate.objects[0] as? ASN1Sequence  else { return nil }
             guard let asn1signatureAlgorithm    = certificate.objects[1] as? ASN1Sequence  else { return nil }

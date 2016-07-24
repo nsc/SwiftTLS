@@ -33,13 +33,11 @@ class TSLTests: XCTestCase {
 //        configuration.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256]
         let socket = TLSSocket(configuration: configuration)
 
-//        let (host, port) = ("195.50.155.66", 443)
-//        let (host, port) = ("85.13.145.53", 443) // nschmidt.name
         let (host, port) = ("127.0.0.1", 4433)
         
         do {
             try socket.connect(IPAddress.addressWithString(host, port: port)!)
-            try socket.write([UInt8]("GET / HTTP/1.1\r\nHost: nschmidt.name\r\n\r\n".utf8))
+            try socket.write([UInt8]("GET / HTTP/1.1\r\nHost: example.com\r\n\r\n".utf8))
             let data = try socket.read(count: 100)
             print("\(String.fromUTF8Bytes(data))")
             socket.close()
@@ -58,7 +56,6 @@ class TSLTests: XCTestCase {
         var configuration = TLSConfiguration(protocolVersion: .v1_2)
         
         configuration.cipherSuites = [cipherSuite]
-//        configuration.identity = Identity(name: "Internet Widgits Pty Ltd")!
         configuration.identity = PEMFileIdentity(pemFile: Bundle(for: self.dynamicType).urlForResource("mycert.pem", withExtension: nil)!.path!)
         let dhParametersPath = Bundle(for: self.dynamicType).urlForResource("dhparams.pem", withExtension: nil)!.path!
         configuration.dhParameters = DiffieHellmanParameters.fromPEMFile(dhParametersPath)
@@ -109,7 +106,7 @@ class TSLTests: XCTestCase {
 //            .TLS_RSA_WITH_AES_256_CBC_SHA,
 //            .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
 //            .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-            .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+//            .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
             .TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
         ]
         

@@ -457,9 +457,6 @@ public class ASN1Parser
             let base64string = try String(contentsOfFile: PEMFile, encoding: String.Encoding.utf8)
             
             for (sectionName, base64) in base64Blocks(with: base64string) {
-                // FIXME: the option here is obviously bullshit, but currently Data has only a bogus
-                // constructor taking encoding options instead of decoding options and this is the numerical
-                // equivalent, i.e. the raw value is 0
                 if let data = Data(base64Encoded: base64, options: .ignoreUnknownCharacters) {
                     
                     data.withUnsafeBytes { (bytes: UnsafePointer<UInt8>) -> () in

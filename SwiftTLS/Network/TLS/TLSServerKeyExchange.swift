@@ -192,9 +192,6 @@ class TLSServerKeyExchange : TLSHandshakeMessage
             
             case .ecdhe(let ecdhParameters):
                 return DataBuffer(ecdhParameters).buffer
-
-            default:
-                fatalError("Neither DH nor ECDH parameters in server key exchange")
             }
         }
     }

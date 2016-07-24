@@ -26,7 +26,7 @@ class TLSServerHelloTests: XCTestCase {
     func test_writeTo__givesCorrectBinaryRepresentation() {
         let random = Random()
         let clientHello = TLSServerHello(
-            serverVersion: TLSProtocolVersion.v1_0,
+            serverVersion: TLSProtocolVersion.v1_2,
             random: random,
             sessionID: nil,
             cipherSuite: .TLS_RSA_WITH_RC4_128_SHA,
@@ -35,7 +35,7 @@ class TLSServerHelloTests: XCTestCase {
         var buffer = DataBuffer()
         clientHello.writeTo(&buffer)
         
-        var expectedData = [UInt8]([TLSHandshakeType.serverHello.rawValue, 0, 0, 38, 3, 1])
+        var expectedData = [UInt8]([TLSHandshakeType.serverHello.rawValue, 0, 0, 38, 3, 3])
         var randomData = DataBuffer()
         random.writeTo(&randomData)
         expectedData.append(contentsOf: randomData.buffer)
