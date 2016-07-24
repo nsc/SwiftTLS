@@ -69,6 +69,8 @@ public class TLSRecordLayer
     var protocolVersion: TLSProtocolVersion
     var isClient : Bool
     
+    var bufferedMessages: [TLSMessage]?
+    
     private var currentReadEncryptionParameters  : EncryptionParameters?
     private var pendingReadEncryptionParameters  : EncryptionParameters?
     private var currentWriteEncryptionParameters : EncryptionParameters?
@@ -259,9 +261,16 @@ public class TLSRecordLayer
     }
 
     
-    
     func readMessage() throws -> TLSMessage
     {
+        if let bufferedMessages = self.bufferedMessages {
+            if bufferedMessages.count > 0 {
+                let resultMessage = bufferedMessages[0]
+                self.bufferedMessages = [TLSMessage](bufferedMessages[1 ..< bufferedMessages.count])
+                
+                return resultMessage
+            }
+        }
         let headerProbeLength = TLSRecord.headerProbeLength
         
         let header = try self.dataProvider!.readData(count: headerProbeLength)
@@ -287,34 +296,41 @@ public class TLSRecordLayer
             messageBody = body
         }
         
-        let message : TLSMessage?
-        switch (contentType)
-        {
-        case .changeCipherSpec:
-            message = TLSChangeCipherSpec(inputStream: BinaryInputStream(messageBody), context: self.context!)
+        var messages: [TLSMessage] = []
+        
+        while messageBody.count > 0 {
+            let message : TLSMessage?
+            switch (contentType)
+            {
+            case .changeCipherSpec:
+                message = TLSChangeCipherSpec(inputStream: BinaryInputStream(messageBody), context: self.context!)
+                messageBody = []
+                
+            case .alert:
+                message = TLSAlertMessage.alertFromData(messageBody, context: self.context!)
+                messageBody = []
+                
+            case .handshake:
+                let result = TLSHandshakeMessage.handshakeMessageFromData(messageBody, context: self.context!)
+                message = result.0
+                messageBody = result.1 ?? []
+                
+            case .applicationData:
+                message = TLSApplicationData(applicationData: messageBody)
+                messageBody = []
+            }
             
-        case .alert:
-            message = TLSAlertMessage.alertFromData(messageBody, context: self.context!)
-            
-        case .handshake:
-            message = TLSHandshakeMessage.handshakeMessageFromData(messageBody, context: self.context!)
-            
-        case .applicationData:
-            return TLSApplicationData(applicationData: messageBody)
+            if let message = message {
+                messages.append(message)
+            }
+            else {
+                throw TLSError.error("Could not create TLSMessage")
+            }
         }
         
-        if let message = message {
-            
-            var messageBuffer = DataBuffer()
-            message.writeTo(&messageBuffer)
-
-//            assert(messageBody == messageBuffer.buffer)
-            
-            return message
-        }
-        else {
-            throw TLSError.error("Could not create TLSMessage")
-        }
+        let resultMessage = messages[0]
+        self.bufferedMessages = [TLSMessage](messages[1 ..< messages.count])
+        return resultMessage
     }
 
     private func MACHeader(forContentType contentType: ContentType, dataLength: Int, isRead: Bool) -> [UInt8]? {
