@@ -840,8 +840,7 @@ public class TLSContext
             return output
         }
         else {
-            return P_hash(HMAC_SHA256, secret: secret, seed: label + seed, outputLength: outputLength)
-//            return P_hash(self.hmac!, secret: secret, seed: label + seed, outputLength: outputLength)
+            return P_hash(self.hmac!, secret: secret, seed: label + seed, outputLength: outputLength)
         }
     }
     
@@ -883,6 +882,7 @@ public class TLSContext
 
         self.securityParameters.bulkCipherAlgorithm = cipherAlgorithm
         self.securityParameters.blockCipherMode     = cipherSuiteDescriptor.blockCipherMode
+        self.securityParameters.cipherType          = cipherSuiteDescriptor.cipherType
         self.securityParameters.encodeKeyLength     = cipherAlgorithm.keySize
         self.securityParameters.blockLength         = cipherAlgorithm.blockSize
         self.securityParameters.fixedIVLength       = cipherSuiteDescriptor.fixedIVLength

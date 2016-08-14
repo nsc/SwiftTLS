@@ -80,15 +80,16 @@ public class TLSRecordLayer
         didSet {
             if let s = pendingSecurityParameters, let hmac = s.hmac {
                 
-                let numberOfKeyMaterialBytes = 2 * (hmac.size + s.encodeKeyLength + s.fixedIVLength)
+                let hmacSize = s.cipherType == .aead ? 0 : hmac.size
+                let numberOfKeyMaterialBytes = 2 * (hmacSize + s.encodeKeyLength + s.fixedIVLength)
                 var keyBlock = self.context!.PRF(secret: s.masterSecret!, label: TLSKeyExpansionLabel, seed: s.serverRandom! + s.clientRandom!, outputLength: numberOfKeyMaterialBytes)
                 
                 var index = 0
-                let clientWriteMACKey = [UInt8](keyBlock[index..<index + hmac.size])
-                index += hmac.size
+                let clientWriteMACKey = [UInt8](keyBlock[index..<index + hmacSize])
+                index += hmacSize
                 
-                let serverWriteMACKey = [UInt8](keyBlock[index..<index + hmac.size])
-                index += hmac.size
+                let serverWriteMACKey = [UInt8](keyBlock[index..<index + hmacSize])
+                index += hmacSize
                 
                 let clientWriteKey = [UInt8](keyBlock[index..<index + s.encodeKeyLength])
                 index += s.encodeKeyLength
