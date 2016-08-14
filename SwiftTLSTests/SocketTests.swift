@@ -30,7 +30,7 @@ class SocketTests: XCTestCase {
         
         let expectation = self.expectation(description: "accept connection successfully")
 
-        DispatchQueue.global(attributes: DispatchQueue.GlobalAttributes.qosDefault).async {
+        DispatchQueue.global().async {
             do {
                 _ = try server.acceptConnection(address)
                 
@@ -50,7 +50,7 @@ class SocketTests: XCTestCase {
                 
                 client.close()
                 
-                self.waitForExpectations(timeout: 50.0, handler: { (error : NSError?) -> Void in
+                self.waitForExpectations(timeout: 50.0, handler: { (error : Error?) -> Void in
                 })
             }
             catch let error as SocketError {

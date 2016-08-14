@@ -51,7 +51,7 @@ public func modular_pow(_ base : BigInt, _ exponent : BigInt, _ mod : BigInt) ->
     return result
 }
 
-func gcd<T : IntegerArithmetic where T : IntegerLiteralConvertible>(_ x : T, _ y : T) -> T
+func gcd<T : IntegerArithmetic where T : ExpressibleByIntegerLiteral>(_ x : T, _ y : T) -> T
 {
     var g : T = y
     
@@ -67,7 +67,7 @@ func gcd<T : IntegerArithmetic where T : IntegerLiteralConvertible>(_ x : T, _ y
     return g
 }
 
-func extended_euclid<T : IntegerArithmetic where T : IntegerLiteralConvertible>(z : T, a : T) -> T
+func extended_euclid<T : IntegerArithmetic where T : ExpressibleByIntegerLiteral>(z : T, a : T) -> T
 {
     var i = a
     var j = z
@@ -92,7 +92,7 @@ func extended_euclid<T : IntegerArithmetic where T : IntegerLiteralConvertible>(
     return y2 % a
 }
 
-public func modular_inverse<T : IntegerArithmetic where T : IntegerLiteralConvertible>(_ x : T, _ y : T, mod : T) -> T
+public func modular_inverse<T : IntegerArithmetic where T : ExpressibleByIntegerLiteral>(_ x : T, _ y : T, mod : T) -> T
 {
     let x = x > 0 ? x : x + mod
     let y = y > 0 ? y : y + mod
@@ -106,7 +106,9 @@ public func modular_inverse<T : IntegerArithmetic where T : IntegerLiteralConver
         result = result + mod
     }
     
-    assert(((y + mod) * result) % mod == (x + mod) % mod)
+    let lhs = ((y + mod) * result) % mod
+    let rhs = (x + mod) % mod
+    assert(lhs == rhs)
     
     return result
 }

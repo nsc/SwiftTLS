@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import CommonCrypto
 
 public enum CompressionMethod : UInt8 {
     case null = 0
@@ -81,7 +82,7 @@ struct TLSSignedData : Streamable
     }
 }
 
-enum TLSError : ErrorProtocol
+enum TLSError : Error
 {
     case error(String)
     case alert(alert : TLSAlert, alertLevel : TLSAlertLevel)
@@ -114,12 +115,37 @@ enum BlockCipherMode {
 }
 
 enum MACAlgorithm {
-    case null
+//    case null
     case hmac_md5
     case hmac_sha1
     case hmac_sha256
     case hmac_sha384
     case hmac_sha512
+    
+    var size: Int {
+        get {
+            switch self {
+//            case .null:
+//                fatalError("Null MAC has no size")
+
+            case .hmac_md5:
+                return Int(CC_MD5_DIGEST_LENGTH)
+            
+            case .hmac_sha1:
+                return Int(CC_SHA1_DIGEST_LENGTH)
+
+            case .hmac_sha256:
+                return Int(CC_SHA256_DIGEST_LENGTH)
+
+            case .hmac_sha384:
+                return Int(CC_SHA384_DIGEST_LENGTH)
+            
+            case .hmac_sha512:
+                return Int(CC_SHA512_DIGEST_LENGTH)
+                
+            }
+        }
+    }
 }
 
 enum CipherAlgorithm
@@ -180,7 +206,7 @@ class TLSSecurityParameters
     var blockLength : Int = 0
     var fixedIVLength : Int = 0
     var recordIVLength : Int = 0
-    var hmacDescriptor : HMACDescriptor? = nil
+    var hmac : MACAlgorithm? = nil
     var masterSecret : [UInt8]? = nil
     var clientRandom : [UInt8]? = nil
     var serverRandom : [UInt8]? = nil
@@ -510,7 +536,7 @@ public class TLSContext
             
             if self.cipherSuite == nil {
                 try self.sendAlert(.handshakeFailure, alertLevel: .fatal)
-                throw TLSError.error("No shared cipher suites. Client supports:" + clientHello.cipherSuites.map({"\($0)"}).reduce("", combine: {$0 + "\n" + $1}))
+                throw TLSError.error("No shared cipher suites. Client supports:" + clientHello.cipherSuites.map({"\($0)"}).reduce("", {$0 + "\n" + $1}))
             }
             else {
                 print("Selected cipher suite is \(self.cipherSuite!)")
@@ -610,7 +636,7 @@ public class TLSContext
             clientHello.extensions.append(TLSServerNameExtension(serverNames: self.hostNames!))
         }
         
-        if self.configuration.cipherSuites.contains({ if let descriptor = TLSCipherSuiteDescriptorForCipherSuite($0) { return descriptor.keyExchangeAlgorithm == .ecdhe} else { return false } }) {
+        if self.configuration.cipherSuites.contains(where: { if let descriptor = TLSCipherSuiteDescriptorForCipherSuite($0) { return descriptor.keyExchangeAlgorithm == .ecdhe} else { return false } }) {
             clientHello.extensions.append(TLSEllipticCurvesExtension(ellipticCurves: [.secp256r1, .secp521r1]))
             clientHello.extensions.append(TLSEllipticCurvePointFormatsExtension(ellipticCurvePointFormats: [.uncompressed]))
         }
@@ -814,7 +840,8 @@ public class TLSContext
             return output
         }
         else {
-            return P_hash(self.hmac!, secret: secret, seed: label + seed, outputLength: outputLength)
+            return P_hash(HMAC_SHA256, secret: secret, seed: label + seed, outputLength: outputLength)
+//            return P_hash(self.hmac!, secret: secret, seed: label + seed, outputLength: outputLength)
         }
     }
     
@@ -860,7 +887,7 @@ public class TLSContext
         self.securityParameters.blockLength         = cipherAlgorithm.blockSize
         self.securityParameters.fixedIVLength       = cipherSuiteDescriptor.fixedIVLength
         self.securityParameters.recordIVLength      = cipherSuiteDescriptor.recordIVLength
-        self.securityParameters.hmacDescriptor      = cipherSuiteDescriptor.hmacDescriptor
+        self.securityParameters.hmac                = cipherSuiteDescriptor.hmac
         
         let isAEAD = (self.securityParameters.cipherType == .aead)
 
@@ -869,7 +896,7 @@ public class TLSContext
             self.hmac = HMAC_SHA256
         }
         else {
-            switch self.securityParameters.hmacDescriptor!.algorithm {
+            switch self.securityParameters.hmac! {
             case .hmac_sha256:
                 self.hmac = HMAC_SHA256
                 

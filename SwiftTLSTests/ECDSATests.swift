@@ -13,7 +13,7 @@ class ECDSATests: XCTestCase {
 
     func test_verify_signatureFromSelfSignedECDSACertificate_verifies()
     {
-        let certificatePath = Bundle(for: self.dynamicType).pathForResource("Self Signed ECDSA Certificate.cer", ofType: "")!
+        let certificatePath = Bundle(for: self.dynamicType).path(forResource: "Self Signed ECDSA Certificate.cer", ofType: "")!
         let data = (try! Data(contentsOf: URL(fileURLWithPath: certificatePath))).UInt8Array()
         
         guard let cert = X509.Certificate(derData: data) else { XCTFail(); return }
@@ -22,7 +22,6 @@ class ECDSATests: XCTestCase {
         let publicKeyInfo   = cert.tbsCertificate.subjectPublicKeyInfo
         
         let ecdsa = ECDSA(publicKeyInfo: publicKeyInfo)!
-        cert.signatureAlgorithm
         let verified = ecdsa.verify(signature: cert.signatureValue.bits, data: Hash_SHA256(tbsData))
         
         XCTAssertTrue(verified)

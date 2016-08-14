@@ -768,12 +768,8 @@ public func ASN1_printObject(_ object: ASN1Object, depth : Int = 0)
     case let object as ASN1Time:
         print("\(object.dynamicType) \(object.string)")
         
-    case _ as ASN1Object:
-        print("Unhandled \(object)")
-        
     default:
-        print("")
-        break
+        print("Unhandled \(object)")
     }
 }
 
@@ -783,8 +779,8 @@ func base64Blocks(with base64String : String) -> [(String,String)]
     
     var result: [(String, String)] = []
     
-    let beginRegEx = try! RegularExpression(pattern: "-----BEGIN (.*)-----\\R")
-    let endRegEx = try! RegularExpression(pattern: "-----END (.*)-----\\R")
+    let beginRegEx = try! NSRegularExpression(pattern: "-----BEGIN (.*)-----\\R")
+    let endRegEx = try! NSRegularExpression(pattern: "-----END (.*)-----\\R")
     
     while true {
         guard let beginMatch = beginRegEx.firstMatch(in: base64String, options: [], range: NSMakeRange(0, base64String.utf8.count)) else {
@@ -792,7 +788,7 @@ func base64Blocks(with base64String : String) -> [(String,String)]
         }
         
         let beginRange = beginMatch.range
-        let nameRange = beginMatch.range(at: 1)
+        let nameRange = beginMatch.rangeAt(1)
         
         let name = (base64String as NSString).substring(with: nameRange)
         guard let endMatch = endRegEx.firstMatch(in: base64String, options: [], range: NSMakeRange(0, base64String.utf8.count)) else {

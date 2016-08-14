@@ -8,7 +8,7 @@
 import Foundation
 import SwiftHelper
 
-public enum SocketError : CustomStringConvertible, ErrorProtocol {
+public enum SocketError : CustomStringConvertible, Error {
     case posixError(errno : Int32)
     
     case closed

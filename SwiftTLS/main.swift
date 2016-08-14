@@ -187,7 +187,7 @@ guard Process.arguments.count >= 2 else {
 
 let command = Process.arguments[1]
 
-enum Error : ErrorProtocol
+enum MyError : Error
 {
     case Error(String)
 }
@@ -236,7 +236,7 @@ case "server":
             {
             case "--TLSVersion":
                 if Process.arguments.count <= argumentIndex {
-                    throw Error.Error("Missing argument for --TLSVersion")
+                    throw MyError.Error("Missing argument for --TLSVersion")
                 }
                 
                 var argument = Process.arguments[argumentIndex]
@@ -254,14 +254,14 @@ case "server":
                     protocolVersion = .v1_2
                     
                 default:
-                    throw Error.Error("\(argument) is not a valid TLS version")
+                    throw MyError.Error("\(argument) is not a valid TLS version")
                 }
                 
                 continue
 
             case "--cipherSuite":
                 if Process.arguments.count <= argumentIndex {
-                    throw Error.Error("Missing argument for --cipherSuite")
+                    throw MyError.Error("Missing argument for --cipherSuite")
                 }
                 
                 var argument = Process.arguments[argumentIndex]
@@ -280,7 +280,7 @@ case "server":
                 {
                 case "--port":
                     if Process.arguments.count <= argumentIndex {
-                        throw Error.Error("Missing argument for --port")
+                        throw MyError.Error("Missing argument for --port")
                     }
                     
                     var argument = Process.arguments[argumentIndex]
@@ -292,7 +292,7 @@ case "server":
                 
                 case "--certificate":
                     if Process.arguments.count <= argumentIndex {
-                        throw Error.Error("Missing argument for --certificate")
+                        throw MyError.Error("Missing argument for --certificate")
                     }
                     
                     var argument = Process.arguments[argumentIndex]
@@ -302,7 +302,7 @@ case "server":
                 
                 case "--dhParameters":
                     if Process.arguments.count <= argumentIndex {
-                        throw Error.Error("Missing argument for --dhParameters")
+                        throw MyError.Error("Missing argument for --dhParameters")
                     }
                     
                     var argument = Process.arguments[argumentIndex]
@@ -322,7 +322,7 @@ case "server":
                 {
                 case "--connect":
                     if Process.arguments.count <= argumentIndex {
-                        throw Error.Error("Missing argument for --connect")
+                        throw MyError.Error("Missing argument for --connect")
                     }
                     
                     var argument = Process.arguments[argumentIndex]
@@ -332,7 +332,7 @@ case "server":
                         let components = argument.components(separatedBy: ":")
                         host = components[0]
                         guard let p = Int(components[1]), p > 0 && p < 65536 else {
-                            throw Error.Error("\(components[1]) is not a valid port number")
+                            throw MyError.Error("\(components[1]) is not a valid port number")
                         }
                         
                         port = p
@@ -349,7 +349,7 @@ case "server":
             }
         }
     }
-    catch Error.Error(let message) {
+    catch MyError.Error(let message) {
         print("Error: \(message)")
         exit(1)
     }
@@ -396,7 +396,7 @@ case "probeCiphers":
             {
             case "--TLSVersion":
                 if Process.arguments.count <= argumentIndex {
-                    throw Error.Error("Missing argument for --TLSVersion")
+                    throw MyError.Error("Missing argument for --TLSVersion")
                 }
                 
                 var argument = Process.arguments[argumentIndex]
@@ -414,7 +414,7 @@ case "probeCiphers":
                     protocolVersion = .v1_2
                     
                 default:
-                    throw Error.Error("\(argument) is not a valid TLS version")
+                    throw MyError.Error("\(argument) is not a valid TLS version")
                 }
                 
             default:
@@ -422,7 +422,7 @@ case "probeCiphers":
                     let components = argument.components(separatedBy: ":")
                     host = components[0]
                     guard let p = Int(components[1]), p > 0 && p < 65536 else {
-                        throw Error.Error("\(components[1]) is not a valid port number")
+                        throw MyError.Error("\(components[1]) is not a valid port number")
                     }
                     
                     port = p
@@ -433,7 +433,7 @@ case "probeCiphers":
             }
         }
     }
-    catch Error.Error(let message) {
+    catch MyError.Error(let message) {
         print("Error: \(message)")
         exit(1)
     }

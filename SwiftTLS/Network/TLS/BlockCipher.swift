@@ -305,7 +305,7 @@ class BlockCipher
         }
 
         var authTag = MemoryBlock(blockSize: 16)
-        cryptorUpdate(inputBlock: Y0, outputBlock: &authTag)
+        _ = cryptorUpdate(inputBlock: Y0, outputBlock: &authTag)
         authTag ^= MemoryBlock(mac.hi.bigEndianByteArray() + mac.lo.bigEndianByteArray())
         self.authTag = authTag.block
         

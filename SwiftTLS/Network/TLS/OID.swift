@@ -168,7 +168,7 @@ enum OID : String
             return nil
         }
         
-        let identifier = id[1..<id.count].reduce("\(id[0])", combine: {$0 + ".\($1)"})
+        let identifier = id[1..<id.count].reduce("\(id[0])", {$0 + ".\($1)"})
         if let oid = OID(rawValue: identifier) {
             self = oid
         }

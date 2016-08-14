@@ -39,37 +39,37 @@ enum NamedCurve : UInt16 {
     var bitLength : Int {
         get {
             switch self {
-            case secp160k1:
+            case .secp160k1:
                 return 160
                 
-            case secp160r1:
+            case .secp160r1:
                 return 160
                 
-            case secp160r2:
+            case .secp160r2:
                 return 160
                 
-            case secp192k1:
+            case .secp192k1:
                 return 192
 
-            case secp192r1:
+            case .secp192r1:
                 return 192
                 
-            case secp224k1:
+            case .secp224k1:
                 return 224
                 
-            case secp224r1:
+            case .secp224r1:
                 return 224
             
-            case secp256k1:
+            case .secp256k1:
                 return 256
 
-            case secp256r1:
+            case .secp256r1:
                 return 256
                 
-            case secp384r1:
+            case .secp384r1:
                 return 384
                 
-            case secp521r1:
+            case .secp521r1:
                 return 521
 
             default:

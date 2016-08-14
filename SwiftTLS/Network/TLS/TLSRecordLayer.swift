@@ -12,7 +12,7 @@ import CommonCrypto
 let TLSKeyExpansionLabel = [UInt8]("key expansion".utf8)
 
 class EncryptionParameters {
-    var hmacDescriptor : HMACDescriptor
+    var hmac : MACAlgorithm
     var bulkCipherAlgorithm : CipherAlgorithm
     var cipherType : CipherType
     var blockCipherMode : BlockCipherMode?
@@ -24,7 +24,7 @@ class EncryptionParameters {
     var fixedIV      : [UInt8]
     var sequenceNumber : UInt64
     
-    init(hmacDescriptor: HMACDescriptor,
+    init(hmac: MACAlgorithm,
          MACKey: [UInt8],
          bulkCipherAlgorithm: CipherAlgorithm,
          blockCipherMode: BlockCipherMode? = nil,
@@ -35,7 +35,7 @@ class EncryptionParameters {
          fixedIV: [UInt8],
          sequenceNumber: UInt64 = UInt64(0))
     {
-        self.hmacDescriptor = hmacDescriptor
+        self.hmac = hmac
         self.bulkCipherAlgorithm = bulkCipherAlgorithm
         self.blockCipherMode = blockCipherMode
         
@@ -78,17 +78,17 @@ public class TLSRecordLayer
 
     var pendingSecurityParameters  : TLSSecurityParameters? {
         didSet {
-            if let s = pendingSecurityParameters, let hmacDescriptor = s.hmacDescriptor {
+            if let s = pendingSecurityParameters, let hmac = s.hmac {
                 
-                let numberOfKeyMaterialBytes = 2 * (hmacDescriptor.size + s.encodeKeyLength + s.fixedIVLength)
+                let numberOfKeyMaterialBytes = 2 * (hmac.size + s.encodeKeyLength + s.fixedIVLength)
                 var keyBlock = self.context!.PRF(secret: s.masterSecret!, label: TLSKeyExpansionLabel, seed: s.serverRandom! + s.clientRandom!, outputLength: numberOfKeyMaterialBytes)
                 
                 var index = 0
-                let clientWriteMACKey = [UInt8](keyBlock[index..<index + hmacDescriptor.size])
-                index += hmacDescriptor.size
+                let clientWriteMACKey = [UInt8](keyBlock[index..<index + hmac.size])
+                index += hmac.size
                 
-                let serverWriteMACKey = [UInt8](keyBlock[index..<index + hmacDescriptor.size])
-                index += hmacDescriptor.size
+                let serverWriteMACKey = [UInt8](keyBlock[index..<index + hmac.size])
+                index += hmac.size
                 
                 let clientWriteKey = [UInt8](keyBlock[index..<index + s.encodeKeyLength])
                 index += s.encodeKeyLength
@@ -106,7 +106,7 @@ public class TLSRecordLayer
                 var writeEncryptionParameters : EncryptionParameters
                 
                 if self.isClient {
-                    readEncryptionParameters  = EncryptionParameters(hmacDescriptor: hmacDescriptor,
+                    readEncryptionParameters  = EncryptionParameters(hmac: hmac,
                         MACKey: serverWriteMACKey,
                         bulkCipherAlgorithm: s.bulkCipherAlgorithm!,
                         blockCipherMode: s.blockCipherMode,
@@ -116,7 +116,7 @@ public class TLSRecordLayer
                         recordIVLength: s.recordIVLength,
                         fixedIV: serverWriteIV)
                     
-                    writeEncryptionParameters = EncryptionParameters(hmacDescriptor: hmacDescriptor,
+                    writeEncryptionParameters = EncryptionParameters(hmac: hmac,
                         MACKey: clientWriteMACKey,
                         bulkCipherAlgorithm: s.bulkCipherAlgorithm!,
                         blockCipherMode: s.blockCipherMode,
@@ -127,7 +127,7 @@ public class TLSRecordLayer
                         fixedIV: clientWriteIV)
                 }
                 else {
-                    readEncryptionParameters  = EncryptionParameters(hmacDescriptor: hmacDescriptor,
+                    readEncryptionParameters  = EncryptionParameters(hmac: hmac,
                         MACKey: clientWriteMACKey,
                         bulkCipherAlgorithm: s.bulkCipherAlgorithm!,
                         blockCipherMode: s.blockCipherMode,
@@ -137,7 +137,7 @@ public class TLSRecordLayer
                         recordIVLength: s.recordIVLength,
                         fixedIV: clientWriteIV)
                     
-                    writeEncryptionParameters = EncryptionParameters(hmacDescriptor: hmacDescriptor,
+                    writeEncryptionParameters = EncryptionParameters(hmac: hmac,
                         MACKey: serverWriteMACKey,
                         bulkCipherAlgorithm: s.bulkCipherAlgorithm!,
                         blockCipherMode: s.blockCipherMode,
@@ -355,7 +355,7 @@ public class TLSRecordLayer
     private func calculateMAC(secret : [UInt8], data : [UInt8], isRead : Bool) -> [UInt8]?
     {
         var HMAC : (secret : [UInt8], data : [UInt8]) -> [UInt8]
-        if let algorithm = isRead ? self.currentReadEncryptionParameters?.hmacDescriptor.algorithm : self.currentWriteEncryptionParameters?.hmacDescriptor.algorithm {
+        if let algorithm = isRead ? self.currentReadEncryptionParameters?.hmac : self.currentWriteEncryptionParameters?.hmac {
             switch (algorithm)
             {
             case .hmac_md5:
@@ -372,9 +372,6 @@ public class TLSRecordLayer
 
             case .hmac_sha512:
                 HMAC = HMAC_SHA512
-
-            case .null:
-                return nil
             }
         }
         else {
@@ -461,7 +458,7 @@ public class TLSRecordLayer
                     return message
                 }
                 
-                let hmacLength = encryptionParameters.hmacDescriptor.size
+                let hmacLength = encryptionParameters.hmac.size
                 var messageLength = message.count - hmacLength
                 
                 if encryptionParameters.blockLength > 0 {

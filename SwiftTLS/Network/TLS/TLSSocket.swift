@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum TLSSocketError : ErrorProtocol {
+enum TLSSocketError : Error {
     case error
 }
 
@@ -85,10 +85,16 @@ extension OutputStreamType
     }
     
     func write(_ data : UInt64) {
-        self.write([
-            UInt8((data >> 56) & 0xff), UInt8((data >> 48) & 0xff), UInt8((data >> 40) & 0xff), UInt8((data >> 32) & 0xff),
-            UInt8((data >> 24) & 0xff), UInt8((data >> 16) & 0xff), UInt8((data >>  8) & 0xff), UInt8((data >>  0) & 0xff)
-            ])
+        let a = UInt8((data >> 56) & 0xff)
+        let b = UInt8((data >> 48) & 0xff)
+        let c = UInt8((data >> 40) & 0xff)
+        let d = UInt8((data >> 32) & 0xff)
+        let e = UInt8((data >> 24) & 0xff)
+        let f = UInt8((data >> 16) & 0xff)
+        let g = UInt8((data >>  8) & 0xff)
+        let h = UInt8((data >>  0) & 0xff)
+
+        self.write([a, b, c, d, e, f, g, h])
     }
     
     func writeUInt24(_ value : Int)
