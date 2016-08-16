@@ -107,7 +107,6 @@
 		036058E71C944A9B004200CD /* GaloisField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03D3163F1C833D5E00341720 /* GaloisField.swift */; };
 		03686BF11D26BED400CF88E2 /* Self Signed RSA SHA-256.cer in Resources */ = {isa = PBXBuildFile; fileRef = 03686BF01D26BED400CF88E2 /* Self Signed RSA SHA-256.cer */; };
 		03686BF31D26E45100CF88E2 /* mycert2.pem in Resources */ = {isa = PBXBuildFile; fileRef = 03686BF21D26E45100CF88E2 /* mycert2.pem */; };
-		03686BF51D270AE400CF88E2 /* rfc3447.txt in Resources */ = {isa = PBXBuildFile; fileRef = 03686BF41D270AE400CF88E2 /* rfc3447.txt */; };
 		036A7C141B07C26800AE46F8 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 036A7C131B07C26800AE46F8 /* Security.framework */; };
 		036D9FFD1BA45EA4008B2AF1 /* CBigInt.h in Headers */ = {isa = PBXBuildFile; fileRef = 036D9FFB1BA45EA4008B2AF1 /* CBigInt.h */; };
 		036D9FFE1BA49091008B2AF1 /* CBigInt.c in Sources */ = {isa = PBXBuildFile; fileRef = 036D9FFA1BA45EA4008B2AF1 /* CBigInt.c */; };
@@ -219,7 +218,6 @@
 		03C69C7B1D27E3F5007BC1C7 /* PEMFileIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03C69C7A1D27E3F5007BC1C7 /* PEMFileIdentity.swift */; };
 		03C69C7E1D27F272007BC1C7 /* Identity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03C69C781D27E069007BC1C7 /* Identity.swift */; };
 		03C69C7F1D27F277007BC1C7 /* PEMFileIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03C69C7A1D27E3F5007BC1C7 /* PEMFileIdentity.swift */; };
-		03CA26821CE725CF006CA889 /* rfc5288.txt in Resources */ = {isa = PBXBuildFile; fileRef = 03CA26811CE725CF006CA889 /* rfc5288.txt */; };
 		03D0469B1C6E514400173FD8 /* BlockCipher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03D0469A1C6E514400173FD8 /* BlockCipher.swift */; };
 		03D0469C1C6E514400173FD8 /* BlockCipher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03D0469A1C6E514400173FD8 /* BlockCipher.swift */; };
 		03FA94A21B9E1A0500F08FB8 /* SwiftTLS.h in Headers */ = {isa = PBXBuildFile; fileRef = 03FA94A11B9E1A0500F08FB8 /* SwiftTLS.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -448,6 +446,8 @@
 		0372CA8F1B94D69E00B567D5 /* TLSCipherSuites.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSCipherSuites.swift; sourceTree = "<group>"; };
 		0374FA1D1D01D1C4008781E7 /* TODO */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TODO; sourceTree = "<group>"; };
 		0374FE3C1B6E42E8003DD557 /* DHKeyExchange.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DHKeyExchange.swift; sourceTree = "<group>"; };
+		037FC47F1D623B0D009049EC /* rfc5116.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = rfc5116.txt; sourceTree = "<group>"; };
+		037FC4911D623B8F009049EC /* rfc5289.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = rfc5289.txt; sourceTree = "<group>"; };
 		0388080C1C314C2A002AD784 /* TLSConfiguration.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSConfiguration.swift; sourceTree = "<group>"; };
 		038AEE761ADAC06100DDFA8F /* TLSCipherSuiteDescriptions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSCipherSuiteDescriptions.swift; sourceTree = "<group>"; };
 		038F68541C428F1000C66050 /* OIDTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = OIDTests.swift; sourceTree = "<group>"; };
@@ -565,9 +565,11 @@
 				031BAED91C62849A00600133 /* rfc4492.txt */,
 				031BAEDA1C62849A00600133 /* rfc4680.txt */,
 				031BAEDB1C62849A00600133 /* rfc4681.txt */,
+				037FC47F1D623B0D009049EC /* rfc5116.txt */,
 				031BAEDC1C62849A00600133 /* rfc5246.txt */,
 				031BAEDD1C62849A00600133 /* rfc5280.txt */,
 				03CA26811CE725CF006CA889 /* rfc5288.txt */,
+				037FC4911D623B8F009049EC /* rfc5289.txt */,
 				031BAEDE1C62849A00600133 /* rfc5746.txt */,
 				031BAEDF1C62849A00600133 /* rfc6066.txt */,
 				031BAEE01C62849A00600133 /* rfc6176.txt */,
@@ -1042,8 +1044,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				03686BF51D270AE400CF88E2 /* rfc3447.txt in Resources */,
-				03CA26821CE725CF006CA889 /* rfc5288.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

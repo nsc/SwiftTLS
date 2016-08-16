@@ -137,7 +137,10 @@ struct X509
                 
             case .sha256WithRSAEncryption:
                 break
-                
+
+            case .sha384WithRSAEncryption:
+                break
+
             case .rsaEncryption:
                 break
                 

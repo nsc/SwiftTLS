@@ -93,16 +93,15 @@ func xorBy(_ array : inout [UInt8], _ other : [UInt8]) {
 }
 
 /// P_hash function as defined in RFC 2246, section 5, p. 11
-typealias HashFunction = (secret : [UInt8], data : [UInt8]) -> [UInt8]
-func P_hash(_ hashFunction : HashFunction, secret : [UInt8], seed : [UInt8], outputLength : Int) -> [UInt8]
+func P_hash(_ hmacFunction : HMACFunction, secret : [UInt8], seed : [UInt8], outputLength : Int) -> [UInt8]
 {
     var outputData = [UInt8]()
     var A : [UInt8] = seed
     var bytesLeftToWrite = outputLength
     while (bytesLeftToWrite > 0)
     {
-        A = hashFunction(secret: secret, data: A)
-        var output = hashFunction(secret: secret, data: A + seed)
+        A = hmacFunction(secret: secret, data: A)
+        var output = hmacFunction(secret: secret, data: A + seed)
         let bytesFromOutput = min(bytesLeftToWrite, output.count)
         outputData.append(contentsOf: output[0..<bytesFromOutput])
         

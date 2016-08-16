@@ -20,6 +20,28 @@ enum HashAlgorithm : UInt8 {
     case sha256 = 4
     case sha384 = 5
     case sha512 = 6
+    
+    var macAlgorithm: MACAlgorithm {
+        switch self {
+        case .md5:
+            return .hmac_md5
+            
+        case .sha1:
+            return .hmac_sha1
+            
+        case .sha256:
+            return .hmac_sha256
+
+        case .sha384:
+            return .hmac_sha384
+
+        case .sha512:
+            return .hmac_sha512
+
+        default:
+            fatalError("HMAC with hash function \(self) is not supported.")
+        }
+    }
 }
 
 enum SignatureAlgorithm : UInt8 {
@@ -114,6 +136,7 @@ enum BlockCipherMode {
     case gcm
 }
 
+typealias HMACFunction = (secret : [UInt8], data : [UInt8]) -> [UInt8]
 enum MACAlgorithm {
 //    case null
     case hmac_md5
@@ -206,7 +229,7 @@ class TLSSecurityParameters
     var blockLength : Int = 0
     var fixedIVLength : Int = 0
     var recordIVLength : Int = 0
-    var hmac : MACAlgorithm? = nil
+    var hmac: MACAlgorithm? = nil
     var masterSecret : [UInt8]? = nil
     var clientRandom : [UInt8]? = nil
     var serverRandom : [UInt8]? = nil
@@ -275,8 +298,35 @@ public class TLSContext
     var keyExchange : KeyExchange
     
     var signer : Signing?
+
+    var hashAlgorithm: HashAlgorithm = .sha256
     
-    var hmac: HashFunction?
+    typealias HashFunction = ([UInt8]) -> [UInt8]
+    var hashFunction: HashFunction {
+        switch self.hashAlgorithm {
+        case .sha256:
+            return Hash_SHA256
+
+        case .sha384:
+            return Hash_SHA384
+            
+        default:
+            fatalError("Unsupported hash function \(self.hashAlgorithm)")
+        }
+    }
+    
+    var hmac: HMACFunction {
+        switch self.hashAlgorithm {
+        case .sha256:
+            return HMAC_SHA256
+            
+        case .sha384:
+            return HMAC_SHA384
+            
+        default:
+            fatalError("Unsupported HMAC hash function \(self.hashAlgorithm)")
+        }
+    }
     
     private var connectionEstablishedCompletionBlock : ((error : TLSError?) -> ())?
 
@@ -792,7 +842,7 @@ public class TLSContext
             return PRF(secret: self.securityParameters.masterSecret!, label: finishedLabel, seed: seed, outputLength: 12)
         }
         else {
-            let clientHandshake = Hash_SHA256(handshakeData)
+            let clientHandshake = self.hashFunction(handshakeData)
 
             assert(self.securityParameters.masterSecret != nil)
             
@@ -840,7 +890,7 @@ public class TLSContext
             return output
         }
         else {
-            return P_hash(self.hmac!, secret: secret, seed: label + seed, outputLength: outputLength)
+            return P_hash(self.hmac, secret: secret, seed: label + seed, outputLength: outputLength)
         }
     }
     
@@ -887,21 +937,21 @@ public class TLSContext
         self.securityParameters.blockLength         = cipherAlgorithm.blockSize
         self.securityParameters.fixedIVLength       = cipherSuiteDescriptor.fixedIVLength
         self.securityParameters.recordIVLength      = cipherSuiteDescriptor.recordIVLength
-        self.securityParameters.hmac                = cipherSuiteDescriptor.hmac
+        self.securityParameters.hmac                = cipherSuiteDescriptor.hashFunction.macAlgorithm
         
-        let isAEAD = (self.securityParameters.cipherType == .aead)
+        let useConfiguredHashFunctionForPRF = (self.securityParameters.blockCipherMode! == .gcm || cipherSuiteDescriptor.keyExchangeAlgorithm == .ecdhe)
 
-        if !isAEAD {
-            // for non AEAD cipher suites TLS 1.2 uses SHA256 for its PRF
-            self.hmac = HMAC_SHA256
+        if !useConfiguredHashFunctionForPRF {
+            // for non GCM or ECDHE cipher suites TLS 1.2 uses SHA256 for its PRF
+            self.hashAlgorithm = .sha256
         }
         else {
-            switch self.securityParameters.hmac! {
-            case .hmac_sha256:
-                self.hmac = HMAC_SHA256
+            switch cipherSuiteDescriptor.hashFunction {
+            case .sha256:
+                self.hashAlgorithm = .sha256
                 
-            case .hmac_sha384:
-                self.hmac = HMAC_SHA384
+            case .sha384:
+                self.hashAlgorithm = .sha384
                 
             default:
                 fatalError("AEAD cipher suites can only use SHA256 or SHA384")
