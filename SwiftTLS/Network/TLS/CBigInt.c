@@ -247,6 +247,11 @@ const char *CBigIntHexString(const CBigInt *b)
 
 }
 
+void CBigIntHexStringFree(const char *p)
+{
+    free((void *)p);
+}
+
 CBigInt *CBigIntAdd(CBigInt *a, CBigInt *b)
 {
     if (a->sign != b->sign) {
@@ -460,7 +465,8 @@ static void CBigIntShiftLeft(CBigInt *a)
     }
 }
 
-static CBigInt *CBigIntMultiplyByAddAndShift(CBigInt *a, CBigInt *b)
+CBigInt *CBigIntMultiplyByAddAndShift(CBigInt *a, CBigInt *b);
+CBigInt *CBigIntMultiplyByAddAndShift(CBigInt *a, CBigInt *b)
 {
     int aCount = a->count;
     int bCount = b->count;

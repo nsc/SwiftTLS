@@ -208,7 +208,7 @@ class BigIntTests: XCTestCase {
         let hexString = "1234567890abcdefABCDEF"
         let a = BigInt(hexString: hexString)!
         
-        XCTAssert(hexString.lowercased() == String(a).lowercased())
+        XCTAssert(hexString.lowercased() == String(describing: a).lowercased())
     }
     
     func BIGNUM_multiply(_ a : String, _ b : String) -> String
@@ -297,7 +297,7 @@ class BigIntTests: XCTestCase {
         
         let s = BIGNUM_multiply(hexString, hexString)
         
-        let nString = String(nSquared)
+        let nString = String(describing: nSquared)
         
         XCTAssert(nString.lowercased() == s.lowercased())
     }
@@ -312,7 +312,7 @@ class BigIntTests: XCTestCase {
         
         let s = BIGNUM_multiply(aHex, bHex)
         
-        let productHex = String(product)
+        let productHex = String(describing: product)
         
         XCTAssert(productHex.lowercased() == s.lowercased())
     }
@@ -320,7 +320,7 @@ class BigIntTests: XCTestCase {
     func randomBigInt() -> BigInt
     {
         var parts = [UInt8]()
-        let min = sizeof(BigInt.PrimitiveType.self)
+        let min = MemoryLayout<BigInt.PrimitiveType>.size
         let max = min * 5
         repeat {
             let n = Int(arc4random()) % max + min
@@ -383,11 +383,11 @@ class BigIntTests: XCTestCase {
                 swap(&u, &v)
             }
             
-            let s = BIGNUM_divide(String(u), String(v))
+            let s = BIGNUM_divide(String(describing: u), String(describing: v))
 
             let div = u / v
             
-            let divHex = String(div)
+            let divHex = String(describing: div)
             
             if divHex.lowercased() != s.lowercased() {
 //                print("\(i):")
@@ -455,11 +455,11 @@ class BigIntTests: XCTestCase {
                 swap(&u, &v)
             }
             
-            let s = BIGNUM_mod(String(u), String(v))
+            let s = BIGNUM_mod(String(describing: u), String(describing: v))
 
             let div = u % v
             
-            let divHex = String(div)
+            let divHex = String(describing: div)
             
             if divHex.lowercased() != s.lowercased() {
                 print("\(i):")
@@ -480,11 +480,11 @@ class BigIntTests: XCTestCase {
             let mod = randomBigInt()
             let n = Int(arc4random() % 10000)
             
-            let s = BIGNUM_mod_pow(String(u), String(n, radix: 16), String(mod))
+            let s = BIGNUM_mod_pow(String(describing: u), String(n, radix: 16), String(describing: mod))
             
             let result = modular_pow(u, n, mod)
             
-            let divHex = String(result)
+            let divHex = String(describing: result)
             
             if divHex.lowercased() != s.lowercased() {
                 print("\(i):")
@@ -505,11 +505,11 @@ class BigIntTests: XCTestCase {
             let mod = randomBigInt()
             let n = randomBigInt()
             
-            let s = BIGNUM_mod_pow(String(u), String(n), String(mod))
+            let s = BIGNUM_mod_pow(String(describing: u), String(describing: n), String(describing: mod))
             
             let result = modular_pow(u, n, mod)
             
-            let divHex = String(result)
+            let divHex = String(describing: result)
             
             if divHex.lowercased() != s.lowercased() {
                 print("\(i):")

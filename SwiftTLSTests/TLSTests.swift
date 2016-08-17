@@ -20,8 +20,8 @@ class TSLTests: XCTestCase {
     }
 
     func test_connectTLS() {
-        let certificatePath = Bundle(for: self.dynamicType).url(forResource: "mycert.pem", withExtension: nil)!.path
-        let opensslServer = Task.launchedTask(withLaunchPath: "/usr/local/bin/openssl", arguments: ["s_server",  "-cert", certificatePath, "-www",  "-debug", "-cipher", "ALL:NULL" ])
+        let certificatePath = Bundle(for: type(of: self)).url(forResource: "mycert.pem", withExtension: nil)!.path
+        let opensslServer = Process.launchedProcess(launchPath: "/usr/local/bin/openssl", arguments: ["s_server",  "-cert", certificatePath, "-www",  "-debug", "-cipher", "ALL:NULL" ])
         
         // wait for server to be up
         sleep(1)
@@ -56,8 +56,8 @@ class TSLTests: XCTestCase {
         var configuration = TLSConfiguration(protocolVersion: .v1_2)
         
         configuration.cipherSuites = [cipherSuite]
-        configuration.identity = PEMFileIdentity(pemFile: Bundle(for: self.dynamicType).url(forResource: "mycert.pem", withExtension: nil)!.path)
-        let dhParametersPath = Bundle(for: self.dynamicType).url(forResource: "dhparams.pem", withExtension: nil)!.path
+        configuration.identity = PEMFileIdentity(pemFile: Bundle(for: type(of: self)).url(forResource: "mycert.pem", withExtension: nil)!.path)
+        let dhParametersPath = Bundle(for: type(of: self)).url(forResource: "dhparams.pem", withExtension: nil)!.path
         configuration.dhParameters = DiffieHellmanParameters.fromPEMFile(dhParametersPath)
         configuration.ecdhParameters = ECDiffieHellmanParameters(namedCurve: .secp256r1)
         

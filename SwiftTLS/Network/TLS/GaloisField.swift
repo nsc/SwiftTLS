@@ -32,11 +32,14 @@ struct GF2_128_Element {
         var hi = UInt64(0)
         var lo = UInt64(0)
         a.withUnsafeBufferPointer {
-            let b = UnsafeBufferPointer<UInt64>(start: UnsafePointer<UInt64>($0.baseAddress), count: 2)
-            hi = b[0].bigEndian
-            lo = b[1].bigEndian
+            if let base = $0.baseAddress {
+                base.withMemoryRebound(to: UInt64.self, capacity: 2) {
+                    hi = $0[0].bigEndian
+                    lo = $0[1].bigEndian
+                }
+            }
         }
-        
+
         self.hi = hi
         self.lo = lo
     }

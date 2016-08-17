@@ -135,7 +135,7 @@ struct EllipticCurve
     let G : EllipticCurvePoint
     let n : BigInt
     
-    private func isOnCurve(_ point : EllipticCurvePoint) -> Bool
+    fileprivate func isOnCurve(_ point : EllipticCurvePoint) -> Bool
     {
         let x = point.x
         let y = point.y

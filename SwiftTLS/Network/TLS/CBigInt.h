@@ -36,5 +36,6 @@ CBigInt *CBigIntMod(CBigInt *u, CBigInt *v);
 CBigInt *CBigIntModularPowerWithBigIntExponent(CBigInt *base, CBigInt *exponent, CBigInt *modulus);
 
 const char *CBigIntHexString(const CBigInt *b);
+void CBigIntHexStringFree(const char *);
 
 #endif /* CBigInt_h */

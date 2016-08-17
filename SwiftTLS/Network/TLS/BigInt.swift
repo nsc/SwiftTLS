@@ -14,10 +14,10 @@ public struct BigInt : IntegerArithmetic, ExpressibleByIntegerLiteral
     typealias PrimitiveType = UInt32
     private typealias BigIntImplType = BigIntImpl<PrimitiveType>
     
-    private let impl : BigIntImplType
+    fileprivate let impl : BigIntImplType
     
     var numberOfBits : Int {
-        return impl.bits.count * sizeof(BigIntImplType.PrimitiveType.self) * 8
+        return impl.bits.count * MemoryLayout<BigIntImplType.PrimitiveType>.size * 8
     }
     
     var isZero : Bool {
@@ -53,7 +53,7 @@ public struct BigInt : IntegerArithmetic, ExpressibleByIntegerLiteral
         self.init(value)
     }
 
-    public init<T where T : UnsignedInteger>(_ a : T) {
+    public init<T : UnsignedInteger>(_ a : T) {
         impl = BigIntImplType([a])
     }
     
@@ -76,13 +76,13 @@ public struct BigInt : IntegerArithmetic, ExpressibleByIntegerLiteral
         self.impl = impl
     }
 
-    private init(_ impl : BigIntImplType)
+    fileprivate init(_ impl : BigIntImplType)
     {
         self.impl = impl
     }
     
     /// parts are given in little endian order
-    public init<T where T : UnsignedInteger>(_ parts : [T], negative: Bool = false)
+    public init<T : UnsignedInteger>(_ parts : [T], negative: Bool = false)
     {
         var b = BigIntImplType(parts, negative: negative)
         b.normalize()
@@ -90,7 +90,7 @@ public struct BigInt : IntegerArithmetic, ExpressibleByIntegerLiteral
         self.impl = b
     }
 
-    public init<T where T : UnsignedInteger>(bigEndianParts : [T], negative: Bool = false)
+    public init<T : UnsignedInteger>(bigEndianParts : [T], negative: Bool = false)
     {
         var b = BigIntImplType(bigEndianParts.reversed(), negative: negative)
         b.normalize()
@@ -168,7 +168,7 @@ extension BigInt : CustomStringConvertible
 
 extension String {
     init(stringInterpolationSegment expr: BigInt) {
-        self.init("\(expr.impl)")
+        self = "\(expr.impl)"
     }
 }
 
@@ -300,7 +300,7 @@ func SwiftTLS_mod_pow_performance()
 ///
 /// They use largest primitive possible (usually UInt64)
 /// and are stored in little endian order, i.e. n = parts[0] + parts[1] * 2^64 + parts[2] * 2 ^ 128 ...
-private struct BigIntImpl<U where U : UnsignedInteger> {
+private struct BigIntImpl<U : UnsignedInteger> {
     
     typealias PrimitiveType = U
     var bits: [PrimitiveType]
@@ -314,7 +314,7 @@ private struct BigIntImpl<U where U : UnsignedInteger> {
         self.init([a], negative: negative)
     }
     
-    init<T where T : UnsignedInteger>(_ a : T) {
+    init<T : UnsignedInteger>(_ a : T) {
         self.init([a])
     }
     
@@ -330,15 +330,15 @@ private struct BigIntImpl<U where U : UnsignedInteger> {
         sign = false
     }
     
-    init<T where T : UnsignedInteger>(_ bigInt : BigIntImpl<T>)
+    init<T : UnsignedInteger>(_ bigInt : BigIntImpl<T>)
     {
         self.init(bigInt.bits, negative: bigInt.sign)
     }
     
     /// parts are given in little endian order
-    init<T where T : UnsignedInteger>(_ parts : [T], negative: Bool = false, normalized: Bool = true)
+    init<T : UnsignedInteger>(_ parts : [T], negative: Bool = false, normalized: Bool = true)
     {
-        let numberInPrimitiveType = sizeof(PrimitiveType.self)/sizeof(T.self)
+        let numberInPrimitiveType = MemoryLayout<PrimitiveType>.size/MemoryLayout<T>.size
         
         if numberInPrimitiveType == 1 {
             self.bits = parts.map({PrimitiveType($0.toUIntMax())})
@@ -348,7 +348,7 @@ private struct BigIntImpl<U where U : UnsignedInteger> {
         
         if numberInPrimitiveType > 0 {
             
-            var number = [PrimitiveType](repeating: 0, count: parts.count / numberInPrimitiveType + ((parts.count % sizeof(PrimitiveType.self) == 0) ? 0 : 1))
+            var number = [PrimitiveType](repeating: 0, count: parts.count / numberInPrimitiveType + ((parts.count % MemoryLayout<PrimitiveType>.size == 0) ? 0 : 1))
             var index = 0
             var numberIndex = 0
             var n : UIntMax = 0
@@ -357,7 +357,7 @@ private struct BigIntImpl<U where U : UnsignedInteger> {
             for a in parts
             {
                 n = n + a.toUIntMax() << shift
-                shift = shift + UIntMax(sizeof(T.self) * 8)
+                shift = shift + UIntMax(MemoryLayout<T>.size * 8)
                 
                 if (index + 1) % numberInPrimitiveType == 0
                 {
@@ -379,12 +379,12 @@ private struct BigIntImpl<U where U : UnsignedInteger> {
         }
         else {
             // T is a larger type than PrimitiveType
-            let n = sizeof(T.self)/sizeof(PrimitiveType.self)
+            let n = MemoryLayout<T>.size/MemoryLayout<PrimitiveType>.size
             var number = [PrimitiveType]()
             
             for a in parts
             {
-                let shift : UIntMax = UIntMax(8 * sizeof(PrimitiveType.self))
+                let shift : UIntMax = UIntMax(8 * MemoryLayout<PrimitiveType>.size)
                 var mask : UIntMax = (0xffffffffffffffff >> UIntMax(64 - shift))
                 for i in 0 ..< n
                 {
@@ -406,7 +406,7 @@ private struct BigIntImpl<U where U : UnsignedInteger> {
         self.sign = negative
     }
     
-    init<T where T : UnsignedInteger>(_ parts : ArraySlice<T>, negative: Bool = false)
+    init<T : UnsignedInteger>(_ parts : ArraySlice<T>, negative: Bool = false)
     {
         self.init([T](parts), negative: negative)
     }
@@ -462,7 +462,7 @@ private struct BigIntImpl<U where U : UnsignedInteger> {
     
     func isBitSet(_ bitNumber : Int) -> Bool
     {
-        let partSize    = sizeof(PrimitiveType.self) * 8
+        let partSize    = MemoryLayout<PrimitiveType>.size * 8
         let partNumber  = bitNumber / partSize
         let bit         = bitNumber % partSize
         
@@ -550,7 +550,7 @@ private struct BigIntImpl<U where U : UnsignedInteger> {
         let num = max.bits.count
         var n = BigIntImpl<U>(count: num)
         
-        n.bits.withUnsafeMutableBufferPointer { arc4random_buf($0.baseAddress, num * sizeof(U.self)); return }
+        n.bits.withUnsafeMutableBufferPointer { arc4random_buf($0.baseAddress, num * MemoryLayout<U>.size); return }
         
         n.normalize()
         
@@ -572,9 +572,9 @@ private extension String {
             let part = expr.bits[i].toUIntMax()
             var c : UInt8
             
-            var shift = (sizeof(BigIntImpl<T>.PrimitiveType.self) - 1) * 8
+            var shift = (MemoryLayout<BigIntImpl<T>.PrimitiveType>.size - 1) * 8
             var mask : UIntMax = UIntMax(0xff) << UIntMax(shift)
-            for _ in 0 ..< sizeof(BigIntImpl<T>.PrimitiveType.self)
+            for _ in 0 ..< MemoryLayout<BigIntImpl<T>.PrimitiveType>.size
             {
                 c = UInt8((part & mask) >> UIntMax(shift))
                 if !onlyZeroesYet || c != 0 {
@@ -591,7 +591,7 @@ private extension String {
             s = "0"
         }
         
-        self.init(s)
+        self = s
     }
 }
 
@@ -734,8 +734,8 @@ private func *<U>(a : BigIntImpl<U>, b : BigIntImpl<U>) -> BigIntImpl<U>
                 continue
             }
             
-            if sizeof(U.self) < sizeof(UIntMax.self) {
-                let shift : UIntMax = UIntMax(8 * sizeof(U.self))
+            if MemoryLayout<U>.size < MemoryLayout<UIntMax>.size {
+                let shift : UIntMax = UIntMax(8 * MemoryLayout<U>.size)
                 let mask : UIntMax = (0xffffffffffffffff >> UIntMax(64 - shift))
                 hi = (lo & (mask << shift)) >> shift
                 lo = lo & mask
@@ -787,7 +787,7 @@ private func /<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, v : UInt) -> B
 
 private func /<UIntN : KnowsLargerIntType>(u : BigIntImpl<UIntN>, v : Int) -> BigIntImpl<UIntN>
 {
-    let UIntNShift = UIntMax(sizeof(UIntN.self) * 8)
+    let UIntNShift = UIntMax(MemoryLayout<UIntN>.size * 8)
     let b = UIntMax(UIntMax(1) << UIntNShift)
     var r = UIntMax(0)
     let n = u.bits.count
@@ -831,7 +831,7 @@ extension UInt32 : KnowsLargerIntType {
 
 private func short_division<UIntN : KnowsLargerIntType>(_ u : BigIntImpl<UIntN>, _ v : Int, remainder : inout Int?) -> BigIntImpl<UIntN>
 {
-    let UIntNShift = UIntMax(sizeof(UIntN.self) * 8)
+    let UIntNShift = UIntMax(MemoryLayout<UIntN>.size * 8)
     let b = UIntMax(UIntMax(1) << UIntNShift)
     var r = UIntMax(0)
     let n = u.bits.count
@@ -914,7 +914,7 @@ private func division<UIntN : KnowsLargerIntType>(_ u : BigIntImpl<UIntN>, _ v :
         return result
     }
     
-    let UIntNShift = UIntMax(sizeof(UIntN.self) * 8)
+    let UIntNShift = UIntMax(MemoryLayout<UIntN>.size * 8)
     let b = UIntN2(UIntMax(1) << UIntNShift)
     var u = BigIntType(u.bits)
     var v = BigIntType(v.bits)
@@ -922,7 +922,7 @@ private func division<UIntN : KnowsLargerIntType>(_ u : BigIntImpl<UIntN>, _ v :
     var result = BigIntType(count: m + 1)
     
     // normalize, so that v[0] >= base/2 (i.e. 2^31 in our case)
-    let shift = UIntMax((sizeof(BigIntType.PrimitiveType.self) * 8) - 1)
+    let shift = UIntMax((MemoryLayout<BigIntType.PrimitiveType>.size * 8) - 1)
     let highestBitMask : UIntMax = 1 << shift
     var hi = v.bits[n - 1].toUIntMax()
     var d = 1
@@ -999,7 +999,7 @@ private func division<UIntN : KnowsLargerIntType>(_ u : BigIntImpl<UIntN>, _ v :
     return q
 }
 
-private func /<U : UnsignedInteger where U : KnowsLargerIntType>(u : BigIntImpl<U>, v : BigIntImpl<U>) -> BigIntImpl<U>
+private func /<U : UnsignedInteger>(u : BigIntImpl<U>, v : BigIntImpl<U>) -> BigIntImpl<U> where U : KnowsLargerIntType
 {
     // This is an implementation of Algorithm D in
     // "The Art of Computer Programming" by Donald E. Knuth, Volume 2, Seminumerical Algorithms, 3rd edition, p. 272
@@ -1041,7 +1041,7 @@ private func /<U : UnsignedInteger where U : KnowsLargerIntType>(u : BigIntImpl<
     return division(u, v, remainder: &remainder)
 }
 
-private func %<U : UnsignedInteger where U : KnowsLargerIntType>(u : BigIntImpl<U>, v : BigIntImpl<U>) -> BigIntImpl<U>
+private func %<U : UnsignedInteger>(u : BigIntImpl<U>, v : BigIntImpl<U>) -> BigIntImpl<U> where U : KnowsLargerIntType
 {
     var remainder : BigIntImpl<U>? = BigIntImpl<U>(0)
     _ = division(u, v, remainder: &remainder)
@@ -1133,14 +1133,14 @@ private prefix func -<U>(v : BigIntImpl<U>) -> BigIntImpl<U> {
     return v
 }
 
-private func modular_multiply<U : UnsignedInteger where U : KnowsLargerIntType>(_ a : BigIntImpl<U>, b : BigIntImpl<U>, mod : BigIntImpl<U>) -> BigIntImpl<U>
+private func modular_multiply<U : UnsignedInteger>(_ a : BigIntImpl<U>, b : BigIntImpl<U>, mod : BigIntImpl<U>) -> BigIntImpl<U> where U : KnowsLargerIntType
 {
     return ((a % mod) * (b % mod)) % mod
 }
 
-private func pow<U : UnsignedInteger where U : KnowsLargerIntType>(_ base : BigIntImpl<U>, _ exponent : Int) -> BigIntImpl<U>
+private func pow<U : UnsignedInteger>(_ base : BigIntImpl<U>, _ exponent : Int) -> BigIntImpl<U> where U : KnowsLargerIntType
 {
-    let numBits = sizeof(Int.self) * 8
+    let numBits = MemoryLayout<Int>.size * 8
     
     var result = BigIntImpl<U>(1)
     var r = base

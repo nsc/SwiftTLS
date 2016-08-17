@@ -28,7 +28,7 @@ public class IPAddress
     
     var unsafeSockAddrPointer : UnsafePointer<sockaddr> {
         get {
-            return UnsafePointer<sockaddr>(nil)!
+            return UnsafePointer<sockaddr>(bitPattern: 0)!
         }
     }
     
@@ -36,8 +36,8 @@ public class IPAddress
         let localAddress = IPv6Address()
 
         var ipv6address = sockaddr_in6()
-        memset(&ipv6address, 0, sizeof(sockaddr_in6.self))
-        ipv6address.sin6_len = UInt8(sizeof(sockaddr_in6.self))
+        memset(&ipv6address, 0, MemoryLayout<sockaddr_in6>.size)
+        ipv6address.sin6_len = UInt8(MemoryLayout<sockaddr_in6>.size)
         ipv6address.sin6_family = sa_family_t(AF_INET6)
         ipv6address.sin6_port = 0
         ipv6address.sin6_addr = in6addr_loopback
@@ -65,8 +65,8 @@ public class IPAddress
         }
         
         var addressInfoPointer: UnsafeMutablePointer<addrinfo>? = nil
-        let address : IPAddress? = hostname.nulTerminatedUTF8.withUnsafeBufferPointer {
-            if getaddrinfo(UnsafePointer<Int8>($0.baseAddress), nil, nil, &addressInfoPointer) != 0 {
+        let address : IPAddress? = hostname.utf8CString.withUnsafeBufferPointer {
+            if getaddrinfo($0.baseAddress, nil, nil, &addressInfoPointer) != 0 {
                 print("Error: \(strerror(errno))")
                 return nil
             }
@@ -130,7 +130,7 @@ public class IPv4Address : IPAddress
             resultCode = inet_pton(AF_INET, p, &self.socketAddress.sin_addr)
             if resultCode == 1 {
                 self.socketAddress.sin_family = sa_family_t(AF_INET)
-                self.socketAddress.sin_len = UInt8(sizeof(sockaddr_in.self))
+                self.socketAddress.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
             }
         }
         
@@ -158,9 +158,9 @@ public class IPv4Address : IPAddress
     
     override var unsafeSockAddrPointer : UnsafePointer<sockaddr> {
         get {
-            return withUnsafePointer(&socketAddress) {
+            return withUnsafePointer(to: &socketAddress) {
                 ptr in
-                return UnsafePointer<sockaddr>(ptr)
+                return UnsafeRawPointer(ptr).assumingMemoryBound(to: sockaddr.self)
             }
         }
     }
@@ -169,8 +169,8 @@ public class IPv4Address : IPAddress
         let localAddress = IPv4Address()
         
         var address = sockaddr_in()
-        memset(&address, 0, sizeof(sockaddr_in.self))
-        address.sin_len = UInt8(sizeof(sockaddr_in.self))
+        memset(&address, 0, MemoryLayout<sockaddr_in>.size)
+        address.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
         address.sin_family = sa_family_t(AF_INET)
         address.sin_port = 0
         address.sin_addr.s_addr = 0
@@ -208,7 +208,7 @@ public class IPv6Address : IPAddress
             resultCode = inet_pton(AF_INET6, p, &self.socketAddress.sin6_addr)
             if resultCode == 1 {
                 self.socketAddress.sin6_family = sa_family_t(AF_INET6)
-                self.socketAddress.sin6_len = UInt8(sizeof(sockaddr_in.self))
+                self.socketAddress.sin6_len = UInt8(MemoryLayout<sockaddr_in>.size)
             }
         }
         
@@ -236,9 +236,9 @@ public class IPv6Address : IPAddress
 
     override var unsafeSockAddrPointer : UnsafePointer<sockaddr> {
         get {
-            return withUnsafePointer(&socketAddress) {
+            return withUnsafePointer(to: &socketAddress) {
                 ptr in
-                return UnsafePointer<sockaddr>(ptr)
+                return UnsafeRawPointer(ptr).assumingMemoryBound(to: sockaddr.self)
             }
         }
     }

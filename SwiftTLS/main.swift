@@ -44,14 +44,13 @@ func server(port: Int = 443, certificatePath: String, dhParametersPath : String?
         do {
             let clientSocket = try server.acceptConnection(address)
             
-//            while true {
             let data = try clientSocket.read(count: 1024)
             let string = String.fromUTF8Bytes(data)!
+            print("Client Request:\n\(string)")
             let contentLength = string.utf8.count
-            let response = "200 OK\nConnection: Close\nContent-Length: \(contentLength)\n\n\(string)"
+            let response = "HTTP/1.1 200 OK\nConnection: Close\nContent-Length: \(contentLength)\n\n\(string)"
             try clientSocket.write(response)
             clientSocket.close()
-//            }
         }
         catch(let error) {
             if let tlserror = error as? TLSError {
@@ -180,12 +179,13 @@ func probeCipherSuitesForHost(host : String, port : Int, protocolVersion: TLSPro
     }
 }
 
-guard Process.arguments.count >= 2 else {
+let arguments = ProcessInfo.processInfo.arguments
+guard arguments.count >= 2 else {
     print("Error: No command given")
     exit(1)
 }
 
-let command = Process.arguments[1]
+let command = arguments[1]
 
 enum MyError : Error
 {
@@ -207,7 +207,7 @@ case "server":
     if mode == nil {
         mode = .server
     }
-    guard Process.arguments.count > 2 else {
+    guard arguments.count > 2 else {
         print("Error: Missing arguments for subcommand \"\(command)\"")
         exit(1)
     }
@@ -223,11 +223,11 @@ case "server":
         var argumentIndex : Int = 2
         while true
         {
-            if Process.arguments.count <= argumentIndex {
+            if arguments.count <= argumentIndex {
                 break
             }
             
-            var argument = Process.arguments[argumentIndex]
+            var argument = arguments[argumentIndex]
             
             argumentIndex += 1
             
@@ -235,11 +235,11 @@ case "server":
             switch argument
             {
             case "--TLSVersion":
-                if Process.arguments.count <= argumentIndex {
+                if arguments.count <= argumentIndex {
                     throw MyError.Error("Missing argument for --TLSVersion")
                 }
                 
-                var argument = Process.arguments[argumentIndex]
+                var argument = arguments[argumentIndex]
                 argumentIndex += 1
                 
                 switch argument
@@ -260,11 +260,11 @@ case "server":
                 continue
 
             case "--cipherSuite":
-                if Process.arguments.count <= argumentIndex {
+                if arguments.count <= argumentIndex {
                     throw MyError.Error("Missing argument for --cipherSuite")
                 }
                 
-                var argument = Process.arguments[argumentIndex]
+                var argument = arguments[argumentIndex]
                 argumentIndex += 1
                 
                 cipherSuite = CipherSuite(fromString:argument)
@@ -279,11 +279,11 @@ case "server":
                 switch argument
                 {
                 case "--port":
-                    if Process.arguments.count <= argumentIndex {
+                    if arguments.count <= argumentIndex {
                         throw MyError.Error("Missing argument for --port")
                     }
                     
-                    var argument = Process.arguments[argumentIndex]
+                    var argument = arguments[argumentIndex]
                     argumentIndex += 1
                     
                     if let p = Int(argument) {
@@ -291,21 +291,21 @@ case "server":
                     }
                 
                 case "--certificate":
-                    if Process.arguments.count <= argumentIndex {
+                    if arguments.count <= argumentIndex {
                         throw MyError.Error("Missing argument for --certificate")
                     }
                     
-                    var argument = Process.arguments[argumentIndex]
+                    var argument = arguments[argumentIndex]
                     argumentIndex += 1
 
                     certificatePath = argument
                 
                 case "--dhParameters":
-                    if Process.arguments.count <= argumentIndex {
+                    if arguments.count <= argumentIndex {
                         throw MyError.Error("Missing argument for --dhParameters")
                     }
                     
-                    var argument = Process.arguments[argumentIndex]
+                    var argument = arguments[argumentIndex]
                     argumentIndex += 1
                     
                     dhParameters = argument
@@ -321,11 +321,11 @@ case "server":
                 switch argument
                 {
                 case "--connect":
-                    if Process.arguments.count <= argumentIndex {
+                    if arguments.count <= argumentIndex {
                         throw MyError.Error("Missing argument for --connect")
                     }
                     
-                    var argument = Process.arguments[argumentIndex]
+                    var argument = arguments[argumentIndex]
                     argumentIndex += 1
                     
                     if argument.contains(":") {
@@ -371,7 +371,7 @@ case "server":
     }
     
 case "probeCiphers":
-    guard Process.arguments.count > 2 else {
+    guard arguments.count > 2 else {
         print("Error: Missing arguments for subcommand \"\(command)\"")
         exit(1)
     }
@@ -384,22 +384,22 @@ case "probeCiphers":
         var argumentIndex : Int = 2
         while true
         {
-            if Process.arguments.count <= argumentIndex {
+            if arguments.count <= argumentIndex {
                 break
             }
             
-            var argument = Process.arguments[argumentIndex]
+            var argument = arguments[argumentIndex]
             
             argumentIndex += 1
             
             switch argument
             {
             case "--TLSVersion":
-                if Process.arguments.count <= argumentIndex {
+                if arguments.count <= argumentIndex {
                     throw MyError.Error("Missing argument for --TLSVersion")
                 }
                 
-                var argument = Process.arguments[argumentIndex]
+                var argument = arguments[argumentIndex]
                 argumentIndex += 1
                 
                 switch argument
@@ -446,12 +446,12 @@ case "probeCiphers":
     probeCipherSuitesForHost(host: hostName, port: port, protocolVersion: protocolVersion)
     
 case "pem":
-    guard Process.arguments.count > 2 else {
+    guard arguments.count > 2 else {
         print("Error: Missing arguments for subcommand \"\(command)\"")
         exit(1)
     }
 
-    let file = Process.arguments[2]
+    let file = arguments[2]
 
     let sections = ASN1Parser.sectionsFromPEMFile(file)
     for (name, section) in sections {
@@ -461,12 +461,12 @@ case "pem":
 
 case "asn1parse":
 
-    guard Process.arguments.count > 2 else {
+    guard arguments.count > 2 else {
         print("Error: Missing arguments for subcommand \"\(command)\"")
         exit(1)
     }
 
-    let file = Process.arguments[2]
+    let file = arguments[2]
     guard let data = try? Data(contentsOf: URL(fileURLWithPath: file)) else {
         print("Error: No such file \"\(file)\"")
         exit(1)
@@ -484,12 +484,12 @@ case "asn1parse":
 
 case "p12":
     
-    guard Process.arguments.count > 2 else {
+    guard arguments.count > 2 else {
         print("Error: Missing arguments for subcommand \"\(command)\"")
         exit(1)
     }
     
-    let file = Process.arguments[2]
+    let file = arguments[2]
     let data = try? Data(contentsOf: URL(fileURLWithPath: file))
     if  let data = data,
         let object = ASN1Parser(data: data).parseObject()

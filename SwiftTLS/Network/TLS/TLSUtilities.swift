@@ -100,8 +100,8 @@ func P_hash(_ hmacFunction : HMACFunction, secret : [UInt8], seed : [UInt8], out
     var bytesLeftToWrite = outputLength
     while (bytesLeftToWrite > 0)
     {
-        A = hmacFunction(secret: secret, data: A)
-        var output = hmacFunction(secret: secret, data: A + seed)
+        A = hmacFunction(secret, A)
+        var output = hmacFunction(secret, A + seed)
         let bytesFromOutput = min(bytesLeftToWrite, output.count)
         outputData.append(contentsOf: output[0..<bytesFromOutput])
         
@@ -416,7 +416,7 @@ public extension String {
     static func fromUTF8Bytes(_ bytes : [UInt8]) -> String? {
         let buffer = UnsafeBufferPointer(start: bytes, count: bytes.count)
         var string  = ""
-        let hadError = transcode(buffer.makeIterator(), from: UTF8.self, to: UTF32.self, stoppingOnError: false) { string.append(UnicodeScalar($0)) }
+        let hadError = transcode(buffer.makeIterator(), from: UTF8.self, to: UTF32.self, stoppingOnError: false) { string.append(Character(UnicodeScalar($0)!)) }
         
         if !hadError {
             return string

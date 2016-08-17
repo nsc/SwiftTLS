@@ -276,7 +276,6 @@
 		030B82EC1C3C4EAE00F47CCF /* ASN1Writer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ASN1Writer.swift; sourceTree = "<group>"; };
 		031868E51ADD7D9800CB51E1 /* mycert.pem */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = mycert.pem; sourceTree = "<group>"; };
 		031868E71ADD873D00CB51E1 /* TLSUtilitiesTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSUtilitiesTests.swift; sourceTree = "<group>"; };
-		031868E91ADDA93400CB51E1 /* MyPlayground.playground */ = {isa = PBXFileReference; lastKnownFileType = file.playground; path = MyPlayground.playground; sourceTree = "<group>"; };
 		031BAED51C62849A00600133 /* rfc2246.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = rfc2246.txt; sourceTree = "<group>"; };
 		031BAED61C62849A00600133 /* rfc3268.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = rfc3268.txt; sourceTree = "<group>"; };
 		031BAED71C62849A00600133 /* rfc4346.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = rfc4346.txt; sourceTree = "<group>"; };
@@ -586,7 +585,6 @@
 			isa = PBXGroup;
 			children = (
 				036A7C131B07C26800AE46F8 /* Security.framework */,
-				031868E91ADDA93400CB51E1 /* MyPlayground.playground */,
 				033AC3581AC473730004EEC1 /* SwiftTLS */,
 				033AC36B1AC473730004EEC1 /* SwiftTLSTests */,
 				0379D7571BA219040091634C /* SwiftTLS Tool */,

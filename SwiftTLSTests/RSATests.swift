@@ -13,7 +13,7 @@ class RSATests: XCTestCase {
     
     func test_sign_someData_verifies()
     {
-        let certificatePath = Bundle(for: self.dynamicType).url(forResource: "mycert.pem", withExtension: nil)!.path
+        let certificatePath = Bundle(for: type(of: self)).url(forResource: "mycert.pem", withExtension: nil)!.path
 
         guard let rsa = RSA.fromPEMFile(certificatePath) else {
             XCTFail()
@@ -34,7 +34,7 @@ class RSATests: XCTestCase {
 
     func test_decrypt_encryptedData_givesOriginalData()
     {
-        let certificatePath = Bundle(for: self.dynamicType).url(forResource: "mycert.pem", withExtension: nil)!.path
+        let certificatePath = Bundle(for: type(of: self)).url(forResource: "mycert.pem", withExtension: nil)!.path
         
         guard let rsa = RSA.fromPEMFile(certificatePath) else {
             XCTFail()
@@ -54,7 +54,7 @@ class RSATests: XCTestCase {
 
     func test_verify_signatureFromSelfSignedRSACertificate_verifies()
     {
-        let certificatePath = Bundle(for: self.dynamicType).path(forResource: "Self Signed RSA SHA-256.cer", ofType: "")!
+        let certificatePath = Bundle(for: type(of: self)).path(forResource: "Self Signed RSA SHA-256.cer", ofType: "")!
         let data = (try! Data(contentsOf: URL(fileURLWithPath: certificatePath))).UInt8Array()
         
         guard let cert = X509.Certificate(derData: data) else { XCTFail(); return }

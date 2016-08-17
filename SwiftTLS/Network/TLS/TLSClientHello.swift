@@ -46,7 +46,7 @@ class TLSClientHello : TLSHandshakeMessage
     
     var extensions : [TLSHelloExtension] = []
     
-    init(clientVersion : TLSProtocolVersion, random : Random, sessionID : SessionID?, cipherSuites : [CipherSuite], compressionMethods : [CompressionMethod])
+    init(clientVersion: TLSProtocolVersion, random: Random, sessionID: SessionID?, cipherSuites: [CipherSuite], compressionMethods: [CompressionMethod])
     {
         self.clientVersion = clientVersion
         self.random = random
@@ -59,24 +59,24 @@ class TLSClientHello : TLSHandshakeMessage
         self.cipherSuites = cipherSuites
     }
     
-    required init?(inputStream : InputStreamType, context: TLSContext)
+    required init?(inputStream: InputStreamType, context: TLSContext)
     {
         guard
             let (type, bodyLength) = TLSHandshakeMessage.readHeader(inputStream), type == TLSHandshakeType.clientHello,
-            let major : UInt8? = inputStream.read(),
-            let minor : UInt8? = inputStream.read(),
-            let clientVersion = TLSProtocolVersion(major: major!, minor: minor!),
+            let major: UInt8 = inputStream.read(),
+            let minor: UInt8 = inputStream.read(),
+            let clientVersion = TLSProtocolVersion(major: major, minor: minor),
             let random = Random(inputStream: inputStream),
-            let sessionIDSize : UInt8 = inputStream.read()
+            let sessionIDSize: UInt8 = inputStream.read()
         else {
             return nil
         }
         
-        let rawSessionID : [UInt8]? = sessionIDSize > 0 ? inputStream.read(count: Int(sessionIDSize)) : nil
+        let rawSessionID: [UInt8]? = sessionIDSize > 0 ? inputStream.read(count: Int(sessionIDSize)) : nil
 
         guard
-            let rawCipherSuitesRead : [UInt16] = inputStream.read16(),
-            let rawCompressionMethods : [UInt8] = inputStream.read8()
+            let rawCipherSuitesRead: [UInt16] = inputStream.read16(),
+            let rawCompressionMethods: [UInt8] = inputStream.read8()
         else {
             return nil
         }
@@ -159,7 +159,7 @@ class TLSClientHello : TLSHandshakeMessage
         super.init(type: .handshake(.clientHello))
     }
 
-    override func writeTo<Target : OutputStreamType>(_ target: inout Target)
+    override func writeTo<Target: OutputStreamType>(_ target: inout Target)
     {
         var buffer = DataBuffer()
         
@@ -174,7 +174,7 @@ class TLSClientHello : TLSHandshakeMessage
             buffer.write(UInt8(0))
         }
         
-        buffer.write(UInt16(rawCipherSuites.count * sizeof(UInt16.self)))
+        buffer.write(UInt16(rawCipherSuites.count * MemoryLayout<UInt16>.size))
         buffer.write( rawCipherSuites)
         
         buffer.write(UInt8(compressionMethods.count))

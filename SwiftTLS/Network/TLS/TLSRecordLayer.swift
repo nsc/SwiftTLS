@@ -355,7 +355,7 @@ public class TLSRecordLayer
     
     private func calculateMAC(secret : [UInt8], data : [UInt8], isRead : Bool) -> [UInt8]?
     {
-        var HMAC : (secret : [UInt8], data : [UInt8]) -> [UInt8]
+        var HMAC : (_ secret : [UInt8], _ data : [UInt8]) -> [UInt8]
         if let algorithm = isRead ? self.currentReadEncryptionParameters?.hmac : self.currentWriteEncryptionParameters?.hmac {
             switch (algorithm)
             {
@@ -379,7 +379,7 @@ public class TLSRecordLayer
             return nil
         }
         
-        return HMAC(secret: secret, data: data)
+        return HMAC(secret, data)
     }
     
     private func encrypt(_ data : [UInt8], authData: [UInt8]?, key : [UInt8], IV : [UInt8]) -> [UInt8]?

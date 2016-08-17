@@ -39,7 +39,13 @@ public protocol SocketProtocol
 public extension SocketProtocol
 {
     func write(_ string : String) throws {
-        let data = Array(string.nulTerminatedUTF8)
+        let uint8BufferPointer = string.utf8CString.withUnsafeBufferPointer({ (buf) -> UnsafeBufferPointer<UInt8> in
+            let ptr = UnsafeRawPointer(buf.baseAddress)!.assumingMemoryBound(to: UInt8.self)
+            return UnsafeBufferPointer<UInt8>(start: ptr, count: buf.count)
+        })
+        
+        let data = Array(uint8BufferPointer)
+
         try self.write(data)
     }
 }
@@ -116,7 +122,7 @@ class Socket : SocketProtocol
             throw SocketError.posixError(errno: errno)
         }
         
-        return self.dynamicType.init(socketDescriptor: clientSocket)
+        return type(of: self).init(socketDescriptor: clientSocket)
     }
 
     func sendTo(_ address : IPAddress?, data : [UInt8]) throws
@@ -219,12 +225,12 @@ class Socket : SocketProtocol
         }
     }
     
-    func _read(_ socket: Int32, _ buffer: UnsafeMutablePointer<Void>, _ count: Int) -> Int
+    func _read(_ socket: Int32, _ buffer: UnsafeMutableRawPointer, _ count: Int) -> Int
     {
         return Darwin.read(socket, buffer, count)
     }
     
-    func _write(_ socket: Int32, _ buffer: UnsafePointer<Void>, _ count: Int) -> Int
+    func _write(_ socket: Int32, _ buffer: UnsafeRawPointer, _ count: Int) -> Int
     {
         return Darwin.write(socket, buffer, count)
     }
@@ -241,15 +247,15 @@ class TCPSocket : Socket
         }
         
         var yes : Int32 = 1
-        setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &yes, socklen_t(sizeof(Int32.self)))
-        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, socklen_t(sizeof(Int32.self)))
+        setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &yes, socklen_t(MemoryLayout<Int32>.size))
+        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, socklen_t(MemoryLayout<Int32>.size))
         
 //        var action = sigaction()
 //        action.sa_handler = 1
 //        sigaction(SIGPIPE, &action, nil)
         
-        setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &yes, socklen_t(sizeof(Int32.self)))
-        setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &yes, socklen_t(sizeof(Int32.self)))
+        setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &yes, socklen_t(MemoryLayout<Int32>.size))
+        setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &yes, socklen_t(MemoryLayout<Int32>.size))
         
         return fd
     }

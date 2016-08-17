@@ -50,7 +50,7 @@ enum ASN1Class : UInt8
 public class ASN1Object : Equatable
 {
     var underlyingData : [UInt8]?
-    private func isEqualTo(_ other : ASN1Object) -> Bool
+    fileprivate func isEqualTo(_ other : ASN1Object) -> Bool
     {
         return false
     }
@@ -71,7 +71,7 @@ class ASN1TaggedObject : ASN1Object
         self.object = object
     }
     
-    private override func isEqualTo(_ other : ASN1Object) -> Bool
+    fileprivate override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1TaggedObject else {
             return false
@@ -90,7 +90,7 @@ class ASN1Boolean : ASN1Object
         self.value = value
     }
     
-    private override func isEqualTo(_ other : ASN1Object) -> Bool
+    fileprivate override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1Boolean else {
             return false
@@ -109,7 +109,7 @@ class ASN1Integer : ASN1Object
         self.value = value
     }
     
-    private override func isEqualTo(_ other : ASN1Object) -> Bool
+    fileprivate override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1Integer else {
             return false
@@ -125,7 +125,7 @@ class ASN1BitString : ASN1Object
     var value : [UInt8]
     
     var bitValue : [UInt] {
-        let size = sizeof(UInt.self)
+        let size = MemoryLayout<UInt>.size
         var values : [UInt] = []
         
         let unusedBits : UInt = UInt(self.unusedBits)
@@ -165,7 +165,7 @@ class ASN1BitString : ASN1Object
         }
     }
     
-    private override func isEqualTo(_ other : ASN1Object) -> Bool
+    fileprivate override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1BitString else {
             return false
@@ -184,7 +184,7 @@ class ASN1OctetString : ASN1Object
         self.value = data
     }
 
-    private override func isEqualTo(_ other : ASN1Object) -> Bool
+    fileprivate override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1OctetString else {
             return false
@@ -196,7 +196,7 @@ class ASN1OctetString : ASN1Object
 
 class ASN1Null : ASN1Object
 {
-    private override func isEqualTo(_ other : ASN1Object) -> Bool
+    fileprivate override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         return other is ASN1Null
     }
@@ -215,7 +215,7 @@ class ASN1ObjectIdentifier : ASN1Object
         self.identifier = oid.identifier
     }
 
-    private override func isEqualTo(_ other : ASN1Object) -> Bool
+    fileprivate override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1ObjectIdentifier else {
             return false
@@ -234,7 +234,7 @@ class ASN1Sequence : ASN1Object
         self.objects = objects
     }
 
-    private override func isEqualTo(_ other : ASN1Object) -> Bool
+    fileprivate override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1Sequence else {
             return false
@@ -253,7 +253,7 @@ class ASN1Set : ASN1Object
         self.objects = objects
     }
     
-    private override func isEqualTo(_ other : ASN1Object) -> Bool
+    fileprivate override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1Set else {
             return false
@@ -270,7 +270,7 @@ public protocol ASN1String : CustomStringConvertible {
 public extension ASN1String {
     var description : String {
         get {
-            return "\(self.dynamicType) \(self.string)"
+            return "\(type(of: self)) \(self.string)"
         }
     }
 }
@@ -283,7 +283,7 @@ class ASN1UTF8String : ASN1Object, ASN1String
         self.string = string
     }
 
-    private override func isEqualTo(_ other : ASN1Object) -> Bool
+    fileprivate override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1UTF8String else {
             return false
@@ -301,7 +301,7 @@ class ASN1PrintableString : ASN1Object, ASN1String
         self.string = string
     }
     
-    private override func isEqualTo(_ other : ASN1Object) -> Bool
+    fileprivate override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1PrintableString else {
             return false
@@ -319,7 +319,7 @@ class ASN1T61String : ASN1Object, ASN1String
         self.string = string
     }
     
-    private override func isEqualTo(_ other : ASN1Object) -> Bool
+    fileprivate override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1T61String else {
             return false
@@ -337,7 +337,7 @@ class ASN1IA5String : ASN1Object, ASN1String
         self.string = string
     }
     
-    private override func isEqualTo(_ other : ASN1Object) -> Bool
+    fileprivate override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1IA5String else {
             return false
@@ -355,7 +355,7 @@ class ASN1GraphicString : ASN1Object, ASN1String
         self.string = string
     }
     
-    private override func isEqualTo(_ other : ASN1Object) -> Bool
+    fileprivate override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1GraphicString else {
             return false
@@ -373,7 +373,7 @@ class ASN1GeneralString : ASN1Object, ASN1String
         self.string = string
     }
     
-    private override func isEqualTo(_ other : ASN1Object) -> Bool
+    fileprivate override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1GeneralString else {
             return false
@@ -395,7 +395,7 @@ class ASN1UTCTime : ASN1Object, ASN1Time
         self.string = string
     }
     
-    private override func isEqualTo(_ other : ASN1Object) -> Bool
+    fileprivate override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1UTCTime else {
             return false
@@ -413,7 +413,7 @@ class ASN1GeneralizedTime : ASN1Object, ASN1Time
         self.string = string
     }
     
-    private override func isEqualTo(_ other : ASN1Object) -> Bool
+    fileprivate override func isEqualTo(_ other : ASN1Object) -> Bool
     {
         guard let other = other as? ASN1GeneralizedTime else {
             return false
@@ -436,7 +436,7 @@ public class ASN1Parser
     
     public convenience init(data : Data)
     {
-        self.init(data: [UInt8](UnsafeBufferPointer<UInt8>(start: UnsafePointer<UInt8>((data as NSData).bytes), count: data.count)))
+        self.init(data: [UInt8](UnsafeBufferPointer<UInt8>(start: (data as NSData).bytes.assumingMemoryBound(to: UInt8.self), count: data.count)))
     }
     
     public class func objectFromPEMFile(_ PEMFile : String) -> ASN1Object?
@@ -751,7 +751,7 @@ public func ASN1_printObject(_ object: ASN1Object, depth : Int = 0)
         print("")
 
     case let object as ASN1String:
-        print("\(object.dynamicType) \(object.string)")
+        print("\(type(of: object)) \(object.string)")
 
     case let object as ASN1Sequence:
         print("SEQUENCE (\(object.objects.count) objects)")
@@ -766,7 +766,7 @@ public func ASN1_printObject(_ object: ASN1Object, depth : Int = 0)
         }
 
     case let object as ASN1Time:
-        print("\(object.dynamicType) \(object.string)")
+        print("\(type(of: object)) \(object.string)")
         
     default:
         print("Unhandled \(object)")

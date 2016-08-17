@@ -10,6 +10,6 @@ import Foundation
 
 extension Data {
     func UInt8Array() -> [UInt8] {
-        return [UInt8](UnsafeBufferPointer<UInt8>(start: UnsafePointer<UInt8>((self as NSData).bytes), count: self.count))
+        return [UInt8](UnsafeBufferPointer<UInt8>(start: (self as NSData).bytes.assumingMemoryBound(to: UInt8.self), count: self.count))
     }
 }

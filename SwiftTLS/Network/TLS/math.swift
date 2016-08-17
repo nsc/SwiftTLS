@@ -17,7 +17,7 @@ func division<T : IntegerArithmetic>(_ a : T, _ b : T, remainder: inout T?) -> T
 
 public func modular_pow(_ base : BigInt, _ exponent : Int, _ mod : BigInt) -> BigInt
 {
-    let numBits = sizeof(Int.self) * 8
+    let numBits = MemoryLayout<Int>.size * 8
     
     var result = BigInt(1)
     var r = base % mod
@@ -51,7 +51,7 @@ public func modular_pow(_ base : BigInt, _ exponent : BigInt, _ mod : BigInt) ->
     return result
 }
 
-func gcd<T : IntegerArithmetic where T : ExpressibleByIntegerLiteral>(_ x : T, _ y : T) -> T
+func gcd<T : IntegerArithmetic>(_ x : T, _ y : T) -> T where T : ExpressibleByIntegerLiteral
 {
     var g : T = y
     
@@ -67,7 +67,7 @@ func gcd<T : IntegerArithmetic where T : ExpressibleByIntegerLiteral>(_ x : T, _
     return g
 }
 
-func extended_euclid<T : IntegerArithmetic where T : ExpressibleByIntegerLiteral>(z : T, a : T) -> T
+func extended_euclid<T : IntegerArithmetic>(z : T, a : T) -> T where T : ExpressibleByIntegerLiteral
 {
     var i = a
     var j = z
@@ -92,7 +92,7 @@ func extended_euclid<T : IntegerArithmetic where T : ExpressibleByIntegerLiteral
     return y2 % a
 }
 
-public func modular_inverse<T : IntegerArithmetic where T : ExpressibleByIntegerLiteral>(_ x : T, _ y : T, mod : T) -> T
+public func modular_inverse<T : IntegerArithmetic>(_ x : T, _ y : T, mod : T) -> T where T : ExpressibleByIntegerLiteral
 {
     let x = x > 0 ? x : x + mod
     let y = y > 0 ? y : y + mod

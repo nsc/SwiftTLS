@@ -136,7 +136,7 @@ enum BlockCipherMode {
     case gcm
 }
 
-typealias HMACFunction = (secret : [UInt8], data : [UInt8]) -> [UInt8]
+typealias HMACFunction = (_ secret : [UInt8], _ data : [UInt8]) -> [UInt8]
 enum MACAlgorithm {
 //    case null
     case hmac_md5
@@ -328,7 +328,7 @@ public class TLSContext
         }
     }
     
-    private var connectionEstablishedCompletionBlock : ((error : TLSError?) -> ())?
+    private var connectionEstablishedCompletionBlock : ((_ error : TLSError?) -> ())?
 
     init(configuration: TLSConfiguration, dataProvider : TLSDataProvider, isClient : Bool = true)
     {
