@@ -258,7 +258,11 @@ class Random : Streamable
 
 public class TLSSocket : SocketProtocol, TLSDataProvider
 {
-    public var context : TLSContext!
+    public var context : TLSContext! {
+        didSet {
+            context.recordLayer = TLSRecordLayer(context: context, dataProvider: self)
+        }
+    }
     
     var socket : TCPSocket?
     
@@ -267,11 +271,32 @@ public class TLSSocket : SocketProtocol, TLSDataProvider
         self.init(configuration: TLSConfiguration(protocolVersion: protocolVersion), isClient: isClient)
     }
 
-    public init(configuration: TLSConfiguration, isClient: Bool = true)
+    convenience init(configuration: TLSConfiguration, isClient: Bool = true)
     {
-        self.context = TLSContext(configuration: configuration, dataProvider: self, isClient: isClient)
+        self.init(context: TLSContext(configuration: configuration, isClient: isClient))
     }
-        
+
+    public init(context: TLSContext)
+    {
+        self.context = context
+    }
+    
+    public func connect(hostname: String, port: Int = 443) throws
+    {
+        var hostname = hostname
+        if port != 443 {
+            hostname = "\(hostname):\(port)"
+        }
+        self.context.hostNames = [hostname]
+        if let address = IPAddress.addressWithString(hostname, port: port) {
+            try connect(address)
+        }
+        else {
+            throw TLSError.error("Error: Could not resolve host \(hostname)")
+        }
+
+    }
+    
     // TODO: add connect method that takes a domain name rather than an IP
     // so we can check the server certificate against that name
     public func connect(_ address: IPAddress) throws

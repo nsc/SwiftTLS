@@ -95,31 +95,3 @@ class TLSHandshakeMessage : TLSMessage
     }
 }
 
-class SessionID : Streamable
-{
-    static let MaximumSessionIDLength = 32
-
-    let sessionID : [UInt8]
-    init(sessionID: [UInt8])
-    {
-        self.sessionID = sessionID
-    }
-    
-    required init?(inputStream : InputStreamType)
-    {
-        if let length : UInt8 = inputStream.read() {
-            if let sessionID : [UInt8] = inputStream.read(count: Int(length)) {
-                self.sessionID = sessionID
-                return
-            }
-        }
-        
-        return nil
-    }
-    
-    func writeTo<Target : OutputStreamType>(_ target: inout Target) {
-        target.write(UInt8(sessionID.count))
-        target.write(sessionID)
-    }
-}
-

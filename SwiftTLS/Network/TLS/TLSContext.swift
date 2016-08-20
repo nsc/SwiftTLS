@@ -239,6 +239,7 @@ class TLSSecurityParameters
 
 protocol TLSContextStateMachine
 {
+    func reset()
     func didSendMessage(_ message : TLSMessage) throws
     func didSendHandshakeMessage(_ message : TLSHandshakeMessage) throws
     func didSendChangeCipherSpec() throws
@@ -251,6 +252,7 @@ protocol TLSContextStateMachine
 
 extension TLSContextStateMachine
 {
+    func reset() {}
     func didSendMessage(_ message : TLSMessage) throws {}
     func didSendHandshakeMessage(_ message : TLSHandshakeMessage) throws {}
     func didSendChangeCipherSpec() throws {}
@@ -291,13 +293,28 @@ public class TLSContext
     
     var handshakeMessages : [TLSHandshakeMessage]
     
-    let isClient : Bool
+    var isClient : Bool
     
     var recordLayer : TLSRecordLayer!
     
     var keyExchange : KeyExchange
     
     var signer : Signing?
+
+    // The current session, if there is one already
+    var currentSession: TLSSession?
+    
+    // The session ID that will be used once the handshake is finished and the session
+    // can be set up
+    var pendingSessionID: TLSSessionID?
+    
+    // The saved sessions that the server can reuse when a client sends a sessionID
+    // we know about from before
+    var serverSessionCache: [TLSSessionID: TLSSession] = [:]
+    
+    // The client session cache is indexed by hostname and port concatenated to
+    // a string "\(hostname):\(port)"
+    var clientSessionCache: [String : TLSSession] = [:]
 
     var hashAlgorithm: HashAlgorithm = .sha256
     
@@ -330,7 +347,7 @@ public class TLSContext
     
     private var connectionEstablishedCompletionBlock : ((_ error : TLSError?) -> ())?
 
-    init(configuration: TLSConfiguration, dataProvider : TLSDataProvider, isClient : Bool = true)
+    init(configuration: TLSConfiguration, dataProvider : TLSDataProvider? = nil, isClient : Bool = true)
     {
         self.configuration = configuration
         if !isClient {
@@ -348,7 +365,9 @@ public class TLSContext
         self.securityParameters = TLSSecurityParameters()
         self.keyExchange = .rsa
         
-        self.recordLayer = TLSRecordLayer(context: self, dataProvider: dataProvider)
+        if let dataProvider = dataProvider {
+            self.recordLayer = TLSRecordLayer(context: self, dataProvider: dataProvider)
+        }
         self.stateMachine = TLSStateMachine(context: self)
     }
     
@@ -379,8 +398,20 @@ public class TLSContext
         return context
     }
     
+    func reset() {
+        self.negotiatedProtocolVersion = configuration.protocolVersion
+        self.handshakeMessages = []
+        self.securityParameters = TLSSecurityParameters()
+        self.keyExchange = .rsa
+        
+        self.recordLayer = TLSRecordLayer(context: self, dataProvider: self.recordLayer.dataProvider!)
+        self.stateMachine = TLSStateMachine(context: self)
+    }
+    
     func startConnection() throws
     {
+        reset()
+        
         try self.sendClientHello()
         try self.receiveNextTLSMessage()
     }
@@ -487,7 +518,27 @@ public class TLSContext
             
             self.cipherSuite = serverHello.cipherSuite
             self.securityParameters.serverRandom = DataBuffer(serverHello.random).buffer
-            if !serverHello.cipherSuite.needsServerKeyExchange()
+            
+            if let sessionID = serverHello.sessionID {
+                if  let pendingSessionID = self.pendingSessionID,
+                    sessionID == pendingSessionID {
+                    let hostname = hostNames!.first!
+                    let session = clientSessionCache[hostname]!
+                    if session.sessionID == sessionID {
+                        self.currentSession = session
+                        setPendingSecurityParametersForCipherSuite(session.cipherSpec)
+                    }
+                    else {
+                        fatalError("Session lost. This should not be possible.")
+                    }
+                }
+                else {
+                    self.pendingSessionID = sessionID
+                }
+                print("Session ID: \(sessionID.sessionID)")
+            }
+
+            if currentSession == nil && !serverHello.cipherSuite.needsServerKeyExchange()
             {
                 let preMasterSecret = DataBuffer(PreMasterSecret(clientVersion: self.configuration.protocolVersion)).buffer
                 self.setPreMasterSecretAndCommitSecurityParameters(preMasterSecret, cipherSuite: serverHello.cipherSuite)
@@ -551,7 +602,25 @@ public class TLSContext
             
         case .finished:
             if (self.verifyFinishedMessage(message as! TLSFinished, isClient: false)) {
-                print("Server: Finished verified.")
+                print("Client: Finished verified.")
+                
+                if currentSession != nil {
+                    self.handshakeMessages.append(message)
+                    
+                    try self.stateMachine!.clientDidReceiveHandshakeMessage(message)
+
+                    try self.sendChangeCipherSpec()
+                    
+                    return
+                }
+                else if let sessionID = self.pendingSessionID {
+                    if let hostname = hostNames?.first {
+                        let session = TLSSession(sessionID: sessionID, cipherSpec: self.cipherSuite!, masterSecret: self.securityParameters.masterSecret!)
+                        clientSessionCache[hostname] = session
+                        print("Save session for \(hostname)")
+                    }
+                }
+
             }
             else {
                 print("Error: could not verify Finished message.")
@@ -590,6 +659,12 @@ public class TLSContext
             }
             else {
                 print("Selected cipher suite is \(self.cipherSuite!)")
+            }
+            
+            if let sessionID = clientHello.sessionID {
+                if let session = self.serverSessionCache[sessionID] {
+                    self.currentSession = session
+                }
             }
             
         case .clientKeyExchange:
@@ -634,6 +709,12 @@ public class TLSContext
             if (self.verifyFinishedMessage(message as! TLSFinished, isClient: true)) {
                 print("Server: Finished verified.")
                 
+                if let sessionID = self.pendingSessionID {
+                    let session = TLSSession(sessionID: sessionID, cipherSpec: self.cipherSuite!, masterSecret: self.securityParameters.masterSecret!)
+                    serverSessionCache[sessionID] = session
+                    print("Save session \(session)")
+                }
+
                 self.handshakeMessages.append(message)
             }
             else {
@@ -674,11 +755,18 @@ public class TLSContext
     
     func sendClientHello() throws
     {
+        // reset current pending session ID
+        pendingSessionID = nil
+        
+        if let hostname = self.hostNames?.first {
+            pendingSessionID = clientSessionCache[hostname]?.sessionID
+        }
+        
         let clientHelloRandom = Random()
         let clientHello = TLSClientHello(
             clientVersion: self.configuration.protocolVersion,
             random: clientHelloRandom,
-            sessionID: nil,
+            sessionID: pendingSessionID,
             cipherSuites: self.configuration.cipherSuites,
             compressionMethods: [.null])
         
@@ -917,9 +1005,10 @@ public class TLSContext
         if cipherSuite == nil {
             cipherSuite = self.cipherSuite
         }
+        
+        self.cipherSuite = cipherSuite
         self.preMasterSecret = preMasterSecret
         self.setPendingSecurityParametersForCipherSuite(cipherSuite!)
-        self.recordLayer.pendingSecurityParameters = self.securityParameters
     }
     
     private func setPendingSecurityParametersForCipherSuite(_ cipherSuite : CipherSuite)
@@ -959,7 +1048,13 @@ public class TLSContext
             }
         }
         
-        self.securityParameters.masterSecret = calculateMasterSecret()
+        if let session = currentSession {
+            self.securityParameters.masterSecret = session.masterSecret
+        }
+        else {
+            self.securityParameters.masterSecret = calculateMasterSecret()
+        }
+        self.recordLayer.pendingSecurityParameters = self.securityParameters
     }
     
     // Calculate master secret as described in RFC 2246, section 8.1, p. 46

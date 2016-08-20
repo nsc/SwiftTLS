@@ -48,7 +48,6 @@ class TLSStateMachine : TLSContextStateMachine
         }
     }
     
-    
     init(context : TLSContext)
     {
         self.context = context
@@ -61,6 +60,10 @@ class TLSStateMachine : TLSContextStateMachine
         }
         
         self.state = state
+    }
+    
+    func reset() {
+        self.state = .idle
     }
     
     func didSendMessage(_ message : TLSMessage)
@@ -79,7 +82,13 @@ class TLSStateMachine : TLSContextStateMachine
             
         case .serverHello:
             try self.transitionTo(state: .serverHelloSent)
-            try self.context!.sendCertificate()
+            
+            if context?.currentSession != nil {
+                try self.context!.sendChangeCipherSpec()
+            }
+            else {
+                try self.context!.sendCertificate()
+            }
             
         case .certificate:
             try self.transitionTo(state: .certificateSent)
@@ -183,20 +192,12 @@ class TLSStateMachine : TLSContextStateMachine
         print((self.context!.isClient ? "Client" : "Server" ) + ": did receive message \(alert.alertLevel) \(alert.alert)")
     }
 
-    func advanceState(_ state : TLSState) -> Bool
+    func checkClientStateTransition(_ state : TLSState) -> Bool
     {
-        if checkStateTransition(state) {
-            self.state = state
-            
+        if state == .idle {
             return true
         }
         
-        return false
-    }
-    
-    
-    func checkClientStateTransition(_ state : TLSState) -> Bool
-    {
         switch (self.state)
         {
         case .idle where state == .clientHelloSent:
@@ -205,19 +206,24 @@ class TLSStateMachine : TLSContextStateMachine
         case .clientHelloSent where state == .serverHelloReceived:
             return true
             
-        case .serverHelloReceived where state == .certificateReceived:
-            return true
-            
-        case .certificateReceived:
-            if self.context!.cipherSuite!.needsServerKeyExchange() {
-                if state == .serverKeyExchangeReceived {
+        case .serverHelloReceived:
+            // If we are reusing a former session, we need to transition to
+            // changeCipherSpecReceived instead of certificateReceived
+            if context?.currentSession != nil {
+                if state == .changeCipherSpecReceived {
                     return true
                 }
             }
-            else if state == .serverHelloDoneReceived {
-                return true
+            
+            return state == .certificateReceived
+            
+        case .certificateReceived:
+            if self.context!.cipherSuite!.needsServerKeyExchange() {
+                return state == .serverKeyExchangeReceived
             }
             
+            return state == .serverHelloDoneReceived
+
         case .serverKeyExchangeReceived where state == .serverHelloDoneReceived:
             return true
             
@@ -236,8 +242,12 @@ class TLSStateMachine : TLSContextStateMachine
         case .changeCipherSpecReceived where state == .finishedReceived:
             return true
             
-        case .finishedReceived where state == .connected:
-            return true
+        case .finishedReceived:
+            if context?.currentSession != nil {
+                return state == .changeCipherSpecSent
+            }
+            
+            return state == .connected
             
         case .connected where (state == .closeReceived || state == .closeSent):
             return true
@@ -245,12 +255,14 @@ class TLSStateMachine : TLSContextStateMachine
         default:
             return false
         }
-        
-        return false
     }
     
     func checkServerStateTransition(_ state : TLSState) -> Bool
     {
+        if state == .idle {
+            return true
+        }
+        
         switch (self.state)
         {
         case .idle where state == .clientHelloReceived:
@@ -259,19 +271,20 @@ class TLSStateMachine : TLSContextStateMachine
         case .clientHelloReceived where state == .serverHelloSent:
             return true
             
-        case .serverHelloSent where state == .certificateSent:
-            return true
+        case .serverHelloSent:
+            if context?.currentSession != nil {
+                return state == .changeCipherSpecSent
+            }
+            
+            return state == .certificateSent
             
         case .certificateSent:
             if self.context!.cipherSuite!.needsServerKeyExchange() {
-                if state == .serverKeyExchangeSent {
-                    return true
-                }
-            }
-            else if state == .serverHelloDoneSent {
-                return true
+                return state == .serverKeyExchangeSent
             }
             
+            return state == .serverHelloDoneSent
+
         case .serverKeyExchangeSent where state == .serverHelloDoneSent:
             return true
             
@@ -290,14 +303,16 @@ class TLSStateMachine : TLSContextStateMachine
         case .changeCipherSpecSent where state == .finishedSent:
             return true
             
-        case .finishedSent where state == .connected:
-            return true
+        case .finishedSent:
+            if context?.currentSession != nil {
+                return state == .changeCipherSpecSent
+            }
+            
+            return state == .connected
             
         default:
             return false
         }
-        
-        return false
     }
     
     func checkStateTransition(_ state : TLSState) -> Bool

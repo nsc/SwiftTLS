@@ -11,11 +11,11 @@ class TLSServerHello : TLSHandshakeMessage
 {
     var version : TLSProtocolVersion
     var random : Random
-    var sessionID : SessionID?
+    var sessionID : TLSSessionID?
     var cipherSuite : CipherSuite
     var compressionMethod : CompressionMethod
     
-    init(serverVersion : TLSProtocolVersion, random : Random, sessionID : SessionID?, cipherSuite : CipherSuite, compressionMethod : CompressionMethod)
+    init(serverVersion : TLSProtocolVersion, random : Random, sessionID : TLSSessionID?, cipherSuite : CipherSuite, compressionMethod : CompressionMethod)
     {
         self.version = serverVersion
         self.random = random
@@ -43,7 +43,7 @@ class TLSServerHello : TLSHandshakeMessage
         
         self.version = TLSProtocolVersion(major: major, minor: minor)!
         self.random = random
-        self.sessionID = SessionID(sessionID: rawSessionID)
+        self.sessionID = TLSSessionID(rawSessionID)
         self.cipherSuite = CipherSuite(rawValue: rawCiperSuite)!
         self.compressionMethod = CompressionMethod(rawValue: rawCompressionMethod)!
         

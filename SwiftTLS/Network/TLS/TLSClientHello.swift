@@ -23,7 +23,7 @@ class TLSClientHello : TLSHandshakeMessage
 {
     var clientVersion : TLSProtocolVersion
     var random : Random
-    var sessionID : SessionID?
+    var sessionID : TLSSessionID?
     var rawCipherSuites : [UInt16]
     var cipherSuites : [CipherSuite] {
         get {
@@ -46,7 +46,7 @@ class TLSClientHello : TLSHandshakeMessage
     
     var extensions : [TLSHelloExtension] = []
     
-    init(clientVersion: TLSProtocolVersion, random: Random, sessionID: SessionID?, cipherSuites: [CipherSuite], compressionMethods: [CompressionMethod])
+    init(clientVersion: TLSProtocolVersion, random: Random, sessionID: TLSSessionID?, cipherSuites: [CipherSuite], compressionMethods: [CompressionMethod])
     {
         self.clientVersion = clientVersion
         self.random = random
@@ -148,7 +148,7 @@ class TLSClientHello : TLSHandshakeMessage
         self.random = random
         
         if let rawSessionID = rawSessionID {
-            self.sessionID = SessionID(sessionID: rawSessionID)
+            self.sessionID = TLSSessionID(rawSessionID)
         }
         
         self.rawCipherSuites = rawCipherSuitesRead

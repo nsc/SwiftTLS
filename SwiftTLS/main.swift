@@ -93,21 +93,26 @@ func connectTo(host : String, port : Int = 443, protocolVersion: TLSProtocolVers
         ]
     }
     
-    let socket = TLSSocket(configuration: configuration)
-    socket.context.hostNames = [host]
+    let context = TLSContext(configuration: configuration)
+    var socket = TLSSocket(context: context)
     
     do {
-        let address = IPAddress.addressWithString(host, port: port)!
-        print("Connecting to \(address.hostname) (\(address.string!))")
-        try socket.connect(address)
-        
-        print("Connection established using cipher suite \(socket.context.cipherSuite!)")
-        
-        try socket.write([UInt8]("GET / HTTP/1.1\r\nHost: \(host)\r\n\r\n".utf8))
-        let data = try socket.read(count: 4096)
-        print("\(data.count) bytes read.")
-        print("\(String.fromUTF8Bytes(data)!)")
-        socket.close()
+        // Connect twice to test session reuse
+        for _ in 0..<2 {
+            socket = TLSSocket(configuration: configuration)
+            socket.context = context
+
+            print("Connecting to \(host):\(port)")
+            try socket.connect(hostname: host, port: port)
+            
+            print("Connection established using cipher suite \(socket.context.cipherSuite!)")
+            
+            try socket.write([UInt8]("GET / HTTP/1.1\r\nHost: \(host)\r\n\r\n".utf8))
+            let data = try socket.read(count: 4096)
+            print("\(data.count) bytes read.")
+            print("\(String.fromUTF8Bytes(data)!)")
+            socket.close()
+        }
     } catch (let error) {
         print("Error: \(error)")
     }
