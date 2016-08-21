@@ -279,16 +279,18 @@ public class TLSSocket : SocketProtocol, TLSDataProvider
     public init(context: TLSContext)
     {
         self.context = context
+        context.recordLayer = TLSRecordLayer(context: context, dataProvider: self)
     }
     
     public func connect(hostname: String, port: Int = 443) throws
     {
-        var hostname = hostname
-        if port != 443 {
-            hostname = "\(hostname):\(port)"
-        }
-        self.context.hostNames = [hostname]
         if let address = IPAddress.addressWithString(hostname, port: port) {
+            var hostNameAndPort = hostname
+            if port != 443 {
+                hostNameAndPort = "\(hostname):\(port)"
+            }
+            self.context.hostNames = [hostNameAndPort]
+            
             try connect(address)
         }
         else {
@@ -315,7 +317,7 @@ public class TLSSocket : SocketProtocol, TLSDataProvider
 
         let clientTLSSocket = TLSSocket(protocolVersion: self.context.configuration.protocolVersion, isClient: false)
         clientTLSSocket.socket = clientSocket
-        clientTLSSocket.context = self.context.copy(isClient: false)
+        clientTLSSocket.context = self.context
         clientTLSSocket.context.recordLayer.dataProvider = clientTLSSocket
         
         try clientTLSSocket.context.acceptConnection()

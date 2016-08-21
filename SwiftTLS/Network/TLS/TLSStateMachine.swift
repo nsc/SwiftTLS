@@ -152,7 +152,12 @@ class TLSStateMachine : TLSContextStateMachine
         case .finished:
             try self.transitionTo(state: .finishedReceived)
             
-            try self.context!.sendChangeCipherSpec()
+            if self.context!.isReusingSession {
+                try self.transitionTo(state: .connected)
+            }
+            else {
+                try self.context!.sendChangeCipherSpec()
+            }
             
         default:
             print("unsupported handshake \(handshakeType.rawValue)")
@@ -297,15 +302,19 @@ class TLSStateMachine : TLSContextStateMachine
         case .changeCipherSpecReceived where state == .finishedReceived:
             return true
             
-        case .finishedReceived where state == .changeCipherSpecSent:
-            return true
+        case .finishedReceived:
+            if context?.currentSession != nil {
+                return state == .connected
+            }
+
+            return state == .changeCipherSpecSent
             
         case .changeCipherSpecSent where state == .finishedSent:
             return true
             
         case .finishedSent:
             if context?.currentSession != nil {
-                return state == .changeCipherSpecSent
+                return state == .changeCipherSpecReceived
             }
             
             return state == .connected

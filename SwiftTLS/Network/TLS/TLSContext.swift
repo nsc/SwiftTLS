@@ -232,7 +232,11 @@ class TLSSecurityParameters
     var hmac: MACAlgorithm? = nil
     var masterSecret : [UInt8]? = nil
     var clientRandom : [UInt8]? = nil
-    var serverRandom : [UInt8]? = nil
+    var serverRandom : [UInt8]? = nil {
+        didSet {
+            
+        }
+    }
 }
 
 
@@ -316,6 +320,8 @@ public class TLSContext
     // a string "\(hostname):\(port)"
     var clientSessionCache: [String : TLSSession] = [:]
 
+    var isReusingSession: Bool
+    
     var hashAlgorithm: HashAlgorithm = .sha256
     
     typealias HashFunction = ([UInt8]) -> [UInt8]
@@ -364,6 +370,7 @@ public class TLSContext
         self.handshakeMessages = []
         self.securityParameters = TLSSecurityParameters()
         self.keyExchange = .rsa
+        self.isReusingSession = false
         
         if let dataProvider = dataProvider {
             self.recordLayer = TLSRecordLayer(context: self, dataProvider: dataProvider)
@@ -395,10 +402,17 @@ public class TLSContext
         context.securityParameters = self.securityParameters
         context.handshakeMessages = self.handshakeMessages
 
+        // session ID
+        context.pendingSessionID = self.pendingSessionID
+        context.serverSessionCache = self.serverSessionCache
+        
         return context
     }
     
     func reset() {
+        self.currentSession = nil
+        self.pendingSessionID = nil
+        
         self.negotiatedProtocolVersion = configuration.protocolVersion
         self.handshakeMessages = []
         self.securityParameters = TLSSecurityParameters()
@@ -418,6 +432,8 @@ public class TLSContext
     
     func acceptConnection() throws
     {
+        reset()
+        
         try self.receiveNextTLSMessage()
     }
     
@@ -526,6 +542,7 @@ public class TLSContext
                     let session = clientSessionCache[hostname]!
                     if session.sessionID == sessionID {
                         self.currentSession = session
+                        self.isReusingSession = true
                         setPendingSecurityParametersForCipherSuite(session.cipherSpec)
                     }
                     else {
@@ -661,9 +678,12 @@ public class TLSContext
                 print("Selected cipher suite is \(self.cipherSuite!)")
             }
             
+            print("client hello session ID: \(clientHello.sessionID)")
             if let sessionID = clientHello.sessionID {
                 if let session = self.serverSessionCache[sessionID] {
+                    print("Using cached session ID: \(sessionID.sessionID)")
                     self.currentSession = session
+                    self.isReusingSession = true
                 }
             }
             
@@ -757,6 +777,8 @@ public class TLSContext
     {
         // reset current pending session ID
         pendingSessionID = nil
+        currentSession = nil
+        isReusingSession = false
         
         if let hostname = self.hostNames?.first {
             pendingSessionID = clientSessionCache[hostname]?.sessionID
@@ -785,15 +807,32 @@ public class TLSContext
     
     func sendServerHello() throws
     {
+        var sessionID: TLSSessionID
+        if let session = currentSession {
+            sessionID = session.sessionID
+        }
+        else {
+            // create new session id
+            repeat {
+                sessionID = TLSSessionID.new()
+            } while serverSessionCache[sessionID] != nil
+            
+            pendingSessionID = sessionID
+        }
+        
         let serverHelloRandom = Random()
         let serverHello = TLSServerHello(
             serverVersion: self.negotiatedProtocolVersion,
             random: serverHelloRandom,
-            sessionID: nil,
+            sessionID: sessionID,
             cipherSuite: self.cipherSuite!,
             compressionMethod: .null)
         
         self.securityParameters.serverRandom = DataBuffer(serverHelloRandom).buffer
+        if let session = currentSession {
+            setPendingSecurityParametersForCipherSuite(session.cipherSpec)
+        }
+        
         try self.sendHandshakeMessage(serverHello)
     }
     
