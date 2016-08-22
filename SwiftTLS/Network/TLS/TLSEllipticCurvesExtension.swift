@@ -6,7 +6,7 @@
 //  Copyright © 2015 Nico Schmidt. All rights reserved.
 //
 
-class TLSEllipticCurvesExtension : TLSHelloExtension
+struct TLSEllipticCurvesExtension : TLSHelloExtension
 {
     var extensionType : TLSHelloExtensionType {
         get {
@@ -21,7 +21,7 @@ class TLSEllipticCurvesExtension : TLSHelloExtension
         self.ellipticCurves = ellipticCurves
     }
     
-    required init?(inputStream: InputStreamType) {
+    init?(inputStream: InputStreamType) {
         self.ellipticCurves = []
         
         guard

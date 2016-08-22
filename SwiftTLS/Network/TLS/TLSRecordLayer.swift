@@ -71,9 +71,18 @@ public class TLSRecordLayer
     
     var bufferedMessages: [TLSMessage]?
     
-    private var currentReadEncryptionParameters  : EncryptionParameters?
+    private var currentReadEncryptionParameters  : EncryptionParameters? {
+        didSet {
+            self.decryptor = nil
+        }
+    }
     private var pendingReadEncryptionParameters  : EncryptionParameters?
-    private var currentWriteEncryptionParameters : EncryptionParameters?
+    private var currentWriteEncryptionParameters : EncryptionParameters? {
+        didSet {
+            self.encryptor = nil
+        }
+    }
+    
     private var pendingWriteEncryptionParameters : EncryptionParameters?
 
     var pendingSecurityParameters  : TLSSecurityParameters? {
@@ -243,7 +252,6 @@ public class TLSRecordLayer
             encryptionParameters.sequenceNumber += 1
             
             let record = TLSRecord(contentType: contentType, protocolVersion: self.protocolVersion, body: cipherText)
-            print("send data: \(data)")
             try self.dataProvider?.writeData(DataBuffer(record).buffer)
         }
         else {

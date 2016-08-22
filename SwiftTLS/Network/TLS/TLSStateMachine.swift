@@ -83,7 +83,7 @@ class TLSStateMachine : TLSContextStateMachine
         case .serverHello:
             try self.transitionTo(state: .serverHelloSent)
             
-            if context?.currentSession != nil {
+            if context!.isReusingSession {
                 try self.context!.sendChangeCipherSpec()
             }
             else {
@@ -197,6 +197,10 @@ class TLSStateMachine : TLSContextStateMachine
         print((self.context!.isClient ? "Client" : "Server" ) + ": did receive message \(alert.alertLevel) \(alert.alert)")
     }
 
+    func didConnect() throws {
+        try transitionTo(state: .connected)
+    }
+    
     func checkClientStateTransition(_ state : TLSState) -> Bool
     {
         if state == .idle {
@@ -214,7 +218,7 @@ class TLSStateMachine : TLSContextStateMachine
         case .serverHelloReceived:
             // If we are reusing a former session, we need to transition to
             // changeCipherSpecReceived instead of certificateReceived
-            if context?.currentSession != nil {
+            if context!.isReusingSession {
                 if state == .changeCipherSpecReceived {
                     return true
                 }
@@ -241,20 +245,24 @@ class TLSStateMachine : TLSContextStateMachine
         case .changeCipherSpecSent where state == .finishedSent:
             return true
             
-        case .finishedSent where state == .changeCipherSpecReceived:
-            return true
+        case .finishedSent:
+            if context!.isReusingSession {
+                return state == .connected
+            }
+            
+            return state == .changeCipherSpecReceived
             
         case .changeCipherSpecReceived where state == .finishedReceived:
             return true
             
         case .finishedReceived:
-            if context?.currentSession != nil {
+            if context!.isReusingSession {
                 return state == .changeCipherSpecSent
             }
             
             return state == .connected
             
-        case .connected where (state == .closeReceived || state == .closeSent):
+        case .connected where (state == .closeReceived || state == .closeSent || state == .clientHelloSent):
             return true
             
         default:
@@ -277,7 +285,7 @@ class TLSStateMachine : TLSContextStateMachine
             return true
             
         case .serverHelloSent:
-            if context?.currentSession != nil {
+            if context!.isReusingSession {
                 return state == .changeCipherSpecSent
             }
             
@@ -303,7 +311,7 @@ class TLSStateMachine : TLSContextStateMachine
             return true
             
         case .finishedReceived:
-            if context?.currentSession != nil {
+            if context!.isReusingSession {
                 return state == .connected
             }
 
@@ -313,11 +321,20 @@ class TLSStateMachine : TLSContextStateMachine
             return true
             
         case .finishedSent:
-            if context?.currentSession != nil {
+            if context!.isReusingSession {
                 return state == .changeCipherSpecReceived
             }
             
             return state == .connected
+            
+        case .connected:
+            switch state {
+            case .closeSent, .closeReceived, .clientHelloReceived:
+                return true
+                
+            default:
+                return false
+            }
             
         default:
             return false

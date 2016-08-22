@@ -6,7 +6,7 @@
 //  Copyright © 2015 Nico Schmidt. All rights reserved.
 //
 
-class TLSEllipticCurvePointFormatsExtension : TLSHelloExtension
+struct TLSEllipticCurvePointFormatsExtension : TLSHelloExtension
 {
     var extensionType : TLSHelloExtensionType {
         get {
@@ -21,7 +21,7 @@ class TLSEllipticCurvePointFormatsExtension : TLSHelloExtension
         self.ellipticCurvePointFormats = ellipticCurvePointFormats
     }
     
-    required init?(inputStream: InputStreamType) {
+    init?(inputStream: InputStreamType) {
         self.ellipticCurvePointFormats = []
         
         guard

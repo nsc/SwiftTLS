@@ -10,12 +10,95 @@ enum TLSHelloExtensionType : UInt16
     case serverName = 0
     case ellipticCurves = 10
     case ecPointFormats = 11
+    case secureRenegotiationInfo = 0xff01
 }
 
 protocol TLSHelloExtension : Streamable
 {
     var extensionType : TLSHelloExtensionType {
         get
+    }
+    
+}
+
+func TLSReadHelloExtensions(from inputStream: InputStreamType, length: Int) -> [TLSHelloExtension]?
+{
+    guard
+        let extensionsSize : UInt16 = inputStream.read(),
+        let extensionsData : [UInt8] = inputStream.read(count: Int(extensionsSize))
+        else {
+            return nil
+    }
+    
+    print("Extensions Size: \(extensionsSize)")
+    print("Extensions Data:\n\(hex(extensionsData))")
+    
+    var length = length
+    length -= 2 + extensionsData.count
+    
+    if length > 0 {
+        print("Error: excess bytes at the end of client hello")
+    }
+    
+    let buffer = BinaryInputStream(extensionsData)
+    var extensionBytesLeft = extensionsData.count
+    var extensions: [TLSHelloExtension] = []
+    repeat {
+        
+        if let rawExtensionType : UInt16 = buffer.read(), let extensionData : [UInt8] = buffer.read16() {
+            
+            extensionBytesLeft -= 2 + 2 + extensionData.count
+            
+            if let extensionType = TLSHelloExtensionType(rawValue: rawExtensionType) {
+                
+                switch (extensionType)
+                {
+                case .serverName:
+                    if let serverName = TLSServerNameExtension(inputStream: BinaryInputStream(extensionData)) {
+                        extensions.append(serverName)
+                    }
+                    
+                case .ellipticCurves:
+                    if let ellipticCurves = TLSEllipticCurvesExtension(inputStream: BinaryInputStream(extensionData)) {
+                        extensions.append(ellipticCurves)
+                    }
+                    
+                case .ecPointFormats:
+                    if let pointFormats = TLSEllipticCurvePointFormatsExtension(inputStream: BinaryInputStream(extensionData)) {
+                        extensions.append(pointFormats)
+                    }
+                    
+                case .secureRenegotiationInfo:
+                    if let secureRenogotiationInfo = TLSSecureRenegotiationInfoExtension(inputStream: BinaryInputStream(extensionData)) {
+                        extensions.append(secureRenogotiationInfo)
+                    }
+                    
+                }
+            }
+            else {
+                print("Unknown extension type \(rawExtensionType)")
+            }
+            
+            if extensionBytesLeft == 0 {
+                break
+            }
+        }
+    } while(true)
+    
+    return extensions
+}
+
+func TLSWriteHelloExtensions<Target: OutputStreamType>(_ target: inout Target, extensions: [TLSHelloExtension])
+{
+    if extensions.count != 0 {
+        var extensionsData = DataBuffer()
+        
+        for helloExtension in extensions {
+            helloExtension.writeTo(&extensionsData)
+        }
+        
+        target.write(UInt16(extensionsData.buffer.count))
+        target.write(extensionsData.buffer)
     }
 }
 
@@ -87,61 +170,9 @@ class TLSClientHello : TLSHandshakeMessage
         bytesLeft -= 1 + rawCompressionMethods.count
 
         if bytesLeft > 0 {
-            guard
-                let extensionsSize : UInt16 = inputStream.read(),
-                let extensionsData : [UInt8] = inputStream.read(count: Int(extensionsSize))
-            else {
-                return nil
+            if let extensions = TLSReadHelloExtensions(from: inputStream, length: bytesLeft) {
+                self.extensions = extensions
             }
-
-            print("Extensions Size: \(extensionsSize)")
-            print("Extensions Data:\n\(hex(extensionsData))")
-            
-            bytesLeft -= 2 + extensionsData.count
-            
-            if bytesLeft > 0 {
-                print("Error: excess bytes at the end of client hello")
-            }
-            
-            let buffer = BinaryInputStream(extensionsData)
-            var extensionBytesLeft = extensionsData.count
-            self.extensions = []
-            repeat {
-                
-                if let rawExtensionType : UInt16 = buffer.read(), let extensionData : [UInt8] = buffer.read16() {
-                    
-                    extensionBytesLeft -= 2 + 2 + extensionData.count
-                 
-                    if let extensionType = TLSHelloExtensionType(rawValue: rawExtensionType) {
-
-                        switch (extensionType)
-                        {
-                        case .serverName:
-                            if let serverName = TLSServerNameExtension(inputStream: BinaryInputStream(extensionData)) {
-                                self.extensions.append(serverName)
-                            }
-                            
-                        case .ellipticCurves:
-                            if let ellipticCurves = TLSEllipticCurvesExtension(inputStream: BinaryInputStream(extensionData)) {
-                                self.extensions.append(ellipticCurves)
-                            }
-
-                        case .ecPointFormats:
-                            if let pointFormats = TLSEllipticCurvePointFormatsExtension(inputStream: BinaryInputStream(extensionData)) {
-                                self.extensions.append(pointFormats)
-                            }
-
-                        }
-                    }
-                    else {
-                        print("Unknown extension type \(rawExtensionType)")
-                    }
-                    
-                    if extensionBytesLeft == 0 {
-                        break
-                    }
-                }
-            } while(true)
         }
         
         self.clientVersion = clientVersion
@@ -175,21 +206,12 @@ class TLSClientHello : TLSHandshakeMessage
         }
         
         buffer.write(UInt16(rawCipherSuites.count * MemoryLayout<UInt16>.size))
-        buffer.write( rawCipherSuites)
+        buffer.write(rawCipherSuites)
         
         buffer.write(UInt8(compressionMethods.count))
         buffer.write(compressionMethods.map { $0.rawValue})
         
-        if self.extensions.count != 0 {
-            var extensionsData = DataBuffer()
-            
-            for helloExtension in self.extensions {
-                helloExtension.writeTo(&extensionsData)
-            }
-
-            buffer.write(UInt16(extensionsData.buffer.count))
-            buffer.write(extensionsData.buffer)
-        }
+        TLSWriteHelloExtensions(&buffer, extensions: self.extensions)
         
         let data = buffer.buffer
         

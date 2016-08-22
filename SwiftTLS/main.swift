@@ -22,10 +22,10 @@ func server(port: Int = 443, certificatePath: String, dhParametersPath : String?
     
     let cipherSuites : [CipherSuite] = [
         .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-//        .TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+        .TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 //        .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-//        .TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-//        .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
+        .TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+        .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
         .TLS_RSA_WITH_AES_256_CBC_SHA
         ]
     
@@ -45,13 +45,20 @@ func server(port: Int = 443, certificatePath: String, dhParametersPath : String?
         do {
             let clientSocket = try server.acceptConnection(address)
             
-            let data = try clientSocket.read(count: 1024)
-            let string = String.fromUTF8Bytes(data)!
-            print("Client Request:\n\(string)")
-            let contentLength = string.utf8.count
-            let response = "HTTP/1.1 200 OK\nConnection: Close\nContent-Length: \(contentLength)\n\n\(string)"
-            try clientSocket.write(response)
-            clientSocket.close()
+            while true {
+                let data = try clientSocket.read(count: 1024)
+                let string = String.fromUTF8Bytes(data)!
+                print("Client Request:\n\(string)")
+                if string.hasSuffix("GET ") {
+                    let contentLength = string.utf8.count
+                    let header = "HTTP/1.1 200 OK\nConnection: Close\nContent-Length: \(contentLength)\n\n"
+                    let body = "\(string)"
+                    try clientSocket.write(header + body)
+                }
+//                try clientSocket.write(body)
+                
+                //            clientSocket.close()
+            }
         }
         catch(let error) {
             if let tlserror = error as? TLSError {
@@ -97,12 +104,51 @@ func connectTo(host : String, port : Int = 443, protocolVersion: TLSProtocolVers
     let context = TLSContext(configuration: configuration)
     var socket = TLSSocket(context: context)
     
+    let testSessionReuse = false
+    let testSecureRenegotiation = true
     do {
-        // Connect twice to test session reuse
-        for _ in 0..<2 {
-            socket = TLSSocket(configuration: configuration)
-            socket.context = context
+        if testSessionReuse {
+            // Connect twice to test session reuse
+            for _ in 0..<2 {
+                socket = TLSSocket(configuration: configuration)
+                socket.context = context
+                
+                print("Connecting to \(host):\(port)")
+                try socket.connect(hostname: host, port: port)
+                
+                print("Connection established using cipher suite \(socket.context.cipherSuite!)")
+                
+                try socket.write([UInt8]("GET / HTTP/1.1\r\nHost: \(host)\r\n\r\n".utf8))
+                let data = try socket.read(count: 4096)
+                print("\(data.count) bytes read.")
+                print("\(String.fromUTF8Bytes(data)!)")
+                socket.close()
+            }
+        }
+        else if testSecureRenegotiation {
+            // Connect twice to test session reuse
+            print("Connecting to \(host):\(port)")
+            try socket.connect(hostname: host, port: port)
+            
+            print("Connection established using cipher suite \(socket.context.cipherSuite!)")
+            for _ in 0..<2 {
+//                for _ in 0..<5 {
+                    try socket.write([UInt8]("GET / HTTP/1.1\r\nHost: \(host)\r\n\r\n".utf8))
+                    
+                    for _ in 0..<1 {
+                        let data = try socket.read(count: 40960)
+                        print("\(data.count) bytes read.")
+                        print("\(String.fromUTF8Bytes(data)!)")
+                    }
+//                }
 
+                try socket.renegotiate()
+            }
+            
+            socket.close()
+
+        }
+        else {
             print("Connecting to \(host):\(port)")
             try socket.connect(hostname: host, port: port)
             
@@ -114,7 +160,7 @@ func connectTo(host : String, port : Int = 443, protocolVersion: TLSProtocolVers
             print("\(String.fromUTF8Bytes(data)!)")
             socket.close()
         }
-    } catch (let error) {
+} catch (let error) {
         print("Error: \(error)")
     }
     

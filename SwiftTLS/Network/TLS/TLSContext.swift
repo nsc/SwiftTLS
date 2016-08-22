@@ -237,6 +237,11 @@ class TLSSecurityParameters
             
         }
     }
+    
+    // secure renegotiation support (RFC 5746)
+    var isUsingSecureRenegotiation: Bool = false
+    var clientVerifyData: [UInt8] = []
+    var serverVerifyData: [UInt8] = []
 }
 
 
@@ -252,6 +257,7 @@ protocol TLSContextStateMachine
     func serverDidReceiveHandshakeMessage(_ message : TLSHandshakeMessage) throws
     func shouldContinueHandshakeWithMessage(_ message : TLSHandshakeMessage) -> Bool
     func didReceiveAlert(_ alert : TLSAlertMessage)
+    func didConnect() throws
 }
 
 extension TLSContextStateMachine
@@ -268,6 +274,7 @@ extension TLSContextStateMachine
         return true
     }
     func didReceiveAlert(_ alert : TLSAlertMessage) {}
+    func didConnect() throws {}
 }
 
 public class TLSContext
@@ -321,6 +328,9 @@ public class TLSContext
     var clientSessionCache: [String : TLSSession] = [:]
 
     var isReusingSession: Bool
+    
+    var isInitialHandshake: Bool = true
+    var isRenegotiatingSecurityParameters: Bool = false
     
     var hashAlgorithm: HashAlgorithm = .sha256
     
@@ -378,40 +388,11 @@ public class TLSContext
         self.stateMachine = TLSStateMachine(context: self)
     }
     
-    func copy(isClient: Bool? = nil) -> TLSContext
-    {
-        var isClient = isClient
-        if isClient == nil {
-            isClient = self.isClient
-        }
-        let context = TLSContext(configuration: self.configuration, dataProvider: self.recordLayer.dataProvider!, isClient: isClient!)
-        
-        context.configuration = self.configuration
-        context.cipherSuite = self.cipherSuite
-        
-        context.serverKey = self.serverKey
-        context.clientKey = self.clientKey
-        
-        context.serverCertificates = self.serverCertificates
-        context.clientCertificates = self.clientCertificates
-        
-        if let preMasterSecret = self.preMasterSecret {
-            context.preMasterSecret = preMasterSecret
-        }
-        
-        context.securityParameters = self.securityParameters
-        context.handshakeMessages = self.handshakeMessages
-
-        // session ID
-        context.pendingSessionID = self.pendingSessionID
-        context.serverSessionCache = self.serverSessionCache
-        
-        return context
-    }
-    
     func reset() {
         self.currentSession = nil
         self.pendingSessionID = nil
+        
+        self.isInitialHandshake = true
         
         self.negotiatedProtocolVersion = configuration.protocolVersion
         self.handshakeMessages = []
@@ -428,6 +409,10 @@ public class TLSContext
         
         try self.sendClientHello()
         try self.receiveNextTLSMessage()
+        
+        try self.didConnect()
+        
+        self.handshakeMessages = []
     }
     
     func acceptConnection() throws
@@ -435,7 +420,23 @@ public class TLSContext
         reset()
         
         try self.receiveNextTLSMessage()
+        
+        try self.didConnect()
+        
+        self.handshakeMessages = []
     }
+    
+    func didConnect() throws
+    {
+        print("Connection established.")
+        try self.stateMachine.didConnect()
+    }
+    
+    func didRenegotiate()
+    {
+        print("Renegotiated security parameters successfully.")
+    }
+
     
     func sendApplicationData(_ data : [UInt8]) throws
     {
@@ -462,6 +463,12 @@ public class TLSContext
         try self.sendMessage(alertMessage)
     }
     
+    func abortHandshake() throws
+    {
+        try self.sendAlert(.handshakeFailure, alertLevel: .fatal)
+        throw TLSError.alert(alert: .handshakeFailure, alertLevel: .fatal)
+    }
+    
     private func sendHandshakeMessage(_ message : TLSHandshakeMessage) throws
     {
         try self.sendMessage(message)
@@ -482,7 +489,7 @@ public class TLSContext
     
     func _didReceiveMessage(_ message : TLSMessage) throws
     {
-//        print((self.isClient ? "Client" : "Server" ) + ": did receive message \(TLSMessageNameForType(message.type))")
+        print((self.isClient ? "Client" : "Server" ) + ": did receive message \(TLSMessageNameForType(message.type))")
 
         switch (message.type)
         {
@@ -525,8 +532,7 @@ public class TLSContext
             print("Server wants to speak \(version)")
             
             if version < self.configuration.minimumFallbackVersion {
-                try self.sendAlert(.handshakeFailure, alertLevel: .fatal)
-                throw TLSError.alert(alert: .handshakeFailure, alertLevel: .fatal)
+                try abortHandshake()
             }
             
             self.recordLayer.protocolVersion = version
@@ -534,6 +540,32 @@ public class TLSContext
             
             self.cipherSuite = serverHello.cipherSuite
             self.securityParameters.serverRandom = DataBuffer(serverHello.random).buffer
+            
+            print("ServerHello extensions = \(serverHello.extensions)")
+            
+            if let secureRenegotiationInfo = serverHello.extensions.filter({$0 is TLSSecureRenegotiationInfoExtension}).first as? TLSSecureRenegotiationInfoExtension {
+                print("Client setting secure renegotiation")
+                self.securityParameters.isUsingSecureRenegotiation = true
+                
+                if self.isInitialHandshake {
+                    if secureRenegotiationInfo.renegotiatedConnection.count != 0 {
+                        try abortHandshake()
+                    }
+                }
+                else {
+                    if secureRenegotiationInfo.renegotiatedConnection != self.securityParameters.clientVerifyData + self.securityParameters.serverVerifyData {
+                        try abortHandshake()
+                    }
+                }
+            }
+            else {
+                if !isInitialHandshake && self.securityParameters.isUsingSecureRenegotiation {
+                    // When we are using secure renegotiation and the server hello doesn't include
+                    // the extension, we need to abort the handshake
+                    try abortHandshake()
+                }
+                self.securityParameters.isUsingSecureRenegotiation = false
+            }
             
             if let sessionID = serverHello.sessionID {
                 if  let pendingSessionID = self.pendingSessionID,
@@ -618,8 +650,12 @@ public class TLSContext
             break
             
         case .finished:
-            if (self.verifyFinishedMessage(message as! TLSFinished, isClient: false)) {
+            if (self.verifyFinishedMessage(message as! TLSFinished, isClient: false, saveForSecureRenegotiation: true)) {
                 print("Client: Finished verified.")
+                if self.isRenegotiatingSecurityParameters {
+                    print("Client: Renegotiated security parameters successfully.")
+                    self.isRenegotiatingSecurityParameters = false
+                }
                 
                 if currentSession != nil {
                     self.handshakeMessages.append(message)
@@ -661,10 +697,61 @@ public class TLSContext
             let clientHello = (message as! TLSClientHello)
             
             if clientHello.clientVersion < self.configuration.minimumFallbackVersion {
-                try self.sendAlert(.handshakeFailure, alertLevel: .fatal)
-                throw TLSError.alert(alert: .handshakeFailure, alertLevel: .fatal)
+                try abortHandshake()
             }
 
+            // Secure Renegotiation
+            let clientHelloContainsEmptyRenegotiationSCSV = clientHello.cipherSuites.contains(.TLS_EMPTY_RENEGOTIATION_INFO_SCSV)
+            let secureRenegotiationInfo = clientHello.extensions.filter({$0 is TLSSecureRenegotiationInfoExtension}).first as? TLSSecureRenegotiationInfoExtension
+            
+            print("CLientHello extensions: \(clientHello.extensions)")
+            if self.isInitialHandshake {
+                // RFC 5746, Section 3.6
+                if clientHelloContainsEmptyRenegotiationSCSV {
+                    self.securityParameters.isUsingSecureRenegotiation = true
+                }
+                else if let secureRenegotiationInfo = secureRenegotiationInfo {
+                    if secureRenegotiationInfo.renegotiatedConnection.count == 0 {
+                        self.securityParameters.isUsingSecureRenegotiation = true
+                    }
+                    else {
+                        // abort handshake if the renegotiationInfo isn't empty
+                        try abortHandshake()
+                    }
+                }
+                else {
+                    self.securityParameters.isUsingSecureRenegotiation = false
+                }
+            }
+            else if self.securityParameters.isUsingSecureRenegotiation {
+                // Renegotiated handshake (RFC 5746, Section 3.7)
+                if clientHelloContainsEmptyRenegotiationSCSV {
+                    try abortHandshake()
+                }
+                else if let secureRenegotiationInfo = secureRenegotiationInfo {
+                    if secureRenegotiationInfo.renegotiatedConnection.count == 0 {
+                        try abortHandshake()
+                    }
+                    else {
+                        if secureRenegotiationInfo.renegotiatedConnection != self.securityParameters.clientVerifyData {
+                            try abortHandshake()
+                        }
+                        
+                        self.isRenegotiatingSecurityParameters = true
+                    }
+                }
+                else {
+                    // abort if secureRenegotiationInfo is missing
+                    try abortHandshake()
+                }
+            }
+            else {
+                print("Renegotiation initiated")
+
+                self.securityParameters.isUsingSecureRenegotiation = false
+            }
+
+            
             self.negotiatedProtocolVersion = clientHello.clientVersion
             self.securityParameters.clientRandom = DataBuffer(clientHello.random).buffer
             
@@ -726,9 +813,13 @@ public class TLSContext
             self.setPreMasterSecretAndCommitSecurityParameters(preMasterSecret)
             
         case .finished:
-            if (self.verifyFinishedMessage(message as! TLSFinished, isClient: true)) {
+            if (self.verifyFinishedMessage(message as! TLSFinished, isClient: true, saveForSecureRenegotiation: true)) {
                 print("Server: Finished verified.")
-                
+                if self.isRenegotiatingSecurityParameters {
+                    print("Server: Renegotiated security parameters successfully.")
+                    self.isRenegotiatingSecurityParameters = false
+                }
+
                 if let sessionID = self.pendingSessionID {
                     let session = TLSSession(sessionID: sessionID, cipherSpec: self.cipherSuite!, masterSecret: self.securityParameters.masterSecret!)
                     serverSessionCache[sessionID] = session
@@ -776,30 +867,53 @@ public class TLSContext
     func sendClientHello() throws
     {
         // reset current pending session ID
-        pendingSessionID = nil
-        currentSession = nil
-        isReusingSession = false
+        self.pendingSessionID = nil
+        self.currentSession = nil
+        self.isReusingSession = false
         
-        if let hostname = self.hostNames?.first {
-            pendingSessionID = clientSessionCache[hostname]?.sessionID
+        self.handshakeMessages = []
+
+        var cipherSuites = self.configuration.cipherSuites
+        if self.isInitialHandshake {
+            // Only the initial handshake may contain the empty renegotiation info signalling cipher suite
+            if !cipherSuites.contains(.TLS_EMPTY_RENEGOTIATION_INFO_SCSV) {
+                cipherSuites.append(.TLS_EMPTY_RENEGOTIATION_INFO_SCSV)
+            }
         }
+        else {
+            self.isRenegotiatingSecurityParameters = self.securityParameters.isUsingSecureRenegotiation
+        }
+
+//        if !self.isRenegotiatingSecurityParameters {
+            if let hostname = self.hostNames?.first {
+                self.pendingSessionID = clientSessionCache[hostname]?.sessionID
+            }
+//        }
         
         let clientHelloRandom = Random()
         let clientHello = TLSClientHello(
             clientVersion: self.configuration.protocolVersion,
             random: clientHelloRandom,
             sessionID: pendingSessionID,
-            cipherSuites: self.configuration.cipherSuites,
+            cipherSuites: cipherSuites,
             compressionMethods: [.null])
         
         if self.hostNames != nil {
             clientHello.extensions.append(TLSServerNameExtension(serverNames: self.hostNames!))
         }
         
+        print("initial handshake = \(self.isInitialHandshake), secure renegotiation = \(self.securityParameters.isUsingSecureRenegotiation)")
+        if self.isRenegotiatingSecurityParameters {
+            clientHello.extensions.append(TLSSecureRenegotiationInfoExtension(renegotiatedConnection: self.securityParameters.clientVerifyData))
+            print("ClientHello extensions = \(clientHello.extensions)")
+        }
+        
         if self.configuration.cipherSuites.contains(where: { if let descriptor = TLSCipherSuiteDescriptorForCipherSuite($0) { return descriptor.keyExchangeAlgorithm == .ecdhe} else { return false } }) {
             clientHello.extensions.append(TLSEllipticCurvesExtension(ellipticCurves: [.secp256r1, .secp521r1]))
             clientHello.extensions.append(TLSEllipticCurvePointFormatsExtension(ellipticCurvePointFormats: [.uncompressed]))
         }
+        
+        self.isInitialHandshake = false
         
         self.securityParameters.clientRandom = DataBuffer(clientHelloRandom).buffer
         try self.sendHandshakeMessage(clientHello)
@@ -817,7 +931,7 @@ public class TLSContext
                 sessionID = TLSSessionID.new()
             } while serverSessionCache[sessionID] != nil
             
-            pendingSessionID = sessionID
+            self.pendingSessionID = sessionID
         }
         
         let serverHelloRandom = Random()
@@ -828,12 +942,38 @@ public class TLSContext
             cipherSuite: self.cipherSuite!,
             compressionMethod: .null)
         
+        if self.securityParameters.isUsingSecureRenegotiation {
+            if self.isInitialHandshake {
+                serverHello.extensions.append(TLSSecureRenegotiationInfoExtension())
+            }
+            else {
+                let renegotiationInfo = self.securityParameters.clientVerifyData + self.securityParameters.serverVerifyData
+                serverHello.extensions.append(TLSSecureRenegotiationInfoExtension(renegotiatedConnection: renegotiationInfo))
+            }
+        }
+        
+        print("ServerHello extensions = \(serverHello.extensions)")
+
         self.securityParameters.serverRandom = DataBuffer(serverHelloRandom).buffer
         if let session = currentSession {
             setPendingSecurityParametersForCipherSuite(session.cipherSpec)
         }
         
+        self.isInitialHandshake = false
+
         try self.sendHandshakeMessage(serverHello)
+        
+        usleep(300000)
+    }
+    
+    func renegotiate() throws
+    {
+        if self.isClient {
+            try sendClientHello()
+            try self.readTLSMessage()
+            
+            self.didRenegotiate()
+        }
     }
     
     func sendCertificate() throws
@@ -933,14 +1073,35 @@ public class TLSContext
     func sendFinished() throws
     {
         let verifyData = self.verifyDataForFinishedMessage(isClient: self.isClient)
+        if self.securityParameters.isUsingSecureRenegotiation {
+            saveVerifyDataForSecureRenegotiation(data: verifyData, forClient: self.isClient)
+        }
         try self.sendHandshakeMessage(TLSFinished(verifyData: verifyData))
     }
 
-    private func verifyFinishedMessage(_ finishedMessage : TLSFinished, isClient: Bool) -> Bool
+    func saveVerifyDataForSecureRenegotiation(data: [UInt8], forClient isClient: Bool)
     {
-        let verifyData = self.verifyDataForFinishedMessage(isClient: isClient)
+        if self.securityParameters.isUsingSecureRenegotiation {
+            if isClient {
+                self.securityParameters.clientVerifyData = data
+            }
+            else {
+                self.securityParameters.serverVerifyData = data
+            }
+        }
+    }
 
-        return finishedMessage.verifyData == verifyData
+    private func verifyFinishedMessage(_ finishedMessage : TLSFinished, isClient: Bool, saveForSecureRenegotiation: Bool) -> Bool
+    {
+        guard finishedMessage.verifyData == self.verifyDataForFinishedMessage(isClient: isClient) else {
+            return false
+        }
+
+        if saveForSecureRenegotiation {
+            saveVerifyDataForSecureRenegotiation(data: finishedMessage.verifyData, forClient: isClient)
+        }
+        
+        return true
     }
 
     private func verifyDataForFinishedMessage(isClient: Bool) -> [UInt8]
@@ -949,15 +1110,19 @@ public class TLSContext
         
         var handshakeData = [UInt8]()
         for message in self.handshakeMessages {
+            let handshakeMessageData : [UInt8]
             if let messageData = message.rawHandshakeMessageData {
-                handshakeData.append(contentsOf: messageData)
+                handshakeMessageData = messageData
             }
             else {
                 var messageBuffer = DataBuffer()
                 message.writeTo(&messageBuffer)
                 
-                handshakeData.append(contentsOf: messageBuffer.buffer)
+                handshakeMessageData = messageBuffer.buffer
             }
+
+            handshakeData.append(contentsOf: handshakeMessageData)
+
         }
         
         if self.negotiatedProtocolVersion < TLSProtocolVersion.v1_2 {
@@ -1030,7 +1195,15 @@ public class TLSContext
 
     func readTLSMessage() throws -> TLSMessage
     {
-        return try self._readTLSMessage()
+        while true {
+            let message = try self._readTLSMessage()
+            
+            if message.contentType == .applicationData {
+                return message
+            }
+            
+            try self._didReceiveMessage(message)
+        }
     }
     
     private func _readTLSMessage() throws -> TLSMessage
@@ -1067,8 +1240,17 @@ public class TLSContext
         self.securityParameters.recordIVLength      = cipherSuiteDescriptor.recordIVLength
         self.securityParameters.hmac                = cipherSuiteDescriptor.hashFunction.macAlgorithm
         
-        let useConfiguredHashFunctionForPRF = (self.securityParameters.blockCipherMode! == .gcm || cipherSuiteDescriptor.keyExchangeAlgorithm == .ecdhe)
-
+        var useConfiguredHashFunctionForPRF = self.securityParameters.blockCipherMode! == .gcm || cipherSuiteDescriptor.keyExchangeAlgorithm == .ecdhe
+        
+        switch cipherSuiteDescriptor.hashFunction
+        {
+        case .sha256, .sha384:
+            break
+            
+        default:
+            useConfiguredHashFunctionForPRF = false
+        }
+        
         if !useConfiguredHashFunctionForPRF {
             // for non GCM or ECDHE cipher suites TLS 1.2 uses SHA256 for its PRF
             self.hashAlgorithm = .sha256
@@ -1082,6 +1264,7 @@ public class TLSContext
                 self.hashAlgorithm = .sha384
                 
             default:
+                print("Error: cipher suite \(cipherSuite) has \(cipherSuiteDescriptor.hashFunction)")
                 fatalError("AEAD cipher suites can only use SHA256 or SHA384")
                 break
             }

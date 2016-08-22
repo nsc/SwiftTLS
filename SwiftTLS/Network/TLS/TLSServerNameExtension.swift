@@ -13,7 +13,7 @@ enum TLSServerNameType : UInt8
     case hostName = 0
 }
 
-class TLSServerNameExtension : TLSHelloExtension
+struct TLSServerNameExtension : TLSHelloExtension
 {
     var extensionType : TLSHelloExtensionType {
         get {
@@ -28,7 +28,7 @@ class TLSServerNameExtension : TLSHelloExtension
         self.serverNames = serverNames
     }
     
-    required init?(inputStream: InputStreamType) {
+    init?(inputStream: InputStreamType) {
         guard
             let serverNamesLength : UInt16 = inputStream.read()
         else {

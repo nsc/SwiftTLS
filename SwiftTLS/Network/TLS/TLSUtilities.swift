@@ -381,6 +381,21 @@ func TLSMessageNameForType(_ messageType : TLSMessageType) -> String
         case .noRenegotiation:
             alertDescriptionString = "NoRenegotiation"
             
+        case .unsupportedExtension:
+            alertDescriptionString = "UnsupportedExtension"
+            
+        case .certificateUnobtainable:
+            alertDescriptionString = "CertificateUnobtainable"
+
+        case .unrecognizedName:
+            alertDescriptionString = "UnrecognizedName"
+
+        case .badCertificateStatusResponse:
+            alertDescriptionString = "BadCertificateStatusResponse"
+
+        case .badCertificateHashValue:
+            alertDescriptionString = "BadCertificateHashValue"
+
         }
         
         switch (alertLevel)

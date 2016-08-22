@@ -325,6 +325,11 @@ public class TLSSocket : SocketProtocol, TLSDataProvider
         return clientTLSSocket
     }
     
+    public func renegotiate() throws
+    {
+        try self.context.renegotiate()
+    }
+    
     public func close()
     {
         do {

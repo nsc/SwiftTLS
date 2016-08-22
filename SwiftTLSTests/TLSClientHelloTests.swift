@@ -89,7 +89,10 @@ class TLSClientHelloTests: XCTestCase {
             cipherSuites: [.TLS_RSA_WITH_RC4_128_SHA],
             compressionMethods: [.null])
         
-        clientHello.extensions = [TLSServerNameExtension(serverNames: ["www.example.com", "www.example2.com", "www.example3.com"])]
+        clientHello.extensions = [
+            TLSServerNameExtension(serverNames: ["www.example.com", "www.example2.com", "www.example3.com"]),
+            TLSSecureRenegotiationInfoExtension(renegotiatedConnection: [1,2,3,4])
+        ]
 
         var buffer = DataBuffer()
         clientHello.writeTo(&buffer)
@@ -104,11 +107,22 @@ class TLSClientHelloTests: XCTestCase {
             {
                 let e = clientHello.extensions[i]
                 let n = newClientHello.extensions[i]
+
+                let type = type(of: e)
+                XCTAssertTrue(type == type(of: n))
                 
-                XCTAssertTrue(e as? TLSServerNameExtension != nil)
-                XCTAssertTrue(n as? TLSServerNameExtension != nil)
-                
-                XCTAssertTrue((e as! TLSServerNameExtension).serverNames == (n as! TLSServerNameExtension).serverNames)
+                switch i {
+                case 0:
+                    XCTAssertTrue(e is TLSServerNameExtension)
+                    XCTAssertTrue((e as! TLSServerNameExtension).serverNames == (n as! TLSServerNameExtension).serverNames)
+                    
+                case 1:
+                    XCTAssertTrue(e is TLSSecureRenegotiationInfoExtension)
+                    XCTAssertTrue((e as! TLSSecureRenegotiationInfoExtension).renegotiatedConnection == (n as! TLSSecureRenegotiationInfoExtension).renegotiatedConnection)
+
+                default:
+                    XCTFail("Unchecked hello extension")
+                }
             }
         }
         else {

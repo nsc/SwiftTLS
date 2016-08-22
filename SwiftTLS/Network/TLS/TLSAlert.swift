@@ -40,6 +40,11 @@ enum TLSAlert : UInt8
     case internalError = 80
     case userCancelled = 90
     case noRenegotiation = 100
+    case unsupportedExtension = 110
+    case certificateUnobtainable = 111
+    case unrecognizedName = 112
+    case badCertificateStatusResponse = 113
+    case badCertificateHashValue = 114
 }
 
 class TLSAlertMessage : TLSMessage

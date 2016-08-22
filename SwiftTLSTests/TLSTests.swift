@@ -51,7 +51,7 @@ class TSLTests: XCTestCase {
         opensslServer.terminate()
     }
     
-    func test_clientServerWithCipherSuite(_ cipherSuite : CipherSuite)
+    func createServer(with cipherSuite: CipherSuite, port: Int) -> TLSSocket
     {
         var configuration = TLSConfiguration(protocolVersion: .v1_2)
         
@@ -61,15 +61,20 @@ class TSLTests: XCTestCase {
         configuration.dhParameters = DiffieHellmanParameters.fromPEMFile(dhParametersPath)
         configuration.ecdhParameters = ECDiffieHellmanParameters(namedCurve: .secp256r1)
         
-        let address = IPv4Address.localAddress()
-        address.port = UInt16(12345)
-        
-        let server = TLSSocket(configuration: configuration, isClient: false)
+        return TLSSocket(configuration: configuration, isClient: false)
+    }
+    
+    func test_clientServerWithCipherSuite(_ cipherSuite : CipherSuite)
+    {
+        let server = createServer(with: cipherSuite, port: 12345)
         
         let client = TLSSocket(protocolVersion: .v1_2)
         client.context.configuration.cipherSuites = [cipherSuite]
         
         let expectation = self.expectation(description: "accept connection successfully")
+        
+        let address = IPv4Address.localAddress()
+        address.port = UInt16(12345)
         
         let serverQueue = DispatchQueue(label: "server queue", attributes: [])
         do {
@@ -112,6 +117,57 @@ class TSLTests: XCTestCase {
         
         for cipherSuite in cipherSuites {
             test_clientServerWithCipherSuite(cipherSuite)
+        }
+    }
+
+    func test_renegotiate()
+    {
+        let cipherSuite = CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        let server = createServer(with: cipherSuite, port: 12345)
+        
+        let client = TLSSocket(protocolVersion: .v1_2)
+        client.context.configuration.cipherSuites = [cipherSuite]
+        
+        let expectation = self.expectation(description: "accept connection successfully")
+        
+        let address = IPv4Address.localAddress()
+        address.port = UInt16(12345)
+        
+        let serverQueue = DispatchQueue(label: "server queue", attributes: [])
+        do {
+            serverQueue.async {
+                do {
+                    let client = try server.acceptConnection(address)
+                    try client.write([1,2,3])
+                    
+                    while true {
+                        if let data = try? client.read(count: 1024) {
+                            try client.write(data)
+                        }
+                    }
+                } catch(let error) {
+                    XCTFail("\(error)")
+                }
+            }
+            sleep(1)
+            
+            try client.connect(address)
+            let response = try client.read(count: 3)
+            try client.renegotiate()
+            try client.write([1,2,3])
+
+            if response == [1,2,3] as [UInt8] {
+                expectation.fulfill()
+            }
+            client.close()
+            server.close()
+        }
+        catch (let error) {
+            XCTFail("\(error)")
+        }
+        
+        self.waitForExpectations(timeout: 2.0) {
+            (error : Error?) -> Void in
         }
     }
 

@@ -122,6 +122,9 @@ class Socket : SocketProtocol
             throw SocketError.posixError(errno: errno)
         }
         
+        var yes : Int32 = 1
+        setsockopt(clientSocket, IPPROTO_TCP, TCP_NODELAY, &yes, socklen_t(MemoryLayout<Int32>.size))
+
         return type(of: self).init(socketDescriptor: clientSocket)
     }
 
@@ -254,7 +257,6 @@ class TCPSocket : Socket
 //        action.sa_handler = 1
 //        sigaction(SIGPIPE, &action, nil)
         
-        setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &yes, socklen_t(MemoryLayout<Int32>.size))
         setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &yes, socklen_t(MemoryLayout<Int32>.size))
         
         return fd
