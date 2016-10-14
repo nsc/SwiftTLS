@@ -199,17 +199,20 @@ public class TLSRecordLayer
             let recordIV : [UInt8]
             switch self.protocolVersion
             {
-            case .v1_0:
+            case TLSProtocolVersion.v1_0:
                 IV = encryptionParameters.fixedIV
                 recordIV = IV
                 
-            case .v1_1:
+            case TLSProtocolVersion.v1_1:
                 IV = TLSRandomBytes(encryptionParameters.recordIVLength)
                 recordIV = IV
 
-            case .v1_2:
+            case TLSProtocolVersion.v1_2:
                 recordIV = TLSRandomBytes(encryptionParameters.recordIVLength)
                 IV = (isAEAD ? encryptionParameters.fixedIV : []) + recordIV
+            
+            default:
+                fatalError("Unsupported TLS version \(self.protocolVersion)")
             }
             
 
@@ -435,15 +438,15 @@ public class TLSRecordLayer
             var authTag : [UInt8]? = nil
             switch self.protocolVersion
             {
-            case .v1_0:
+            case TLSProtocolVersion.v1_0:
                 IV = encryptionParameters.fixedIV
                 cipherText = data
                 
-            case .v1_1:
+            case TLSProtocolVersion.v1_1:
                 IV = [UInt8](data[0..<encryptionParameters.recordIVLength])
                 cipherText = [UInt8](data[encryptionParameters.recordIVLength..<data.count])
                 
-            case .v1_2:
+            case TLSProtocolVersion.v1_2:
                 IV = (isAEAD ? encryptionParameters.fixedIV : []) + [UInt8](data[0..<encryptionParameters.recordIVLength])
                 if let cipherMode = encryptionParameters.blockCipherMode, cipherMode == .gcm {
                     cipherText = [UInt8](data[encryptionParameters.recordIVLength..<(data.count - encryptionParameters.blockLength)])
@@ -452,6 +455,9 @@ public class TLSRecordLayer
                 else {
                     cipherText = [UInt8](data[encryptionParameters.recordIVLength..<data.count])
                 }
+                
+            default:
+                fatalError("Unsupported TLS version \(self.protocolVersion)")
             }
             
             let macHeader = isAEAD ? self.MACHeader(forContentType: contentType, dataLength: data.count - encryptionParameters.recordIVLength - encryptionParameters.blockLength, isRead: true) : []

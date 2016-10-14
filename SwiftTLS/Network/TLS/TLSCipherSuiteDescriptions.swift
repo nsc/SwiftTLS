@@ -79,6 +79,15 @@ let TLSCipherSuiteDescritions : [CipherSuiteDescriptor] = [
         blockCipherMode: .cbc,
         hashFunction: .sha1
     ),
+
+    CipherSuiteDescriptor(
+        cipherSuite: .TLS_RSA_WITH_AES_128_CBC_SHA256,
+        keyExchangeAlgorithm: .rsa,
+        bulkCipherAlgorithm: .aes128,
+        cipherType: .block,
+        blockCipherMode: .cbc,
+        hashFunction: .sha256
+    ),
     
     CipherSuiteDescriptor(
         cipherSuite: .TLS_RSA_WITH_AES_256_CBC_SHA256,

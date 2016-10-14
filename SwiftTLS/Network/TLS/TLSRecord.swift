@@ -34,10 +34,9 @@ class TLSRecord : Streamable {
         }
         
         if let major: UInt8 = inputStream.read(),
-           let minor: UInt8 = inputStream.read(),
-           let v = TLSProtocolVersion(major: major, minor: minor)
+           let minor: UInt8 = inputStream.read()
         {
-            protocolVersion = v
+            protocolVersion = TLSProtocolVersion(major: major, minor: minor)
         }
         
         if let bodyLength: UInt16 = inputStream.read() {

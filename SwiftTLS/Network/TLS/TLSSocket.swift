@@ -11,44 +11,6 @@ enum TLSSocketError : Error {
     case error
 }
 
-public enum TLSProtocolVersion : UInt16, CustomStringConvertible, Comparable {
-    init?(major : UInt8, minor : UInt8)
-    {
-        self.init(rawValue: (UInt16(major) << 8) + UInt16(minor))
-    }
-    
-    case v1_0 = 0x0301
-    case v1_1 = 0x0302
-    case v1_2 = 0x0303
-    
-    public var description: String {
-        get {
-            switch self {
-
-            case .v1_0:
-                return "TLS v1.0"
-            
-            case .v1_1:
-                return "TLS v1.1"
-
-            case .v1_2:
-                return "TLS v1.2"
-            }
-        }
-    }
-}
-
-
-public func == (lhs : TLSProtocolVersion, rhs : TLSProtocolVersion) -> Bool
-{
-    return lhs.rawValue == rhs.rawValue
-}
-
-public func < (lhs : TLSProtocolVersion, rhs : TLSProtocolVersion) -> Bool
-{
-    return lhs.rawValue < rhs.rawValue
-}
-
 protocol OutputStreamType
 {
     func write(_ data : [UInt8])

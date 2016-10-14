@@ -290,7 +290,7 @@ public class TLSContext
     var hostNames : [String]?
     
     var cipherSuite : CipherSuite?
-    var stateMachine : TLSContextStateMachine!
+    var stateMachine : TLSContextStateMachine?
     
     var serverKey : RSA?
     var clientKey : RSA?
@@ -400,7 +400,7 @@ public class TLSContext
         self.keyExchange = .rsa
         
         self.recordLayer = TLSRecordLayer(context: self, dataProvider: self.recordLayer.dataProvider!)
-        self.stateMachine = TLSStateMachine(context: self)
+        self.stateMachine?.reset()
     }
     
     func startConnection() throws
@@ -428,8 +428,7 @@ public class TLSContext
     
     func didConnect() throws
     {
-        print("Connection established.")
-        try self.stateMachine.didConnect()
+        try self.stateMachine?.didConnect()
     }
     
     func didRenegotiate()
@@ -453,7 +452,7 @@ public class TLSContext
             break
 
         default:
-            try self.stateMachine!.didSendMessage(message)
+            try self.stateMachine?.didSendMessage(message)
         }
     }
     
@@ -469,11 +468,11 @@ public class TLSContext
         throw TLSError.alert(alert: .handshakeFailure, alertLevel: .fatal)
     }
     
-    private func sendHandshakeMessage(_ message : TLSHandshakeMessage) throws
+    func sendHandshakeMessage(_ message : TLSHandshakeMessage) throws
     {
         try self.sendMessage(message)
         self.handshakeMessages.append(message)
-        try self.stateMachine!.didSendHandshakeMessage(message)
+        try self.stateMachine?.didSendHandshakeMessage(message)
     }
     
     func didReceiveHandshakeMessage(_ message : TLSHandshakeMessage)
@@ -489,26 +488,26 @@ public class TLSContext
     
     func _didReceiveMessage(_ message : TLSMessage) throws
     {
-        print((self.isClient ? "Client" : "Server" ) + ": did receive message \(TLSMessageNameForType(message.type))")
+//        print((self.isClient ? "Client" : "Server" ) + ": did receive message \(TLSMessageNameForType(message.type))")
 
         switch (message.type)
         {
         case .changeCipherSpec:
             self.recordLayer.activateReadEncryptionParameters()
-            try self.stateMachine!.didReceiveChangeCipherSpec()
+            try self.stateMachine?.didReceiveChangeCipherSpec()
             try self.receiveNextTLSMessage()
             
             break
             
         case .handshake:
             let handshakeMessage = message as! TLSHandshakeMessage
-            if self.stateMachine.shouldContinueHandshakeWithMessage(handshakeMessage) {
+            if self.stateMachine == nil || self.stateMachine!.shouldContinueHandshakeWithMessage(handshakeMessage) {
                 try self._didReceiveHandshakeMessage(handshakeMessage)
             }
 
         case .alert:
             let alert = message as! TLSAlertMessage
-            self.stateMachine.didReceiveAlert(alert)
+            self.stateMachine?.didReceiveAlert(alert)
             if alert.alertLevel == .fatal {
                 throw TLSError.alert(alert: alert.alert, alertLevel: alert.alertLevel)
             }
@@ -531,11 +530,15 @@ public class TLSContext
             let version = serverHello.version
             print("Server wants to speak \(version)")
             
-            if version < self.configuration.minimumFallbackVersion {
+            guard version.isKnownVersion &&
+                  version >= self.configuration.minimumFallbackVersion &&
+                  version <= self.configuration.protocolVersion else
+            {
                 try abortHandshake()
+                return
             }
             
-            self.recordLayer.protocolVersion = version
+            self.recordLayer?.protocolVersion = version
             self.negotiatedProtocolVersion = version
             
             self.cipherSuite = serverHello.cipherSuite
@@ -660,7 +663,7 @@ public class TLSContext
                 if currentSession != nil {
                     self.handshakeMessages.append(message)
                     
-                    try self.stateMachine!.clientDidReceiveHandshakeMessage(message)
+                    try self.stateMachine?.clientDidReceiveHandshakeMessage(message)
 
                     try self.sendChangeCipherSpec()
                     
@@ -684,7 +687,7 @@ public class TLSContext
             throw TLSError.error("Unsupported handshake \(handshakeType.rawValue)")
         }
     
-        try self.stateMachine!.clientDidReceiveHandshakeMessage(message)
+        try self.stateMachine?.clientDidReceiveHandshakeMessage(message)
     }
     
     func handleServerHandshakeMessage(_ message : TLSHandshakeMessage) throws
@@ -704,7 +707,7 @@ public class TLSContext
             let clientHelloContainsEmptyRenegotiationSCSV = clientHello.cipherSuites.contains(.TLS_EMPTY_RENEGOTIATION_INFO_SCSV)
             let secureRenegotiationInfo = clientHello.extensions.filter({$0 is TLSSecureRenegotiationInfoExtension}).first as? TLSSecureRenegotiationInfoExtension
             
-            print("CLientHello extensions: \(clientHello.extensions)")
+            print("ClientHello extensions: \(clientHello.extensions)")
             if self.isInitialHandshake {
                 // RFC 5746, Section 3.6
                 if clientHelloContainsEmptyRenegotiationSCSV {
@@ -752,7 +755,14 @@ public class TLSContext
             }
 
             
-            self.negotiatedProtocolVersion = clientHello.clientVersion
+            if clientHello.clientVersion.isKnownVersion {
+                assert(clientHello.clientVersion >= self.configuration.minimumFallbackVersion)
+                self.negotiatedProtocolVersion = clientHello.clientVersion
+            }
+            else {
+                self.negotiatedProtocolVersion = self.configuration.protocolVersion
+            }
+            
             self.securityParameters.clientRandom = DataBuffer(clientHello.random).buffer
             
             self.cipherSuite = self.selectCipherSuite(clientHello.cipherSuites)
@@ -837,7 +847,7 @@ public class TLSContext
             throw TLSError.error("Unsupported handshake \(handshakeType.rawValue)")
         }
 
-        try self.stateMachine!.serverDidReceiveHandshakeMessage(message)
+        try self.stateMachine?.serverDidReceiveHandshakeMessage(message)
     }
 
     func _didReceiveHandshakeMessage(_ message : TLSHandshakeMessage) throws
@@ -902,7 +912,7 @@ public class TLSContext
             clientHello.extensions.append(TLSServerNameExtension(serverNames: self.hostNames!))
         }
         
-        print("initial handshake = \(self.isInitialHandshake), secure renegotiation = \(self.securityParameters.isUsingSecureRenegotiation)")
+//        print("initial handshake = \(self.isInitialHandshake), secure renegotiation = \(self.securityParameters.isUsingSecureRenegotiation)")
         if self.isRenegotiatingSecurityParameters {
             clientHello.extensions.append(TLSSecureRenegotiationInfoExtension(renegotiatedConnection: self.securityParameters.clientVerifyData))
             print("ClientHello extensions = \(clientHello.extensions)")
@@ -1067,7 +1077,7 @@ public class TLSContext
         let message = TLSChangeCipherSpec()
         try self.sendMessage(message)
         self.recordLayer.activateWriteEncryptionParameters()
-        try self.stateMachine!.didSendChangeCipherSpec()
+        try self.stateMachine?.didSendChangeCipherSpec()
     }
     
     func sendFinished() throws
@@ -1227,7 +1237,7 @@ public class TLSContext
     {
         guard let cipherSuiteDescriptor = TLSCipherSuiteDescriptorForCipherSuite(cipherSuite)
         else {
-            fatalError("Unkown cipher suite \(cipherSuite)")
+            fatalError("Unsupported cipher suite \(cipherSuite)")
         }
         let cipherAlgorithm = cipherSuiteDescriptor.bulkCipherAlgorithm
 

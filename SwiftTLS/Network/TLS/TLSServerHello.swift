@@ -17,7 +17,7 @@ class TLSServerHello : TLSHandshakeMessage
     
     var extensions : [TLSHelloExtension] = []
 
-    init(serverVersion : TLSProtocolVersion, random : Random, sessionID : TLSSessionID?, cipherSuite : CipherSuite, compressionMethod : CompressionMethod)
+    init(serverVersion : TLSProtocolVersion, random : Random, sessionID : TLSSessionID?, cipherSuite : CipherSuite, compressionMethod : CompressionMethod = .null)
     {
         self.version = serverVersion
         self.random = random
@@ -33,7 +33,7 @@ class TLSServerHello : TLSHandshakeMessage
         guard
             let (type, bodyLength) = TLSHandshakeMessage.readHeader(inputStream), type == TLSHandshakeType.serverHello,
             let major : UInt8 = inputStream.read(),
-            let minor : UInt8 = inputStream.read(), (TLSProtocolVersion(major: major, minor: minor) != nil),
+            let minor : UInt8 = inputStream.read(),
             let random = Random(inputStream: inputStream),
             let sessionIDSize : UInt8 = inputStream.read(),
             let rawSessionID : [UInt8] = inputStream.read(count: Int(sessionIDSize)),
@@ -43,7 +43,7 @@ class TLSServerHello : TLSHandshakeMessage
             return nil
         }
         
-        self.version = TLSProtocolVersion(major: major, minor: minor)!
+        self.version = TLSProtocolVersion(major: major, minor: minor)
         self.random = random
         self.sessionID = TLSSessionID(rawSessionID)
         self.cipherSuite = CipherSuite(rawValue: rawCiperSuite)!

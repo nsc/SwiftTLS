@@ -51,7 +51,7 @@ func server(port: Int = 443, certificatePath: String, dhParametersPath : String?
                 print("Client Request:\n\(string)")
                 if string.hasSuffix("GET ") {
                     let contentLength = string.utf8.count
-                    let header = "HTTP/1.1 200 OK\nConnection: Close\nContent-Length: \(contentLength)\n\n"
+                    let header = "HTTP/1.0 200 OK\r\nConnection: Close\r\nContent-Length: \(contentLength)\r\n\r\n"
                     let body = "\(string)"
                     try clientSocket.write(header + body)
                 }
@@ -81,6 +81,7 @@ func server(port: Int = 443, certificatePath: String, dhParametersPath : String?
 func connectTo(host : String, port : Int = 443, protocolVersion: TLSProtocolVersion = .v1_2, cipherSuite : CipherSuite? = nil)
 {
     var configuration = TLSConfiguration(protocolVersion: protocolVersion)
+    configuration.minimumFallbackVersion = TLSProtocolVersion.v1_2
     
     if let cipherSuite = cipherSuite {
         configuration.cipherSuites = [cipherSuite]
@@ -90,8 +91,10 @@ func connectTo(host : String, port : Int = 443, protocolVersion: TLSProtocolVers
             .TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
             .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
             .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+            .TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
             .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
-            .TLS_RSA_WITH_AES_256_CBC_SHA
+            .TLS_RSA_WITH_AES_256_CBC_SHA,
+            .TLS_RSA_WITH_AES_128_CBC_SHA256,
         ]
     }
     else {
@@ -101,11 +104,12 @@ func connectTo(host : String, port : Int = 443, protocolVersion: TLSProtocolVers
         ]
     }
     
+
     let context = TLSContext(configuration: configuration)
     var socket = TLSSocket(context: context)
     
     let testSessionReuse = false
-    let testSecureRenegotiation = true
+    let testSecureRenegotiation = false
     do {
         if testSessionReuse {
             // Connect twice to test session reuse
@@ -187,7 +191,7 @@ func probeCipherSuitesForHost(host : String, port : Int, protocolVersion: TLSPro
             self.socket = socket
         }
         
-        func shouldContinueHandshakeWithMessage(message: TLSHandshakeMessage) -> Bool
+        func shouldContinueHandshakeWithMessage(_ message: TLSHandshakeMessage) -> Bool
         {
             if let hello = message as? TLSServerHello {
                 print("\(hello.cipherSuite)")
@@ -198,7 +202,7 @@ func probeCipherSuitesForHost(host : String, port : Int, protocolVersion: TLSPro
             return true
         }
         
-        func didReceiveAlert(alert: TLSAlertMessage) {
+        func didReceiveAlert(_ alert: TLSAlertMessage) {
 //            print("\(cipherSuite) not supported")
 //            print("NO")
         }
@@ -304,6 +308,9 @@ case "server":
                     
                 case "1.2":
                     protocolVersion = .v1_2
+                    
+                case "1.3":
+                    protocolVersion = TLSProtocolVersion(major: 3, minor: 4)
                     
                 default:
                     throw MyError.Error("\(argument) is not a valid TLS version")

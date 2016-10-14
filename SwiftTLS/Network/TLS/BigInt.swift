@@ -12,7 +12,7 @@ import SwiftHelper
 public struct BigInt : IntegerArithmetic, ExpressibleByIntegerLiteral
 {
     typealias PrimitiveType = UInt32
-    private typealias BigIntImplType = BigIntImpl<PrimitiveType>
+    fileprivate typealias BigIntImplType = BigIntImpl<PrimitiveType>
     
     fileprivate let impl : BigIntImplType
     

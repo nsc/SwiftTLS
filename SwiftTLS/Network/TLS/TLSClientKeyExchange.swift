@@ -29,12 +29,8 @@ class PreMasterSecret : Streamable
             let minor : UInt8 = inputStream.read(),
             let bytes : [UInt8] = inputStream.read(count: Random.NumberOfRandomBytes)
         {
-            if let version = TLSProtocolVersion(major: major, minor: minor) {
-                self.clientVersion = version
-                self.random = bytes
-                
-                return
-            }
+            self.clientVersion = TLSProtocolVersion(major: major, minor: minor)
+            self.random = bytes
         }
 
         return nil

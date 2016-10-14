@@ -20,10 +20,15 @@ public struct TLSConfiguration
     
     var identity: Identity?
     
-    init(protocolVersion: TLSProtocolVersion, identity: Identity? = nil)
+    init(protocolVersion: TLSProtocolVersion, minimumVersion: TLSProtocolVersion? = nil, identity: Identity? = nil)
     {
         self.protocolVersion = protocolVersion
-        self.minimumFallbackVersion = protocolVersion
+        if let minimumVersion = minimumVersion {
+            self.minimumFallbackVersion = minimumVersion
+        }
+        else {
+            self.minimumFallbackVersion = protocolVersion
+        }
         self.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256]
         self.hashAlgorithm = .sha256
         self.signatureAlgorithm = .rsa
