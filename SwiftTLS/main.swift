@@ -44,12 +44,12 @@ func server(port: Int = 443, certificatePath: String, dhParametersPath : String?
     while true {
         do {
             let clientSocket = try server.acceptConnection(address)
-            
+            print("New connection")
             while true {
                 let data = try clientSocket.read(count: 1024)
                 let string = String.fromUTF8Bytes(data)!
                 print("Client Request:\n\(string)")
-                if string.hasSuffix("GET ") {
+                if string.hasPrefix("GET ") {
                     let contentLength = string.utf8.count
                     let header = "HTTP/1.0 200 OK\r\nConnection: Close\r\nContent-Length: \(contentLength)\r\n\r\n"
                     let body = "\(string)"

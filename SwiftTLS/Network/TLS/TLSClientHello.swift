@@ -30,9 +30,6 @@ func TLSReadHelloExtensions(from inputStream: InputStreamType, length: Int) -> [
             return nil
     }
     
-    print("Extensions Size: \(extensionsSize)")
-    print("Extensions Data:\n\(hex(extensionsData))")
-    
     var length = length
     length -= 2 + extensionsData.count
     

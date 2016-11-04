@@ -574,3 +574,15 @@ class BigIntTests: XCTestCase {
         }
     }
 }
+
+func hexStringFromCBigInt(_ a : UnsafePointer<CBigInt>) -> String
+{
+    let s = CBigIntHexString(a)!
+    
+    let result = String(validatingUTF8: s)!
+    CBigIntHexStringFree(s)
+    
+    return result
+}
+
+
