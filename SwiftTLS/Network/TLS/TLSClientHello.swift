@@ -8,8 +8,14 @@
 enum TLSHelloExtensionType : UInt16
 {
     case serverName = 0
-    case ellipticCurves = 10
+    case supportedGroups = 10
     case ecPointFormats = 11
+    case signatureAlgorithms = 13
+    case keyShare = 40
+    case preSharedKey = 41
+    case earlyData = 42
+    case supportedVersions = 43
+    case cookie = 44
     case secureRenegotiationInfo = 0xff01
 }
 
@@ -55,8 +61,8 @@ func TLSReadHelloExtensions(from inputStream: InputStreamType, length: Int) -> [
                         extensions.append(serverName)
                     }
                     
-                case .ellipticCurves:
-                    if let ellipticCurves = TLSEllipticCurvesExtension(inputStream: BinaryInputStream(extensionData)) {
+                case .supportedGroups:
+                    if let ellipticCurves = TLSSupportedGroupsExtension(inputStream: BinaryInputStream(extensionData)) {
                         extensions.append(ellipticCurves)
                     }
                     
@@ -65,10 +71,18 @@ func TLSReadHelloExtensions(from inputStream: InputStreamType, length: Int) -> [
                         extensions.append(pointFormats)
                     }
                     
+                case .supportedVersions:
+                    if let supportedVersions = TLSSupportedVersionsExtension(inputStream: BinaryInputStream(extensionData)) {
+                        extensions.append(supportedVersions)
+                    }
+                    
                 case .secureRenegotiationInfo:
                     if let secureRenogotiationInfo = TLSSecureRenegotiationInfoExtension(inputStream: BinaryInputStream(extensionData)) {
                         extensions.append(secureRenogotiationInfo)
                     }
+                    
+                default:
+                    print("Unsupported extension type \(rawExtensionType)")
                     
                 }
             }
@@ -101,9 +115,9 @@ func TLSWriteHelloExtensions<Target: OutputStreamType>(_ target: inout Target, e
 
 class TLSClientHello : TLSHandshakeMessage
 {
-    var clientVersion : TLSProtocolVersion
+    var legacyVersion : TLSProtocolVersion
     var random : Random
-    var sessionID : TLSSessionID?
+    var legacySessionID : TLSSessionID?
     var rawCipherSuites : [UInt16]
     var cipherSuites : [CipherSuite] {
         get {
@@ -122,17 +136,24 @@ class TLSClientHello : TLSHandshakeMessage
         }
     }
     
-    var compressionMethods : [CompressionMethod]
+    var legacyCompressionMethods : [CompressionMethod]
     
     var extensions : [TLSHelloExtension] = []
     
-    init(clientVersion: TLSProtocolVersion, random: Random, sessionID: TLSSessionID?, cipherSuites: [CipherSuite], compressionMethods: [CompressionMethod] = [.null])
+    init(configuration: TLSConfiguration, random: Random, sessionID: TLSSessionID?, cipherSuites: [CipherSuite], compressionMethods: [CompressionMethod] = [.null])
     {
-        self.clientVersion = clientVersion
+        if configuration.supports(version: TLSProtocolVersion.v1_3) {
+            self.legacyVersion = TLSProtocolVersion.v1_2
+            let supportedVersions = TLSSupportedVersionsExtension(supportedVersions: configuration.supportedVersions)
+            self.extensions.append(supportedVersions)
+        }
+        else {
+            self.legacyVersion = configuration.supportedVersions[0]
+        }
         self.random = random
-        self.sessionID = sessionID
+        self.legacySessionID = sessionID
         self.rawCipherSuites = []
-        self.compressionMethods = compressionMethods
+        self.legacyCompressionMethods = compressionMethods
         
         super.init(type: .handshake(.clientHello))
         
@@ -173,17 +194,17 @@ class TLSClientHello : TLSHandshakeMessage
 
         let clientVersion = TLSProtocolVersion(major: major, minor: minor)
 
-        self.clientVersion = clientVersion
+        self.legacyVersion = clientVersion
         self.random = random
         
         if let rawSessionID = rawSessionID {
-            self.sessionID = TLSSessionID(rawSessionID)
+            self.legacySessionID = TLSSessionID(rawSessionID)
         }
         
         self.rawCipherSuites = rawCipherSuitesRead
         print("compression methods: \(rawCompressionMethods)")
-        self.compressionMethods = rawCompressionMethods.flatMap {CompressionMethod(rawValue: $0)}
-        print("Known compression methods: \(self.compressionMethods)")
+        self.legacyCompressionMethods = rawCompressionMethods.flatMap {CompressionMethod(rawValue: $0)}
+        print("Known compression methods: \(self.legacyCompressionMethods)")
 
         super.init(type: .handshake(.clientHello))
     }
@@ -192,11 +213,11 @@ class TLSClientHello : TLSHandshakeMessage
     {
         var buffer = DataBuffer()
         
-        buffer.write(clientVersion.rawValue)
+        buffer.write(legacyVersion.rawValue)
         
         random.writeTo(&buffer)
         
-        if let session_id = sessionID {
+        if let session_id = self.legacySessionID {
             session_id.writeTo(&buffer)
         }
         else {
@@ -206,8 +227,8 @@ class TLSClientHello : TLSHandshakeMessage
         buffer.write(UInt16(rawCipherSuites.count * MemoryLayout<UInt16>.size))
         buffer.write(rawCipherSuites)
         
-        buffer.write(UInt8(compressionMethods.count))
-        buffer.write(compressionMethods.map { $0.rawValue})
+        buffer.write(UInt8(self.legacyCompressionMethods.count))
+        buffer.write(self.legacyCompressionMethods.map { $0.rawValue})
         
         TLSWriteHelloExtensions(&buffer, extensions: self.extensions)
         

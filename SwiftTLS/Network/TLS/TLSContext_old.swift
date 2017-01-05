@@ -42,35 +42,6 @@ enum HashAlgorithm : UInt8 {
             fatalError("HMAC with hash function \(self) is not supported.")
         }
     }
-    
-    var size: Int {
-        get {
-            switch self {
-            case .none:
-                fatalError("Hash algorithm .none has no size")
-                
-            case .md5:
-                return Int(CC_MD5_DIGEST_LENGTH)
-                
-            case .sha1:
-                return Int(CC_SHA1_DIGEST_LENGTH)
-
-            case .sha224:
-                return Int(CC_SHA224_DIGEST_LENGTH)
-
-            case .sha256:
-                return Int(CC_SHA256_DIGEST_LENGTH)
-                
-            case .sha384:
-                return Int(CC_SHA384_DIGEST_LENGTH)
-                
-            case .sha512:
-                return Int(CC_SHA512_DIGEST_LENGTH)
-                
-            }
-        }
-    }
-
 }
 
 enum SignatureAlgorithm : UInt8 {
@@ -174,26 +145,29 @@ enum MACAlgorithm {
     case hmac_sha384
     case hmac_sha512
     
-    var hashAlgorithm: HashAlgorithm {
-        switch self {
-        case .hmac_md5:
-            return .md5
-            
-        case .hmac_sha1:
-            return .sha1
-            
-        case .hmac_sha256:
-            return .sha256
-            
-        case .hmac_sha384:
-            return .sha384
-            
-        case .hmac_sha512:
-            return .sha512
-        }
-    }
     var size: Int {
-        return self.hashAlgorithm.size
+        get {
+            switch self {
+//            case .null:
+//                fatalError("Null MAC has no size")
+
+            case .hmac_md5:
+                return Int(CC_MD5_DIGEST_LENGTH)
+            
+            case .hmac_sha1:
+                return Int(CC_SHA1_DIGEST_LENGTH)
+
+            case .hmac_sha256:
+                return Int(CC_SHA256_DIGEST_LENGTH)
+
+            case .hmac_sha384:
+                return Int(CC_SHA384_DIGEST_LENGTH)
+            
+            case .hmac_sha512:
+                return Int(CC_SHA512_DIGEST_LENGTH)
+                
+            }
+        }
     }
 }
 
@@ -307,11 +281,9 @@ public class TLSContext
 {
     public var configuration : TLSConfiguration
     
-    var negotiatedProtocolVersion : TLSProtocolVersion! {
+    var negotiatedProtocolVersion : TLSProtocolVersion {
         didSet {
-            if let version = negotiatedProtocolVersion {
-                self.recordLayer.protocolVersion = version
-            }
+            self.recordLayer.protocolVersion = negotiatedProtocolVersion
         }
     }
     
@@ -506,7 +478,7 @@ public class TLSContext
     func didReceiveHandshakeMessage(_ message : TLSHandshakeMessage)
     {
         if let clientHello = message as? TLSClientHello {
-            print("TLS version: \(clientHello.legacyVersion)")
+            print("TLS version: \(clientHello.clientVersion)")
             print("Supported Cipher Suites:")
             for cipherSuite in clientHello.cipherSuites {
                 print("\(cipherSuite)")
@@ -559,7 +531,8 @@ public class TLSContext
             print("Server wants to speak \(version)")
             
             guard version.isKnownVersion &&
-                  self.configuration.supports(version: version) else
+                  version >= self.configuration.minimumFallbackVersion &&
+                  version <= self.configuration.protocolVersion else
             {
                 try abortHandshake()
                 return
@@ -619,7 +592,7 @@ public class TLSContext
 
             if currentSession == nil && !serverHello.cipherSuite.needsServerKeyExchange()
             {
-                let preMasterSecret = DataBuffer(PreMasterSecret(clientVersion: self.configuration.supportedVersions.first!)).buffer
+                let preMasterSecret = DataBuffer(PreMasterSecret(clientVersion: self.configuration.protocolVersion)).buffer
                 self.setPreMasterSecretAndCommitSecurityParameters(preMasterSecret, cipherSuite: serverHello.cipherSuite)
             }
             
@@ -726,7 +699,7 @@ public class TLSContext
         case .clientHello:
             let clientHello = (message as! TLSClientHello)
             
-            if !self.configuration.supports(version: clientHello.legacyVersion) {
+            if clientHello.clientVersion < self.configuration.minimumFallbackVersion {
                 try abortHandshake()
             }
 
@@ -782,12 +755,12 @@ public class TLSContext
             }
 
             
-            if clientHello.legacyVersion.isKnownVersion {
-                assert(self.configuration.supports(version: clientHello.legacyVersion))
-                self.negotiatedProtocolVersion = clientHello.legacyVersion
+            if clientHello.clientVersion.isKnownVersion {
+                assert(clientHello.clientVersion >= self.configuration.minimumFallbackVersion)
+                self.negotiatedProtocolVersion = clientHello.clientVersion
             }
             else {
-                self.negotiatedProtocolVersion = self.configuration.supportedVersions.first!
+                self.negotiatedProtocolVersion = self.configuration.protocolVersion
             }
             
             self.securityParameters.clientRandom = DataBuffer(clientHello.random).buffer
@@ -802,8 +775,8 @@ public class TLSContext
                 print("Selected cipher suite is \(self.cipherSuite!)")
             }
             
-            print("client hello session ID: \(clientHello.legacySessionID)")
-            if let sessionID = clientHello.legacySessionID {
+            print("client hello session ID: \(clientHello.sessionID)")
+            if let sessionID = clientHello.sessionID {
                 if let session = self.serverSessionCache[sessionID] {
                     print("Using cached session ID: \(sessionID.sessionID)")
                     self.currentSession = session
@@ -929,7 +902,7 @@ public class TLSContext
         
         let clientHelloRandom = Random()
         let clientHello = TLSClientHello(
-            configuration: self.configuration,
+            clientVersion: self.configuration.protocolVersion,
             random: clientHelloRandom,
             sessionID: pendingSessionID,
             cipherSuites: cipherSuites,
@@ -946,7 +919,7 @@ public class TLSContext
         }
         
         if self.configuration.cipherSuites.contains(where: { if let descriptor = TLSCipherSuiteDescriptorForCipherSuite($0) { return descriptor.keyExchangeAlgorithm == .ecdhe} else { return false } }) {
-            clientHello.extensions.append(TLSSupportedGroupsExtension(ellipticCurves: [.secp256r1, .secp521r1]))
+            clientHello.extensions.append(TLSEllipticCurvesExtension(ellipticCurves: [.secp256r1, .secp521r1]))
             clientHello.extensions.append(TLSEllipticCurvePointFormatsExtension(ellipticCurvePointFormats: [.uncompressed]))
         }
         

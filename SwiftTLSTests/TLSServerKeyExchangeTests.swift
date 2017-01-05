@@ -17,8 +17,8 @@ class TLSServerKeyExchangeTests: XCTestCase {
         
         
         let context = TLSContext()
-        context.configuration.protocolVersion = .v1_2
-        context.negotiatedProtocolVersion = context.configuration.protocolVersion
+        context.configuration.supportedVersions = [.v1_2]
+        context.negotiatedProtocolVersion = context.configuration.supportedVersions.first!
         context.configuration.hashAlgorithm = .sha1
         context.configuration.signatureAlgorithm = .rsa
         context.cipherSuite = .TLS_DHE_RSA_WITH_AES_256_CBC_SHA

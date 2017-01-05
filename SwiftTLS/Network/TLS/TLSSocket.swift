@@ -220,7 +220,7 @@ class Random : Streamable
 
 public class TLSSocket : SocketProtocol, TLSDataProvider
 {
-    public var context : TLSContext! {
+    var context : TLSContext! {
         didSet {
             context.recordLayer = TLSRecordLayer(context: context, dataProvider: self)
         }
@@ -228,9 +228,9 @@ public class TLSSocket : SocketProtocol, TLSDataProvider
     
     var socket : TCPSocket?
     
-    convenience public init(protocolVersion : TLSProtocolVersion, isClient: Bool = true)
+    convenience public init(supportedVersions: [TLSProtocolVersion], isClient: Bool = true)
     {
-        self.init(configuration: TLSConfiguration(protocolVersion: protocolVersion), isClient: isClient)
+        self.init(configuration: TLSConfiguration(supportedVersions: supportedVersions), isClient: isClient)
     }
 
     convenience init(configuration: TLSConfiguration, isClient: Bool = true)
@@ -242,54 +242,6 @@ public class TLSSocket : SocketProtocol, TLSDataProvider
     {
         self.context = context
         context.recordLayer = TLSRecordLayer(context: context, dataProvider: self)
-    }
-    
-    public func connect(hostname: String, port: Int = 443) throws
-    {
-        if let address = IPAddress.addressWithString(hostname, port: port) {
-            var hostNameAndPort = hostname
-            if port != 443 {
-                hostNameAndPort = "\(hostname):\(port)"
-            }
-            self.context.hostNames = [hostNameAndPort]
-            
-            try connect(address)
-        }
-        else {
-            throw TLSError.error("Error: Could not resolve host \(hostname)")
-        }
-
-    }
-    
-    // TODO: add connect method that takes a domain name rather than an IP
-    // so we can check the server certificate against that name
-    public func connect(_ address: IPAddress) throws
-    {
-        self.socket = TCPSocket()
-        
-        try self.socket?.connect(address)
-        try self.context.startConnection()
-    }
-    
-    public func acceptConnection(_ address: IPAddress) throws -> SocketProtocol
-    {
-        self.socket = TCPSocket()
-        
-        let clientSocket = try self.socket?.acceptConnection(address) as! TCPSocket
-
-        let clientTLSSocket = TLSSocket(protocolVersion: self.context.configuration.protocolVersion, isClient: false)
-        clientTLSSocket.socket = clientSocket
-        clientTLSSocket.context = self.context
-        clientTLSSocket.context.recordLayer.dataProvider = clientTLSSocket
-        
-        try clientTLSSocket.context.acceptConnection()
-        
-        return clientTLSSocket
-    }
-    
-    public func renegotiate() throws
-    {
-        try self.context.renegotiate()
     }
     
     public func close()
@@ -344,4 +296,60 @@ public class TLSSocket : SocketProtocol, TLSDataProvider
     {
         try self.context.sendApplicationData(data)
     }
+}
+
+public class TLSClientSocket : TLSSocket, ClientSocketProtocol
+{
+    public func connect(hostname: String, port: Int = 443) throws
+    {
+        if let address = IPAddress.addressWithString(hostname, port: port) {
+            var hostNameAndPort = hostname
+            if port != 443 {
+                hostNameAndPort = "\(hostname):\(port)"
+            }
+            self.context.hostNames = [hostNameAndPort]
+            
+            try connect(address)
+        }
+        else {
+            throw TLSError.error("Error: Could not resolve host \(hostname)")
+        }
+        
+    }
+    
+    // TODO: add connect method that takes a domain name rather than an IP
+    // so we can check the server certificate against that name
+    public func connect(_ address: IPAddress) throws
+    {
+        self.socket = TCPSocket()
+        
+        try self.socket?.connect(address)
+        try self.context.startConnection()
+    }
+    
+    public func renegotiate() throws
+    {
+        try self.context.renegotiate()
+    }
+}
+
+public class TLSServerSocket : TLSSocket, ServerSocketProtocol
+{
+    public func acceptConnection(_ address: IPAddress) throws -> SocketProtocol
+    {
+        self.socket = TCPSocket()
+        
+        let clientSocket = try self.socket?.acceptConnection(address) as! TCPSocket
+        
+        let clientTLSSocket = TLSClientSocket(supportedVersions: self.context.configuration.supportedVersions, isClient: false)
+        clientTLSSocket.socket = clientSocket
+        clientTLSSocket.context = self.context
+        clientTLSSocket.context.recordLayer.dataProvider = clientTLSSocket
+        
+        try clientTLSSocket.context.acceptConnection()
+        
+        return clientTLSSocket
+    }
+    
+
 }

@@ -16,7 +16,7 @@ class TLSVersionTests: XCTestCase {
     class Context : TLSContext
     {
         private var _negotiatedProtocolVersion: TLSProtocolVersion? = nil
-        override var negotiatedProtocolVersion : TLSProtocolVersion {
+        override var negotiatedProtocolVersion : TLSProtocolVersion? {
             get {
                 return _negotiatedProtocolVersion!
             }
@@ -36,14 +36,13 @@ class TLSVersionTests: XCTestCase {
 
     func receiveClientHello(with version: TLSProtocolVersion, highestSupportedVersion: TLSProtocolVersion, result: (Context) -> ())
     {
-        let configuration = TLSConfiguration(protocolVersion: highestSupportedVersion)
-        let clientHello = TLSClientHello(clientVersion: version,
+        let clientHello = TLSClientHello(configuration: TLSConfiguration(supportedVersions: [version]),
                                          random: Random(),
                                          sessionID: nil,
                                          cipherSuites: [.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256])
         
         
-        let context = Context(configuration: configuration, isClient: false)
+        let context = Context(configuration: TLSConfiguration(supportedVersions: [highestSupportedVersion]), isClient: false)
         
         
         
@@ -76,8 +75,7 @@ class TLSVersionTests: XCTestCase {
     
     func receiveServerHello(with version: TLSProtocolVersion, highestSupportedVersion: TLSProtocolVersion, minimumVersion: TLSProtocolVersion, result: (Context) -> ())
     {
-        var configuration = TLSConfiguration(protocolVersion: highestSupportedVersion)
-        configuration.minimumFallbackVersion = minimumVersion
+        let configuration = TLSConfiguration(supportedVersions: [highestSupportedVersion, minimumVersion])
         let serverHello = TLSServerHello(serverVersion: version,
                                          random: Random(),
                                          sessionID: nil,
@@ -115,5 +113,9 @@ class TLSVersionTests: XCTestCase {
             XCTAssert(context.negotiatedProtocolVersion == version)
         })
 
+    }
+    
+    func test_TLSClientHello_withTLSVersion1_3_hasCorrectSupportedVersionsExtensionAndLegacyProtocolVersion() {
+        
     }
 }

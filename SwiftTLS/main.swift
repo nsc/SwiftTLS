@@ -18,7 +18,7 @@ func server(port: Int = 443, certificatePath: String, dhParametersPath : String?
     
     print("Listening on port \(port)")
     
-    var configuration = TLSConfiguration(protocolVersion: .v1_2)
+    var configuration = TLSConfiguration(supportedVersions: [.v1_2, .v1_3])
     
     let cipherSuites : [CipherSuite] = [
         .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
@@ -37,7 +37,7 @@ func server(port: Int = 443, certificatePath: String, dhParametersPath : String?
     }
     configuration.ecdhParameters = ECDiffieHellmanParameters(namedCurve: .secp256r1)
     
-    let server = TLSSocket(configuration: configuration, isClient: false)
+    let server = TLSServerSocket(configuration: configuration, isClient: false)
     let address = IPv4Address.localAddress()
     address.port = UInt16(port)
     
@@ -78,15 +78,14 @@ func server(port: Int = 443, certificatePath: String, dhParametersPath : String?
     }
 }
 
-func connectTo(host : String, port : Int = 443, protocolVersion: TLSProtocolVersion = .v1_2, cipherSuite : CipherSuite? = nil)
+func connectTo(host : String, port : Int = 443, supportedVersions: [TLSProtocolVersion] = [.v1_2, .v1_3], cipherSuite : CipherSuite? = nil)
 {
-    var configuration = TLSConfiguration(protocolVersion: protocolVersion)
-    configuration.minimumFallbackVersion = TLSProtocolVersion.v1_2
+    var configuration = TLSConfiguration(supportedVersions: supportedVersions)
     
     if let cipherSuite = cipherSuite {
         configuration.cipherSuites = [cipherSuite]
     }
-    else if protocolVersion == .v1_2 {
+    else if supportedVersions.contains(.v1_2) {
         configuration.cipherSuites = [
             .TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
             .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
@@ -106,7 +105,7 @@ func connectTo(host : String, port : Int = 443, protocolVersion: TLSProtocolVers
     
 
     let context = TLSContext(configuration: configuration)
-    var socket = TLSSocket(context: context)
+    var socket = TLSClientSocket(context: context)
     
     let testSessionReuse = false
     let testSecureRenegotiation = false
@@ -114,7 +113,7 @@ func connectTo(host : String, port : Int = 443, protocolVersion: TLSProtocolVers
         if testSessionReuse {
             // Connect twice to test session reuse
             for _ in 0..<2 {
-                socket = TLSSocket(configuration: configuration)
+                socket = TLSClientSocket(configuration: configuration)
                 socket.context = context
                 
                 print("Connecting to \(host):\(port)")
@@ -211,7 +210,7 @@ func probeCipherSuitesForHost(host : String, port : Int, protocolVersion: TLSPro
     guard let address = IPAddress.addressWithString(host, port: port) else { print("Error: No such host \(host)"); return }
 
     for cipherSuite in CipherSuite.allValues {
-        let socket = TLSSocket(protocolVersion: protocolVersion)
+        let socket = TLSClientSocket(supportedVersions: [protocolVersion])
         let stateMachine = StateMachine(socket: socket)
         socket.context.stateMachine = stateMachine
 
@@ -270,7 +269,7 @@ case "server":
     
     var host: String? = nil
     var port: Int = 443
-    var protocolVersion = TLSProtocolVersion.v1_2
+    var protocolVersion: TLSProtocolVersion? = nil
     var cipherSuite: CipherSuite? = nil
     var certificatePath: String? = nil
     var dhParameters: String? = nil
@@ -310,7 +309,7 @@ case "server":
                     protocolVersion = .v1_2
                     
                 case "1.3":
-                    protocolVersion = TLSProtocolVersion(major: 3, minor: 4)
+                    protocolVersion = .v1_3
                     
                 default:
                     throw MyError.Error("\(argument) is not a valid TLS version")
@@ -422,7 +421,13 @@ case "server":
                 exit(1)
             }
             
-            connectTo(host: hostName, port: port, protocolVersion: protocolVersion, cipherSuite: cipherSuite)
+            let supportedVersions: [TLSProtocolVersion]
+            if let version = protocolVersion {
+                connectTo(host: hostName, port: port, supportedVersions: [version], cipherSuite: cipherSuite)
+            }
+            else {
+                connectTo(host: hostName, port: port, cipherSuite: cipherSuite)
+            }
 
         case .server:
             server(port: port, certificatePath: certificatePath!, dhParametersPath: dhParameters, cipherSuite: cipherSuite)

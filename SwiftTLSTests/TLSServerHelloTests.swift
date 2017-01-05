@@ -17,7 +17,7 @@ extension TLSContext {
             func readData(count : Int) throws -> [UInt8] { return []}
         }
         
-        self.init(configuration: TLSConfiguration(protocolVersion: .v1_0), dataProvider: EmptyDataProvider())
+        self.init(configuration: TLSConfiguration(supportedVersions: [.v1_0]), dataProvider: EmptyDataProvider())
     }
 }
 

@@ -29,11 +29,19 @@ public enum SocketError : CustomStringConvertible, Error {
 
 public protocol SocketProtocol
 {
-    func connect(_ address : IPAddress) throws
-    func acceptConnection(_ address : IPAddress) throws -> SocketProtocol
     func read(count : Int) throws -> [UInt8]
     func write(_ data : [UInt8]) throws
     func close()
+}
+
+public protocol ClientSocketProtocol : SocketProtocol
+{
+    func connect(_ address : IPAddress) throws
+}
+
+public protocol ServerSocketProtocol : SocketProtocol
+{
+    func acceptConnection(_ address : IPAddress) throws -> SocketProtocol
 }
 
 public extension SocketProtocol

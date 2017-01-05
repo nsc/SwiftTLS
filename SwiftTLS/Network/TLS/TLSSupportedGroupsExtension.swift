@@ -1,22 +1,22 @@
 //
-//  TLSEllipticCurvesExtension.swift
+//  TLSSupportedGroupsExtension.swift
 //  SwiftTLS
 //
 //  Created by Nico Schmidt on 11.10.15.
 //  Copyright © 2015 Nico Schmidt. All rights reserved.
 //
 
-struct TLSEllipticCurvesExtension : TLSHelloExtension
+struct TLSSupportedGroupsExtension : TLSHelloExtension
 {
     var extensionType : TLSHelloExtensionType {
         get {
-            return .ellipticCurves
+            return .supportedGroups
         }
     }
     
-    var ellipticCurves : [NamedCurve]
+    var ellipticCurves : [NamedGroup]
     
-    init(ellipticCurves : [NamedCurve])
+    init(ellipticCurves : [NamedGroup])
     {
         self.ellipticCurves = ellipticCurves
     }
@@ -32,7 +32,7 @@ struct TLSEllipticCurvesExtension : TLSHelloExtension
 
         for ec in rawEllipticCurves
         {
-            if let ellipticCurve = NamedCurve(rawValue: ec) {
+            if let ellipticCurve = NamedGroup(rawValue: ec) {
                 self.ellipticCurves.append(ellipticCurve)
             }
             else {

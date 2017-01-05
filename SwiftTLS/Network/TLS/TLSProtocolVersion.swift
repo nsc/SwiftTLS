@@ -30,6 +30,10 @@ public struct TLSProtocolVersion : RawRepresentable, CustomStringConvertible, Co
     public static let v1_0 = TLSProtocolVersion(rawValue: 0x0301)!
     public static let v1_1 = TLSProtocolVersion(rawValue: 0x0302)!
     public static let v1_2 = TLSProtocolVersion(rawValue: 0x0303)!
+    // FIXME: As long as the TLS 1.3 RFC has draft status, we are using a draft version
+    // number as of section 4.2.1.1.
+    public static let v1_3 = TLSProtocolVersion(rawValue: 0x7f12)! // draft-18
+//    public static let v1_3 = TLSProtocolVersion(rawValue: 0x0304)!
     
     public var description: String {
         get {
@@ -43,7 +47,10 @@ public struct TLSProtocolVersion : RawRepresentable, CustomStringConvertible, Co
                 
             case TLSProtocolVersion.v1_2:
                 return "TLS v1.2"
-                
+
+            case TLSProtocolVersion.v1_3:
+                return "TLS v1.3"
+
             default:
                 return "Unknown TLS version \(_rawValue >> 8).\(_rawValue & 0xff)"
             }
@@ -53,7 +60,7 @@ public struct TLSProtocolVersion : RawRepresentable, CustomStringConvertible, Co
     public var isKnownVersion: Bool {
         get {
             switch self {
-            case TLSProtocolVersion.v1_0, TLSProtocolVersion.v1_1, TLSProtocolVersion.v1_2:
+            case TLSProtocolVersion.v1_0, TLSProtocolVersion.v1_1, TLSProtocolVersion.v1_2, TLSProtocolVersion.v1_3:
                 return true
             default:
                 return false

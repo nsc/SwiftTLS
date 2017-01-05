@@ -8,8 +8,6 @@
 
 public struct TLSConfiguration
 {
-    var protocolVersion: TLSProtocolVersion
-    var minimumFallbackVersion: TLSProtocolVersion
     var cipherSuites: [CipherSuite]
 
     var dhParameters: DiffieHellmanParameters?
@@ -20,18 +18,19 @@ public struct TLSConfiguration
     
     var identity: Identity?
     
-    init(protocolVersion: TLSProtocolVersion, minimumVersion: TLSProtocolVersion? = nil, identity: Identity? = nil)
+    var supportedVersions: [TLSProtocolVersion]
+    
+    init(supportedVersions: [TLSProtocolVersion], identity: Identity? = nil)
     {
-        self.protocolVersion = protocolVersion
-        if let minimumVersion = minimumVersion {
-            self.minimumFallbackVersion = minimumVersion
-        }
-        else {
-            self.minimumFallbackVersion = protocolVersion
-        }
+        self.supportedVersions = supportedVersions
+
         self.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256]
         self.hashAlgorithm = .sha256
         self.signatureAlgorithm = .rsa
         self.identity = identity
+    }
+    
+    func supports(version: TLSProtocolVersion) -> Bool {
+        return self.supportedVersions.index(of: version) != nil
     }
 }

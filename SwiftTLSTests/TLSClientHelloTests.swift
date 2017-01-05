@@ -14,7 +14,7 @@ class TLSClientHelloTests: XCTestCase {
     func test_writeTo__givesCorrectBinaryRepresentation() {
         let random = Random()
         let clientHello = TLSClientHello(
-            clientVersion: .v1_0,
+            configuration: TLSConfiguration(supportedVersions: [.v1_0]),
             random: random,
             sessionID: nil,
             cipherSuites: [.TLS_RSA_WITH_RC4_128_SHA],
@@ -83,7 +83,7 @@ class TLSClientHelloTests: XCTestCase {
     {
         let random = Random()
         let clientHello = TLSClientHello(
-            clientVersion: .v1_0,
+            configuration: TLSConfiguration(supportedVersions: [.v1_0]),
             random: random,
             sessionID: nil,
             cipherSuites: [.TLS_RSA_WITH_RC4_128_SHA],

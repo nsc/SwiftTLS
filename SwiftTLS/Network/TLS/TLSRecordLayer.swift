@@ -182,7 +182,7 @@ public class TLSRecordLayer
     init(context: TLSContext, dataProvider: TLSDataProvider)
     {
         self.context = context
-        self.protocolVersion = context.configuration.protocolVersion
+        self.protocolVersion = TLSProtocolVersion.v1_0
         self.dataProvider = dataProvider
         self.isClient = context.isClient
     }

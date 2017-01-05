@@ -26,7 +26,7 @@ class TSLTests: XCTestCase {
         // wait for server to be up
         sleep(1)
         
-        var configuration = TLSConfiguration(protocolVersion: TLSProtocolVersion.v1_2)
+        var configuration = TLSConfiguration(supportedVersions: [.v1_2])
         configuration.cipherSuites = [.TLS_RSA_WITH_AES_256_CBC_SHA]
 //        configuration.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
 //        configuration.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256]
@@ -53,7 +53,7 @@ class TSLTests: XCTestCase {
     
     func createServer(with cipherSuite: CipherSuite, port: Int) -> TLSSocket
     {
-        var configuration = TLSConfiguration(protocolVersion: .v1_2)
+        var configuration = TLSConfiguration(supportedVersions: [.v1_2])
         
         configuration.cipherSuites = [cipherSuite]
         configuration.identity = PEMFileIdentity(pemFile: Bundle(for: type(of: self)).url(forResource: "mycert.pem", withExtension: nil)!.path)
@@ -68,7 +68,7 @@ class TSLTests: XCTestCase {
     {
         let server = createServer(with: cipherSuite, port: 12345)
         
-        let client = TLSSocket(protocolVersion: .v1_2)
+        let client = TLSSocket(supportedVersions: [.v1_2])
         client.context.configuration.cipherSuites = [cipherSuite]
         
         let expectation = self.expectation(description: "accept connection successfully")
@@ -125,7 +125,7 @@ class TSLTests: XCTestCase {
         let cipherSuite = CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
         let server = createServer(with: cipherSuite, port: 12345)
         
-        let client = TLSSocket(protocolVersion: .v1_2)
+        let client = TLSSocket(supportedVersions: [.v1_2])
         client.context.configuration.cipherSuites = [cipherSuite]
         
         let expectation = self.expectation(description: "accept connection successfully")

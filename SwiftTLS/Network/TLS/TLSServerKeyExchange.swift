@@ -91,7 +91,7 @@ enum ECCurveType : UInt8
 struct ECDiffieHellmanParameters
 {
     var curveType : ECCurveType
-    var namedCurve : NamedCurve?
+    var namedCurve : NamedGroup?
     
     var publicKey : EllipticCurvePoint!
     
@@ -111,7 +111,7 @@ struct ECDiffieHellmanParameters
         }
     }
     
-    init(namedCurve: NamedCurve)
+    init(namedCurve: NamedGroup)
     {
         self.curveType = .namedCurve
         self.namedCurve = namedCurve
@@ -133,7 +133,7 @@ struct ECDiffieHellmanParameters
         case .namedCurve:
             guard
                 let rawNamedCurve : UInt16 = inputStream.read(),
-                let namedCurve = NamedCurve(rawValue: rawNamedCurve),
+                let namedCurve = NamedGroup(rawValue: rawNamedCurve),
                 let rawPublicKeyPoint : [UInt8] = inputStream.read8()
             else {
                 return nil
