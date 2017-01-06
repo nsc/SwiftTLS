@@ -196,7 +196,7 @@ class TLSServerKeyExchange : TLSHandshakeMessage
         }
     }
     
-    init(dhParameters: DiffieHellmanParameters, context: TLSContext)
+    init(dhParameters: DiffieHellmanParameters, context: TLSConnection)
     {
         self.parameters = .dhe(dhParameters)
         var data = context.securityParameters.clientRandom!
@@ -208,7 +208,7 @@ class TLSServerKeyExchange : TLSHandshakeMessage
         super.init(type: .handshake(.serverKeyExchange))
     }
     
-    init(ecdhParameters: ECDiffieHellmanParameters, context: TLSContext)
+    init(ecdhParameters: ECDiffieHellmanParameters, context: TLSConnection)
     {
         self.parameters = .ecdhe(ecdhParameters)
         
@@ -221,7 +221,7 @@ class TLSServerKeyExchange : TLSHandshakeMessage
         super.init(type: .handshake(.serverKeyExchange))
     }
 
-    required init?(inputStream : InputStreamType, context: TLSContext)
+    required init?(inputStream : InputStreamType, context: TLSConnection)
     {
         guard
             let (type, _) = TLSHandshakeMessage.readHeader(inputStream), type == TLSHandshakeType.serverKeyExchange

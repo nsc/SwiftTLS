@@ -69,7 +69,7 @@ class TLSClientKeyExchange : TLSHandshakeMessage
         super.init(type: .handshake(.clientKeyExchange))
     }
 
-    required init?(inputStream : InputStreamType, context: TLSContext)
+    required init?(inputStream : InputStreamType, context: TLSConnection)
     {
         guard let (type, _) = TLSHandshakeMessage.readHeader(inputStream) else {
             return nil

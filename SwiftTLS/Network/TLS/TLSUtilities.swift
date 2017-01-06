@@ -9,6 +9,238 @@
 import Foundation
 import CommonCrypto
 
+public enum CompressionMethod : UInt8 {
+    case null = 0
+}
+
+enum HashAlgorithm : UInt8 {
+    case none   = 0
+    case md5    = 1
+    case sha1   = 2
+    case sha224 = 3
+    case sha256 = 4
+    case sha384 = 5
+    case sha512 = 6
+    
+    var macAlgorithm: MACAlgorithm {
+        switch self {
+        case .md5:
+            return .hmac_md5
+            
+        case .sha1:
+            return .hmac_sha1
+            
+        case .sha256:
+            return .hmac_sha256
+            
+        case .sha384:
+            return .hmac_sha384
+            
+        case .sha512:
+            return .hmac_sha512
+            
+        default:
+            fatalError("HMAC with hash function \(self) is not supported.")
+        }
+    }
+}
+
+enum SignatureAlgorithm : UInt8 {
+    case anonymous  = 0
+    case rsa        = 1
+    case dsa        = 2
+    case ecdsa      = 3
+}
+
+struct TLSSignedData : Streamable
+{
+    var hashAlgorithm : HashAlgorithm?
+    var signatureAlgorithm : SignatureAlgorithm?
+    
+    var signature : [UInt8]
+    
+    init(data: [UInt8], context: TLSConnection)
+    {
+        if context.negotiatedProtocolVersion == .v1_2 {
+            self.hashAlgorithm = context.configuration.hashAlgorithm
+            self.signatureAlgorithm = context.configuration.signatureAlgorithm
+        }
+        
+        self.signature = context.sign(data)
+    }
+    
+    init?(inputStream : InputStreamType, context: TLSConnection)
+    {
+        if context.negotiatedProtocolVersion == .v1_2 {
+            guard
+                let rawHashAlgorithm : UInt8 = inputStream.read(),
+                let hashAlgorithm = HashAlgorithm(rawValue: rawHashAlgorithm),
+                let rawSignatureAlgorithm : UInt8 = inputStream.read(),
+                let signatureAlgorithm = SignatureAlgorithm(rawValue: rawSignatureAlgorithm)
+                else {
+                    return nil
+            }
+            
+            self.hashAlgorithm = hashAlgorithm
+            self.signatureAlgorithm = signatureAlgorithm
+        }
+        
+        if let signature : [UInt8] = inputStream.read16() {
+            self.signature = signature
+        }
+        else {
+            return nil
+        }
+    }
+    
+    func writeTo<Target : OutputStreamType>(_ target: inout Target)
+    {
+        if self.hashAlgorithm != nil && self.signatureAlgorithm != nil {
+            target.write(self.hashAlgorithm!.rawValue)
+            target.write(self.signatureAlgorithm!.rawValue)
+        }
+        
+        target.write(UInt16(self.signature.count))
+        target.write(self.signature)
+    }
+}
+
+enum TLSError : Error
+{
+    case error(String)
+    case alert(alert : TLSAlert, alertLevel : TLSAlertLevel)
+}
+
+
+protocol TLSDataProvider : class
+{
+    func writeData(_ data : [UInt8]) throws
+    func readData(count : Int) throws -> [UInt8]
+}
+
+let TLSClientFinishedLabel = [UInt8]("client finished".utf8)
+let TLSServerFinishedLabel = [UInt8]("server finished".utf8)
+
+enum ConnectionEnd {
+    case client
+    case server
+}
+
+enum CipherType {
+    case block
+    case stream
+    case aead
+}
+
+enum BlockCipherMode {
+    case cbc
+    case gcm
+}
+
+typealias HMACFunction = (_ secret : [UInt8], _ data : [UInt8]) -> [UInt8]
+enum MACAlgorithm {
+    //    case null
+    case hmac_md5
+    case hmac_sha1
+    case hmac_sha256
+    case hmac_sha384
+    case hmac_sha512
+    
+    var size: Int {
+        get {
+            switch self {
+                //            case .null:
+                //                fatalError("Null MAC has no size")
+                
+            case .hmac_md5:
+                return Int(CC_MD5_DIGEST_LENGTH)
+                
+            case .hmac_sha1:
+                return Int(CC_SHA1_DIGEST_LENGTH)
+                
+            case .hmac_sha256:
+                return Int(CC_SHA256_DIGEST_LENGTH)
+                
+            case .hmac_sha384:
+                return Int(CC_SHA384_DIGEST_LENGTH)
+                
+            case .hmac_sha512:
+                return Int(CC_SHA512_DIGEST_LENGTH)
+                
+            }
+        }
+    }
+}
+
+enum CipherAlgorithm
+{
+    case null
+    case aes128
+    case aes256
+    
+    var blockSize : Int {
+        get {
+            switch self {
+            case .null: return 0
+            case .aes128: return 16
+            case .aes256: return 16
+            }
+            
+        }
+    }
+    
+    var keySize : Int {
+        get {
+            switch self {
+            case .null: return 0
+            case .aes128: return 16
+            case .aes256: return 32
+            }
+        }
+    }
+}
+
+enum KeyExchangeAlgorithm
+{
+    case rsa
+    case dhe
+    case ecdhe
+}
+
+enum CertificateType
+{
+    case rsa
+    case ecdsa
+}
+
+enum KeyExchange
+{
+    case rsa
+    case dhe(DHKeyExchange)
+    case ecdhe(ECDHKeyExchange)
+}
+
+class TLSSecurityParameters
+{
+    var connectionEnd : ConnectionEnd = .client
+    var bulkCipherAlgorithm : CipherAlgorithm? = nil
+    var blockCipherMode : BlockCipherMode? = nil
+    var cipherType : CipherType = .block
+    var encodeKeyLength : Int = 0
+    var blockLength : Int = 0
+    var fixedIVLength : Int = 0
+    var recordIVLength : Int = 0
+    var hmac: MACAlgorithm? = nil
+    var masterSecret : [UInt8]? = nil
+    var clientRandom : [UInt8]? = nil
+    var serverRandom : [UInt8]? = nil
+    
+    // secure renegotiation support (RFC 5746)
+    var isUsingSecureRenegotiation: Bool = false
+    var clientVerifyData: [UInt8] = []
+    var serverVerifyData: [UInt8] = []
+}
+
 func hexDigit(_ d : UInt8) -> String
 {
     switch (d & 0xf)

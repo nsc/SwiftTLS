@@ -19,7 +19,7 @@ class TLSCertificateMessage : TLSHandshakeMessage
         super.init(type: .handshake(.certificate))
     }
     
-    required init?(inputStream : InputStreamType, context: TLSContext)
+    required init?(inputStream : InputStreamType, context: TLSConnection)
     {
         var certificates : [X509.Certificate]?
         

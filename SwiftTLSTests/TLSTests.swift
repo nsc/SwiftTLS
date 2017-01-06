@@ -31,7 +31,7 @@ class TSLTests: XCTestCase {
 //        configuration.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
 //        configuration.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256]
 //        configuration.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256]
-        let socket = TLSSocket(configuration: configuration)
+        let socket = TLSClientSocket(configuration: configuration)
 
         let (host, port) = ("127.0.0.1", 4433)
         
@@ -51,7 +51,7 @@ class TSLTests: XCTestCase {
         opensslServer.terminate()
     }
     
-    func createServer(with cipherSuite: CipherSuite, port: Int) -> TLSSocket
+    func createServer(with cipherSuite: CipherSuite, port: Int) -> TLSServerSocket
     {
         var configuration = TLSConfiguration(supportedVersions: [.v1_2])
         
@@ -61,15 +61,15 @@ class TSLTests: XCTestCase {
         configuration.dhParameters = DiffieHellmanParameters.fromPEMFile(dhParametersPath)
         configuration.ecdhParameters = ECDiffieHellmanParameters(namedCurve: .secp256r1)
         
-        return TLSSocket(configuration: configuration, isClient: false)
+        return TLSServerSocket(configuration: configuration)
     }
     
     func test_clientServerWithCipherSuite(_ cipherSuite : CipherSuite)
     {
         let server = createServer(with: cipherSuite, port: 12345)
         
-        let client = TLSSocket(supportedVersions: [.v1_2])
-        client.context.configuration.cipherSuites = [cipherSuite]
+        let client = TLSClientSocket(supportedVersions: [.v1_2])
+        client.connection.configuration.cipherSuites = [cipherSuite]
         
         let expectation = self.expectation(description: "accept connection successfully")
         
@@ -125,8 +125,8 @@ class TSLTests: XCTestCase {
         let cipherSuite = CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
         let server = createServer(with: cipherSuite, port: 12345)
         
-        let client = TLSSocket(supportedVersions: [.v1_2])
-        client.context.configuration.cipherSuites = [cipherSuite]
+        let client = TLSClientSocket(supportedVersions: [.v1_2])
+        client.connection.configuration.cipherSuites = [cipherSuite]
         
         let expectation = self.expectation(description: "accept connection successfully")
         
@@ -225,9 +225,9 @@ class TSLTests: XCTestCase {
     
 //    func test_sendDoubleClientHello__triggersAlert()
 //    {
-//        class MyContext : TLSContext
+//        class MyContext : TLSConnection
 //        {
-//            override func _didReceiveHandshakeMessage(message : TLSHandshakeMessage, completionBlock: ((TLSContextError?) -> ())?)
+//            override func _didReceiveHandshakeMessage(message : TLSHandshakeMessage, completionBlock: ((TLSConnectionError?) -> ())?)
 //            {
 //                if message.handshakeType == .Certificate {
 //                    self.sendClientHello()

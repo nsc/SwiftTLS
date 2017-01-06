@@ -19,7 +19,7 @@ class TLSFinished : TLSHandshakeMessage
         super.init(type: .handshake(.finished))
     }
     
-    required init?(inputStream : InputStreamType, context: TLSContext)
+    required init?(inputStream : InputStreamType, context: TLSConnection)
     {
         guard
             let (type, _) = TLSHandshakeMessage.readHeader(inputStream), type == TLSHandshakeType.finished,

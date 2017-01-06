@@ -13,6 +13,10 @@
 		030FF6EE1DB0E66800EB7F1F /* TLSProtocolVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 030FF6EC1DB0E66800EB7F1F /* TLSProtocolVersion.swift */; };
 		03176EAD1C2DB6F900E11426 /* math.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0367947F1BFD0BF9006C5155 /* math.swift */; };
 		03176EAE1C2DB71900E11426 /* math.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0367947F1BFD0BF9006C5155 /* math.swift */; };
+		031C94991E1EC676007F032E /* TLSClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 031C94981E1EC676007F032E /* TLSClient.swift */; };
+		031C949A1E1EC676007F032E /* TLSClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 031C94981E1EC676007F032E /* TLSClient.swift */; };
+		031C949C1E1EC67E007F032E /* TLSServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 031C949B1E1EC67E007F032E /* TLSServer.swift */; };
+		031C949D1E1EC67E007F032E /* TLSServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 031C949B1E1EC67E007F032E /* TLSServer.swift */; };
 		031CD1291C32B4E00027F973 /* RSA.swift in Sources */ = {isa = PBXBuildFile; fileRef = 031CD1281C32B4E00027F973 /* RSA.swift */; };
 		031CD12A1C32B4E00027F973 /* RSA.swift in Sources */ = {isa = PBXBuildFile; fileRef = 031CD1281C32B4E00027F973 /* RSA.swift */; };
 		031CD12C1C32B5CC0027F973 /* RSATests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 031CD12B1C32B5CC0027F973 /* RSATests.swift */; };
@@ -134,7 +138,7 @@
 		03A322EB1C064C6E00C12004 /* TLSUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0394D2901AD65F40005DC3C4 /* TLSUtilities.swift */; };
 		03A322EC1C064C6E00C12004 /* TLSCipherSuites.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0372CA8F1B94D69E00B567D5 /* TLSCipherSuites.swift */; };
 		03A322ED1C064C6E00C12004 /* TLSCipherSuiteDescriptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 038AEE761ADAC06100DDFA8F /* TLSCipherSuiteDescriptions.swift */; };
-		03A322EE1C064C6E00C12004 /* TLSContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3981AC474430004EEC1 /* TLSContext.swift */; };
+		03A322EE1C064C6E00C12004 /* TLSConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3981AC474430004EEC1 /* TLSConnection.swift */; };
 		03A322EF1C064C6E00C12004 /* TLSStateMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03BB64C01B936BAD001A6AAA /* TLSStateMachine.swift */; };
 		03A322F01C064C6E00C12004 /* DHKeyExchange.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0374FE3C1B6E42E8003DD557 /* DHKeyExchange.swift */; };
 		03A322F11C064C6E00C12004 /* ECDHKeyExchange.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0397934C1BCACD830034CFF1 /* ECDHKeyExchange.swift */; };
@@ -237,7 +241,7 @@
 		03FA94B71B9E1A1B00F08FB8 /* TLSUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0394D2901AD65F40005DC3C4 /* TLSUtilities.swift */; };
 		03FA94B81B9E1A1B00F08FB8 /* TLSCipherSuites.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0372CA8F1B94D69E00B567D5 /* TLSCipherSuites.swift */; };
 		03FA94B91B9E1A1B00F08FB8 /* TLSCipherSuiteDescriptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 038AEE761ADAC06100DDFA8F /* TLSCipherSuiteDescriptions.swift */; };
-		03FA94BA1B9E1A1B00F08FB8 /* TLSContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3981AC474430004EEC1 /* TLSContext.swift */; };
+		03FA94BA1B9E1A1B00F08FB8 /* TLSConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3981AC474430004EEC1 /* TLSConnection.swift */; };
 		03FA94BB1B9E1A1B00F08FB8 /* TLSStateMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03BB64C01B936BAD001A6AAA /* TLSStateMachine.swift */; };
 		03FA94BC1B9E1A1B00F08FB8 /* DHKeyExchange.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0374FE3C1B6E42E8003DD557 /* DHKeyExchange.swift */; };
 		03FA94BD1B9E1A1B00F08FB8 /* TLSRecordLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0394D28D1AD65F09005DC3C4 /* TLSRecordLayer.swift */; };
@@ -308,6 +312,8 @@
 		031BAEE21C62849A00600133 /* rfc7507.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = rfc7507.txt; sourceTree = "<group>"; };
 		031BAEE31C62849A00600133 /* rfc7568.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = rfc7568.txt; sourceTree = "<group>"; };
 		031BAEE41C62849A00600133 /* rsa-crt-leaks.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = "rsa-crt-leaks.pdf"; sourceTree = "<group>"; };
+		031C94981E1EC676007F032E /* TLSClient.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSClient.swift; sourceTree = "<group>"; };
+		031C949B1E1EC67E007F032E /* TLSServer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSServer.swift; sourceTree = "<group>"; };
 		031CD1281C32B4E00027F973 /* RSA.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RSA.swift; sourceTree = "<group>"; };
 		031CD12B1C32B5CC0027F973 /* RSATests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RSATests.swift; sourceTree = "<group>"; };
 		0329DE611C66183800F2D7AF /* Self Signed ECDSA Certificate.cer */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Self Signed ECDSA Certificate.cer"; sourceTree = "<group>"; };
@@ -335,7 +341,7 @@
 		033AC3951AC474430004EEC1 /* TLSChangeCipherSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSChangeCipherSpec.swift; sourceTree = "<group>"; };
 		033AC3961AC474430004EEC1 /* TLSClientHello.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSClientHello.swift; sourceTree = "<group>"; };
 		033AC3971AC474430004EEC1 /* TLSClientKeyExchange.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSClientKeyExchange.swift; sourceTree = "<group>"; };
-		033AC3981AC474430004EEC1 /* TLSContext.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSContext.swift; sourceTree = "<group>"; };
+		033AC3981AC474430004EEC1 /* TLSConnection.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSConnection.swift; sourceTree = "<group>"; };
 		033AC3991AC474430004EEC1 /* TLSHandshake.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSHandshake.swift; sourceTree = "<group>"; };
 		033AC39A1AC474430004EEC1 /* TLSMessage.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSMessage.swift; sourceTree = "<group>"; };
 		033AC39B1AC474430004EEC1 /* TLSRecord.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSRecord.swift; sourceTree = "<group>"; };
@@ -709,7 +715,9 @@
 				038AEE761ADAC06100DDFA8F /* TLSCipherSuiteDescriptions.swift */,
 				0372CA8F1B94D69E00B567D5 /* TLSCipherSuites.swift */,
 				0388080C1C314C2A002AD784 /* TLSConfiguration.swift */,
-				033AC3981AC474430004EEC1 /* TLSContext.swift */,
+				033AC3981AC474430004EEC1 /* TLSConnection.swift */,
+				031C94981E1EC676007F032E /* TLSClient.swift */,
+				031C949B1E1EC67E007F032E /* TLSServer.swift */,
 				030FF6EC1DB0E66800EB7F1F /* TLSProtocolVersion.swift */,
 				033AC39B1AC474430004EEC1 /* TLSRecord.swift */,
 				0394D28D1AD65F09005DC3C4 /* TLSRecordLayer.swift */,
@@ -1135,10 +1143,11 @@
 				03AB0E6B1B9F76A800B96F84 /* bf_ecb.c in Sources */,
 				03AB0E851B9F76CB00B96F84 /* buf_err.c in Sources */,
 				03A323041C064C6E00C12004 /* TLSServerKeyExchange.swift in Sources */,
+				031C94991E1EC676007F032E /* TLSClient.swift in Sources */,
 				03B4F7551BA2199B00753DD5 /* main.swift in Sources */,
 				03A323071C064C6E00C12004 /* TLSChangeCipherSpec.swift in Sources */,
 				03A323021C064C6E00C12004 /* TLSServerHelloDone.swift in Sources */,
-				03A322EE1C064C6E00C12004 /* TLSContext.swift in Sources */,
+				03A322EE1C064C6E00C12004 /* TLSConnection.swift in Sources */,
 				037031261D776F1C006BA9BD /* SwiftHelper.m in Sources */,
 				03AB0E6D1B9F76A800B96F84 /* bf_skey.c in Sources */,
 				036058E71C944A9B004200CD /* GaloisField.swift in Sources */,
@@ -1185,6 +1194,7 @@
 				03A323001C064C6E00C12004 /* TLSEllipticCurvePointFormatsExtension.swift in Sources */,
 				0392492B203EE2470087EEB0 /* BinaryInteger+Extensions.swift in Sources */,
 				03AB0EA21B9F770A00B96F84 /* rsa_none.c in Sources */,
+				031C949C1E1EC67E007F032E /* TLSServer.swift in Sources */,
 				03AB0E951B9F76E100B96F84 /* err_prn.c in Sources */,
 				03AB0E9B1B9F76E800B96F84 /* rc5_enc.c in Sources */,
 				03AB0E8F1B9F76DA00B96F84 /* dsa_key.c in Sources */,
@@ -1227,10 +1237,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				031C949A1E1EC676007F032E /* TLSClient.swift in Sources */,
 				030B82ED1C3C4EAE00F47CCF /* ASN1Writer.swift in Sources */,
 				03FA94BE1B9E1A1B00F08FB8 /* TLSHandshake.swift in Sources */,
 				03FA94BC1B9E1A1B00F08FB8 /* DHKeyExchange.swift in Sources */,
-				03FA94BA1B9E1A1B00F08FB8 /* TLSContext.swift in Sources */,
+				03FA94BA1B9E1A1B00F08FB8 /* TLSConnection.swift in Sources */,
 				030FF6EE1DB0E66800EB7F1F /* TLSProtocolVersion.swift in Sources */,
 				03FA94D31B9E1A2700F08FB8 /* TLSServerNameExtension.swift in Sources */,
 				03FA94B91B9E1A1B00F08FB8 /* TLSCipherSuiteDescriptions.swift in Sources */,
@@ -1240,6 +1251,7 @@
 				03A51A661C332F88007DD48F /* Signing.swift in Sources */,
 				03FA94C91B9E1A2300F08FB8 /* TLSServerHello.swift in Sources */,
 				03FA94C81B9E1A1B00F08FB8 /* TLSClientHello.swift in Sources */,
+				031C949D1E1EC67E007F032E /* TLSServer.swift in Sources */,
 				0329EA751C614308005BFD75 /* X509Certificate.swift in Sources */,
 				03FA94B71B9E1A1B00F08FB8 /* TLSUtilities.swift in Sources */,
 				03FA94D11B9E1A2300F08FB8 /* IPAddress.swift in Sources */,

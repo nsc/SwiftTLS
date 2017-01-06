@@ -19,7 +19,7 @@ class TLSApplicationData : TLSMessage
     }
     
     // FIXME: This constructor is only needed to fulfill the TLSMessage requirement
-    required init?(inputStream: InputStreamType, context: TLSContext)
+    required init?(inputStream: InputStreamType, context: TLSConnection)
     {
         fatalError("This method is not implemented")
     }

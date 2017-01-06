@@ -37,7 +37,7 @@ func server(port: Int = 443, certificatePath: String, dhParametersPath : String?
     }
     configuration.ecdhParameters = ECDiffieHellmanParameters(namedCurve: .secp256r1)
     
-    let server = TLSServerSocket(configuration: configuration, isClient: false)
+    let server = TLSServerSocket(configuration: configuration)
     let address = IPv4Address.localAddress()
     address.port = UInt16(port)
     
@@ -104,8 +104,7 @@ func connectTo(host : String, port : Int = 443, supportedVersions: [TLSProtocolV
     }
     
 
-    let context = TLSContext(configuration: configuration)
-    var socket = TLSClientSocket(context: context)
+    var socket = TLSClientSocket(configuration: configuration)
     
     let testSessionReuse = false
     let testSecureRenegotiation = false
@@ -114,12 +113,11 @@ func connectTo(host : String, port : Int = 443, supportedVersions: [TLSProtocolV
             // Connect twice to test session reuse
             for _ in 0..<2 {
                 socket = TLSClientSocket(configuration: configuration)
-                socket.context = context
                 
                 print("Connecting to \(host):\(port)")
                 try socket.connect(hostname: host, port: port)
                 
-                print("Connection established using cipher suite \(socket.context.cipherSuite!)")
+                print("Connection established using cipher suite \(socket.connection.cipherSuite!)")
                 
                 try socket.write([UInt8]("GET / HTTP/1.1\r\nHost: \(host)\r\n\r\n".utf8))
                 let data = try socket.read(count: 4096)
@@ -133,7 +131,7 @@ func connectTo(host : String, port : Int = 443, supportedVersions: [TLSProtocolV
             print("Connecting to \(host):\(port)")
             try socket.connect(hostname: host, port: port)
             
-            print("Connection established using cipher suite \(socket.context.cipherSuite!)")
+            print("Connection established using cipher suite \(socket.connection.cipherSuite!)")
             for _ in 0..<2 {
 //                for _ in 0..<5 {
                     try socket.write([UInt8]("GET / HTTP/1.1\r\nHost: \(host)\r\n\r\n".utf8))
@@ -155,7 +153,7 @@ func connectTo(host : String, port : Int = 443, supportedVersions: [TLSProtocolV
             print("Connecting to \(host):\(port)")
             try socket.connect(hostname: host, port: port)
             
-            print("Connection established using cipher suite \(socket.context.cipherSuite!)")
+            print("Connection established using cipher suite \(socket.connection.cipherSuite!)")
             
             try socket.write([UInt8]("GET / HTTP/1.1\r\nHost: \(host)\r\n\r\n".utf8))
             let data = try socket.read(count: 4096)
@@ -181,7 +179,7 @@ func parseASN1()
 
 func probeCipherSuitesForHost(host : String, port : Int, protocolVersion: TLSProtocolVersion = .v1_2)
 {
-    class StateMachine : TLSContextStateMachine
+    class StateMachine : TLSClientStateMachine
     {
         weak var socket : TLSSocket!
         var cipherSuite : CipherSuite!
@@ -190,7 +188,7 @@ func probeCipherSuitesForHost(host : String, port : Int, protocolVersion: TLSPro
             self.socket = socket
         }
         
-        func shouldContinueHandshakeWithMessage(_ message: TLSHandshakeMessage) -> Bool
+        func shouldContinueHandshake(with message: TLSHandshakeMessage) -> Bool
         {
             if let hello = message as? TLSServerHello {
                 print("\(hello.cipherSuite)")
@@ -212,9 +210,9 @@ func probeCipherSuitesForHost(host : String, port : Int, protocolVersion: TLSPro
     for cipherSuite in CipherSuite.allValues {
         let socket = TLSClientSocket(supportedVersions: [protocolVersion])
         let stateMachine = StateMachine(socket: socket)
-        socket.context.stateMachine = stateMachine
+        socket.connection.stateMachine = stateMachine
 
-        socket.context.configuration.cipherSuites = [cipherSuite]
+        socket.connection.configuration.cipherSuites = [cipherSuite]
         
         do {
             stateMachine.cipherSuite = cipherSuite

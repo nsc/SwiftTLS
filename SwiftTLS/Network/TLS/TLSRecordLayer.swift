@@ -65,7 +65,7 @@ class EncryptionParameters {
 public class TLSRecordLayer
 {
     weak var dataProvider : TLSDataProvider?
-    weak var context : TLSContext?
+    weak var context : TLSConnection?
     var protocolVersion: TLSProtocolVersion
     var isClient : Bool
     
@@ -179,7 +179,7 @@ public class TLSRecordLayer
         self.pendingWriteEncryptionParameters = nil
     }
 
-    init(context: TLSContext, dataProvider: TLSDataProvider)
+    init(context: TLSConnection, dataProvider: TLSDataProvider)
     {
         self.context = context
         self.protocolVersion = TLSProtocolVersion.v1_0

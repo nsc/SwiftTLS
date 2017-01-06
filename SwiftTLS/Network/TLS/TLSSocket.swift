@@ -220,34 +220,24 @@ class Random : Streamable
 
 public class TLSSocket : SocketProtocol, TLSDataProvider
 {
-    var context : TLSContext! {
+    var connection : TLSConnection! {
         didSet {
-            context.recordLayer = TLSRecordLayer(context: context, dataProvider: self)
+            connection.recordLayer = TLSRecordLayer(context: connection, dataProvider: self)
         }
     }
     
     var socket : TCPSocket?
     
-    convenience public init(supportedVersions: [TLSProtocolVersion], isClient: Bool = true)
+    public init(context: TLSConnection)
     {
-        self.init(configuration: TLSConfiguration(supportedVersions: supportedVersions), isClient: isClient)
-    }
-
-    convenience init(configuration: TLSConfiguration, isClient: Bool = true)
-    {
-        self.init(context: TLSContext(configuration: configuration, isClient: isClient))
-    }
-
-    public init(context: TLSContext)
-    {
-        self.context = context
+        self.connection = context
         context.recordLayer = TLSRecordLayer(context: context, dataProvider: self)
     }
     
     public func close()
     {
         do {
-            try self.context.sendAlert(.closeNotify, alertLevel: .warning)
+            try self.connection.sendAlert(.closeNotify, alertLevel: .warning)
         }
         catch
         {
@@ -260,7 +250,7 @@ public class TLSSocket : SocketProtocol, TLSDataProvider
     
     public func read(count: Int) throws -> [UInt8]
     {
-        let message = try self.context.readTLSMessage()
+        let message = try self.connection.readTLSMessage()
         switch message.type
         {
         case .applicationData:
@@ -294,12 +284,26 @@ public class TLSSocket : SocketProtocol, TLSDataProvider
     
     public func write(_ data: [UInt8]) throws
     {
-        try self.context.sendApplicationData(data)
+        try self.connection.sendApplicationData(data)
     }
 }
 
 public class TLSClientSocket : TLSSocket, ClientSocketProtocol
 {
+    var client: TLSClient {
+        return self.connection as! TLSClient
+    }
+    
+    convenience public init(supportedVersions: [TLSProtocolVersion])
+    {
+        self.init(configuration: TLSConfiguration(supportedVersions: supportedVersions))
+    }
+    
+    init(configuration: TLSConfiguration)
+    {
+        super.init(context: TLSClient(configuration: configuration))
+    }
+
     public func connect(hostname: String, port: Int = 443) throws
     {
         if let address = IPAddress.addressWithString(hostname, port: port) {
@@ -307,7 +311,7 @@ public class TLSClientSocket : TLSSocket, ClientSocketProtocol
             if port != 443 {
                 hostNameAndPort = "\(hostname):\(port)"
             }
-            self.context.hostNames = [hostNameAndPort]
+            self.connection.hostNames = [hostNameAndPort]
             
             try connect(address)
         }
@@ -324,29 +328,44 @@ public class TLSClientSocket : TLSSocket, ClientSocketProtocol
         self.socket = TCPSocket()
         
         try self.socket?.connect(address)
-        try self.context.startConnection()
+        try self.client.startConnection()
     }
     
     public func renegotiate() throws
     {
-        try self.context.renegotiate()
+        try self.client.renegotiate()
     }
 }
 
 public class TLSServerSocket : TLSSocket, ServerSocketProtocol
 {
+    var server: TLSServer {
+        return self.connection as! TLSServer
+    }
+
+    convenience public init(supportedVersions: [TLSProtocolVersion])
+    {
+        self.init(configuration: TLSConfiguration(supportedVersions: supportedVersions))
+    }
+    
+    init(configuration: TLSConfiguration)
+    {
+        super.init(context: TLSServer(configuration: configuration))
+    }
+
     public func acceptConnection(_ address: IPAddress) throws -> SocketProtocol
     {
         self.socket = TCPSocket()
         
         let clientSocket = try self.socket?.acceptConnection(address) as! TCPSocket
         
-        let clientTLSSocket = TLSClientSocket(supportedVersions: self.context.configuration.supportedVersions, isClient: false)
+        let clientTLSSocket = TLSServerSocket(supportedVersions: self.connection.configuration.supportedVersions)
         clientTLSSocket.socket = clientSocket
-        clientTLSSocket.context = self.context
-        clientTLSSocket.context.recordLayer.dataProvider = clientTLSSocket
+        clientTLSSocket.connection.signer = self.connection.signer
+        clientTLSSocket.connection.configuration = self.connection.configuration
+        clientTLSSocket.connection.recordLayer.dataProvider = clientTLSSocket
         
-        try clientTLSSocket.context.acceptConnection()
+        try clientTLSSocket.server.acceptConnection()
         
         return clientTLSSocket
     }

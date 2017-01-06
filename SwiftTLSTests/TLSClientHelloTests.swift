@@ -55,13 +55,13 @@ class TLSClientHelloTests: XCTestCase {
     }
     
     func test_initWithBinaryInputStream_givesClientHello() {
-        let clientHello = TLSClientHello(inputStream: BinaryInputStream(self.testClientHelloData), context:  TLSContext())
+        let clientHello = TLSClientHello(inputStream: BinaryInputStream(self.testClientHelloData), context:  TLSConnection())
         
         XCTAssert(clientHello != nil)
     }
 
     func test_initWithBinaryInputStream_hasCorrectRandom() {
-        let clientHello = TLSClientHello(inputStream: BinaryInputStream(self.testClientHelloData), context:  TLSContext())
+        let clientHello = TLSClientHello(inputStream: BinaryInputStream(self.testClientHelloData), context:  TLSConnection())
         
         let expectedRandom = Random(inputStream: BinaryInputStream([UInt8]([1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,
             17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32])))!
@@ -72,7 +72,7 @@ class TLSClientHelloTests: XCTestCase {
     }
 
     func test_initWithBinaryInputStream_hasCorrectCipherSuites() {
-        let clientHello = TLSClientHello(inputStream: BinaryInputStream(self.testClientHelloData), context:  TLSContext())
+        let clientHello = TLSClientHello(inputStream: BinaryInputStream(self.testClientHelloData), context:  TLSConnection())
         
         let expectedCiperSuites = [CipherSuite.TLS_RSA_WITH_RC4_128_MD5, CipherSuite.TLS_RSA_WITH_RC4_128_SHA]
         
@@ -97,7 +97,7 @@ class TLSClientHelloTests: XCTestCase {
         var buffer = DataBuffer()
         clientHello.writeTo(&buffer)
 
-        if let newClientHello = TLSClientHello(inputStream: BinaryInputStream(buffer.buffer), context:  TLSContext()) {
+        if let newClientHello = TLSClientHello(inputStream: BinaryInputStream(buffer.buffer), context:  TLSConnection()) {
             XCTAssertTrue(newClientHello.extensions.count != 0)
             
             let count = clientHello.extensions.count

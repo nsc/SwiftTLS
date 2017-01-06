@@ -66,7 +66,7 @@ class TLSMessage : Streamable
         self.type = type
     }
     
-    required init?(inputStream: InputStreamType, context: TLSContext) {
+    required init?(inputStream: InputStreamType, context: TLSConnection) {
         return nil
     }
     

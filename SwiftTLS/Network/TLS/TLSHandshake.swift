@@ -24,7 +24,7 @@ class TLSHandshakeMessage : TLSMessage
         }
     }
     
-    class func handshakeMessageFromData(_ data : [UInt8], context: TLSContext) -> (TLSHandshakeMessage?, excessData: [UInt8]?) {
+    class func handshakeMessageFromData(_ data : [UInt8], context: TLSConnection) -> (TLSHandshakeMessage?, excessData: [UInt8]?) {
         guard let (handshakeType, bodyLength) = readHeader(BinaryInputStream(data)) else {
             return (nil, nil)
         }
