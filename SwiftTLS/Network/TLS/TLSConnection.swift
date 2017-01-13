@@ -11,8 +11,11 @@ import CommonCrypto
 public class TLSConnection
 {
     public var configuration: TLSConfiguration
+    public var context: TLSContext {
+        return TLSClientContext()
+    }
     
-    var negotiatedProtocolVersion: TLSProtocolVersion! {
+    var negotiatedProtocolVersion: TLSProtocolVersion? {
         didSet {
             if let version = negotiatedProtocolVersion {
                 self.recordLayer.protocolVersion = version
@@ -233,31 +236,6 @@ public class TLSConnection
         }
     }
         
-    func sendCertificate() throws
-    {
-        let certificates = self.configuration.identity!.certificateChain
-        let certificateMessage = TLSCertificateMessage(certificates: certificates)
-        
-        try self.sendHandshakeMessage(certificateMessage);
-    }
-    
-    func sendChangeCipherSpec() throws
-    {
-        let message = TLSChangeCipherSpec()
-        try self.sendMessage(message)
-        self.recordLayer.activateWriteEncryptionParameters()
-        try self.stateMachine?.didSendChangeCipherSpec()
-    }
-    
-    func sendFinished() throws
-    {
-        let verifyData = self.verifyDataForFinishedMessage(isClient: self.isClient)
-        if self.securityParameters.isUsingSecureRenegotiation {
-            saveVerifyDataForSecureRenegotiation(data: verifyData, forClient: self.isClient)
-        }
-        try self.sendHandshakeMessage(TLSFinished(verifyData: verifyData))
-    }
-
     func saveVerifyDataForSecureRenegotiation(data: [UInt8], forClient isClient: Bool)
     {
         if self.securityParameters.isUsingSecureRenegotiation {
@@ -283,7 +261,7 @@ public class TLSConnection
         return true
     }
 
-    private func verifyDataForFinishedMessage(isClient: Bool) -> [UInt8]
+    func verifyDataForFinishedMessage(isClient: Bool) -> [UInt8]
     {
         let finishedLabel = isClient ? TLSClientFinishedLabel : TLSServerFinishedLabel
         
@@ -304,7 +282,7 @@ public class TLSConnection
 
         }
         
-        if self.negotiatedProtocolVersion < TLSProtocolVersion.v1_2 {
+        if self.negotiatedProtocolVersion! < TLSProtocolVersion.v1_2 {
             let clientHandshakeMD5  = Hash_MD5(handshakeData)
             let clientHandshakeSHA1 = Hash_SHA1(handshakeData)
             
@@ -332,7 +310,7 @@ public class TLSConnection
     
     internal func PRF(secret : [UInt8], label : [UInt8], seed : [UInt8], outputLength : Int) -> [UInt8]
     {
-        if self.negotiatedProtocolVersion < TLSProtocolVersion.v1_2 {
+        if self.negotiatedProtocolVersion! < TLSProtocolVersion.v1_2 {
             /// PRF function as defined in RFC 2246, section 5, p. 12
 
             let halfSecretLength = secret.count / 2

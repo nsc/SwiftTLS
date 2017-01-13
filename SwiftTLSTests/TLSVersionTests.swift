@@ -87,7 +87,7 @@ class TLSVersionTests: XCTestCase {
 
     func test_receiveClientHello_withLowerUnknownVersion_abortsHandshake() {
         let version = TLSProtocolVersion(major: 1, minor: 1)
-        let highestSupportedVersion = TLSProtocolVersion.v1_1
+        let highestSupportedVersion = TLSProtocolVersion.v1_2
         
         receiveClientHello(with: version, highestSupportedVersion: highestSupportedVersion, result: { (server: Server) in
             XCTAssert(server.hasAbortedHandshake)

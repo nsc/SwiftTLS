@@ -228,10 +228,10 @@ public class TLSSocket : SocketProtocol, TLSDataProvider
     
     var socket : TCPSocket?
     
-    public init(context: TLSConnection)
+    public init(connection: TLSConnection)
     {
-        self.connection = context
-        context.recordLayer = TLSRecordLayer(context: context, dataProvider: self)
+        self.connection = connection
+        connection.recordLayer = TLSRecordLayer(context: connection, dataProvider: self)
     }
     
     public func close()
@@ -290,7 +290,11 @@ public class TLSSocket : SocketProtocol, TLSDataProvider
 
 public class TLSClientSocket : TLSSocket, ClientSocketProtocol
 {
-    var client: TLSClient {
+    var context: TLSContext {
+        return self.client.context
+    }
+    
+    private var client: TLSClient {
         return self.connection as! TLSClient
     }
     
@@ -301,7 +305,7 @@ public class TLSClientSocket : TLSSocket, ClientSocketProtocol
     
     init(configuration: TLSConfiguration)
     {
-        super.init(context: TLSClient(configuration: configuration))
+        super.init(connection: TLSClient(configuration: configuration))
     }
 
     public func connect(hostname: String, port: Int = 443) throws
@@ -339,8 +343,12 @@ public class TLSClientSocket : TLSSocket, ClientSocketProtocol
 
 public class TLSServerSocket : TLSSocket, ServerSocketProtocol
 {
-    var server: TLSServer {
+    private var server: TLSServer {
         return self.connection as! TLSServer
+    }
+
+    var context: TLSContext {
+        return self.server.context
     }
 
     convenience public init(supportedVersions: [TLSProtocolVersion])
@@ -350,7 +358,7 @@ public class TLSServerSocket : TLSSocket, ServerSocketProtocol
     
     init(configuration: TLSConfiguration)
     {
-        super.init(context: TLSServer(configuration: configuration))
+        super.init(connection: TLSServer(configuration: configuration))
     }
 
     public func acceptConnection(_ address: IPAddress) throws -> SocketProtocol
@@ -369,6 +377,5 @@ public class TLSServerSocket : TLSSocket, ServerSocketProtocol
         
         return clientTLSSocket
     }
-    
 
 }
