@@ -9,13 +9,17 @@ enum TLSHelloExtensionType : UInt16
 {
     case serverName = 0
     case supportedGroups = 10
-    case ecPointFormats = 11
+    case ecPointFormats = 11        // TLS 1.2 only, not in TLS 1.3
     case signatureAlgorithms = 13
     case keyShare = 40
     case preSharedKey = 41
     case earlyData = 42
     case supportedVersions = 43
     case cookie = 44
+    case pskKeyExchangeModes = 45
+    case certificateAuthorities = 47
+    case oidFilters = 48
+    
     case secureRenegotiationInfo = 0xff01
 }
 
@@ -27,7 +31,7 @@ protocol TLSHelloExtension : Streamable
     
 }
 
-func TLSReadHelloExtensions(from inputStream: InputStreamType, length: Int) -> [TLSHelloExtension]?
+func TLSReadHelloExtensions(from inputStream: InputStreamType, length: Int, helloType: TLSHelloType) -> [TLSHelloExtension]?
 {
     guard
         let extensionsSize : UInt16 = inputStream.read(),
@@ -69,6 +73,11 @@ func TLSReadHelloExtensions(from inputStream: InputStreamType, length: Int) -> [
                 case .ecPointFormats:
                     if let pointFormats = TLSEllipticCurvePointFormatsExtension(inputStream: BinaryInputStream(extensionData)) {
                         extensions.append(pointFormats)
+                    }
+                    
+                case .keyShare:
+                    if let keyShare = TLSKeyShareExtension(inputStream: BinaryInputStream(extensionData), helloType: helloType) {
+                        extensions.append(keyShare)
                     }
                     
                 case .supportedVersions:
@@ -142,7 +151,7 @@ class TLSClientHello : TLSHandshakeMessage
     
     init(configuration: TLSConfiguration, random: Random, sessionID: TLSSessionID?, cipherSuites: [CipherSuite], compressionMethods: [CompressionMethod] = [.null])
     {
-        if configuration.supports(version: TLSProtocolVersion.v1_3) {
+        if configuration.supports(TLSProtocolVersion.v1_3) {
             self.legacyVersion = TLSProtocolVersion.v1_2
             let supportedVersions = TLSSupportedVersionsExtension(supportedVersions: configuration.supportedVersions)
             self.extensions.append(supportedVersions)
@@ -187,7 +196,7 @@ class TLSClientHello : TLSHandshakeMessage
         bytesLeft -= 1 + rawCompressionMethods.count
 
         if bytesLeft > 0 {
-            if let extensions = TLSReadHelloExtensions(from: inputStream, length: bytesLeft) {
+            if let extensions = TLSReadHelloExtensions(from: inputStream, length: bytesLeft, helloType: .clientHello) {
                 self.extensions = extensions
             }
         }

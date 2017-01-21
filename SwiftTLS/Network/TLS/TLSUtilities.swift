@@ -523,7 +523,24 @@ func TLSHandshakeMessageNameForType(_ handshakeType : TLSHandshakeType) -> Strin
         
     case .certificateStatus:
         messageName = "CertificateStatus"
+    
+    case .newSessionTicket:
+        messageName = "NewSessionTicket"
+        
+    case .endOfEarlyData:
+        messageName = "EndOfEarlyData"
+
+    case .helloRetryRequest:
+        messageName = "HelloRetryRequest"
+        
+    case .encryptedExtensions:
+        messageName = "EncryptedExtensions"
+        
+    case .keyUpdate:
+        messageName = "KeyUpdate"
+        
     }
+
     
     return messageName
 }

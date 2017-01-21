@@ -229,7 +229,7 @@ class TLSServerKeyExchange : TLSHandshakeMessage
             return nil
         }
 
-        switch TLSCipherSuiteDescriptorForCipherSuite(context.cipherSuite!)!.keyExchangeAlgorithm
+        switch TLSCipherSuiteDescriptorForCipherSuite(context.cipherSuite!)!.keyExchangeAlgorithm!
         {
 
         case .dhe:

@@ -125,7 +125,11 @@ class TLSClient : TLSConnection
         case TLSProtocolVersion.v1_2:
             self.protocolHandler = TLS1_2.ClientProtocol(client: self)
             self.stateMachine    = TLS1_2.ClientStateMachine(client: self)
-            
+
+        case TLSProtocolVersion.v1_3:
+            self.protocolHandler = TLS1_3.ClientProtocol(client: self)
+            self.stateMachine    = TLS1_2.ClientStateMachine(client: self)
+
         default:
             fatalError("Unsupported protocol \(version)")
         }

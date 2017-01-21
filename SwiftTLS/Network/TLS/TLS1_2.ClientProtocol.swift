@@ -8,9 +8,6 @@
 
 import Foundation
 
-struct TLS1_2 {
-}
-
 extension TLS1_2 {
     class ClientProtocol : BaseProtocol, TLSClientProtocol
     {
@@ -74,12 +71,11 @@ extension TLS1_2 {
         
         func handleServerHello(_ serverHello: TLSServerHello) throws
         {
-            
             let version = serverHello.version
             print("Server wants to speak \(version)")
             
             guard version.isKnownVersion &&
-                client.configuration.supports(version: version) else
+                client.configuration.supports(version) else
             {
                 try client.abortHandshake()
                 return
@@ -179,6 +175,9 @@ extension TLS1_2 {
         }
         
         func handleCertificate(_ certificate: TLSCertificateMessage) {
+            let certificates = certificate.certificates
+            client.serverCertificates = certificates
+            client.serverKey = certificates.first!.rsa
         }
         
         func handleMessage(_ message: TLSMessage) throws {

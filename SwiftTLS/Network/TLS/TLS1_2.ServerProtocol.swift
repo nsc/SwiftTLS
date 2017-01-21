@@ -75,7 +75,7 @@ extension TLS1_2 {
                 throw TLSError.error("No cipher suite")
             }
             
-            switch cipherSuiteDescriptor.keyExchangeAlgorithm
+            switch cipherSuiteDescriptor.keyExchangeAlgorithm!
             {
             case .dhe:
                 guard var dhParameters = server.configuration.dhParameters else {
@@ -112,13 +112,10 @@ extension TLS1_2 {
         }
 
         func handleCertificate(_ certificate: TLSCertificateMessage) {
-            let certificates = certificate.certificates
-            server.serverCertificates = certificates
-            server.serverKey = certificates.first!.rsa
         }
         
         func handleClientHello(_ clientHello: TLSClientHello) throws {
-            if !server.configuration.supports(version: clientHello.legacyVersion) {
+            if !server.configuration.supports(clientHello.legacyVersion) {
                 try server.abortHandshake()
             }
             
@@ -175,7 +172,7 @@ extension TLS1_2 {
             
             
             if clientHello.legacyVersion.isKnownVersion {
-                assert(server.configuration.supports(version: clientHello.legacyVersion))
+                assert(server.configuration.supports(clientHello.legacyVersion))
                 server.negotiatedProtocolVersion = clientHello.legacyVersion
             }
             else {

@@ -119,13 +119,12 @@ class TLSClientKeyExchange : TLSHandshakeMessage
             target.write(diffieHellmanPublicKeyData)
         }
         else if let ecdhPublicKey = self.ecdhPublicKey {
-            let Q = ecdhPublicKey
-            let data = Q.x.asBigEndianData() + Q.y.asBigEndianData()
+            var buffer = DataBuffer()
+            ecdhPublicKey.writeTo(&buffer)
             
-            self.writeHeader(type: .clientKeyExchange, bodyLength: data.count + 2, target: &target)
-            target.write(UInt8(data.count + 1))
-            target.write(UInt8(4)) // uncompressed ECPoint encoding
-            target.write(data)
+            self.writeHeader(type: .clientKeyExchange, bodyLength: buffer.buffer.count + 2, target: &target)
+            target.write(UInt8(buffer.buffer.count + 1))
+            target.write(buffer.buffer)
         }
 
     }

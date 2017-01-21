@@ -63,6 +63,10 @@ extension OutputStreamType
     {
         self.write([UInt8((value >> 16) & 0xff), UInt8((value >>  8) & 0xff), UInt8((value >>  0) & 0xff)])
     }
+    
+    mutating func write<T: Streamable>(_ data: T) {
+        data.writeTo(&self)
+    }
 }
 
 extension InputStreamType
@@ -158,6 +162,18 @@ extension InputStreamType
             let data : [UInt8] = self.read(count: Int(count))
         else {
             return nil
+        }
+        
+        return data
+    }
+
+    func read8() -> [UInt16]?
+    {
+        guard
+            let count : UInt8 = self.read(),
+            let data : [UInt16] = self.read(count: Int(count))
+            else {
+                return nil
         }
         
         return data

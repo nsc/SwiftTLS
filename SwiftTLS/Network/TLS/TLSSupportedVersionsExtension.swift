@@ -27,7 +27,7 @@ struct TLSSupportedVersionsExtension : TLSHelloExtension
         self.supportedVersions = []
         
         guard
-            let rawSupportedVersions : [UInt16] = inputStream.read16()
+            let rawSupportedVersions : [UInt16] = inputStream.read8()
             else {
                 return nil
         }
@@ -53,8 +53,8 @@ struct TLSSupportedVersionsExtension : TLSHelloExtension
         let extensionsLength = extensionsData.count
         
         target.write(self.extensionType.rawValue)
-        target.write(UInt16(extensionsData.count + 2))
-        target.write(UInt16(extensionsLength))
+        target.write(UInt16(extensionsData.count + 1))
+        target.write(UInt8(extensionsLength))
         target.write(extensionsData)
     }
    

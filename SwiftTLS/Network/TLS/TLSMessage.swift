@@ -8,18 +8,28 @@
 import Foundation
 
 enum TLSHandshakeType : UInt8 {
+    // TLS 1.0
     case helloRequest = 0
     case clientHello = 1
     case serverHello = 2
     case certificate = 11
-    case serverKeyExchange = 12
     case certificateRequest = 13
-    case serverHelloDone = 14
     case certificateVerify = 15
-    case clientKeyExchange = 16
     case finished = 20
+
+    // TLS 1.0 - 1.2 only, not in TLS 1.3
+    case serverKeyExchange = 12
+    case serverHelloDone = 14
+    case clientKeyExchange = 16
     case certificateURL = 21
     case certificateStatus = 22
+    
+    // new in TLS 1.3
+    case newSessionTicket = 4           // TLS 1.3
+    case endOfEarlyData = 5             // TLS 1.3
+    case helloRetryRequest = 6          // TLS 1.3
+    case encryptedExtensions = 8        // TLS 1.3
+    case keyUpdate = 24                 // TLS 1.3
 }
 
 enum TLSMessageType

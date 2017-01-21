@@ -12,8 +12,13 @@ import CommonCrypto
 struct CipherSuiteDescriptor {
     var cipherSuite : CipherSuite
     
-    var keyExchangeAlgorithm : KeyExchangeAlgorithm
-    var certificateType : CertificateType
+    // TLS 1.3 no longer specifies the key exchange method in the cipher suite,
+    // so this is optional (and actually nil for TLS 1.3 cipher suites)
+    var keyExchangeAlgorithm : KeyExchangeAlgorithm?
+
+    // TLS 1.3 no longer specifies the certificate type in the cipher suite
+    var certificateType : CertificateType?
+    
     var bulkCipherAlgorithm : CipherAlgorithm
     var cipherType : CipherType
     var blockCipherMode : BlockCipherMode?
@@ -22,8 +27,8 @@ struct CipherSuiteDescriptor {
     var hashFunction: HashAlgorithm
     
     init(cipherSuite: CipherSuite,
-         keyExchangeAlgorithm: KeyExchangeAlgorithm,
-         certificateType: CertificateType = .rsa,
+         keyExchangeAlgorithm: KeyExchangeAlgorithm? = nil,
+         certificateType: CertificateType? = .rsa,
          bulkCipherAlgorithm: CipherAlgorithm,
          cipherType: CipherType,
          blockCipherMode: BlockCipherMode? = nil,
@@ -193,6 +198,29 @@ let TLSCipherSuiteDescritions : [CipherSuiteDescriptor] = [
         fixedIVLength: 4,
         recordIVLength: 8,
         hashFunction: .sha256
+    ),
+
+    // TLS 1.3 cipher suites
+    CipherSuiteDescriptor(
+        cipherSuite: .TLS_AES_128_GCM_SHA256,
+        certificateType: nil,
+        bulkCipherAlgorithm: .aes128,
+        cipherType: .aead,
+        blockCipherMode: .gcm,
+        fixedIVLength: 4,
+        recordIVLength: 8,
+        hashFunction: .sha256
+    ),
+
+    CipherSuiteDescriptor(
+        cipherSuite: .TLS_AES_256_GCM_SHA384,
+        certificateType: nil,
+        bulkCipherAlgorithm: .aes256,
+        cipherType: .aead,
+        blockCipherMode: .gcm,
+        fixedIVLength: 4,
+        recordIVLength: 8,
+        hashFunction: .sha384
     )
 
 ]

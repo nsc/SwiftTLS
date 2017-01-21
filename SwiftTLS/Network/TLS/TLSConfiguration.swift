@@ -20,6 +20,9 @@ public struct TLSConfiguration
     
     var supportedVersions: [TLSProtocolVersion]
     
+    // TLS 1.3
+    var supportedGroups: [NamedGroup]? = [.secp256r1]
+    
     init(supportedVersions: [TLSProtocolVersion], identity: Identity? = nil)
     {
         self.supportedVersions = supportedVersions
@@ -30,7 +33,7 @@ public struct TLSConfiguration
         self.identity = identity
     }
     
-    func supports(version: TLSProtocolVersion) -> Bool {
-        return self.supportedVersions.index(of: version) != nil
+    func supports(_ version: TLSProtocolVersion) -> Bool {
+        return self.supportedVersions.contains(version)
     }
 }

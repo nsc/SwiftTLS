@@ -153,6 +153,19 @@ public enum CipherSuite : UInt16 {
     case TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA256 = 0xc5
     
     case TLS_EMPTY_RENEGOTIATION_INFO_SCSV = 0xff
+    
+    // TLS 1.3 cipher suites.
+    // The key exchange method is no longer part of the cipher suite, so
+    // these can't be used for TLS 1.2 and TLS 1.2 cipher suites can't
+    // be used for TLS 1.3 either.
+    case TLS_AES_128_GCM_SHA256	= 0x1301
+    case TLS_AES_256_GCM_SHA384	= 0x1302
+    case TLS_CHACHA20_POLY1305_SHA256 = 0x1303
+    case TLS_AES_128_CCM_SHA256	= 0x1304
+    case TLS_AES_128_CCM_8_SHA256 = 0x1305
+    
+    
+    
     case TLS_FALLBACK_SCSV = 0x5600
     
     case TLS_ECDH_ECDSA_WITH_NULL_SHA = 0xc001
@@ -342,6 +355,13 @@ public enum CipherSuite : UInt16 {
             }
         }
         
+        // TLS 1.3 cipher suites
+        for i in 0x1300..<0x131f {
+            if let cipherSuite = CipherSuite(rawValue: UInt16(i)) {
+                allValues.append(cipherSuite)
+            }
+        }
+
         for i in 0xc000..<0xc100 {
             if let cipherSuite = CipherSuite(rawValue: UInt16(i)) {
                 allValues.append(cipherSuite)

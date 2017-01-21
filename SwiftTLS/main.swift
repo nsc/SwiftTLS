@@ -78,7 +78,7 @@ func server(port: Int = 443, certificatePath: String, dhParametersPath : String?
     }
 }
 
-func connectTo(host : String, port : Int = 443, supportedVersions: [TLSProtocolVersion] = [.v1_2, .v1_3], cipherSuite : CipherSuite? = nil)
+func connectTo(host : String, port : Int = 443, supportedVersions: [TLSProtocolVersion] = [.v1_3, .v1_2], cipherSuite : CipherSuite? = nil)
 {
     var configuration = TLSConfiguration(supportedVersions: supportedVersions)
     
@@ -421,7 +421,14 @@ case "server":
             
             let supportedVersions: [TLSProtocolVersion]
             if let version = protocolVersion {
-                connectTo(host: hostName, port: port, supportedVersions: [version], cipherSuite: cipherSuite)
+                var versions: [TLSProtocolVersion]
+                if version == .v1_3 {
+                    versions = [.v1_3, .v1_2]
+                }
+                else {
+                    versions = [version]
+                }
+                connectTo(host: hostName, port: port, supportedVersions: versions, cipherSuite: cipherSuite)
             }
             else {
                 connectTo(host: hostName, port: port, cipherSuite: cipherSuite)

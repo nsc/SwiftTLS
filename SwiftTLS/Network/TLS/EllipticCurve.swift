@@ -31,6 +31,21 @@ enum NamedGroup : UInt16 {
             }
         }
     }
+    
+    init?(inputStream: InputStreamType)
+    {
+        guard let rawNamedCurve : UInt16 = inputStream.read() else {
+            return nil
+        }
+        
+        self.init(rawValue: rawNamedCurve)
+    }
+}
+
+extension NamedGroup : Streamable {
+    func writeTo<Target : OutputStreamType>(_ target: inout Target) {
+        target.write(self.rawValue)
+    }
 }
 
 enum ECPointFormat : UInt8 {
@@ -66,6 +81,15 @@ struct EllipticCurvePoint
     func isOnCurve(_ curve : EllipticCurve) -> Bool
     {
         return curve.isOnCurve(self)
+    }
+}
+
+extension EllipticCurvePoint : Streamable {
+    func writeTo<Target : OutputStreamType>(_ target: inout Target) {
+        let data = self.x.asBigEndianData() + self.y.asBigEndianData()
+        
+        target.write(UInt8(4)) // uncompressed ECPoint encoding
+        target.write(data)
     }
 }
 

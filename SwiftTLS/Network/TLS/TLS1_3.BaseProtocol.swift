@@ -1,32 +1,22 @@
 //
-//  TLS1_2.BaseProtocol.swift
+//  TLS1_3.BaseProtocol.swift
 //  SwiftTLS
 //
-//  Created by Nico Schmidt on 13.01.17.
+//  Created by Nico Schmidt on 21.01.17.
 //  Copyright © 2017 Nico Schmidt. All rights reserved.
 //
 
 import Foundation
 
-struct TLS1_2 {
-}
+struct TLS1_3 {}
 
-extension TLS1_2 {
-    class BaseProtocol
-    {
+extension TLS1_3 {
+    class BaseProtocol {
         internal weak var connection: TLSConnection!
         
         init(connection: TLSConnection)
         {
             self.connection = connection
-        }
-        
-        func sendChangeCipherSpec() throws
-        {
-            let message = TLSChangeCipherSpec()
-            try self.connection.sendMessage(message)
-            self.connection.recordLayer.activateWriteEncryptionParameters()
-            try self.connection.stateMachine?.didSendChangeCipherSpec()
         }
         
         func sendCertificate() throws
@@ -45,7 +35,5 @@ extension TLS1_2 {
             }
             try self.connection.sendHandshakeMessage(TLSFinished(verifyData: verifyData))
         }
-        
-
     }
 }
