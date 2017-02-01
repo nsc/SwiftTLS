@@ -43,6 +43,10 @@ enum HashAlgorithm : UInt8 {
             fatalError("HMAC with hash function \(self) is not supported.")
         }
     }
+    
+    var hashLength: Int {
+        return macAlgorithm.size
+    }
 }
 
 enum SignatureAlgorithm : UInt8 {

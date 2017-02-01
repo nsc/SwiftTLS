@@ -8,6 +8,8 @@
 import Foundation
 import CommonCrypto
 
+let tls1_3_prefix = [UInt8]("TLS 1.3, ".utf8)
+
 public class TLSConnection
 {
     public var configuration: TLSConfiguration
@@ -341,6 +343,46 @@ public class TLSConnection
         else {
             return P_hash(self.hmac, secret: secret, seed: label + seed, outputLength: outputLength)
         }
+    }
+
+    // TLS 1.3 uses HKDF to derive its key material
+    internal func HKDF_Extract(salt: [UInt8], inputKeyingMaterial: [UInt8]) -> [UInt8] {
+        let HMAC = self.hmac
+        return HMAC(salt, inputKeyingMaterial)
+    }
+
+    internal func HKDF_Expand(prk: [UInt8], info: [UInt8], outputLength: Int) -> [UInt8] {
+        let HMAC = self.hmac
+        
+        let hashLength = self.hashAlgorithm.hashLength
+        
+        let n = Int(ceil(Double(outputLength)/Double(hashLength)))
+        
+        var output : [UInt8] = []
+        var roundOutput : [UInt8] = []
+        for i in 0..<n {
+            roundOutput = HMAC(prk, roundOutput + info + [UInt8(i + 1)])
+            output += roundOutput
+        }
+        
+        return [UInt8](output[0..<hashLength])
+    }
+    
+    internal func HKDF_Expand_Label(secret: [UInt8], label: [UInt8], hashValue: [UInt8], outputLength: Int) -> [UInt8] {
+        
+        let label = tls1_3_prefix + label
+        var hkdfLabel = [UInt8((outputLength >> 8) & 0xff), UInt8(outputLength & 0xff)]
+        hkdfLabel += [UInt8(label.count)] + label
+        hkdfLabel += [UInt8(hashValue.count)] + hashValue
+        
+        return HKDF_Expand(prk: secret, info: hkdfLabel, outputLength: outputLength)
+    }
+    
+    internal func Derive_Secret(secret: [UInt8], label: [UInt8], messages: [UInt8]) -> [UInt8] {
+        let hashLength = self.hashAlgorithm.hashLength
+        let hashValue = self.hashFunction(messages)
+        
+        return HKDF_Expand_Label(secret: secret, label: label, hashValue: hashValue, outputLength: hashLength)
     }
     
     func receiveNextTLSMessage() throws
