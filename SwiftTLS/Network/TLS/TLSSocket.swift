@@ -234,20 +234,32 @@ class Random : Streamable
     }
 }
 
+extension Socket : TLSDataProvider
+{
+    func readData(count: Int) throws -> [UInt8] {
+        return try self.read(count: count)
+    }
+    
+    func writeData(_ data: [UInt8]) throws {
+        try self.write(data)
+    }
+}
+
 public class TLSSocket : SocketProtocol, TLSDataProvider
 {
     var connection : TLSConnection! {
         didSet {
-            connection.recordLayer = TLSRecordLayer(context: connection, dataProvider: self)
+            connection.recordLayer = TLS1_3.RecordLayer(connection: connection, dataProvider: self.socket)
         }
     }
     
-    var socket : TCPSocket?
+    var socket : TCPSocket!
     
     public init(connection: TLSConnection)
     {
+        self.socket = TCPSocket()
         self.connection = connection
-        connection.recordLayer = TLSRecordLayer(context: connection, dataProvider: self)
+        connection.recordLayer = TLS1_3.RecordLayer(connection: connection, dataProvider: self.socket)
     }
     
     public func close()
@@ -345,16 +357,14 @@ public class TLSClientSocket : TLSSocket, ClientSocketProtocol
     // so we can check the server certificate against that name
     public func connect(_ address: IPAddress) throws
     {
-        self.socket = TCPSocket()
-        
         try self.socket?.connect(address)
         try self.client.startConnection()
     }
     
-    public func renegotiate() throws
-    {
-        try self.client.renegotiate()
-    }
+//    public func renegotiate() throws
+//    {
+//        try self.client.renegotiate()
+//    }
 }
 
 public class TLSServerSocket : TLSSocket, ServerSocketProtocol
@@ -379,8 +389,6 @@ public class TLSServerSocket : TLSSocket, ServerSocketProtocol
 
     public func acceptConnection(_ address: IPAddress) throws -> SocketProtocol
     {
-        self.socket = TCPSocket()
-        
         let clientSocket = try self.socket?.acceptConnection(address) as! TCPSocket
         
         let clientTLSSocket = TLSServerSocket(supportedVersions: self.connection.configuration.supportedVersions)

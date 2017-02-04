@@ -45,29 +45,35 @@ class PreMasterSecret : Streamable
 class TLSClientKeyExchange : TLSHandshakeMessage
 {
     var encryptedPreMasterSecret : [UInt8]?
-    var diffieHellmanPublicKey : BigInt?
-    var ecdhPublicKey : EllipticCurvePoint?
+    var keyExchange : KeyExchange
     
     init(preMasterSecret : [UInt8], rsa : RSA)
     {
         self.encryptedPreMasterSecret = rsa.encrypt(preMasterSecret)
+        self.keyExchange = .rsa
         
         super.init(type: .handshake(.clientKeyExchange))
     }
     
-    init(diffieHellmanPublicKey : BigInt)
+    init(keyExchange: KeyExchange)
     {
-        self.diffieHellmanPublicKey = diffieHellmanPublicKey
-        
+        self.keyExchange = keyExchange
         super.init(type: .handshake(.clientKeyExchange))
     }
     
-    init(ecdhPublicKey : EllipticCurvePoint)
-    {
-        self.ecdhPublicKey = ecdhPublicKey
-        
-        super.init(type: .handshake(.clientKeyExchange))
-    }
+//    init(diffieHellmanPublicKey : BigInt)
+//    {
+//        self.diffieHellmanPublicKey = diffieHellmanPublicKey
+//        
+//        super.init(type: .handshake(.clientKeyExchange))
+//    }
+//    
+//    init(ecdhPublicKey : EllipticCurvePoint)
+//    {
+//        self.ecdhPublicKey = ecdhPublicKey
+//        
+//        super.init(type: .handshake(.clientKeyExchange))
+//    }
 
     required init?(inputStream : InputStreamType, context: TLSConnection)
     {
@@ -79,21 +85,27 @@ class TLSClientKeyExchange : TLSHandshakeMessage
         if type == TLSHandshakeType.clientKeyExchange {
 
             switch context.keyExchange {
-            case .ecdhe:
-                if let rawPublicKeyPoint : [UInt8] = inputStream.read8() {
-                    guard let ecdhPublicKey = EllipticCurvePoint(data: rawPublicKeyPoint) else { return nil }
-                    self.ecdhPublicKey = ecdhPublicKey
-                }
+            case .ecdhe(let keyExchange as ECDHKeyExchange):
+                guard let rawPublicKeyPoint : [UInt8] = inputStream.read8() else { return nil }
+                guard let ecdhPublicKey = EllipticCurvePoint(data: rawPublicKeyPoint) else { return nil }
+                
+                keyExchange.Q = ecdhPublicKey
+                self.keyExchange = .ecdhe(keyExchange)
             
-            case .dhe:
-                if let data : [UInt8] = inputStream.read16() {
-                    self.diffieHellmanPublicKey = BigInt(bigEndianParts: data)
-                }
-                    
+            case .dhe(let keyExchange as DHKeyExchange):
+                guard let data : [UInt8] = inputStream.read16() else { return nil }
+                
+                keyExchange.Ys = BigInt(bigEndianParts: data)
+                self.keyExchange = .dhe(keyExchange)
+                
             case .rsa:
-                if let data : [UInt8] = inputStream.read16() {
-                        self.encryptedPreMasterSecret = data
-                }
+                guard let data : [UInt8] = inputStream.read16() else { return nil }
+                
+                self.encryptedPreMasterSecret = data
+                self.keyExchange = .rsa
+                
+            default:
+                return nil
             }
             
             super.init(type: .handshake(.clientKeyExchange))
@@ -106,25 +118,28 @@ class TLSClientKeyExchange : TLSHandshakeMessage
 
     override func writeTo<Target : OutputStreamType>(_ target: inout Target)
     {
-        if let encryptedPreMasterSecret = self.encryptedPreMasterSecret {
-            self.writeHeader(type: .clientKeyExchange, bodyLength: encryptedPreMasterSecret.count + 2, target: &target)
-            target.write(UInt16(encryptedPreMasterSecret.count))
-            target.write(encryptedPreMasterSecret)
-        }
-        else if let diffieHellmanPublicKey = self.diffieHellmanPublicKey {
-            let diffieHellmanPublicKeyData = diffieHellmanPublicKey.asBigEndianData()
-
-            self.writeHeader(type: .clientKeyExchange, bodyLength: diffieHellmanPublicKeyData.count + 2, target: &target)
-            target.write(UInt16(diffieHellmanPublicKeyData.count))
-            target.write(diffieHellmanPublicKeyData)
-        }
-        else if let ecdhPublicKey = self.ecdhPublicKey {
-            var buffer = DataBuffer()
-            ecdhPublicKey.writeTo(&buffer)
+        switch self.keyExchange
+        {
+        case .dhe(let keyExchange):
+            if let publicKey = keyExchange.publicKey {
+                self.writeHeader(type: .clientKeyExchange, bodyLength: publicKey.count + 2, target: &target)
+                target.write(UInt16(publicKey.count))
+                target.write(publicKey)
+            }
             
-            self.writeHeader(type: .clientKeyExchange, bodyLength: buffer.buffer.count + 2, target: &target)
-            target.write(UInt8(buffer.buffer.count + 1))
-            target.write(buffer.buffer)
+        case .ecdhe(let keyExchange):
+            if let publicKey = keyExchange.publicKey {
+                self.writeHeader(type: .clientKeyExchange, bodyLength: publicKey.count + 1, target: &target)
+                target.write(UInt8(publicKey.count))
+                target.write(publicKey)
+            }
+        
+        case .rsa:
+            if let encryptedPreMasterSecret = self.encryptedPreMasterSecret {
+                self.writeHeader(type: .clientKeyExchange, bodyLength: encryptedPreMasterSecret.count + 2, target: &target)
+                target.write(UInt16(encryptedPreMasterSecret.count))
+                target.write(encryptedPreMasterSecret)
+            }
         }
 
     }

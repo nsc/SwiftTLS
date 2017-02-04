@@ -178,6 +178,20 @@ extension ECDiffieHellmanParameters : Streamable
     }
 }
 
+extension KeyExchangeParameters : Streamable
+{
+    func writeTo<Target : OutputStreamType>(_ target: inout Target) {
+        switch self
+        {
+        case .dhe(let dhe):
+            dhe.writeTo(&target)
+        
+        case .ecdhe(let ecdhe):
+            ecdhe.writeTo(&target)
+        }
+    }
+}
+
 class TLSServerKeyExchange : TLSHandshakeMessage
 {
     var parameters : KeyExchangeParameters
@@ -186,36 +200,23 @@ class TLSServerKeyExchange : TLSHandshakeMessage
     
     var parametersData : [UInt8] {
         get {
-            switch parameters {
-            case .dhe(let dhParams):
-                return DataBuffer(dhParams).buffer
-            
-            case .ecdhe(let ecdhParameters):
-                return DataBuffer(ecdhParameters).buffer
-            }
+            return DataBuffer(parameters).buffer
         }
     }
-    
-    init(dhParameters: DiffieHellmanParameters, context: TLSConnection)
-    {
-        self.parameters = .dhe(dhParameters)
-        var data = context.securityParameters.clientRandom!
-        data += context.securityParameters.serverRandom!
-        data += DataBuffer(dhParameters).buffer
 
-        self.signedParameters = TLSSignedData(data: data, context:context)
-        
-        super.init(type: .handshake(.serverKeyExchange))
-    }
-    
-    init(ecdhParameters: ECDiffieHellmanParameters, context: TLSConnection)
+    init(keyExchangeParameters: KeyExchangeParameters, context: TLSServer)
     {
-        self.parameters = .ecdhe(ecdhParameters)
+        guard let server = context.protocolHandler as? TLS1_2.ServerProtocol else {
+            fatalError("Can't construct TLSServerKeyExchange with a \(context.protocolHandler)")
+        }
         
-        var data = context.securityParameters.clientRandom!
-        data += context.securityParameters.serverRandom!
-        data += DataBuffer(ecdhParameters).buffer
-
+        self.parameters = keyExchangeParameters
+        
+        let securityParameters = server.securityParameters
+        var data = securityParameters.clientRandom!
+        data += securityParameters.serverRandom!
+        data += DataBuffer(self.parameters).buffer
+        
         self.signedParameters = TLSSignedData(data: data, context:context)
         
         super.init(type: .handshake(.serverKeyExchange))

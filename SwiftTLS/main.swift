@@ -104,52 +104,52 @@ func connectTo(host : String, port : Int = 443, supportedVersions: [TLSProtocolV
     }
     
 
-    var socket = TLSClientSocket(configuration: configuration)
+    let socket = TLSClientSocket(configuration: configuration)
     
-    let testSessionReuse = false
-    let testSecureRenegotiation = false
+//    let testSessionReuse = false
+//    let testSecureRenegotiation = false
     do {
-        if testSessionReuse {
-            // Connect twice to test session reuse
-            for _ in 0..<2 {
-                socket = TLSClientSocket(configuration: configuration)
-                
-                print("Connecting to \(host):\(port)")
-                try socket.connect(hostname: host, port: port)
-                
-                print("Connection established using cipher suite \(socket.connection.cipherSuite!)")
-                
-                try socket.write([UInt8]("GET / HTTP/1.1\r\nHost: \(host)\r\n\r\n".utf8))
-                let data = try socket.read(count: 4096)
-                print("\(data.count) bytes read.")
-                print("\(String.fromUTF8Bytes(data)!)")
-                socket.close()
-            }
-        }
-        else if testSecureRenegotiation {
-            // Connect twice to test session reuse
-            print("Connecting to \(host):\(port)")
-            try socket.connect(hostname: host, port: port)
-            
-            print("Connection established using cipher suite \(socket.connection.cipherSuite!)")
-            for _ in 0..<2 {
-//                for _ in 0..<5 {
-                    try socket.write([UInt8]("GET / HTTP/1.1\r\nHost: \(host)\r\n\r\n".utf8))
-                    
-                    for _ in 0..<1 {
-                        let data = try socket.read(count: 40960)
-                        print("\(data.count) bytes read.")
-                        print("\(String.fromUTF8Bytes(data)!)")
-                    }
-//                }
-
-                try socket.renegotiate()
-            }
-            
-            socket.close()
-
-        }
-        else {
+//        if testSessionReuse {
+//            // Connect twice to test session reuse
+//            for _ in 0..<2 {
+//                socket = TLSClientSocket(configuration: configuration)
+//                
+//                print("Connecting to \(host):\(port)")
+//                try socket.connect(hostname: host, port: port)
+//                
+//                print("Connection established using cipher suite \(socket.connection.cipherSuite!)")
+//                
+//                try socket.write([UInt8]("GET / HTTP/1.1\r\nHost: \(host)\r\n\r\n".utf8))
+//                let data = try socket.read(count: 4096)
+//                print("\(data.count) bytes read.")
+//                print("\(String.fromUTF8Bytes(data)!)")
+//                socket.close()
+//            }
+//        }
+//        else if testSecureRenegotiation {
+//            // Connect twice to test session reuse
+//            print("Connecting to \(host):\(port)")
+//            try socket.connect(hostname: host, port: port)
+//            
+//            print("Connection established using cipher suite \(socket.connection.cipherSuite!)")
+//            for _ in 0..<2 {
+////                for _ in 0..<5 {
+//                    try socket.write([UInt8]("GET / HTTP/1.1\r\nHost: \(host)\r\n\r\n".utf8))
+//                    
+//                    for _ in 0..<1 {
+//                        let data = try socket.read(count: 40960)
+//                        print("\(data.count) bytes read.")
+//                        print("\(String.fromUTF8Bytes(data)!)")
+//                    }
+////                }
+//
+//                try socket.renegotiate()
+//            }
+//            
+//            socket.close()
+//
+//        }
+//        else {
             print("Connecting to \(host):\(port)")
             try socket.connect(hostname: host, port: port)
             
@@ -160,8 +160,8 @@ func connectTo(host : String, port : Int = 443, supportedVersions: [TLSProtocolV
             print("\(data.count) bytes read.")
             print("\(String.fromUTF8Bytes(data)!)")
             socket.close()
-        }
-} catch (let error) {
+//        }
+    } catch (let error) {
         print("Error: \(error)")
     }
     
@@ -181,6 +181,8 @@ func probeCipherSuitesForHost(host : String, port : Int, protocolVersion: TLSPro
 {
     class StateMachine : TLSClientStateMachine
     {
+        internal var state: TLSState = .idle
+
         weak var socket : TLSSocket!
         var cipherSuite : CipherSuite!
         init(socket : TLSSocket)

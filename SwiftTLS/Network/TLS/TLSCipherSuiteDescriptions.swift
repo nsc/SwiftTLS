@@ -24,6 +24,7 @@ struct CipherSuiteDescriptor {
     var blockCipherMode : BlockCipherMode?
     var fixedIVLength : Int
     var recordIVLength : Int
+    var authTagSize : Int = 0 // only for AEAD
     var hashFunction: HashAlgorithm
     
     init(cipherSuite: CipherSuite,
@@ -34,6 +35,7 @@ struct CipherSuiteDescriptor {
          blockCipherMode: BlockCipherMode? = nil,
          fixedIVLength: Int = 0,
          recordIVLength: Int = 0,
+         authTagSize: Int = 0,
          hashFunction: HashAlgorithm
     )
     {
@@ -45,6 +47,7 @@ struct CipherSuiteDescriptor {
         self.blockCipherMode = blockCipherMode
         self.fixedIVLength = fixedIVLength
         self.recordIVLength = recordIVLength
+        self.authTagSize = authTagSize
         
         if fixedIVLength == 0 {
             self.fixedIVLength = bulkCipherAlgorithm.blockSize
@@ -174,6 +177,7 @@ let TLSCipherSuiteDescritions : [CipherSuiteDescriptor] = [
         blockCipherMode: .gcm,
         fixedIVLength: 4,
         recordIVLength: 8,
+        authTagSize: 16,
         hashFunction: .sha256
     ),
     
@@ -185,6 +189,7 @@ let TLSCipherSuiteDescritions : [CipherSuiteDescriptor] = [
         blockCipherMode: .gcm,
         fixedIVLength: 4,
         recordIVLength: 8,
+        authTagSize: 16,
         hashFunction: .sha384
     ),
 
@@ -197,6 +202,7 @@ let TLSCipherSuiteDescritions : [CipherSuiteDescriptor] = [
         blockCipherMode: .gcm,
         fixedIVLength: 4,
         recordIVLength: 8,
+        authTagSize: 16,
         hashFunction: .sha256
     ),
 
@@ -207,8 +213,8 @@ let TLSCipherSuiteDescritions : [CipherSuiteDescriptor] = [
         bulkCipherAlgorithm: .aes128,
         cipherType: .aead,
         blockCipherMode: .gcm,
-        fixedIVLength: 4,
-        recordIVLength: 8,
+        fixedIVLength: 12,
+        authTagSize: 16,
         hashFunction: .sha256
     ),
 
@@ -218,8 +224,8 @@ let TLSCipherSuiteDescritions : [CipherSuiteDescriptor] = [
         bulkCipherAlgorithm: .aes256,
         cipherType: .aead,
         blockCipherMode: .gcm,
-        fixedIVLength: 4,
-        recordIVLength: 8,
+        fixedIVLength: 12,
+        authTagSize: 16,
         hashFunction: .sha384
     )
 

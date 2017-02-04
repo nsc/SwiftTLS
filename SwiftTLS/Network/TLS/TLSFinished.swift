@@ -21,9 +21,10 @@ class TLSFinished : TLSHandshakeMessage
     
     required init?(inputStream : InputStreamType, context: TLSConnection)
     {
+        let verifyDataLength = context.negotiatedProtocolVersion! >= .v1_3 ? context.hashAlgorithm.hashLength : 12
         guard
             let (type, _) = TLSHandshakeMessage.readHeader(inputStream), type == TLSHandshakeType.finished,
-            let verifyData : [UInt8] = inputStream.read(count: 12)
+            let verifyData : [UInt8] = inputStream.read(count: verifyDataLength)
         else {
             return nil
         }
@@ -34,10 +35,7 @@ class TLSFinished : TLSHandshakeMessage
     
     override func writeTo<Target : OutputStreamType>(_ target: inout Target)
     {
-        let data = DataBuffer()
-        data.write(self.verifyData)
-        
-        self.writeHeader(type: .finished, bodyLength: data.buffer.count, target: &target)
-        target.write(data.buffer)
+        self.writeHeader(type: .finished, bodyLength: self.verifyData.count, target: &target)
+        target.write(self.verifyData)
     }
 }

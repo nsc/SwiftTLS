@@ -6,9 +6,9 @@
 //  Copyright © 2015 Nico Schmidt. All rights reserved.
 //
 
-struct TLSEllipticCurvePointFormatsExtension : TLSHelloExtension
+struct TLSEllipticCurvePointFormatsExtension : TLSExtension
 {
-    var extensionType : TLSHelloExtensionType {
+    var extensionType : TLSExtensionType {
         get {
             return .ecPointFormats
         }

@@ -8,9 +8,9 @@
 
 import Foundation
 
-struct TLSSupportedVersionsExtension : TLSHelloExtension
+struct TLSSupportedVersionsExtension : TLSExtension
 {
-    var extensionType : TLSHelloExtensionType {
+    var extensionType : TLSExtensionType {
         get {
             return .supportedVersions
         }

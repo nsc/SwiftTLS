@@ -1,21 +1,21 @@
 //
-//  ClientStateMachine1_2.swift
+//  TLS1_3.ClientStateMachine.swift
 //  SwiftTLS
 //
-//  Created by Nico Schmidt on 13.01.17.
+//  Created by Nico Schmidt on 29.01.17.
 //  Copyright © 2017 Nico Schmidt. All rights reserved.
 //
 
 import Foundation
 
-extension TLS1_2 {
+extension TLS1_3 {
     class ClientStateMachine : TLSClientStateMachine
     {
         weak var client : TLSClient?
-        var protocolHandler: TLS1_2.ClientProtocol? {
-            return client?.protocolHandler as? TLS1_2.ClientProtocol
+        var protocolHandler: TLS1_3.ClientProtocol? {
+            return client?.protocolHandler as? TLS1_3.ClientProtocol
         }
-
+        
         var state : TLSState = .idle {
             willSet {
                 if !checkClientStateTransition(newValue) {
@@ -59,15 +59,11 @@ extension TLS1_2 {
             case .certificate:
                 try self.transitionTo(state: .certificateSent)
                 
-            case .clientKeyExchange:
-                try self.transitionTo(state: .clientKeyExchangeSent)
-                try self.protocolHandler!.sendChangeCipherSpec()
-                
             case .finished:
                 try self.transitionTo(state: .finishedSent)
                 
             default:
-                fatalError("Unsupported handshake \(message.handshakeType)")
+                print("Unsupported handshake \(message.handshakeType)")
             }
         }
         
@@ -85,32 +81,20 @@ extension TLS1_2 {
             case .certificate:
                 try self.transitionTo(state: .certificateReceived)
                 
-            case .serverKeyExchange:
-                try self.transitionTo(state: .serverKeyExchangeReceived)
-                
-            case .serverHelloDone:
-                try self.transitionTo(state: .serverHelloDoneReceived)
-                try self.protocolHandler!.sendClientKeyExchange()
+            case .certificateVerify:
+                try self.transitionTo(state: .certificateVerifyReceived)
                 
             case .finished:
                 try self.transitionTo(state: .finishedReceived)
+                // FIXME: Handle Certifcate and CertificateVerify if requested
+                try self.protocolHandler!.sendFinished()
+
+            case .encryptedExtensions:
+                try self.transitionTo(state: .encryptedExtensionsReceived)
                 
             default:
-                fatalError("Unsupported handshake \(handshakeType.rawValue)")
+                print("Unsupported handshake \(handshakeType.rawValue)")
             }
-        }
-        
-        func didSendChangeCipherSpec() throws
-        {
-            print("did send change cipher spec")
-            try self.transitionTo(state: .changeCipherSpecSent)
-            try self.protocolHandler!.sendFinished()
-        }
-        
-        func didReceiveChangeCipherSpec() throws
-        {
-            print("did receive change cipher spec")
-            try self.transitionTo(state: .changeCipherSpecReceived)
         }
         
         func clientDidReceiveAlert(_ alert: TLSAlertMessage) {
@@ -129,60 +113,34 @@ extension TLS1_2 {
             
             switch (self.state)
             {
-            case .idle where state == .clientHelloSent:
-                return true
+            case .idle:
+                return state == .clientHelloSent
                 
-            case .clientHelloSent where state == .serverHelloReceived:
-                return true
+            case .clientHelloSent:
+                return state == .serverHelloReceived
                 
             case .serverHelloReceived:
-                // If we are reusing a former session, we need to transition to
-                // changeCipherSpecReceived instead of certificateReceived
-                if self.client!.isReusingSession {
-                    if state == .changeCipherSpecReceived {
-                        return true
-                    }
-                }
+                return state == .encryptedExtensionsReceived
                 
+            case .encryptedExtensionsReceived:
+                return (state == .certificateRequestReceived || state == .certificateReceived || state == .finishedReceived)
+                
+            case .certificateRequestReceived:
                 return state == .certificateReceived
                 
             case .certificateReceived:
-                if self.client!.cipherSuite!.needsServerKeyExchange() {
-                    return state == .serverKeyExchangeReceived
-                }
+                return state == .certificateVerifyReceived
                 
-                return state == .serverHelloDoneReceived
-                
-            case .serverKeyExchangeReceived where state == .serverHelloDoneReceived:
-                return true
-                
-            case .serverHelloDoneReceived where state == .clientKeyExchangeSent:
-                return true
-                
-            case .clientKeyExchangeSent where state == .changeCipherSpecSent:
-                return true
-                
-            case .changeCipherSpecSent where state == .finishedSent:
-                return true
+            case .certificateVerifyReceived:
+                return state == .finishedReceived
                 
             case .finishedSent:
-                if self.client!.isReusingSession {
-                    return state == .connected
-                }
-                
-                return state == .changeCipherSpecReceived
-                
-            case .changeCipherSpecReceived where state == .finishedReceived:
-                return true
-                
-            case .finishedReceived:
-                if self.client!.isReusingSession {
-                    return state == .changeCipherSpecSent
-                }
-                
                 return state == .connected
                 
-            case .connected where (state == .closeReceived || state == .closeSent || state == .clientHelloSent):
+            case .finishedReceived:
+                return state == .finishedSent
+                
+            case .connected where (state == .closeReceived || state == .closeSent):
                 return true
                 
             default:

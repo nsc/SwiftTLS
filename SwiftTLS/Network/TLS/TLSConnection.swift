@@ -12,6 +12,8 @@ let tls1_3_prefix = [UInt8]("TLS 1.3, ".utf8)
 
 public class TLSConnection
 {
+    internal var protocolHandler: TLSProtocol!
+
     public var configuration: TLSConfiguration
     public var context: TLSContext {
         return TLSClientContext()
@@ -30,15 +32,31 @@ public class TLSConnection
     var cipherSuite: CipherSuite?
     var stateMachine: TLSConnectionStateMachine?
     
-    var serverKey: RSA?
-    
     var serverCertificates: [X509.Certificate]?
     
-    var preMasterSecret: [UInt8]? = nil
-    
-    var securityParameters: TLSSecurityParameters
-    
     var handshakeMessages: [TLSHandshakeMessage]
+    
+    var handshakeMessageData: [UInt8] {
+        var handshakeData: [UInt8] = []
+        for message in self.handshakeMessages {
+            let handshakeMessageData : [UInt8]
+            if let messageData = message.rawHandshakeMessageData {
+                handshakeMessageData = messageData
+            }
+            else {
+                var messageBuffer = DataBuffer()
+                message.writeTo(&messageBuffer)
+                
+                print("handshakeData add message \(message)")
+                
+                handshakeMessageData = messageBuffer.buffer
+            }
+            
+            handshakeData.append(contentsOf: handshakeMessageData)
+        }
+        
+        return handshakeData
+    }
     
     var isClient: Bool {
         return self is TLSClient
@@ -60,7 +78,6 @@ public class TLSConnection
     var isReusingSession: Bool
     
     var isInitialHandshake: Bool = true
-    var isRenegotiatingSecurityParameters: Bool = false
     
     var hashAlgorithm: HashAlgorithm = .sha256
     
@@ -91,6 +108,9 @@ public class TLSConnection
         }
     }
     
+    // TLS 1.3
+    var preSharedKey: [UInt8]?
+    
     private var connectionEstablishedCompletionBlock : ((_ error : TLSError?) -> ())?
 
     init(configuration: TLSConfiguration, dataProvider : TLSDataProvider? = nil)
@@ -99,12 +119,21 @@ public class TLSConnection
         
         self.negotiatedProtocolVersion = configuration.supportedVersions.first!
         self.handshakeMessages = []
-        self.securityParameters = TLSSecurityParameters()
         self.keyExchange = .rsa
         self.isReusingSession = false
         
         if let dataProvider = dataProvider {
-            self.recordLayer = TLSRecordLayer(context: self, dataProvider: dataProvider)
+            switch self.negotiatedProtocolVersion! {
+            case TLSProtocolVersion.v1_0, TLSProtocolVersion.v1_1, TLSProtocolVersion.v1_2:
+                self.recordLayer = TLS1_2.RecordLayer(connection: self, dataProvider: dataProvider)
+            
+            case TLSProtocolVersion.v1_3:
+                self.recordLayer = TLS1_3.RecordLayer(connection: self, dataProvider: dataProvider)
+            
+            default:
+                fatalError("No such version \(self.negotiatedProtocolVersion!)")
+                break
+            }
         }
     }
     
@@ -116,10 +145,20 @@ public class TLSConnection
         
         self.negotiatedProtocolVersion = configuration.supportedVersions.first!
         self.handshakeMessages = []
-        self.securityParameters = TLSSecurityParameters()
         self.keyExchange = .rsa
         
-        self.recordLayer = TLSRecordLayer(context: self, dataProvider: self.recordLayer.dataProvider!)
+        switch self.negotiatedProtocolVersion! {
+        case TLSProtocolVersion.v1_0, TLSProtocolVersion.v1_1, TLSProtocolVersion.v1_2:
+            self.recordLayer = TLS1_2.RecordLayer(connection: self, dataProvider: self.recordLayer.dataProvider!)
+        
+        case TLSProtocolVersion.v1_3:
+            self.recordLayer = TLS1_3.RecordLayer(connection: self, dataProvider: self.recordLayer.dataProvider!)
+        
+        default:
+            fatalError("No such version \(self.negotiatedProtocolVersion!)")
+            break
+        }
+
         self.stateMachine?.reset()
     }
     
@@ -188,7 +227,7 @@ public class TLSConnection
         switch (message.type)
         {
         case .changeCipherSpec:
-            self.recordLayer.activateReadEncryptionParameters()
+            try self.protocolHandler.handleMessage(message)
             try self.stateMachine?.didReceiveChangeCipherSpec()
             try self.receiveNextTLSMessage()
             
@@ -238,69 +277,6 @@ public class TLSConnection
         }
     }
         
-    func saveVerifyDataForSecureRenegotiation(data: [UInt8], forClient isClient: Bool)
-    {
-        if self.securityParameters.isUsingSecureRenegotiation {
-            if isClient {
-                self.securityParameters.clientVerifyData = data
-            }
-            else {
-                self.securityParameters.serverVerifyData = data
-            }
-        }
-    }
-
-    func verifyFinishedMessage(_ finishedMessage : TLSFinished, isClient: Bool, saveForSecureRenegotiation: Bool) -> Bool
-    {
-        guard finishedMessage.verifyData == self.verifyDataForFinishedMessage(isClient: isClient) else {
-            return false
-        }
-
-        if saveForSecureRenegotiation {
-            saveVerifyDataForSecureRenegotiation(data: finishedMessage.verifyData, forClient: isClient)
-        }
-        
-        return true
-    }
-
-    func verifyDataForFinishedMessage(isClient: Bool) -> [UInt8]
-    {
-        let finishedLabel = isClient ? TLSClientFinishedLabel : TLSServerFinishedLabel
-        
-        var handshakeData = [UInt8]()
-        for message in self.handshakeMessages {
-            let handshakeMessageData : [UInt8]
-            if let messageData = message.rawHandshakeMessageData {
-                handshakeMessageData = messageData
-            }
-            else {
-                var messageBuffer = DataBuffer()
-                message.writeTo(&messageBuffer)
-                
-                handshakeMessageData = messageBuffer.buffer
-            }
-
-            handshakeData.append(contentsOf: handshakeMessageData)
-
-        }
-        
-        if self.negotiatedProtocolVersion! < TLSProtocolVersion.v1_2 {
-            let clientHandshakeMD5  = Hash_MD5(handshakeData)
-            let clientHandshakeSHA1 = Hash_SHA1(handshakeData)
-            
-            let seed = clientHandshakeMD5 + clientHandshakeSHA1
-            
-            return PRF(secret: self.securityParameters.masterSecret!, label: finishedLabel, seed: seed, outputLength: 12)
-        }
-        else {
-            let clientHandshake = self.hashFunction(handshakeData)
-
-            assert(self.securityParameters.masterSecret != nil)
-            
-            return PRF(secret: self.securityParameters.masterSecret!, label: finishedLabel, seed: clientHandshake, outputLength: 12)
-        }
-    }
-    
     internal func sign(_ data : [UInt8]) -> [UInt8]
     {
         guard let signer = self.signer else {
@@ -310,84 +286,9 @@ public class TLSConnection
         return signer.sign(data: data, hashAlgorithm: self.configuration.hashAlgorithm)
     }
     
-    internal func PRF(secret : [UInt8], label : [UInt8], seed : [UInt8], outputLength : Int) -> [UInt8]
-    {
-        if self.negotiatedProtocolVersion! < TLSProtocolVersion.v1_2 {
-            /// PRF function as defined in RFC 2246, section 5, p. 12
-
-            let halfSecretLength = secret.count / 2
-            let S1 : [UInt8]
-            let S2 : [UInt8]
-            if (secret.count % 2 == 0) {
-                S1 = [UInt8](secret[0..<halfSecretLength])
-                S2 = [UInt8](secret[halfSecretLength..<secret.count])
-            }
-            else {
-                S1 = [UInt8](secret[0..<halfSecretLength + 1])
-                S2 = [UInt8](secret[halfSecretLength..<secret.count])
-            }
-            
-            assert(S1.count == S2.count)
-            
-            var md5data  = P_hash(HMAC_MD5,  secret: S1, seed: label + seed, outputLength: outputLength)
-            var sha1data = P_hash(HMAC_SHA1, secret: S2, seed: label + seed, outputLength: outputLength)
-            
-            var output = [UInt8](repeating: 0, count: outputLength)
-            for i in 0 ..< output.count
-            {
-                output[i] = md5data[i] ^ sha1data[i]
-            }
-            
-            return output
-        }
-        else {
-            return P_hash(self.hmac, secret: secret, seed: label + seed, outputLength: outputLength)
-        }
-    }
-
-    // TLS 1.3 uses HKDF to derive its key material
-    internal func HKDF_Extract(salt: [UInt8], inputKeyingMaterial: [UInt8]) -> [UInt8] {
-        let HMAC = self.hmac
-        return HMAC(salt, inputKeyingMaterial)
-    }
-
-    internal func HKDF_Expand(prk: [UInt8], info: [UInt8], outputLength: Int) -> [UInt8] {
-        let HMAC = self.hmac
-        
-        let hashLength = self.hashAlgorithm.hashLength
-        
-        let n = Int(ceil(Double(outputLength)/Double(hashLength)))
-        
-        var output : [UInt8] = []
-        var roundOutput : [UInt8] = []
-        for i in 0..<n {
-            roundOutput = HMAC(prk, roundOutput + info + [UInt8(i + 1)])
-            output += roundOutput
-        }
-        
-        return [UInt8](output[0..<hashLength])
-    }
-    
-    internal func HKDF_Expand_Label(secret: [UInt8], label: [UInt8], hashValue: [UInt8], outputLength: Int) -> [UInt8] {
-        
-        let label = tls1_3_prefix + label
-        var hkdfLabel = [UInt8((outputLength >> 8) & 0xff), UInt8(outputLength & 0xff)]
-        hkdfLabel += [UInt8(label.count)] + label
-        hkdfLabel += [UInt8(hashValue.count)] + hashValue
-        
-        return HKDF_Expand(prk: secret, info: hkdfLabel, outputLength: outputLength)
-    }
-    
-    internal func Derive_Secret(secret: [UInt8], label: [UInt8], messages: [UInt8]) -> [UInt8] {
-        let hashLength = self.hashAlgorithm.hashLength
-        let hashValue = self.hashFunction(messages)
-        
-        return HKDF_Expand_Label(secret: secret, label: label, hashValue: hashValue, outputLength: hashLength)
-    }
-    
     func receiveNextTLSMessage() throws
     {
-        let message = try self._readTLSMessage()
+        let message = try self.recordLayer.readMessage()
 
         try self._didReceiveMessage(message)
     }
@@ -395,7 +296,7 @@ public class TLSConnection
     func readTLSMessage() throws -> TLSMessage
     {
         while true {
-            let message = try self._readTLSMessage()
+            let message = try self.recordLayer.readMessage()
             
             if message.contentType == .applicationData {
                 return message
@@ -405,85 +306,6 @@ public class TLSConnection
         }
     }
     
-    private func _readTLSMessage() throws -> TLSMessage
-    {
-        return try self.recordLayer.readMessage()
-    }
-    
-    func setPreMasterSecretAndCommitSecurityParameters(_ preMasterSecret : [UInt8], cipherSuite : CipherSuite? = nil)
-    {
-        var cipherSuite = cipherSuite
-        if cipherSuite == nil {
-            cipherSuite = self.cipherSuite
-        }
-        
-        self.cipherSuite = cipherSuite
-        self.preMasterSecret = preMasterSecret
-        self.setPendingSecurityParametersForCipherSuite(cipherSuite!)
-    }
-    
-    func setPendingSecurityParametersForCipherSuite(_ cipherSuite : CipherSuite)
-    {
-        guard let cipherSuiteDescriptor = TLSCipherSuiteDescriptorForCipherSuite(cipherSuite)
-        else {
-            fatalError("Unsupported cipher suite \(cipherSuite)")
-        }
-        let cipherAlgorithm = cipherSuiteDescriptor.bulkCipherAlgorithm
-
-        self.securityParameters.bulkCipherAlgorithm = cipherAlgorithm
-        self.securityParameters.blockCipherMode     = cipherSuiteDescriptor.blockCipherMode
-        self.securityParameters.cipherType          = cipherSuiteDescriptor.cipherType
-        self.securityParameters.encodeKeyLength     = cipherAlgorithm.keySize
-        self.securityParameters.blockLength         = cipherAlgorithm.blockSize
-        self.securityParameters.fixedIVLength       = cipherSuiteDescriptor.fixedIVLength
-        self.securityParameters.recordIVLength      = cipherSuiteDescriptor.recordIVLength
-        self.securityParameters.hmac                = cipherSuiteDescriptor.hashFunction.macAlgorithm
-        
-        var useConfiguredHashFunctionForPRF = self.securityParameters.blockCipherMode! == .gcm || cipherSuiteDescriptor.keyExchangeAlgorithm == .ecdhe
-        
-        switch cipherSuiteDescriptor.hashFunction
-        {
-        case .sha256, .sha384:
-            break
-            
-        default:
-            useConfiguredHashFunctionForPRF = false
-        }
-        
-        if !useConfiguredHashFunctionForPRF {
-            // for non GCM or ECDHE cipher suites TLS 1.2 uses SHA256 for its PRF
-            self.hashAlgorithm = .sha256
-        }
-        else {
-            switch cipherSuiteDescriptor.hashFunction {
-            case .sha256:
-                self.hashAlgorithm = .sha256
-                
-            case .sha384:
-                self.hashAlgorithm = .sha384
-                
-            default:
-                print("Error: cipher suite \(cipherSuite) has \(cipherSuiteDescriptor.hashFunction)")
-                fatalError("AEAD cipher suites can only use SHA256 or SHA384")
-                break
-            }
-        }
-        
-        if let session = currentSession {
-            self.securityParameters.masterSecret = session.masterSecret
-        }
-        else {
-            self.securityParameters.masterSecret = calculateMasterSecret()
-        }
-        self.recordLayer.pendingSecurityParameters = self.securityParameters
-    }
-    
-    // Calculate master secret as described in RFC 2246, section 8.1, p. 46
-    private func calculateMasterSecret() -> [UInt8]
-    {
-        return PRF(secret: self.preMasterSecret!, label: [UInt8]("master secret".utf8), seed: self.securityParameters.clientRandom! + self.securityParameters.serverRandom!, outputLength: 48)
-    }
-
     func selectCipherSuite(_ cipherSuites : [CipherSuite]) -> CipherSuite?
     {
         for clientCipherSuite in cipherSuites {
@@ -496,4 +318,23 @@ public class TLSConnection
         
         return nil
     }
+    
+//    func deriveSharedSecret() throws -> [UInt8] {
+//        switch self.keyExchange {
+//        case .dhe(let diffieHellmanKeyExchange):
+//            // Diffie-Hellman
+//            let publicKey = diffieHellmanKeyExchange.calculatePublicKey()
+//            let sharedSecret = diffieHellmanKeyExchange.calculateSharedSecret()!
+//            
+//            return sharedSecret.asBigEndianData()
+//            
+//        case .ecdhe(let ecdhKeyExchange):
+//            let Q = ecdhKeyExchange.calculatePublicKey()
+//            let sharedSecret = ecdhKeyExchange.calculateSharedSecret()!
+//            
+//            return sharedSecret.asBigEndianData()
+//            
+//        case .rsa: break
+//        }
+//    }
 }

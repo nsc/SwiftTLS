@@ -15,7 +15,7 @@ class TLSServerHello : TLSHandshakeMessage
     var cipherSuite : CipherSuite
     var compressionMethod : CompressionMethod?
     
-    var extensions : [TLSHelloExtension] = []
+    var extensions : [TLSExtension] = []
 
     init(serverVersion : TLSProtocolVersion, random : Random, sessionID : TLSSessionID?, cipherSuite : CipherSuite, compressionMethod : CompressionMethod = .null)
     {
@@ -71,7 +71,7 @@ class TLSServerHello : TLSHandshakeMessage
         }
         
         if bytesLeft > 0 {
-            if let extensions = TLSReadHelloExtensions(from: inputStream, length: bytesLeft, helloType: .serverHello) {
+            if let extensions = TLSReadExtensions(from: inputStream, length: bytesLeft, helloType: .serverHello) {
                 self.extensions = extensions
             }
         }
@@ -103,7 +103,7 @@ class TLSServerHello : TLSHandshakeMessage
             buffer.write(self.compressionMethod!.rawValue)
         }
         
-        TLSWriteHelloExtensions(&buffer, extensions: self.extensions)
+        TLSWriteExtensions(&buffer, extensions: self.extensions)
 
         let data = buffer.buffer
         

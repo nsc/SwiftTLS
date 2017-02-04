@@ -53,9 +53,9 @@ enum TLSHelloType {
     case serverHello
 }
 
-struct TLSKeyShareExtension : TLSHelloExtension
+struct TLSKeyShareExtension : TLSExtension
 {
-    var extensionType : TLSHelloExtensionType {
+    var extensionType : TLSExtensionType {
         get {
             return .keyShare
         }

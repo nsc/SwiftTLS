@@ -8,17 +8,17 @@
 
 import Foundation
 
-struct TLSSignatureAlgorithmExtension : TLSHelloExtension
+struct TLSSignatureAlgorithmExtension : TLSExtension
 {
-    var extensionType : TLSHelloExtensionType {
+    var extensionType : TLSExtensionType {
         get {
             return .signatureAlgorithms
         }
     }
     
-    var signatureAlgorithms: [TLSSignatureAlgorithm]
+    var signatureAlgorithms: [TLSSignatureScheme]
     
-    init(signatureAlgorithms: [TLSSignatureAlgorithm])
+    init(signatureAlgorithms: [TLSSignatureScheme])
     {
         self.signatureAlgorithms = signatureAlgorithms
     }
@@ -34,7 +34,7 @@ struct TLSSignatureAlgorithmExtension : TLSHelloExtension
         
         for rawAlgorithm in rawSignatureAlgorithms
         {
-            if let algorithm = TLSSignatureAlgorithm(rawValue: rawAlgorithm) {
+            if let algorithm = TLSSignatureScheme(rawValue: rawAlgorithm) {
                 self.signatureAlgorithms.append(algorithm)
             }
             else {

@@ -8,9 +8,9 @@
 
 import Foundation
 
-struct TLSSecureRenegotiationInfoExtension : TLSHelloExtension
+struct TLSSecureRenegotiationInfoExtension : TLSExtension
 {
-    var extensionType : TLSHelloExtensionType {
+    var extensionType : TLSExtensionType {
         get {
             return .secureRenegotiationInfo
         }

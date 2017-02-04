@@ -220,8 +220,59 @@ enum CertificateType
 enum KeyExchange
 {
     case rsa
-    case dhe(DHKeyExchange)
-    case ecdhe(ECDHKeyExchange)
+    case dhe(PFSKeyExchange)
+    case ecdhe(PFSKeyExchange)
+    
+    func calculateSharedSecret() -> [UInt8]?
+    {
+        switch self {
+        case .dhe(let keyExchange):
+            return keyExchange.calculateSharedSecret()
+
+        case .ecdhe(let keyExchange):
+            return keyExchange.calculateSharedSecret()
+            
+        case .rsa:
+            return nil
+        }
+    }
+    
+    var peerPublicKey: [UInt8]? {
+        get {
+            switch self {
+            case .dhe(let keyExchange):
+                return keyExchange.peerPublicKey
+
+            case .ecdhe(let keyExchange):
+                return keyExchange.peerPublicKey
+                
+            case .rsa:
+                return nil
+            }
+        }
+        set {
+            switch self {
+            case .dhe(var keyExchange):
+                keyExchange.peerPublicKey = newValue
+
+            case .ecdhe(var keyExchange):
+                keyExchange.peerPublicKey = newValue
+                
+            case .rsa:
+                break
+            }
+        }
+    }
+
+}
+
+protocol PFSKeyExchange
+{
+    var publicKey: [UInt8]? {get}
+    var peerPublicKey: [UInt8]? {get set}
+    
+    func calculateSharedSecret() -> [UInt8]?
+    func createKeyPair()
 }
 
 class TLSSecurityParameters

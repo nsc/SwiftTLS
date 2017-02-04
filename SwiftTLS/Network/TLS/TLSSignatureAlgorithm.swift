@@ -8,7 +8,7 @@
 
 import Foundation
 
-public enum TLSSignatureAlgorithm : UInt16 {
+public enum TLSSignatureScheme : UInt16 {
     /* RSASSA-PKCS1-v1_5 algorithms */
     case rsa_pkcs1_sha1 = 0x0201
     case rsa_pkcs1_sha256 = 0x0401

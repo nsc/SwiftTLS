@@ -10,6 +10,7 @@ import Security
 
 class TLSCertificateMessage : TLSHandshakeMessage
 {
+    var certificateRequestContext: [UInt8]? // TLS 1.3
     var certificates : [X509.Certificate]
     
     init(certificates : [X509.Certificate])
@@ -26,6 +27,10 @@ class TLSCertificateMessage : TLSHandshakeMessage
         guard let (type, _) = TLSHandshakeMessage.readHeader(inputStream), type == TLSHandshakeType.certificate
         else {
             return nil
+        }
+        
+        if context.negotiatedProtocolVersion! >= .v1_3 {
+            certificateRequestContext = inputStream.read8()
         }
         
         if let header : [UInt8] = inputStream.read(count: 3) {

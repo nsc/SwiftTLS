@@ -6,9 +6,9 @@
 //  Copyright © 2015 Nico Schmidt. All rights reserved.
 //
 
-struct TLSSupportedGroupsExtension : TLSHelloExtension
+struct TLSSupportedGroupsExtension : TLSExtension
 {
-    var extensionType : TLSHelloExtensionType {
+    var extensionType : TLSExtensionType {
         get {
             return .supportedGroups
         }

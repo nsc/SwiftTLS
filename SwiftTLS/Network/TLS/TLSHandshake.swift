@@ -58,6 +58,13 @@ class TLSHandshakeMessage : TLSMessage
         case .finished:
             message = TLSFinished(inputStream: inputStream, context: context)
             
+        // TLS 1.3
+        case .encryptedExtensions:
+            message = TLSEncryptedExtensions(inputStream: inputStream, context: context)
+
+        case .certificateVerify:
+            message = TLSCertificateVerify(inputStream: inputStream, context: context)
+            
         default:
             fatalError("Unsupported handshake message")
         }

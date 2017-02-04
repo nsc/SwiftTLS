@@ -42,21 +42,21 @@ extension TLS1_2 {
                 cipherSuite: server.cipherSuite!,
                 compressionMethod: .null)
             
-            if server.securityParameters.isUsingSecureRenegotiation {
+            if self.securityParameters.isUsingSecureRenegotiation {
                 if server.isInitialHandshake {
                     serverHello.extensions.append(TLSSecureRenegotiationInfoExtension())
                 }
                 else {
-                    let renegotiationInfo = server.securityParameters.clientVerifyData + server.securityParameters.serverVerifyData
+                    let renegotiationInfo = self.securityParameters.clientVerifyData + self.securityParameters.serverVerifyData
                     serverHello.extensions.append(TLSSecureRenegotiationInfoExtension(renegotiatedConnection: renegotiationInfo))
                 }
             }
             
             print("ServerHello extensions = \(serverHello.extensions)")
             
-            server.securityParameters.serverRandom = DataBuffer(serverHelloRandom).buffer
+            self.securityParameters.serverRandom = DataBuffer(serverHelloRandom).buffer
             if let session = server.currentSession {
-                server.setPendingSecurityParametersForCipherSuite(session.cipherSpec)
+                self.setPendingSecurityParametersForCipherSuite(session.cipherSpec)
             }
             
             server.isInitialHandshake = false
@@ -89,7 +89,7 @@ extension TLS1_2 {
                 
                 server.keyExchange = .dhe(dhKeyExchange)
                 
-                let message = TLSServerKeyExchange(dhParameters: dhParameters, context: server)
+                let message = TLSServerKeyExchange(keyExchangeParameters: .dhe(dhParameters), context: server)
                 try server.sendHandshakeMessage(message)
                 
             case .ecdhe:
@@ -98,11 +98,11 @@ extension TLS1_2 {
                 }
                 
                 let ecdhKeyExchange = ECDHKeyExchange(curve: ecdhParameters.curve)
-                let Q = ecdhKeyExchange.calculatePublicKey()
+                let Q = ecdhKeyExchange.calculatePublicKeyPoint()
                 server.keyExchange = .ecdhe(ecdhKeyExchange)
                 
                 ecdhParameters.publicKey = Q
-                let message = TLSServerKeyExchange(ecdhParameters: ecdhParameters, context:server)
+                let message = TLSServerKeyExchange(keyExchangeParameters: .ecdhe(ecdhParameters), context:server)
                 try server.sendHandshakeMessage(message)
                 break
                 
@@ -127,11 +127,11 @@ extension TLS1_2 {
             if server.isInitialHandshake {
                 // RFC 5746, Section 3.6
                 if clientHelloContainsEmptyRenegotiationSCSV {
-                    server.securityParameters.isUsingSecureRenegotiation = true
+                    self.securityParameters.isUsingSecureRenegotiation = true
                 }
                 else if let secureRenegotiationInfo = secureRenegotiationInfo {
                     if secureRenegotiationInfo.renegotiatedConnection.count == 0 {
-                        server.securityParameters.isUsingSecureRenegotiation = true
+                        self.securityParameters.isUsingSecureRenegotiation = true
                     }
                     else {
                         // abort handshake if the renegotiationInfo isn't empty
@@ -139,10 +139,10 @@ extension TLS1_2 {
                     }
                 }
                 else {
-                    server.securityParameters.isUsingSecureRenegotiation = false
+                    self.securityParameters.isUsingSecureRenegotiation = false
                 }
             }
-            else if server.securityParameters.isUsingSecureRenegotiation {
+            else if self.securityParameters.isUsingSecureRenegotiation {
                 // Renegotiated handshake (RFC 5746, Section 3.7)
                 if clientHelloContainsEmptyRenegotiationSCSV {
                     try server.abortHandshake()
@@ -152,11 +152,11 @@ extension TLS1_2 {
                         try server.abortHandshake()
                     }
                     else {
-                        if secureRenegotiationInfo.renegotiatedConnection != server.securityParameters.clientVerifyData {
+                        if secureRenegotiationInfo.renegotiatedConnection != self.securityParameters.clientVerifyData {
                             try server.abortHandshake()
                         }
                         
-                        server.isRenegotiatingSecurityParameters = true
+                        self.isRenegotiatingSecurityParameters = true
                     }
                 }
                 else {
@@ -167,7 +167,7 @@ extension TLS1_2 {
             else {
                 print("Renegotiation initiated")
                 
-                server.securityParameters.isUsingSecureRenegotiation = false
+                self.securityParameters.isUsingSecureRenegotiation = false
             }
             
             
@@ -179,7 +179,7 @@ extension TLS1_2 {
                 server.negotiatedProtocolVersion = server.configuration.supportedVersions.first!
             }
             
-            server.securityParameters.clientRandom = DataBuffer(clientHello.random).buffer
+            self.securityParameters.clientRandom = DataBuffer(clientHello.random).buffer
             
             server.cipherSuite = server.selectCipherSuite(clientHello.cipherSuites)
             
@@ -203,15 +203,15 @@ extension TLS1_2 {
         }
         
         func handleFinished(_ finished: TLSFinished) throws {
-            if (server.verifyFinishedMessage(finished, isClient: true, saveForSecureRenegotiation: true)) {
+            if (self.verifyFinishedMessage(finished, isClient: true, saveForSecureRenegotiation: true)) {
                 print("Server: Finished verified.")
-                if server.isRenegotiatingSecurityParameters {
+                if self.isRenegotiatingSecurityParameters {
                     print("Server: Renegotiated security parameters successfully.")
-                    server.isRenegotiatingSecurityParameters = false
+                    self.isRenegotiatingSecurityParameters = false
                 }
                 
                 if let sessionID = server.pendingSessionID {
-                    let session = TLSSession(sessionID: sessionID, cipherSpec: server.cipherSuite!, masterSecret: server.securityParameters.masterSecret!)
+                    let session = TLSSession(sessionID: sessionID, cipherSpec: server.cipherSuite!, masterSecret: self.securityParameters.masterSecret!)
                     server.serverContext.sessionCache[sessionID] = session
                     print("Save session \(session)")
                 }
@@ -220,11 +220,11 @@ extension TLS1_2 {
             }
             else {
                 print("Error: could not verify Finished message.")
-                try server.sendAlert(.decryptionFailed, alertLevel: .fatal)
+                try server.sendAlert(.decryptError, alertLevel: .fatal)
             }
         }
         
-        func handleMessage(_ message: TLSMessage) throws {
+        override func handleMessage(_ message: TLSMessage) throws {
             
             switch message.contentType {
             case .handshake:
@@ -239,7 +239,8 @@ extension TLS1_2 {
                 }
                 
             case .changeCipherSpec:
-                break
+                try super.handleMessage(message)
+                
             default:
                 fatalError("handleMessage called with a message that should be handled at the TLSServer/TLSConnection level: \(message)")
             }
@@ -249,28 +250,20 @@ extension TLS1_2 {
         func handleClientKeyExchange(_ clientKeyExchange: TLSClientKeyExchange) {
             var preMasterSecret : [UInt8]
             
-            switch server.keyExchange {
+            switch (server.keyExchange, clientKeyExchange.keyExchange) {
                 
-            case .dhe(let dhKeyExchange):
-                // Diffie-Hellman
-                if let diffieHellmanPublicKey = clientKeyExchange.diffieHellmanPublicKey {
-                    dhKeyExchange.peerPublicKey = diffieHellmanPublicKey
-                    preMasterSecret = dhKeyExchange.calculateSharedSecret()!.asBigEndianData()
+            case (.dhe(let keyExchange), .dhe),
+                 (.ecdhe(let keyExchange), .ecdhe):
+                
+                if let sharedSecret = keyExchange.calculateSharedSecret() {
+                    
+                    preMasterSecret = sharedSecret
                 }
                 else {
-                    fatalError("Client Key Exchange has no DH public key")
+                    fatalError("Client Key Exchange has no (EC)DHE public key")
                 }
                 
-            case .ecdhe(let ecdhKeyExchange):
-                if let ecdhPublicKey = clientKeyExchange.ecdhPublicKey {
-                    ecdhKeyExchange.peerPublicKey = ecdhPublicKey
-                    preMasterSecret = ecdhKeyExchange.calculateSharedSecret()!.asBigEndianData()
-                }
-                else {
-                    fatalError("Client Key Exchange has no ECDH public key")
-                }
-                
-            case .rsa:
+            case (.rsa, .rsa):
                 // RSA
                 if let encryptedPreMasterSecret = clientKeyExchange.encryptedPreMasterSecret {
                     preMasterSecret = server.configuration.identity!.rsa!.decrypt(encryptedPreMasterSecret)
@@ -278,9 +271,13 @@ extension TLS1_2 {
                 else {
                     fatalError("Client Key Exchange has no encrypted master secret")
                 }
+                
+            default:
+                // Is this even possible? We are deriving the TLSClientKeyEchange's keyExchange from the server's
+                fatalError("Client And Server don't agree on key exchange")
             }
             
-            server.setPreMasterSecretAndCommitSecurityParameters(preMasterSecret)
+            self.setPreMasterSecretAndCommitSecurityParameters(preMasterSecret)
         }
     }
 }

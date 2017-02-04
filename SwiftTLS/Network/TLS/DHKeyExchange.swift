@@ -12,15 +12,15 @@ public class DHKeyExchange
     let generator       : BigInt
     
     var privateKey : BigInt?
-    var publicKey : BigInt?
-    var peerPublicKey : BigInt?
+    var Ys : BigInt?
+    var Yc : BigInt?
     
 
     init(dhParameters: DiffieHellmanParameters)
     {
         self.primeModulus = dhParameters.p
         self.generator = dhParameters.g
-        self.publicKey = dhParameters.Ys
+        self.Ys = dhParameters.Ys
     }
     
     init(primeModulus : BigInt, generator : BigInt)
@@ -29,29 +29,61 @@ public class DHKeyExchange
         self.generator      = generator
     }
     
+    func createKeyPair()
+    {
+        self.privateKey = BigInt.random(self.primeModulus)
+        self.Ys = modular_pow(self.generator, self.privateKey!, primeModulus)
+    }
+    
     func calculatePublicKey() -> BigInt
     {
         assert(self.privateKey == nil)
         
-        self.privateKey = BigInt.random(self.primeModulus)
+        createKeyPair()
         
-        return modular_pow(self.generator, self.privateKey!, primeModulus)
+        return self.Ys!
     }
     
     func calculateSharedSecret() -> BigInt?
     {
-        guard let peerPublicKey = self.peerPublicKey else {
+        guard let peerPublicKey = self.Yc else {
             return nil
         }
         
         
         if self.privateKey == nil {
-            print("Recalculate private key")
-            _ = self.calculatePublicKey()
+            print("Recalculate key pair")
+            self.createKeyPair()
         }
         
         assert(peerPublicKey != self.privateKey!)
         
         return modular_pow(peerPublicKey, self.privateKey!, self.primeModulus)
+    }
+}
+
+extension DHKeyExchange : PFSKeyExchange
+{
+    var publicKey: [UInt8]? {
+        return self.Ys?.asBigEndianData()
+    }
+    
+    var peerPublicKey: [UInt8]? {
+        get {
+            guard let peerPublicKey = self.Yc else { return nil }
+            
+            return peerPublicKey.asBigEndianData()
+        }
+        
+        set {
+            guard let value = newValue else { return }
+            
+            self.Yc = BigInt(bigEndianParts: value)
+        }
+    }
+    func calculateSharedSecret() -> [UInt8]? {
+        guard self.Yc != nil else { return nil }
+
+        return self.calculateSharedSecret()?.asBigEndianData()
     }
 }

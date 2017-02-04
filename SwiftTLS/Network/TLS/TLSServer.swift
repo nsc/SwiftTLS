@@ -10,7 +10,11 @@ import Foundation
 
 class TLSServer : TLSConnection
 {
-    internal var protocolHandler: TLSServerProtocol!
+    internal var serverProtocolHandler: TLSServerProtocol! {
+        get {
+            return self.protocolHandler as! TLSServerProtocol
+        }
+    }
     internal var serverContext: TLSServerContext
     override public var context: TLSContext {
         return serverContext
@@ -44,7 +48,7 @@ class TLSServer : TLSConnection
         {
         case .clientHello:
             let clientHello = (message as! TLSClientHello)
-            try self.protocolHandler.handleClientHello(clientHello)
+            try self.serverProtocolHandler.handleClientHello(clientHello)
             
         case .clientKeyExchange:
             try self.protocolHandler.handleMessage(message)

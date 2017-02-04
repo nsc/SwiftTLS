@@ -12,20 +12,18 @@ class ECDHKeyExchange
     
     var d : BigInt?
     var Q : EllipticCurvePoint?
-    var peerPublicKey : EllipticCurvePoint?
+    var peerPublicKeyPoint : EllipticCurvePoint?
     
     init(curve : EllipticCurve)
     {
         self.curve = curve
     }
 
-    func calculatePublicKey() -> EllipticCurvePoint
+    func calculatePublicKeyPoint() -> EllipticCurvePoint
     {
-        let (d, Q) = self.curve.createKeyPair()
-        self.d = d
-        self.Q = Q
+        createKeyPair()
         
-        return Q
+        return self.Q!
     }
     
     // dA * dB * G
@@ -33,11 +31,50 @@ class ECDHKeyExchange
     {
         guard
             let d = self.d,
-            let peerPublicKey = self.peerPublicKey
+            let peerPublicKeyPoint = self.peerPublicKeyPoint
         else {
             return nil
         }
         
-        return self.curve.multiplyPoint(peerPublicKey, d).x
+        return self.curve.multiplyPoint(peerPublicKeyPoint, d).x
+    }
+    
+    func createKeyPair() {
+        let (d, Q) = self.curve.createKeyPair()
+    
+        self.d = d
+        self.Q = Q
+    }
+}
+
+extension ECDHKeyExchange : PFSKeyExchange
+{
+    var publicKey: [UInt8]? {
+        get {
+            guard let Q = self.Q else {
+                return nil
+            }
+            
+            return DataBuffer(Q).buffer
+        }
+    }
+
+    var peerPublicKey: [UInt8]? {
+        get {
+            guard let peerPublicKeyPoint = self.peerPublicKeyPoint else { return nil }
+            
+            return DataBuffer(peerPublicKeyPoint).buffer
+        }
+        
+        set {
+            if let value = newValue {
+                self.peerPublicKeyPoint = EllipticCurvePoint(data: value)
+            }
+        }
+    }
+    func calculateSharedSecret() -> [UInt8]? {
+        guard self.peerPublicKeyPoint != nil else { return nil }
+        
+        return (self.calculateSharedSecret() as BigInt?)?.asBigEndianData()
     }
 }

@@ -21,6 +21,10 @@ enum TLSState
     case serverHelloDoneReceived
     case certificateSent
     case certificateReceived
+    case certificateRequestSent
+    case certificateRequestReceived
+    case certificateVerifySent
+    case certificateVerifyReceived
     case clientKeyExchangeSent
     case clientKeyExchangeReceived
     case changeCipherSpecSent
@@ -31,10 +35,16 @@ enum TLSState
     case closeSent
     case closeReceived
     case error
+    
+    // TLS 1.3
+    case encryptedExtensionsSent
+    case encryptedExtensionsReceived
 }
 
 protocol TLSConnectionStateMachine
 {
+    var state : TLSState { get set }
+
     func reset()
     
     func didSendMessage(_ message : TLSMessage) throws

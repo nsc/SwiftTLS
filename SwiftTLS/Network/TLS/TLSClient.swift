@@ -10,11 +10,17 @@ import Foundation
 
 class TLSClient : TLSConnection
 {
-    internal var protocolHandler: TLSClientProtocol!
+    internal var clientProtocolHandler: TLSClientProtocol! {
+        get {
+            return self.protocolHandler as! TLSClientProtocol
+        }
+    }
     internal var clientContext: TLSClientContext
     override public var context: TLSContext {
         return clientContext
     }
+    
+    internal var keyExchangesAnnouncedToServer: [NamedGroup : KeyExchange] = [:]
     
     override init(configuration: TLSConfiguration, dataProvider : TLSDataProvider? = nil)
     {
@@ -49,20 +55,17 @@ class TLSClient : TLSConnection
         {
         case .serverHello:
             let serverHello = message as! TLSServerHello
-            try self.protocolHandler.handleServerHello(serverHello)
+            try self.clientProtocolHandler.handleServerHello(serverHello)
             
         case .certificate:
             let certificateMessage = message as! TLSCertificateMessage
             self.protocolHandler.handleCertificate(certificateMessage)
             
-        case .serverKeyExchange, .serverHelloDone:
-            try self.protocolHandler.handleMessage(message)
-            
         case .finished:
             try self.protocolHandler.handleFinished(message as! TLSFinished)
             
         default:
-            throw TLSError.error("Unsupported handshake \(handshakeType.rawValue)")
+            try self.protocolHandler.handleMessage(message)
         }
         
         try self.stateMachine?.didReceiveHandshakeMessage(message)
@@ -77,61 +80,30 @@ class TLSClient : TLSConnection
         
         self.handshakeMessages = []
         
-        try self.protocolHandler.sendClientHello()
-    }
-
-    func sendClientKeyExchange() throws
-    {
-        switch self.keyExchange {
-        case .dhe(let diffieHellmanKeyExchange):
-            // Diffie-Hellman
-            let publicKey = diffieHellmanKeyExchange.calculatePublicKey()
-            let sharedSecret = diffieHellmanKeyExchange.calculateSharedSecret()!
-            
-            self.setPreMasterSecretAndCommitSecurityParameters(sharedSecret.asBigEndianData())
-            
-            let message = TLSClientKeyExchange(diffieHellmanPublicKey: publicKey)
-            try self.sendHandshakeMessage(message)
-            
-        case .ecdhe(let ecdhKeyExchange):
-            let Q = ecdhKeyExchange.calculatePublicKey()
-            let sharedSecret = ecdhKeyExchange.calculateSharedSecret()!
-            
-            self.setPreMasterSecretAndCommitSecurityParameters(sharedSecret.asBigEndianData())
-            
-            let message = TLSClientKeyExchange(ecdhPublicKey: Q)
-            try self.sendHandshakeMessage(message)
-            
-        case .rsa:
-            if let rsa = self.serverKey {
-                // RSA
-                let message = TLSClientKeyExchange(preMasterSecret: self.preMasterSecret!, rsa: rsa)
-                try self.sendHandshakeMessage(message)
-            }
-        }
-    }
-    
-    func renegotiate() throws
-    {
-        try sendClientHello()
-        _ = try self.readTLSMessage()
-        
-        self.didRenegotiate()
+        try self.clientProtocolHandler.sendClientHello()
     }
     
     func setupClient(with version: TLSProtocolVersion)
     {
+        let state = self.stateMachine?.state
+        
         switch version {
         case TLSProtocolVersion.v1_2:
-            self.protocolHandler = TLS1_2.ClientProtocol(client: self)
-            self.stateMachine    = TLS1_2.ClientStateMachine(client: self)
+            self.protocolHandler    = TLS1_2.ClientProtocol(client: self)
+            self.stateMachine       = TLS1_2.ClientStateMachine(client: self)
+            self.recordLayer        = TLS1_2.RecordLayer(connection: self, dataProvider: self.recordLayer?.dataProvider)
 
         case TLSProtocolVersion.v1_3:
-            self.protocolHandler = TLS1_3.ClientProtocol(client: self)
-            self.stateMachine    = TLS1_2.ClientStateMachine(client: self)
+            self.protocolHandler    = TLS1_3.ClientProtocol(client: self)
+            self.stateMachine       = TLS1_3.ClientStateMachine(client: self)
+            self.recordLayer        = TLS1_3.RecordLayer(connection: self, dataProvider: self.recordLayer?.dataProvider)
 
         default:
             fatalError("Unsupported protocol \(version)")
+        }
+        
+        if let state = state {
+            self.stateMachine!.state = state
         }
     }
 }

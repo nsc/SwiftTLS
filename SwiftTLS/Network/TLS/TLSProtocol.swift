@@ -20,6 +20,8 @@ protocol TLSProtocol
     // - ClientKeyExchange
     // - ServerKeyExchange
     // - ChangeCipherSpec
+    // - EncryptedExtensions
+    // - 
     func handleMessage(_ message : TLSMessage) throws
     
     func sendCertificate() throws

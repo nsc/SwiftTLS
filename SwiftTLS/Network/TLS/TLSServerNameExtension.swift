@@ -13,9 +13,9 @@ enum TLSServerNameType : UInt8
     case hostName = 0
 }
 
-struct TLSServerNameExtension : TLSHelloExtension
+struct TLSServerNameExtension : TLSExtension
 {
-    var extensionType : TLSHelloExtensionType {
+    var extensionType : TLSExtensionType {
         get {
             return .serverName
         }
