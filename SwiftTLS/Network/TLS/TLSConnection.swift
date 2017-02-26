@@ -47,8 +47,6 @@ public class TLSConnection
                 var messageBuffer = DataBuffer()
                 message.writeTo(&messageBuffer)
                 
-                print("handshakeData add message \(message)")
-                
                 handshakeMessageData = messageBuffer.buffer
             }
             
@@ -283,7 +281,7 @@ public class TLSConnection
             fatalError("Unsupported signature algorithm \(self.configuration.signatureAlgorithm)")
         }
         
-        return signer.sign(data: data, hashAlgorithm: self.configuration.hashAlgorithm)
+        return signer.sign(data: data)
     }
     
     func receiveNextTLSMessage() throws

@@ -109,6 +109,9 @@ class Socket : SocketProtocol
     
     func acceptConnection(_ address : IPAddress) throws -> SocketProtocol
     {
+        if self.socketDescriptor != nil {
+            self.close()
+        }
         self.socketDescriptor = createSocket(address.unsafeSockAddrPointer.pointee.sa_family)
         
         guard let socket = self.socketDescriptor else {

@@ -18,6 +18,7 @@ protocol OutputStreamType
 
 protocol InputStreamType
 {
+    var bytesRead: Int {get set}
     func read(count : Int) -> [UInt8]?
 }
 
@@ -171,7 +172,7 @@ extension InputStreamType
     {
         guard
             let count : UInt8 = self.read(),
-            let data : [UInt16] = self.read(count: Int(count))
+            let data : [UInt16] = self.read(count: Int(count) / MemoryLayout<UInt16>.size)
             else {
                 return nil
         }

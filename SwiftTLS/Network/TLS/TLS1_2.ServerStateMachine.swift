@@ -84,7 +84,7 @@ extension TLS1_2 {
                 try self.transitionTo(state: .finishedSent)
                 
             default:
-                print("Unsupported handshake \(message.handshakeType)")
+                print("Unsupported handshake message \(message.handshakeType)")
             }
         }
         

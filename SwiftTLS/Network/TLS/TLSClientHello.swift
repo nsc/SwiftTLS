@@ -121,11 +121,11 @@ func TLSWriteExtensions<Target: OutputStreamType>(_ target: inout Target, extens
 
 class TLSClientHello : TLSHandshakeMessage
 {
-    var legacyVersion : TLSProtocolVersion
-    var random : Random
-    var legacySessionID : TLSSessionID?
-    var rawCipherSuites : [UInt16]
-    var cipherSuites : [CipherSuite] {
+    var legacyVersion: TLSProtocolVersion
+    var random: Random
+    var legacySessionID: TLSSessionID?
+    var rawCipherSuites: [UInt16]
+    var cipherSuites: [CipherSuite] {
         get {
             var cipherSuites = [CipherSuite]()
             for rawCipherSuite in rawCipherSuites {
@@ -142,9 +142,9 @@ class TLSClientHello : TLSHandshakeMessage
         }
     }
     
-    var legacyCompressionMethods : [CompressionMethod]
+    var legacyCompressionMethods: [CompressionMethod]
     
-    var extensions : [TLSExtension] = []
+    var extensions: [TLSExtension] = []
     
     init(configuration: TLSConfiguration, random: Random, sessionID: TLSSessionID?, cipherSuites: [CipherSuite], compressionMethods: [CompressionMethod] = [.null])
     {

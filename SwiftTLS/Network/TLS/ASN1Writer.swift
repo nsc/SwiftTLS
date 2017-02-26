@@ -31,11 +31,7 @@ public class ASN1Writer
         }
         else {
             let n = Int(log2(Double(highestBit(contentLength))))
-            var numberOfBytes = n / 8
-            if n % 8 != 0
-            {
-                numberOfBytes += 1
-            }
+            let numberOfBytes = (n + 7) / 8
 
             var data : [UInt8] = []
             var mask = 0xff << ((numberOfBytes - 1) * 8)

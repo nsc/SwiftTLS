@@ -63,7 +63,7 @@ extension TLS1_3 {
                 try self.transitionTo(state: .finishedSent)
                 
             default:
-                print("Unsupported handshake \(message.handshakeType)")
+                print("Unsupported handshake message \(message.handshakeType)")
             }
         }
         
@@ -93,7 +93,7 @@ extension TLS1_3 {
                 try self.transitionTo(state: .encryptedExtensionsReceived)
                 
             default:
-                print("Unsupported handshake \(handshakeType.rawValue)")
+                print("Unsupported handshake message \(handshakeType.rawValue)")
             }
         }
         

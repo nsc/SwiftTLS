@@ -39,9 +39,11 @@ extension TLS1_3 {
                 clientHello.extensions.append(TLSServerNameExtension(serverNames: client.hostNames!))
             }
             
-            guard let groups = client.configuration.supportedGroups else {
+            guard client.configuration.supportedGroups.count > 0 else {
                 throw TLSError.error("TLS 1.3 configuration is missing supported key shares.")
             }
+            
+            let groups = client.configuration.supportedGroups
             
             clientHello.extensions.append(TLSSupportedGroupsExtension(ellipticCurves: groups))
             
@@ -103,7 +105,7 @@ extension TLS1_3 {
                     if case .serverHello(let keyShare) = (serverExtension as! TLSKeyShareExtension).keyShare {
                         let group = keyShare.namedGroup
                         let peerPublicKey = keyShare.keyExchange
-                        guard var keyExchange = client.keyExchangesAnnouncedToServer[group] else {
+                        guard var keyExchange = client.keyExchangesAnnouncedToServer[group]?.pfsKeyExchange else {
                             throw TLSError.alert(alert: .illegalParameter, alertLevel: .fatal)
                         }
 
@@ -113,18 +115,39 @@ extension TLS1_3 {
                         deriveHandshakeSecret(with: keyExchange)
                     }
                     else {
-                        // Is this the right error to throw here? What does the RFC say about it?
+                        // FIXME: Is this the right error to throw here? What does the RFC say about it?
                         throw TLSError.alert(alert: .decodeError, alertLevel: .fatal)
                     }
                     
                 default:
-                    print("Undhandled extension \(serverExtension)")
+                    print("Unhandled extension \(serverExtension)")
                 }
             }
             
-            
+            if self.handshakeState.earlySecret == nil || self.handshakeState.handshakeSecret == nil {
+                throw TLSError.alert(alert: .handshakeFailure, alertLevel: .fatal)
+            }
         }
         
+        override func sendFinished() throws
+        {
+            let verifyData = self.finishedData(forClient: connection.isClient)
+            
+            // The secret contains all the handshake messages up to Server Finished, so the client has to derive
+            // it before sending its Finished
+            deriveApplicationTrafficSecrets()
+        
+            try self.connection.sendHandshakeMessage(TLSFinished(verifyData: verifyData))
+            
+            if !self.connection.isClient {
+                // The server has to derive its secret after sending its Finished
+                deriveApplicationTrafficSecrets()
+            }
+            
+            self.recordLayer.changeTrafficSecrets(clientTrafficSecret: self.handshakeState.clientTrafficSecret!,
+                                                  serverTrafficSecret: self.handshakeState.serverTrafficSecret!)
+        }
+
         func handleMessage(_ message: TLSMessage) throws {
             
         }

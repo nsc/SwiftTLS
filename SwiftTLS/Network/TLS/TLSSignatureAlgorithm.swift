@@ -28,4 +28,52 @@ public enum TLSSignatureScheme : UInt16 {
     /* EdDSA algorithms */
     case ed25519 = 0x0807
     case ed448 = 0x0808
+    
+    var hashAlgorithm: HashAlgorithm? {
+        switch self {
+        case .rsa_pkcs1_sha256, .ecdsa_secp256r1_sha256, .rsa_pss_sha256:
+            return .sha256
+            
+        case .rsa_pkcs1_sha384, .ecdsa_secp384r1_sha384, .rsa_pss_sha384:
+            return .sha384
+            
+        case .rsa_pkcs1_sha512, .ecdsa_secp521r1_sha512, .rsa_pss_sha512:
+            return .sha512
+            
+        default:
+            return nil
+        }
+    }
+    
+    var isRSA: Bool {
+        switch self {
+        case .rsa_pkcs1_sha1, .rsa_pkcs1_sha256, .rsa_pkcs1_sha384, .rsa_pkcs1_sha512,
+             .rsa_pss_sha256, .rsa_pss_sha384, .rsa_pss_sha512:
+            return true
+        
+        default:
+            return false
+        }
+    }
+
+    var isECDSA: Bool {
+        switch self {
+        case .ecdsa_secp256r1_sha256, .ecdsa_secp384r1_sha384, .ecdsa_secp521r1_sha512:
+            return true
+            
+        default:
+            return false
+        }
+    }
+
+    var isEdDSA: Bool {
+        switch self {
+        case .ed25519, .ed448:
+            return true
+            
+        default:
+            return false
+        }
+    }
+
 }

@@ -19,6 +19,9 @@ extension TLS1_3 {
     static let resumptionMasterSecretLabel          = [UInt8]("resumption master secret".utf8)
     static let finishedLabel                        = [UInt8]("finished".utf8)
 
+    static let clientCertificateVerifyContext       = [UInt8]("TLS 1.3, client CertificateVerify".utf8)
+    static let serverCertificateVerifyContext       = [UInt8]("TLS 1.3, server CertificateVerify".utf8)
+    
     class HandshakeState {
         var earlySecret: [UInt8]?
         var handshakeSecret: [UInt8]?
@@ -52,13 +55,34 @@ extension TLS1_3 {
             try self.connection.sendHandshakeMessage(certificateMessage);
         }
         
+        func sendCertificateVerify() throws
+        {
+            let identity = self.connection.configuration.identity!
+            let signer = identity.signer
+            
+            var proofData = [UInt8](repeating: 0x20, count: 64)
+            proofData += connection.isClient ? clientCertificateVerifyContext : serverCertificateVerifyContext
+            proofData += [0]
+            proofData += self.handshakeHash
+            
+            let signature = signer.sign(data: proofData)
+            let certificateVerify = TLSCertificateVerify(algorithm: signer.signatureScheme, signature: signature)
+            
+            try self.connection.sendHandshakeMessage(certificateVerify)
+        }
+        
+        var handshakeHash: [UInt8] {
+            let handshakeData = connection.handshakeMessageData
+            return connection.hashFunction(handshakeData)
+        }
+        
         func finishedData(forClient isClient: Bool) -> [UInt8]
         {
             let secret = isClient ? handshakeState.clientHandshakeTrafficSecret! : handshakeState.serverHandshakeTrafficSecret!
             let hashLength = connection.hashAlgorithm.hashLength
             let finishedKey = HKDF_Expand_Label(secret: secret, label: finishedLabel, hashValue: [], outputLength: hashLength)
-            let handshakeData = connection.handshakeMessageData
-            let handshakeHash = connection.hashFunction(handshakeData)
+
+            let handshakeHash = self.handshakeHash
             
             let finishedData = connection.hmac(finishedKey, handshakeHash)
             
@@ -67,15 +91,7 @@ extension TLS1_3 {
         
         func sendFinished() throws
         {
-            let verifyData = self.finishedData(forClient: connection.isClient)
-            
-            //
-            deriveApplicationTrafficSecrets()
-            
-            try self.connection.sendHandshakeMessage(TLSFinished(verifyData: verifyData))
-
-            self.recordLayer.changeTrafficSecrets(clientTrafficSecret: self.handshakeState.clientTrafficSecret!,
-                                                  serverTrafficSecret: self.handshakeState.serverTrafficSecret!)
+            fatalError("sendFinished not overridden")
         }
         
         // TLS 1.3 uses HKDF to derive its key material
@@ -123,7 +139,7 @@ extension TLS1_3 {
             self.handshakeState.earlySecret = HKDF_Extract(salt: zeroes, inputKeyingMaterial: connection.preSharedKey ?? zeroes)
         }
         
-        internal func deriveHandshakeSecret(with keyExchange: KeyExchange) {
+        internal func deriveHandshakeSecret(with keyExchange: PFSKeyExchange) {
             let sharedSecret = keyExchange.calculateSharedSecret()
 
             let handshakeSecret = HKDF_Extract(salt: self.handshakeState.earlySecret!, inputKeyingMaterial: sharedSecret!)

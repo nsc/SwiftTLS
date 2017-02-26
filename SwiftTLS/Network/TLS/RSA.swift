@@ -27,6 +27,8 @@ struct RSA
     let exponent2 : BigInt?
     let coefficient : BigInt?
     
+    var signatureScheme: TLSSignatureScheme = .rsa_pss_sha256
+    
     static func fromPEMFile(_ file : String) -> RSA?
     {
         for (section, var object) in ASN1Parser.sectionsFromPEMFile(file)
@@ -178,7 +180,7 @@ struct RSA
         self.coefficient = nil
     }
     
-    func signData(_ data : [UInt8], hashAlgorithm: HashAlgorithm) -> BigInt
+    func signData(_ data : [UInt8]) -> BigInt
     {
         guard let d = self.d else {
             precondition(self.d != nil)
@@ -187,6 +189,7 @@ struct RSA
         
         print("signData with n = \(self.n)")
         
+        let hashAlgorithm = signatureScheme.hashAlgorithm!
         let hash = self.hash(data, hashAlgorithm: hashAlgorithm)
         
         let writer = ASN1Writer()
@@ -476,9 +479,9 @@ struct RSA
 
 extension RSA : Signing
 {
-    func sign(data : [UInt8], hashAlgorithm: HashAlgorithm) -> [UInt8]
+    func sign(data: [UInt8]) -> [UInt8]
     {
-        let signature = self.signData(data, hashAlgorithm: hashAlgorithm)
+        let signature = self.signData(data)
         
         return signature.asBigEndianData()
     }

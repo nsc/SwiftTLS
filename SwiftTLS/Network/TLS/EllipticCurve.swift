@@ -32,6 +32,20 @@ enum NamedGroup : UInt16 {
         }
     }
     
+    var keyExchange: KeyExchange {
+        switch self {
+        case .secp256r1, .secp384r1, .secp521r1:
+            guard let curve = EllipticCurve.named(self) else {
+                fatalError("Elliptic Curve \(self) not defined")
+            }
+            
+            return KeyExchange.ecdhe(ECDHKeyExchange(curve: curve))
+            
+        default:
+            fatalError("Elliptic Curve \(self) not supported")
+        }
+    }
+    
     init?(inputStream: InputStreamType)
     {
         guard let rawNamedCurve : UInt16 = inputStream.read() else {
@@ -74,8 +88,8 @@ struct EllipticCurvePoint
         }
         
         let numBytes = data.count/2
-        self.x = BigInt(bigEndianParts: [UInt8](data[1..<1+numBytes]))
-        self.y = BigInt(bigEndianParts: [UInt8](data[1+numBytes..<1+2*numBytes]))
+        self.x = BigInt(bigEndianParts: [UInt8](data[1 ..< 1 + numBytes]))
+        self.y = BigInt(bigEndianParts: [UInt8](data[1 + numBytes ..< 1 + 2 * numBytes]))
     }
     
     func isOnCurve(_ curve : EllipticCurve) -> Bool
@@ -195,13 +209,10 @@ struct EllipticCurve
     
     func createKeyPair() -> (d : BigInt, Q : EllipticCurvePoint)
     {
-        let d : BigInt
-        var localD : BigInt
+        var d : BigInt
         repeat {
-            localD = BigInt.random(self.n)
-        } while localD.isZero
-        
-        d = localD
+            d = BigInt.random(self.n)
+        } while d.isZero
         
         let Q = self.multiplyPoint(self.G, d)
         
@@ -224,31 +235,6 @@ struct EllipticCurveParameters {
     let G : EllipticCurvePoint
     let N : BigInt
 }
-
-let prime192v1_P =  BigInt(bigEndianParts: [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-                                            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-                                            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF] as [UInt8])
-
-let prime192v1_A =  BigInt(bigEndianParts: [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-                                            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-                                            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFC] as [UInt8])
-
-let prime192v1_B =  BigInt(bigEndianParts: [0x64, 0x21, 0x05, 0x19, 0xE5, 0x9C, 0x80, 0xE7,
-                                            0x0F, 0xA7, 0xE9, 0xAB, 0x72, 0x24, 0x30, 0x49,
-                                            0xFE, 0xB8, 0xDE, 0xEC, 0xC1, 0x46, 0xB9, 0xB1] as [UInt8])
-
-let prime192v1_Gx = BigInt(bigEndianParts: [0x18, 0x8D, 0xA8, 0x0E, 0xB0, 0x30, 0x90, 0xF6,
-                                            0x7C, 0xBF, 0x20, 0xEB, 0x43, 0xA1, 0x88, 0x00,
-                                            0xF4, 0xFF, 0x0A, 0xFD, 0x82, 0xFF, 0x10, 0x12] as [UInt8])
-
-let prime192v1_Gy = BigInt(bigEndianParts: [0x07, 0x19, 0x2B, 0x95, 0xFF, 0xC8, 0xDA, 0x78,
-                                            0x63, 0x10, 0x11, 0xED, 0x6B, 0x24, 0xCD, 0xD5,
-                                            0x73, 0xF9, 0x77, 0xA1, 0x1E, 0x79, 0x48, 0x11] as [UInt8])
-
-let prime192v1_N =  BigInt(bigEndianParts: [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-                                            0xFF, 0xFF, 0xFF, 0xFF, 0x99, 0xDE, 0xF8, 0x36,
-                                            0x14, 0x6B, 0xC9, 0xB1, 0xB4, 0xD2, 0x28, 0x31] as [UInt8])
-
 
 let secp256r1 = EllipticCurve(
     p: BigInt(hexString: "FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF")!,

@@ -67,7 +67,7 @@ extension TLS1_2 {
                 try self.transitionTo(state: .finishedSent)
                 
             default:
-                fatalError("Unsupported handshake \(message.handshakeType)")
+                fatalError("Unsupported handshake message\(message.handshakeType)")
             }
         }
         
@@ -96,7 +96,7 @@ extension TLS1_2 {
                 try self.transitionTo(state: .finishedReceived)
                 
             default:
-                fatalError("Unsupported handshake \(handshakeType.rawValue)")
+                fatalError("Unsupported handshake message \(handshakeType.rawValue)")
             }
         }
         

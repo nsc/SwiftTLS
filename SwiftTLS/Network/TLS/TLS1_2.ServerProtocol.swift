@@ -191,7 +191,7 @@ extension TLS1_2 {
                 print("Selected cipher suite is \(server.cipherSuite!)")
             }
             
-            print("client hello session ID: \(clientHello.legacySessionID)")
+            print("client hello session ID: \(String(describing: clientHello.legacySessionID))")
             if let sessionID = clientHello.legacySessionID {
                 if let session = server.serverContext.sessionCache[sessionID] {
                     print("Using cached session ID: \(sessionID.sessionID)")

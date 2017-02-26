@@ -159,6 +159,10 @@ extension TLSServerStateMachine
         try self.serverDidReceiveHandshakeMessage(message)
     }
     
+    func didSendChangeCipherSpec() throws {
+        try self.serverDidReceiveChangeCipherSpec()
+    }
+
     func didReceiveChangeCipherSpec() throws {
         try self.serverDidReceiveChangeCipherSpec()
     }

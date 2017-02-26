@@ -223,47 +223,17 @@ enum KeyExchange
     case dhe(PFSKeyExchange)
     case ecdhe(PFSKeyExchange)
     
-    func calculateSharedSecret() -> [UInt8]?
-    {
+    var pfsKeyExchange: PFSKeyExchange? {
         switch self {
         case .dhe(let keyExchange):
-            return keyExchange.calculateSharedSecret()
+            return keyExchange
 
         case .ecdhe(let keyExchange):
-            return keyExchange.calculateSharedSecret()
-            
+            return keyExchange
         case .rsa:
             return nil
         }
     }
-    
-    var peerPublicKey: [UInt8]? {
-        get {
-            switch self {
-            case .dhe(let keyExchange):
-                return keyExchange.peerPublicKey
-
-            case .ecdhe(let keyExchange):
-                return keyExchange.peerPublicKey
-                
-            case .rsa:
-                return nil
-            }
-        }
-        set {
-            switch self {
-            case .dhe(var keyExchange):
-                keyExchange.peerPublicKey = newValue
-
-            case .ecdhe(var keyExchange):
-                keyExchange.peerPublicKey = newValue
-                
-            case .rsa:
-                break
-            }
-        }
-    }
-
 }
 
 protocol PFSKeyExchange

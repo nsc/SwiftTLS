@@ -66,7 +66,7 @@ class TLSHandshakeMessage : TLSMessage
             message = TLSCertificateVerify(inputStream: inputStream, context: context)
             
         default:
-            fatalError("Unsupported handshake message")
+            fatalError("Unsupported handshake message \(handshakeType)")
         }
         
         if let message = message {

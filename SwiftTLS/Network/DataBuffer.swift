@@ -38,6 +38,8 @@ extension RangeReplaceableCollection where Iterator.Element == UInt8
 
 class BinaryInputStream : InputStreamType
 {
+    var bytesRead: Int
+
     private var index = 0
     private var data : [UInt8]
     private var length : Int
@@ -46,12 +48,14 @@ class BinaryInputStream : InputStreamType
     {
         self.data = data
         self.length = data.count
+        self.bytesRead = 0
     }
 
     func read(count: Int) -> [UInt8]? {
         if index + count <= self.length {
             let s = data[index..<index + count]
             index += count
+            bytesRead = index
             
             return [UInt8](s)
         }

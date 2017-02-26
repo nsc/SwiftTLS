@@ -40,8 +40,8 @@ extension TLS1_3 {
             var currentWriteIV: [UInt8] {
                 // XOR the write IV with the sequence number as of RFC???? section 5.3 Per-Record Nonce
                 let sequenceNumberSize = MemoryLayout<SequenceNumberType>.size
-                let writeIVLeftPart = [UInt8](writeIV[0..<writeIV.count - sequenceNumberSize])
-                let writeIVRightPart = [UInt8](writeIV[writeIV.count - sequenceNumberSize..<writeIV.count])
+                let writeIVLeftPart  = [UInt8](writeIV[0 ..< writeIV.count - sequenceNumberSize])
+                let writeIVRightPart = [UInt8](writeIV[writeIV.count - sequenceNumberSize ..< writeIV.count])
                 let IV : [UInt8] = writeIVLeftPart + (writeIVRightPart ^ writeSequenceNumber.bigEndianByteArray())
                 
                 return IV
@@ -50,7 +50,7 @@ extension TLS1_3 {
             var currentReadIV: [UInt8] {
                 // XOR the read IV with the sequence number as of RFC???? section 5.3 Per-Record Nonce
                 let sequenceNumberSize = MemoryLayout<SequenceNumberType>.size
-                let readIVLeftPart = [UInt8](readIV[0..<readIV.count - sequenceNumberSize])
+                let readIVLeftPart  = [UInt8](readIV[0 ..< readIV.count - sequenceNumberSize])
                 let readIVRightPart = [UInt8](readIV[readIV.count - sequenceNumberSize..<readIV.count])
                 let IV : [UInt8] = readIVLeftPart + (readIVRightPart ^ readSequenceNumber.bigEndianByteArray())
                 
@@ -87,6 +87,10 @@ extension TLS1_3 {
             let serverWriteKey = protocolHandler.HKDF_Expand_Label(secret: serverTrafficSecret, label: keyLabel,  hashValue: [], outputLength: keySize)
             let serverWriteIV  = protocolHandler.HKDF_Expand_Label(secret: serverTrafficSecret, label: ivLabel, hashValue: [], outputLength: ivSize)
             
+//            print("client write key: \(hex(clientWriteKey))")
+//            print("client write IV : \(hex(clientWriteIV))")
+//            print("server write key: \(hex(serverWriteKey))")
+//            print("server write IV : \(hex(serverWriteIV))")
             
             var encryptionParameters : EncryptionParameters
             if self.isClient {

@@ -8,224 +8,169 @@
 
 import Foundation
 
-//extension TLS1_3 {
-//    class ServerProtocol : BaseProtocol, TLSServerProtocol
-//    {
-//        weak var server: TLSServer! {
-//            return self.connection as! TLSServer
-//        }
-//        
-//        init(server: TLSServer)
-//        {
-//            super.init(connection: server)
-//        }
-//        
-//        func sendServerHello() throws {
-//            var sessionID: TLSSessionID
-//            if let session = server.currentSession {
-//                sessionID = session.sessionID
-//            }
-//            else {
-//                // create new session id
-//                repeat {
-//                    sessionID = TLSSessionID.new()
-//                } while server.serverContext.sessionCache[sessionID] != nil
-//                
-//                server.pendingSessionID = sessionID
-//            }
-//            
-//            let serverHelloRandom = Random()
-//            let serverHello = TLSServerHello(
-//                serverVersion: server.negotiatedProtocolVersion!,
-//                random: serverHelloRandom,
-//                sessionID: sessionID,
-//                cipherSuite: server.cipherSuite!,
-//                compressionMethod: .null)
-//            
-//            if server.securityParameters.isUsingSecureRenegotiation {
-//                if server.isInitialHandshake {
-//                    serverHello.extensions.append(TLSSecureRenegotiationInfoExtension())
-//                }
-//                else {
-//                    let renegotiationInfo = server.securityParameters.clientVerifyData + server.securityParameters.serverVerifyData
-//                    serverHello.extensions.append(TLSSecureRenegotiationInfoExtension(renegotiatedConnection: renegotiationInfo))
-//                }
-//            }
-//            
-//            print("ServerHello extensions = \(serverHello.extensions)")
-//            
-//            server.securityParameters.serverRandom = DataBuffer(serverHelloRandom).buffer
-//            if let session = server.currentSession {
-//                server.setPendingSecurityParametersForCipherSuite(session.cipherSpec)
-//            }
-//            
-//            server.isInitialHandshake = false
-//            
-//            try server.sendHandshakeMessage(serverHello)
-//        }
-//        
-//        func doKeyExchange() throws
-//        {
-//            guard let cipherSuiteDescriptor = TLSCipherSuiteDescriptorForCipherSuite(server.cipherSuite!) else {
-//                throw TLSError.error("No cipher suite")
-//            }
-//            
-//            switch cipherSuiteDescriptor.keyExchangeAlgorithm!
-//            {
-//            case .dhe:
-//                guard var dhParameters = server.configuration.dhParameters else {
-//                    throw TLSError.error("No DH parameters set in configuration")
-//                }
-//                
-//                let dhKeyExchange = DHKeyExchange(dhParameters: dhParameters)
-//                
-//                // use new public key for each key exchange
-//                dhParameters.Ys = dhKeyExchange.calculatePublicKey()
-//                
-//                server.keyExchange = .dhe(dhKeyExchange)
-//                
-//                let message = TLSServerKeyExchange(dhParameters: dhParameters, context: server)
-//                try server.sendHandshakeMessage(message)
-//                
-//            case .ecdhe:
-//                guard var ecdhParameters = server.configuration.ecdhParameters else {
-//                    throw TLSError.error("No ECDH parameters set in configuration")
-//                }
-//                
-//                let ecdhKeyExchange = ECDHKeyExchange(curve: ecdhParameters.curve)
-//                let Q = ecdhKeyExchange.calculatePublicKey()
-//                server.keyExchange = .ecdhe(ecdhKeyExchange)
-//                
-//                ecdhParameters.publicKey = Q
-//                let message = TLSServerKeyExchange(ecdhParameters: ecdhParameters, context:server)
-//                try server.sendHandshakeMessage(message)
-//                break
-//                
-//            default:
-//                throw TLSError.error("Cipher suite \(server.cipherSuite) doesn't need server key exchange")
-//            }
-//        }
-//        
-//        func handleCertificate(_ certificate: TLSCertificateMessage) {
-//        }
-//        
-//        func handleClientHello(_ clientHello: TLSClientHello) throws {
-//            if !server.configuration.supports(clientHello.legacyVersion) {
-//                try server.abortHandshake()
-//            }
-//            
-//            // Secure Renegotiation
-//            let clientHelloContainsEmptyRenegotiationSCSV = clientHello.cipherSuites.contains(.TLS_EMPTY_RENEGOTIATION_INFO_SCSV)
-//            let secureRenegotiationInfo = clientHello.extensions.filter({$0 is TLSSecureRenegotiationInfoExtension}).first as? TLSSecureRenegotiationInfoExtension
-//            
-//            print("ClientHello extensions: \(clientHello.extensions)")
-//            if server.isInitialHandshake {
-//                // RFC 5746, Section 3.6
-//                if clientHelloContainsEmptyRenegotiationSCSV {
-//                    server.securityParameters.isUsingSecureRenegotiation = true
-//                }
-//                else if let secureRenegotiationInfo = secureRenegotiationInfo {
-//                    if secureRenegotiationInfo.renegotiatedConnection.count == 0 {
-//                        server.securityParameters.isUsingSecureRenegotiation = true
-//                    }
-//                    else {
-//                        // abort handshake if the renegotiationInfo isn't empty
-//                        try server.abortHandshake()
-//                    }
-//                }
-//                else {
-//                    server.securityParameters.isUsingSecureRenegotiation = false
-//                }
-//            }
-//            
-//            if clientHello.legacyVersion.isKnownVersion {
-//                assert(server.configuration.supports(clientHello.legacyVersion))
-//                server.negotiatedProtocolVersion = clientHello.legacyVersion
-//            }
-//            else {
-//                server.negotiatedProtocolVersion = server.configuration.supportedVersions.first!
-//            }
-//            
-//            server.securityParameters.clientRandom = DataBuffer(clientHello.random).buffer
-//            
-//            server.cipherSuite = server.selectCipherSuite(clientHello.cipherSuites)
-//            
-//            if server.cipherSuite == nil {
-//                try server.sendAlert(.handshakeFailure, alertLevel: .fatal)
-//                throw TLSError.error("No shared cipher suites. Client supports:" + clientHello.cipherSuites.map({"\($0)"}).reduce("", {$0 + "\n" + $1}))
-//            }
-//            else {
-//                print("Selected cipher suite is \(server.cipherSuite!)")
-//            }
-//            
-//            print("client hello session ID: \(clientHello.legacySessionID)")
-//            if let sessionID = clientHello.legacySessionID {
-//                if let session = server.serverContext.sessionCache[sessionID] {
-//                    print("Using cached session ID: \(sessionID.sessionID)")
-//                    server.currentSession = session
-//                    server.isReusingSession = true
-//                }
-//            }
-//            
-//        }
-//        
-//        func handleFinished(_ finished: TLSFinished) throws {
-//            if (server.verifyFinishedMessage(finished, isClient: true, saveForSecureRenegotiation: true)) {
-//                print("Server: Finished verified.")
-//                if server.isRenegotiatingSecurityParameters {
-//                    print("Server: Renegotiated security parameters successfully.")
-//                    server.isRenegotiatingSecurityParameters = false
-//                }
-//                
-//                if let sessionID = server.pendingSessionID {
-//                    let session = TLSSession(sessionID: sessionID, cipherSpec: server.cipherSuite!, masterSecret: server.securityParameters.masterSecret!)
-//                    server.serverContext.sessionCache[sessionID] = session
-//                    print("Save session \(session)")
-//                }
-//                
-//                server.handshakeMessages.append(finished)
-//            }
-//            else {
-//                print("Error: could not verify Finished message.")
-//                try server.sendAlert(.decryptError, alertLevel: .fatal)
-//            }
-//        }
-//        
-//        func handleClientKeyExchange(_ clientKeyExchange: TLSClientKeyExchange) {
-//            var preMasterSecret : [UInt8]
-//            
-//            switch server.keyExchange {
-//                
-//            case .dhe(let dhKeyExchange):
-//                // Diffie-Hellman
-//                if let diffieHellmanPublicKey = clientKeyExchange.diffieHellmanPublicKey {
-//                    dhKeyExchange.peerPublicKey = diffieHellmanPublicKey
-//                    preMasterSecret = dhKeyExchange.calculateSharedSecret()!.asBigEndianData()
-//                }
-//                else {
-//                    fatalError("Client Key Exchange has no DH public key")
-//                }
-//                
-//            case .ecdhe(let ecdhKeyExchange):
-//                if let ecdhPublicKey = clientKeyExchange.ecdhPublicKey {
-//                    ecdhKeyExchange.peerPublicKey = ecdhPublicKey
-//                    preMasterSecret = ecdhKeyExchange.calculateSharedSecret()!.asBigEndianData()
-//                }
-//                else {
-//                    fatalError("Client Key Exchange has no ECDH public key")
-//                }
-//                
-//            case .rsa:
-//                // RSA
-//                if let encryptedPreMasterSecret = clientKeyExchange.encryptedPreMasterSecret {
-//                    preMasterSecret = server.configuration.identity!.rsa!.decrypt(encryptedPreMasterSecret)
-//                }
-//                else {
-//                    fatalError("Client Key Exchange has no encrypted master secret")
-//                }
-//            }
-//            
-//            server.setPreMasterSecretAndCommitSecurityParameters(preMasterSecret)
-//        }
-//    }
-//}
+extension TLS1_3 {
+    class ServerProtocol : BaseProtocol, TLSServerProtocol
+    {
+        weak var server: TLSServer! {
+            return self.connection as! TLSServer
+        }
+        
+        init(server: TLSServer)
+        {
+            super.init(connection: server)
+        }
+
+        func sendServerHello() throws {
+            let serverHelloRandom = Random()
+            let serverHello = TLSServerHello(
+                serverVersion: server.negotiatedProtocolVersion!,
+                random: serverHelloRandom,
+                sessionID: nil,
+                cipherSuite: server.cipherSuite!,
+                compressionMethod: .null)
+
+            guard let clientKeyShare = server.clientKeyShare else {
+                throw TLSError.error("Client Key Share not established in sendServerHello")
+            }
+            
+            var keyExchange = clientKeyShare.namedGroup.keyExchange.pfsKeyExchange!
+            keyExchange.createKeyPair()
+            keyExchange.peerPublicKey = clientKeyShare.keyExchange
+            
+            let serverKeyShare = KeyShareEntry(namedGroup: clientKeyShare.namedGroup, keyExchange: keyExchange.publicKey!)
+            let keyShareExtension = TLSKeyShareExtension(keyShare: .serverHello(serverShare: serverKeyShare))
+            serverHello.extensions.append(keyShareExtension)
+            
+            // Normally we would use sendHandshakeMessage here, which would implicitly add the message to
+            // the handShakeMessages and cal didSendHandshakeMessage on the stateMachine.
+            // But since that would immediately trigger the sending of EncryptedExtensions, we have no chance
+            // to establish the encryption keys inbetween.
+            // So until we come can come up with a different architecture to do this, we are doing the three
+            // steps here by hand, intermixed with establishing the encryption keys
+            try server.sendMessage(serverHello)
+            server.handshakeMessages.append(serverHello)
+            
+            deriveEarlySecret()
+            deriveHandshakeSecret(with: keyExchange)
+            
+            try server.stateMachine?.didSendHandshakeMessage(serverHello)
+        }
+        
+        func sendEncryptedExtensions() throws {
+            let encryptedExtensions = TLSEncryptedExtensions(extensions: [])
+            try server.sendHandshakeMessage(encryptedExtensions)
+        }
+        
+        func handleClientHello(_ clientHello: TLSClientHello) throws {
+
+            guard let negotiatedProtocolVersion = selectVersion(for: clientHello) else {
+                try server.abortHandshake()
+                return
+            }
+            
+            if negotiatedProtocolVersion < .v1_3 {
+                // fallback to lesser version
+                server.setupServer(with: self.server.configuration, version: negotiatedProtocolVersion)
+                
+                try server.serverProtocolHandler.handleClientHello(clientHello)
+                
+                return
+            }
+            
+            server.negotiatedProtocolVersion = negotiatedProtocolVersion
+            
+            print("ClientHello extensions: \(clientHello.extensions)")
+            
+            guard let cipherSuite = server.selectCipherSuite(clientHello.cipherSuites) else {
+                try server.sendAlert(.handshakeFailure, alertLevel: .fatal)
+                throw TLSError.error("No shared cipher suites. Client supports:" + clientHello.cipherSuites.map({"\($0)"}).reduce("", {$0 + "\n" + $1}))
+            }
+            
+            print("Selected cipher suite is \(cipherSuite)")
+            
+            guard let keyShare = selectKeyShare(clientHello: clientHello) else {
+                throw TLSError.error("Could not agree on a keyShare")
+            }
+            
+            server.cipherSuite = cipherSuite
+            server.clientKeyShare = keyShare
+        }
+        
+        override func sendFinished() throws
+        {
+            let verifyData = self.finishedData(forClient: connection.isClient)
+            
+            try self.connection.sendHandshakeMessage(TLSFinished(verifyData: verifyData))
+            
+            // The secret contains all the handshake messages up to Server Finished, so the server has to derive
+            // it after sending its Finished
+            deriveApplicationTrafficSecrets()
+        }
+
+        func handleFinished(_ finished: TLSFinished) throws {
+            // Activate the application traffic secret after Client Finished
+            self.recordLayer.changeTrafficSecrets(clientTrafficSecret: self.handshakeState.clientTrafficSecret!,
+                                                  serverTrafficSecret: self.handshakeState.serverTrafficSecret!)
+        }
+        
+        func handleCertificate(_ certificate: TLSCertificateMessage) {
+        }
+        
+        func handleMessage(_ message: TLSMessage) throws {
+        }
+        
+        func selectVersion(for clientHello: TLSClientHello) -> TLSProtocolVersion? {
+            var supportedVersions: [TLSProtocolVersion]? = nil
+            if let supportedVersionsExtension = clientHello.extensions.first(where: { $0 is TLSSupportedVersionsExtension }) as? TLSSupportedVersionsExtension {
+                supportedVersions = supportedVersionsExtension.supportedVersions
+            }
+            
+            var protocolVersion: TLSProtocolVersion? = nil
+            if supportedVersions != nil {
+                // This is a TLS >= 1.3 handshake so the supportedVersions are exhaustive
+                for version in supportedVersions! {
+                    if server.configuration.supports(version) {
+                        protocolVersion = version
+                        break
+                    }
+                }
+            }
+            else {
+                // Legacy handshake
+                let clientVersion = clientHello.legacyVersion
+                if server.configuration.supports(clientVersion) {
+                    protocolVersion = clientVersion
+                }
+                else {
+                    let maxVersion = server.configuration.maximumSupportedVersion
+                    
+                    if clientVersion >= maxVersion {
+                        protocolVersion = maxVersion
+                    }
+                }
+            }
+            
+            return protocolVersion
+        }
+        
+        func selectKeyShare(clientHello: TLSClientHello) -> KeyShareEntry?
+        {
+            guard let keyShareExtension = clientHello.extensions.first(where: { $0 is TLSKeyShareExtension }) as? TLSKeyShareExtension else {
+                return nil
+            }
+            
+            if case .clientHello(let keyShares) = keyShareExtension.keyShare {
+                for keyShare in keyShares {
+                    if server.configuration.supportedGroups.contains(keyShare.namedGroup) {
+                        return keyShare
+                    }
+                }
+            }
+            else {
+                return nil
+            }
+
+            return nil
+        }
+    }
+}

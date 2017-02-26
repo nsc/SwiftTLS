@@ -80,11 +80,12 @@ struct TLSKeyShareExtension : TLSExtension
             var clientShares: [KeyShareEntry] = []
             
             while numBytes > 0 {
+                let bytesRead = inputStream.bytesRead
                 guard let keyShareEntry = KeyShareEntry(inputStream: inputStream) else {
                     return nil
                 }
                 
-                numBytes -= 2 + keyShareEntry.keyExchange.count
+                numBytes -= (inputStream.bytesRead - bytesRead)
                 
                 clientShares.append(keyShareEntry)
             }
@@ -115,21 +116,21 @@ struct TLSKeyShareExtension : TLSExtension
             for clientShare in clientShares {
                 clientShare.writeTo(&data)
             }
+            let extensionsData = data.buffer
+            let extensionsLength = extensionsData.count
+            
+            target.write(self.extensionType.rawValue)
+            target.write(UInt16(extensionsData.count + 2))
+            target.write(UInt16(extensionsLength))
+            target.write(extensionsData)
             
         case .helloRetryRequest(let selectedGroup):
-            selectedGroup.writeTo(&data)
+            selectedGroup.writeTo(&target)
 
         case .serverHello(let serverShare):
-            serverShare.writeTo(&data)
+            serverShare.writeTo(&target)
         }
         
-        let extensionsData = data.buffer
-        let extensionsLength = extensionsData.count
-        
-        target.write(self.extensionType.rawValue)
-        target.write(UInt16(extensionsData.count + 2))
-        target.write(UInt16(extensionsLength))
-        target.write(extensionsData)
     }
     
 }

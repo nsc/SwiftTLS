@@ -18,9 +18,9 @@ func server(port: Int = 443, certificatePath: String, dhParametersPath : String?
     
     print("Listening on port \(port)")
     
-    var configuration = TLSConfiguration(supportedVersions: [.v1_2, .v1_3])
+    var configuration = TLSConfiguration(supportedVersions: [.v1_3, .v1_2])
     
-    let cipherSuites : [CipherSuite] = [
+    var cipherSuites : [CipherSuite] = [
         .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
         .TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 //        .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
@@ -28,6 +28,10 @@ func server(port: Int = 443, certificatePath: String, dhParametersPath : String?
         .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
         .TLS_RSA_WITH_AES_256_CBC_SHA
         ]
+    
+    if let cipherSuite = cipherSuite {
+        cipherSuites.insert(cipherSuite, at: 0)
+    }
     
     configuration.cipherSuites = cipherSuites
 //    configuration.identity = Identity(name: "Internet Widgits Pty Ltd")!
@@ -72,7 +76,6 @@ func server(port: Int = 443, certificatePath: String, dhParametersPath : String?
                 continue
             }
             
-            
             print("Error: \(error)")
         }
     }
@@ -82,11 +85,13 @@ func connectTo(host : String, port : Int = 443, supportedVersions: [TLSProtocolV
 {
     var configuration = TLSConfiguration(supportedVersions: supportedVersions)
     
+    var cipherSuites: [CipherSuite] = []
     if let cipherSuite = cipherSuite {
-        configuration.cipherSuites = [cipherSuite]
+        cipherSuites = [cipherSuite]
     }
-    else if supportedVersions.contains(.v1_2) {
-        configuration.cipherSuites = [
+        
+    if supportedVersions.contains(.v1_2) {
+        cipherSuites.append(contentsOf: [
             .TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
             .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
             .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
@@ -94,15 +99,16 @@ func connectTo(host : String, port : Int = 443, supportedVersions: [TLSProtocolV
             .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
             .TLS_RSA_WITH_AES_256_CBC_SHA,
             .TLS_RSA_WITH_AES_128_CBC_SHA256,
-        ]
+        ])
     }
     else {
-        configuration.cipherSuites = [
+        cipherSuites.append(contentsOf: [
             .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
             .TLS_RSA_WITH_AES_256_CBC_SHA
-        ]
+        ])
     }
     
+    configuration.cipherSuites = cipherSuites
 
     let socket = TLSClientSocket(configuration: configuration)
     
@@ -156,9 +162,15 @@ func connectTo(host : String, port : Int = 443, supportedVersions: [TLSProtocolV
             print("Connection established using cipher suite \(socket.connection.cipherSuite!)")
             
             try socket.write([UInt8]("GET / HTTP/1.1\r\nHost: \(host)\r\n\r\n".utf8))
-            let data = try socket.read(count: 4096)
-            print("\(data.count) bytes read.")
-            print("\(String.fromUTF8Bytes(data)!)")
+        
+            while true {
+                let data = try socket.read(count: 4096)
+                if data.count == 0 {
+                    break
+                }
+                print("\(data.count) bytes read.")
+                print("\(String.fromUTF8Bytes(data)!)")
+            }
             socket.close()
 //        }
     } catch (let error) {
