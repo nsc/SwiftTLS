@@ -13,8 +13,8 @@ import XCTest
 class BlockCipherTests : XCTestCase {
     func test_CBC_encryptionAndSuccessiveDecryption_works()
     {
-        let key = TLSRandomBytes(16)
-        let iv  = TLSRandomBytes(16)
+        let key = TLSRandomBytes(count: 16)
+        let iv  = TLSRandomBytes(count: 16)
         
         var data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32] as [UInt8]
         

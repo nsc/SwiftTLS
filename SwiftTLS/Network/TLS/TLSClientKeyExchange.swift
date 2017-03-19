@@ -15,9 +15,7 @@ class PreMasterSecret : Streamable
     {
         self.clientVersion = clientVersion
         
-        self.random = [UInt8](repeating: 0, count: PreMasterSecret.NumberOfRandomBytes)
-        
-        arc4random_buf(&self.random, PreMasterSecret.NumberOfRandomBytes)
+        self.random = TLSRandomBytes(count: PreMasterSecret.NumberOfRandomBytes)
     }
     
     var clientVersion : TLSProtocolVersion

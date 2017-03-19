@@ -125,6 +125,8 @@ enum OID : String
     case sha256WithRSAEncryption                    = "1.2.840.113549.1.1.11"
     case sha384WithRSAEncryption                    = "1.2.840.113549.1.1.12"
     
+    case pkcs1                                      = "1.2.840.113549.1.1"
+    case pkcs1_id_mgf1                              = "1.2.840.113549.1.1.8"
     case pkcs7                                      = "1.2.840.113549.1.7"
     case pkcs7_data                                 = "1.2.840.113549.1.7.1"
     case pkcs9_emailAddress                         = "1.2.840.113549.1.9.1"

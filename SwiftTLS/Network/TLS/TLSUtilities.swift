@@ -47,6 +47,21 @@ enum HashAlgorithm : UInt8 {
     var hashLength: Int {
         return macAlgorithm.size
     }
+    
+    typealias HashFunction = ([UInt8]) -> [UInt8]
+    var hashFunction: HashFunction {
+        switch self {
+        case .sha256:
+            return Hash_SHA256
+            
+        case .sha384:
+            return Hash_SHA384
+            
+        default:
+            fatalError("Unsupported hash function \(self)")
+        }
+    }
+
 }
 
 enum SignatureAlgorithm : UInt8 {
@@ -63,14 +78,14 @@ struct TLSSignedData : Streamable
     
     var signature : [UInt8]
     
-    init(data: [UInt8], context: TLSConnection)
+    init(data: [UInt8], context: TLSConnection) throws
     {
         if context.negotiatedProtocolVersion == .v1_2 {
             self.hashAlgorithm = context.configuration.hashAlgorithm
             self.signatureAlgorithm = context.configuration.signatureAlgorithm
         }
         
-        self.signature = context.sign(data)
+        self.signature = try context.sign(data)
     }
     
     init?(inputStream : InputStreamType, context: TLSConnection)
@@ -720,4 +735,13 @@ public extension String {
         
         return nil
     }
+}
+
+public func TLSRandomBytes(count: Int) -> [UInt8]
+{
+    var randomBytes = [UInt8](repeating: 0, count: count)
+    
+    arc4random_buf(&randomBytes, count)
+    
+    return randomBytes
 }

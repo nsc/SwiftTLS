@@ -194,15 +194,6 @@ extension InputStreamType
 
 }
 
-public func TLSRandomBytes(_ count: Int) -> [UInt8]
-{
-    var randomBytes = [UInt8](repeating: 0, count: count)
-    
-    arc4random_buf(&randomBytes, count)
-    
-    return randomBytes
-}
-
 class Random : Streamable
 {
     static let NumberOfRandomBytes = 28
@@ -211,7 +202,7 @@ class Random : Streamable
     
     init()
     {
-        randomBytes = TLSRandomBytes(28)
+        randomBytes = TLSRandomBytes(count: 28)
         
         gmtUnixTime = UInt32(Date().timeIntervalSinceReferenceDate)
     }

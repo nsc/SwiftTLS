@@ -79,20 +79,6 @@ public class TLSConnection
     
     var hashAlgorithm: HashAlgorithm = .sha256
     
-    typealias HashFunction = ([UInt8]) -> [UInt8]
-    var hashFunction: HashFunction {
-        switch self.hashAlgorithm {
-        case .sha256:
-            return Hash_SHA256
-
-        case .sha384:
-            return Hash_SHA384
-            
-        default:
-            fatalError("Unsupported hash function \(self.hashAlgorithm)")
-        }
-    }
-    
     var hmac: HMACFunction {
         switch self.hashAlgorithm {
         case .sha256:
@@ -275,13 +261,13 @@ public class TLSConnection
         }
     }
         
-    internal func sign(_ data : [UInt8]) -> [UInt8]
+    internal func sign(_ data : [UInt8]) throws -> [UInt8]
     {
         guard let signer = self.signer else {
             fatalError("Unsupported signature algorithm \(self.configuration.signatureAlgorithm)")
         }
         
-        return signer.sign(data: data)
+        return try signer.sign(data: data)
     }
     
     func receiveNextTLSMessage() throws

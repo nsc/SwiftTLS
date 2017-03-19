@@ -211,7 +211,7 @@ extension TLS1_2 {
                 return PRF(secret: self.securityParameters.masterSecret!, label: finishedLabel, seed: seed, outputLength: 12)
             }
             else {
-                let clientHandshake = connection.hashFunction(handshakeData)
+                let clientHandshake = connection.hashAlgorithm.hashFunction(handshakeData)
                 
                 assert(self.securityParameters.masterSecret != nil)
                 

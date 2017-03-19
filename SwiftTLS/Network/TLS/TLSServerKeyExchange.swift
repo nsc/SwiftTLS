@@ -204,7 +204,7 @@ class TLSServerKeyExchange : TLSHandshakeMessage
         }
     }
 
-    init(keyExchangeParameters: KeyExchangeParameters, context: TLSServer)
+    init(keyExchangeParameters: KeyExchangeParameters, context: TLSServer) throws
     {
         guard let server = context.protocolHandler as? TLS1_2.ServerProtocol else {
             fatalError("Can't construct TLSServerKeyExchange with a \(context.protocolHandler)")
@@ -217,7 +217,7 @@ class TLSServerKeyExchange : TLSHandshakeMessage
         data += securityParameters.serverRandom!
         data += DataBuffer(self.parameters).buffer
         
-        self.signedParameters = TLSSignedData(data: data, context:context)
+        self.signedParameters = try TLSSignedData(data: data, context: context)
         
         super.init(type: .handshake(.serverKeyExchange))
     }

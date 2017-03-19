@@ -294,7 +294,7 @@ extension TLS1_2 {
                     data += self.securityParameters.serverRandom!
                     data += serverKeyExchange.parametersData
                     
-                    if !rsa.verify(signature: signedData.signature, data: data) {
+                    if try !rsa.verify(signature: signedData.signature, data: data) {
                         throw TLSError.error("Signature error on server key exchange")
                     }
                 }

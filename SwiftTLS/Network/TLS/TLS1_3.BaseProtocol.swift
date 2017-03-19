@@ -65,7 +65,7 @@ extension TLS1_3 {
             proofData += [0]
             proofData += self.handshakeHash
             
-            let signature = signer.sign(data: proofData)
+            let signature = try signer.sign(data: proofData)
             let certificateVerify = TLSCertificateVerify(algorithm: signer.signatureScheme, signature: signature)
             
             try self.connection.sendHandshakeMessage(certificateVerify)
@@ -73,7 +73,7 @@ extension TLS1_3 {
         
         var handshakeHash: [UInt8] {
             let handshakeData = connection.handshakeMessageData
-            return connection.hashFunction(handshakeData)
+            return connection.hashAlgorithm.hashFunction(handshakeData)
         }
         
         func finishedData(forClient isClient: Bool) -> [UInt8]
@@ -129,7 +129,7 @@ extension TLS1_3 {
         
         internal func Derive_Secret(secret: [UInt8], label: [UInt8], messages: [UInt8]) -> [UInt8] {
             let hashLength = connection.hashAlgorithm.hashLength
-            let hashValue = connection.hashFunction(messages)
+            let hashValue = connection.hashAlgorithm.hashFunction(messages)
             
             return HKDF_Expand_Label(secret: secret, label: label, hashValue: hashValue, outputLength: hashLength)
         }

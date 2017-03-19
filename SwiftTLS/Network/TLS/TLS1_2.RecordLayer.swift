@@ -191,11 +191,11 @@ extension TLS1_2 {
                     recordIV = IV
                     
                 case TLSProtocolVersion.v1_1:
-                    IV = TLSRandomBytes(encryptionParameters.recordIVLength)
+                    IV = TLSRandomBytes(count: encryptionParameters.recordIVLength)
                     recordIV = IV
                     
                 case TLSProtocolVersion.v1_2:
-                    recordIV = TLSRandomBytes(encryptionParameters.recordIVLength)
+                    recordIV = TLSRandomBytes(count: encryptionParameters.recordIVLength)
                     IV = (isAEAD ? encryptionParameters.fixedIV : []) + recordIV
                     
                 default:

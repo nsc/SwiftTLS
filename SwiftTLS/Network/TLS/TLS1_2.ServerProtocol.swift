@@ -89,7 +89,7 @@ extension TLS1_2 {
                 
                 server.keyExchange = .dhe(dhKeyExchange)
                 
-                let message = TLSServerKeyExchange(keyExchangeParameters: .dhe(dhParameters), context: server)
+                let message = try TLSServerKeyExchange(keyExchangeParameters: .dhe(dhParameters), context: server)
                 try server.sendHandshakeMessage(message)
                 
             case .ecdhe:
@@ -102,7 +102,7 @@ extension TLS1_2 {
                 server.keyExchange = .ecdhe(ecdhKeyExchange)
                 
                 ecdhParameters.publicKey = Q
-                let message = TLSServerKeyExchange(keyExchangeParameters: .ecdhe(ecdhParameters), context:server)
+                let message = try TLSServerKeyExchange(keyExchangeParameters: .ecdhe(ecdhParameters), context:server)
                 try server.sendHandshakeMessage(message)
                 break
                 

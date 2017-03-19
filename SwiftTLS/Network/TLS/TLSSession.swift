@@ -35,8 +35,7 @@ struct TLSSessionID : Streamable
     }
     
     static func new() -> TLSSessionID {
-        var sessionID = [UInt8](repeating: 0, count: MaximumSessionIDLength)
-        arc4random_buf(&sessionID, sessionID.count)
+        let sessionID = TLSRandomBytes(count: MaximumSessionIDLength)
         
         return TLSSessionID(sessionID)
     }

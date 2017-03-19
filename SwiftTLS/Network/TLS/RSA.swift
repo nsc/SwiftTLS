@@ -23,9 +23,9 @@ struct RSA
     let d : BigInt?
     let p : BigInt?
     let q : BigInt?
-    let exponent1 : BigInt?
-    let exponent2 : BigInt?
-    let coefficient : BigInt?
+    let dP : BigInt?
+    let dQ : BigInt?
+    let qInv : BigInt?
     
     var signatureScheme: TLSSignatureScheme = .rsa_pss_sha256
     
@@ -111,7 +111,7 @@ struct RSA
                 let exponent2   = BigInt(bigEndianParts:(objects[7] as! ASN1Integer).value)
                 let coefficient = BigInt(bigEndianParts:(objects[8] as! ASN1Integer).value)
                 
-                let rsa = RSA(n : n, e: e, d: d, p: p, q: q, exponent1: exponent1, exponent2: exponent2, coefficient: coefficient)
+                let rsa = RSA(n : n, e: e, d: d, p: p, q: q, dP: exponent1, dQ: exponent2, qInv: coefficient)
                 
                 return rsa
 
@@ -127,16 +127,16 @@ struct RSA
         return nil
     }
     
-    private init(n : BigInt, e : BigInt, d : BigInt, p : BigInt, q : BigInt, exponent1 : BigInt, exponent2 : BigInt, coefficient : BigInt)
+    private init(n : BigInt, e : BigInt, d : BigInt, p : BigInt, q : BigInt, dP : BigInt, dQ : BigInt, qInv : BigInt)
     {
         self.n = n
         self.e = e
         self.d = d
         self.p = p
         self.q = q
-        self.exponent1 = exponent1
-        self.exponent2 = exponent2
-        self.coefficient = coefficient
+        self.dP = dP
+        self.dQ = dQ
+        self.qInv = qInv
     }
 
     init(n: BigInt, publicExponent: BigInt, privateExponent: BigInt? = nil)
@@ -146,9 +146,9 @@ struct RSA
         self.n = n
         self.p = nil
         self.q = nil
-        self.exponent1 = nil
-        self.exponent2 = nil
-        self.coefficient = nil
+        self.dP = nil
+        self.dQ = nil
+        self.qInv = nil
     }
     
     init?(publicKey: [UInt8])
@@ -175,18 +175,13 @@ struct RSA
         self.d = nil
         self.p = nil
         self.q = nil
-        self.exponent1 = nil
-        self.exponent2 = nil
-        self.coefficient = nil
+        self.dP = nil
+        self.dQ = nil
+        self.qInv = nil
     }
     
-    func signData(_ data : [UInt8]) -> BigInt
+    func signData(_ data : [UInt8]) throws -> BigInt
     {
-        guard let d = self.d else {
-            precondition(self.d != nil)
-            return BigInt(0)
-        }
-        
         print("signData with n = \(self.n)")
         
         let hashAlgorithm = signatureScheme.hashAlgorithm!
@@ -206,16 +201,14 @@ struct RSA
         let paddedData = self.paddedData(derData, paddingType: .type1)!
         
         let m = BigInt(bigEndianParts: paddedData)
-        let signature = modular_pow(m, d, n)
+        let signature = try rsasp1(m: m)
         
         return signature
     }
     
-    func verifySignature(_ signature : BigInt, data: [UInt8]) -> Bool
+    func verifySignature(_ signature : BigInt, data: [UInt8]) throws -> Bool
     {
-        let e = self.e
-        
-        let verification = modular_pow(signature, e, n)
+        let verification = try rsavp1(s: signature)
         
         guard let unpaddedVerification = self.unpaddedData(verification.asBigEndianData()) else {
             return false
@@ -250,7 +243,7 @@ struct RSA
             hashSize = HashAlgorithm.sha256.size
 
         default:
-            fatalError("Unsupported hash algorithm \(oid)")
+            throw TLSError.error("Unsupported hash algorithm \(oid)")
         }
 
         let m = BigInt(bigEndianParts: hashedData)
@@ -261,6 +254,31 @@ struct RSA
         hash = octetString.value
                 
         return hash == [UInt8]((m % n).asBigEndianData().suffix(hashSize))
+    }
+
+    func rsasp1(m: BigInt) throws -> BigInt {
+        guard m < self.n - 1 else {
+            throw Error.messageRepresentativeOutOfRange
+        }
+        
+        guard let d = self.d else {
+            throw TLSError.error("Signing primitive used without a private key")
+        }
+        
+        // FIXME: Use second form (CRT) when applicable
+        let s = modular_pow(m, d, n)
+        
+        return s
+    }
+    
+    func rsavp1(s: BigInt) throws -> BigInt {
+        guard s < self.n - 1 else {
+            throw Error.signatureRepresentativeOutOfRange
+        }
+        
+        let m = modular_pow(s, e, n)
+        
+        return m
     }
 
     func encrypt(_ data: [UInt8]) -> [UInt8]
@@ -449,7 +467,7 @@ struct RSA
         }
     }
     
-    private func hash(_ data : [UInt8], hashAlgorithm: HashAlgorithm) -> [UInt8]
+    func hash(_ data : [UInt8], hashAlgorithm: HashAlgorithm) -> [UInt8]
     {
         switch hashAlgorithm
         {
@@ -479,15 +497,15 @@ struct RSA
 
 extension RSA : Signing
 {
-    func sign(data: [UInt8]) -> [UInt8]
+    func sign(data: [UInt8]) throws -> [UInt8]
     {
-        let signature = self.signData(data)
+        let signature = try self.signData(data)
         
         return signature.asBigEndianData()
     }
     
-    func verify(signature : [UInt8], data : [UInt8]) -> Bool
+    func verify(signature : [UInt8], data : [UInt8]) throws -> Bool
     {
-        return self.verifySignature(BigInt(bigEndianParts: signature), data: data)
+        return try self.verifySignature(BigInt(bigEndianParts: signature), data: data)
     }
 }

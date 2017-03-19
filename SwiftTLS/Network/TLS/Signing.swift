@@ -9,6 +9,6 @@
 protocol Signing
 {
     var signatureScheme: TLSSignatureScheme { get }
-    func sign(data : [UInt8]) -> [UInt8]
-    func verify(signature : [UInt8], data : [UInt8]) -> Bool
+    func sign(data : [UInt8]) throws -> [UInt8]
+    func verify(signature : [UInt8], data : [UInt8]) throws -> Bool
 }

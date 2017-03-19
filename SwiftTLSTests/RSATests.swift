@@ -15,19 +15,23 @@ class RSATests: XCTestCase {
     {
         let certificatePath = Bundle(for: type(of: self)).url(forResource: "mycert.pem", withExtension: nil)!.path
 
-        guard let rsa = RSA.fromPEMFile(certificatePath) else {
+        guard var rsa = RSA.fromPEMFile(certificatePath) else {
             XCTFail()
             return
         }
         
+        let signatureScheme = TLSSignatureScheme.rsa_pkcs1_sha1
+        rsa.signatureScheme = signatureScheme
+        
         let data = [1,2,3,4,5,6,7,8] as [UInt8]
         
-        let signature = rsa.signData(data, hashAlgorithm: .sha1)
+        let signature = try! rsa.signData(data)
         
         print(signature)
         
-        let rsa2 = RSA(n: rsa.n, publicExponent: rsa.e)
-        let verified = rsa2.verifySignature(signature, data: data)
+        var rsa2 = RSA(n: rsa.n, publicExponent: rsa.e)
+        rsa2.signatureScheme = signatureScheme
+        let verified = try! rsa2.verifySignature(signature, data: data)
         
         XCTAssert(verified)
     }
@@ -65,11 +69,37 @@ class RSATests: XCTestCase {
         
         let rsa         = RSA(publicKey: publicKey.bits)
 
-        let verified = rsa!.verify(signature: cert.signatureValue.bits, data: tbsData)
+        let verified = try! rsa!.verify(signature: cert.signatureValue.bits, data: tbsData)
 
         XCTAssert(verified)
     }
     
+    func test_RSA_PSS_sign_someData_verifies()
+    {
+        let certificatePath = Bundle(for: type(of: self)).url(forResource: "mycert.pem", withExtension: nil)!.path
+        
+        guard var rsa = RSA.fromPEMFile(certificatePath) else {
+            XCTFail()
+            return
+        }
+        
+        let signatureScheme = TLSSignatureScheme.rsa_pss_sha256
+        rsa.signatureScheme = signatureScheme
+
+        let data = [1,2,3,4,5,6,7,8] as [UInt8]
+        
+        let signature = try! rsa.ssa_pss_sign(message: data)
+        
+        print(signature)
+        
+        var rsa2 = RSA(n: rsa.n, publicExponent: rsa.e)
+        rsa2.signatureScheme = signatureScheme
+
+        let verified = try! rsa2.ssa_pss_verify(message: data, signature: signature)
+        
+        XCTAssert(verified)
+    }
+
 //    func test_encrypt_givesSameResultAsSecurityFramework() {
 //        let certificatePath = Bundle(for: self.dynamicType).url(forResource: "mycert2.pem", withExtension: nil)!.path!
 //        
