@@ -788,7 +788,7 @@ func base64Blocks(with base64String : String) -> [(String,String)]
         }
         
         let beginRange = beginMatch.range
-        let nameRange = beginMatch.rangeAt(1)
+        let nameRange = beginMatch.range(at: 1)
         
         let name = (base64String as NSString).substring(with: nameRange)
         guard let endMatch = endRegEx.firstMatch(in: base64String, options: [], range: NSMakeRange(0, base64String.utf8.count)) else {

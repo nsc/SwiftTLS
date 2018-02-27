@@ -61,7 +61,7 @@ struct TLSSessionID : Streamable
 
 extension TLSSessionID: Hashable {
     var hashValue: Int {
-        return Int(sessionID[0]) << 24 + Int(sessionID[1]) << 16 + Int(sessionID[2]) << 8 + Int(sessionID[3])
+        return sessionID[0].hashValue ^ sessionID[1].hashValue ^ sessionID[2].hashValue ^ sessionID[3].hashValue
     }
 }
 

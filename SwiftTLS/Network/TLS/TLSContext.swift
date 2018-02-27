@@ -42,6 +42,35 @@ enum HashAlgorithm : UInt8 {
             fatalError("HMAC with hash function \(self) is not supported.")
         }
     }
+    
+    var size: Int {
+        get {
+            switch self {
+            case .none:
+                fatalError("Hash algorithm .none has no size")
+                
+            case .md5:
+                return Int(CC_MD5_DIGEST_LENGTH)
+                
+            case .sha1:
+                return Int(CC_SHA1_DIGEST_LENGTH)
+
+            case .sha224:
+                return Int(CC_SHA224_DIGEST_LENGTH)
+
+            case .sha256:
+                return Int(CC_SHA256_DIGEST_LENGTH)
+                
+            case .sha384:
+                return Int(CC_SHA384_DIGEST_LENGTH)
+                
+            case .sha512:
+                return Int(CC_SHA512_DIGEST_LENGTH)
+                
+            }
+        }
+    }
+
 }
 
 enum SignatureAlgorithm : UInt8 {
@@ -145,29 +174,26 @@ enum MACAlgorithm {
     case hmac_sha384
     case hmac_sha512
     
-    var size: Int {
-        get {
-            switch self {
-//            case .null:
-//                fatalError("Null MAC has no size")
-
-            case .hmac_md5:
-                return Int(CC_MD5_DIGEST_LENGTH)
+    var hashAlgorithm: HashAlgorithm {
+        switch self {
+        case .hmac_md5:
+            return .md5
             
-            case .hmac_sha1:
-                return Int(CC_SHA1_DIGEST_LENGTH)
-
-            case .hmac_sha256:
-                return Int(CC_SHA256_DIGEST_LENGTH)
-
-            case .hmac_sha384:
-                return Int(CC_SHA384_DIGEST_LENGTH)
+        case .hmac_sha1:
+            return .sha1
             
-            case .hmac_sha512:
-                return Int(CC_SHA512_DIGEST_LENGTH)
-                
-            }
+        case .hmac_sha256:
+            return .sha256
+            
+        case .hmac_sha384:
+            return .sha384
+            
+        case .hmac_sha512:
+            return .sha512
         }
+    }
+    var size: Int {
+        return self.hashAlgorithm.size
     }
 }
 

@@ -100,7 +100,7 @@ class TSLTests: XCTestCase {
             XCTFail("\(error)")
         }
         
-        self.waitForExpectations(timeout: 2.0) {
+        self.waitForExpectations(timeout: 10.0) {
             (error : Error?) -> Void in
         }
     }
@@ -120,7 +120,7 @@ class TSLTests: XCTestCase {
         }
     }
 
-    func test_renegotiate()
+    func notest_renegotiate()
     {
         let cipherSuite = CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
         let server = createServer(with: cipherSuite, port: 12345)
@@ -166,7 +166,7 @@ class TSLTests: XCTestCase {
             XCTFail("\(error)")
         }
         
-        self.waitForExpectations(timeout: 2.0) {
+        self.waitForExpectations(timeout: 10.0) {
             (error : Error?) -> Void in
         }
     }

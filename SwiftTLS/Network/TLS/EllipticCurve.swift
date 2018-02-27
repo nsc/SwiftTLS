@@ -163,8 +163,8 @@ struct EllipticCurve
             y = y + self.p
         }
 
-        assert(!x.sign)
-        assert(!y.sign)
+        assert(x.signum() == 1)
+        assert(y.signum() == 1)
 
         return EllipticCurvePoint(x: x, y: y)
     }
@@ -184,9 +184,9 @@ struct EllipticCurve
             y = y + self.p
         }
 
-        assert(!x.sign)
-        assert(!y.sign)
-        
+        assert(x.signum() == 1)
+        assert(y.signum() == 1)
+
         return EllipticCurvePoint(x: x, y: y)
     }
     
@@ -196,7 +196,7 @@ struct EllipticCurve
         
         var result : EllipticCurvePoint? = nil
         
-        for i in 0 ..< d.numberOfBits
+        for i in 0 ..< d.bitWidth
         {
             if d.isBitSet(i) {
                 if result != nil {

@@ -67,7 +67,7 @@ struct GF2_128_Element {
         }
         if n < 128 {
             let shift = UInt64(n - 64)
-            return (UInt64(1 << shift) & hi) != 0
+            return (UInt64(UInt64(1) << shift) & hi) != 0
         }
         
         return false

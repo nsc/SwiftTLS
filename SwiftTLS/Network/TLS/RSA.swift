@@ -235,14 +235,16 @@ struct RSA
         
         let hash : [UInt8]
         let hashedData : [UInt8]
-
+        let hashSize: Int
         switch oid
         {
         case .sha1:
             hashedData = Hash_SHA1(data)
-
+            hashSize = HashAlgorithm.sha1.size
+            
         case .sha256:
             hashedData = Hash_SHA256(data)
+            hashSize = HashAlgorithm.sha256.size
 
         default:
             fatalError("Unsupported hash algorithm \(oid)")
@@ -254,8 +256,8 @@ struct RSA
             return false
         }
         hash = octetString.value
-        
-        return hash == (m % n).asBigEndianData()
+                
+        return hash == [UInt8]((m % n).asBigEndianData().suffix(hashSize))
     }
 
     func encrypt(_ data: [UInt8]) -> [UInt8]
@@ -283,7 +285,7 @@ struct RSA
     {
         var length = length
         if length == 0 {
-            length = self.n.numberOfBits / 8
+            length = self.n.bitWidth / 8
         }
         
 
@@ -340,7 +342,7 @@ struct RSA
     {
         var length = length
         if length == 0 {
-            length = self.n.numberOfBits / 8
+            length = self.n.bitWidth / 8
         }
 
         var paddingType = RSA_PKCS1PaddingType.none

@@ -70,6 +70,13 @@ func hex(_ data : [UInt8]) -> String
     return s
 }
 
+extension BigInt {
+    var hexString: String {
+        return "\(self)"
+    }
+}
+
+
 /// XOR
 func ^(lhs: [UInt8], rhs: [UInt8]) -> [UInt8]
 {

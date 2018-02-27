@@ -48,7 +48,7 @@ struct ECDSA
     {
         assert(self.privateKey != nil)
         
-        var s : BigInt = 0
+        var s : BigInt = BigInt(0)
         var r : BigInt
         repeat {
             let G = curve.G
@@ -90,13 +90,13 @@ struct ECDSA
         let (r, s) = signature
         let H = self.publicKey
         
-        let sInverse = modular_inverse(1, s, mod:n)
+        let sInverse = modular_inverse(BigInt(1), s, mod:n)
         let u1 = (sInverse * z) % n
         let u2 = (sInverse * r) % n
         let P = curve.addPoints(curve.multiplyPoint(G, u1), curve.multiplyPoint(H, u2))
         
         let verification = P.x % n
-        
+                
         return (r == verification)
     }
 }
