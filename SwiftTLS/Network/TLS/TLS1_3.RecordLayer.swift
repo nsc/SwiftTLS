@@ -127,7 +127,17 @@ extension TLS1_3 {
                 let padding = [UInt8](repeating: 0, count: paddingLength)
                 let plainTextRecordData = data + [contentType.rawValue] + padding
                 var cipherText : [UInt8]
-                if let b = self.encrypt(plainTextRecordData, authData: nil, key: encryptionParameters.writeKey, IV: encryptionParameters.currentWriteIV) {
+                
+                let cipherSuiteDescriptor = encryptionParameters.cipherSuiteDecriptor
+
+                let authDataBuffer = DataBuffer()
+                authDataBuffer.write(ContentType.applicationData.rawValue)
+                authDataBuffer.write(TLSProtocolVersion.v1_2.rawValue)
+                authDataBuffer.write(UInt16(plainTextRecordData.count + cipherSuiteDescriptor.authTagSize))
+
+                let additionalData = authDataBuffer.buffer
+
+                if let b = self.encrypt(plainTextRecordData, authData: additionalData, key: encryptionParameters.writeKey, IV: encryptionParameters.currentWriteIV) {
                     cipherText = b + self.encryptor.authTag!
                 }
                 else {
@@ -136,12 +146,12 @@ extension TLS1_3 {
                 
                 self.encryptionParameters!.writeSequenceNumber += 1
                 
-                let record = TLSRecord(contentType: .applicationData, protocolVersion: .v1_0, body: cipherText)
+                let record = TLSRecord(contentType: .applicationData, protocolVersion: .v1_2, body: cipherText)
                 return DataBuffer(record).buffer
             }
             else {
                 // no security parameters have been negotiated yet
-                let record = TLSRecord(contentType: contentType, protocolVersion: self.protocolVersion, body: data)
+                let record = TLSRecord(contentType: contentType, protocolVersion: .v1_2, body: data)
                 return DataBuffer(record).buffer
             }
         }
@@ -151,12 +161,29 @@ extension TLS1_3 {
                 return (contentType, recordData)
             }
             
+            // To increase compatibility with strange middleboxes TLS 1.3 allows for changeCipherSpec to be sent
+            // at any time during the handshake after the first ClientHello. Ignore it here (see RFC section about
+            // the Record Protocol and about Middlebox Compatibility Mode)
+            if self.protocolVersion == .v1_3 &&
+                contentType == .changeCipherSpec &&
+                recordData == [1] {
+            
+                return (contentType, recordData)
+            }
+        
             let cipherSuiteDescriptor = encryptionParameters.cipherSuiteDecriptor
 
             let cipherText = [UInt8](recordData[0..<(recordData.count - cipherSuiteDescriptor.authTagSize)])
             let authTag    = [UInt8](recordData[(recordData.count - cipherSuiteDescriptor.authTagSize)..<recordData.count])
             
-            if let message = self.decrypt(cipherText, authData: nil, key: encryptionParameters.readKey, IV: encryptionParameters.currentReadIV) {
+            let authDataBuffer = DataBuffer()
+            authDataBuffer.write(ContentType.applicationData.rawValue)
+            authDataBuffer.write(TLSProtocolVersion.v1_2.rawValue)
+            authDataBuffer.write(UInt16(cipherText.count + cipherSuiteDescriptor.authTagSize))
+            
+            let additionalData = authDataBuffer.buffer
+
+            if let message = self.decrypt(cipherText, authData: additionalData, key: encryptionParameters.readKey, IV: encryptionParameters.currentReadIV) {
             
                 self.encryptionParameters!.readSequenceNumber += 1
 

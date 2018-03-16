@@ -8,7 +8,7 @@
 import Cocoa
 import XCTest
 import OpenSSL
-import SwiftHelper
+
 @testable import SwiftTLS
 
 class BigIntTests: XCTestCase {
@@ -417,47 +417,6 @@ class BigIntTests: XCTestCase {
         }
     }
 
-    func test_CBigInt_divide_twoNumbers_givesCorrectResult()
-    {
-                let uvValues : [(String, String)] = [
-//                    ("8fae", "e0"),
-        //            ("10000", "ffff"),
-        //            ("1000000", "ffff"),
-        //            ("100000", "10ff"),
-                    ("100000000000000000000000000000000", "ff000000000000000"),
-        //
-        //            ("ffffffff26265235ffffff232323f23f23f232323f3243243f", "ffffffff12365981274ffffff1231265123ff"),
-        //            ("A4F9B770F1A0A93F2880E44D1835EE3668B066401982AFA7BC44F3EA4A71D3594CA74BF7071B864106C7C1C862EE928336592C1F0C0C850F3A40E394C6BB71AE70461EE5C31F0D71E220FDFD755B3E921E1C32", "71FD484EBA7FBD7394"),
-                    ("27C09B9E53EF44A877700C820071920F3287AC25BE1CCB9D857394AF862952A8CE6C73796A311E991A57B03324E3B1D298860A3FC41C28F218CB1F5A86C417DA44CEC597A2", "F10598D35D96090AD286A071DBA6BB324FFCDF1952E56C332B093F3C1786016509BBA6D229EB824A6A893BB5"),
-        //            ("D5B460CF20599FC4F81F", "7D2D049494FC")
-                ]
-        
-        for (uHex, vHex) in uvValues {
-            print(uHex)
-            let u = CBigIntCreateWithHexString(uHex)!
-            let v = CBigIntCreateWithHexString(vHex)!
-            print(uHex)
-            
-            let s = BIGNUM_divide(uHex, vHex)
-            print(uHex)
-            
-            let div = CBigIntDivide(u, v, nil)!
-            print(uHex)
-            
-            let divHex = hexStringFromCBigInt(div)
-            print(divHex)
-            
-            if divHex.lowercased() != s.lowercased() {
-//                print("\(i):")
-                print("Wrong division result for \(hexStringFromCBigInt(u)) / \(hexStringFromCBigInt(v))")
-                print("    Should be       \(s)\n" +
-                    "    but is actually \(divHex)")
-            }
-            
-            XCTAssert(divHex.lowercased() == s.lowercased(), "Wrong division result for \(u) / \(v)")
-        }
-    }
-
     func test_mod_twoNumbers_givesCorrectResult()
     {
 //        for i in 0..<100
@@ -610,15 +569,4 @@ class BigIntTests: XCTestCase {
         }
     }
 }
-
-func hexStringFromCBigInt(_ a : UnsafePointer<CBigInt>) -> String
-{
-    let s = CBigIntHexString(a)!
-    
-    let result = String(validatingUTF8: s)!
-    CBigIntHexStringFree(s)
-    
-    return result
-}
-
 

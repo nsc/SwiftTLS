@@ -8,10 +8,12 @@
 enum TLSExtensionType : UInt16
 {
     case serverName = 0
+    case statusRequest = 5
     case supportedGroups = 10
     case ecPointFormats = 11        // TLS 1.2 only, not in TLS 1.3
     case signatureAlgorithms = 13
-    case keyShare = 40
+    case applicationLayerProtocolNegotiation = 16
+    case signedCertificateTimestamp = 18
     case preSharedKey = 41
     case earlyData = 42
     case supportedVersions = 43
@@ -19,7 +21,10 @@ enum TLSExtensionType : UInt16
     case pskKeyExchangeModes = 45
     case certificateAuthorities = 47
     case oidFilters = 48
-    
+    case postHandshakeAuth = 49
+    case signatureAlgorithmsCert = 50
+    case keyShare = 51
+
     case secureRenegotiationInfo = 0xff01
 }
 
@@ -31,7 +36,7 @@ protocol TLSExtension : Streamable
     
 }
 
-func TLSReadExtensions(from inputStream: InputStreamType, length: Int, helloType: TLSHelloType) -> [TLSExtension]?
+func TLSReadExtensions(from inputStream: InputStreamType, length: Int, messageType: TLSMessageExtensionType) -> [TLSExtension]?
 {
     guard
         let extensionsSize : UInt16 = inputStream.read(),
@@ -44,7 +49,7 @@ func TLSReadExtensions(from inputStream: InputStreamType, length: Int, helloType
     length -= 2 + extensionsData.count
     
     if length > 0 {
-        print("Error: excess bytes at the end of client hello")
+        print("Error: excess bytes at the end of \(messageType)")
     }
     
     let buffer = BinaryInputStream(extensionsData)
@@ -62,34 +67,59 @@ func TLSReadExtensions(from inputStream: InputStreamType, length: Int, helloType
                 switch (extensionType)
                 {
                 case .serverName:
-                    if let serverName = TLSServerNameExtension(inputStream: BinaryInputStream(extensionData)) {
-                        extensions.append(serverName)
+                    if extensionData.count == 0 {
+                        extensions.append(TLSServerNameExtension(serverNames: []))
+                        break
                     }
+                    
+                    guard let serverName = TLSServerNameExtension(inputStream: BinaryInputStream(extensionData)) else {
+                        fatalError("Could not read server name extension")
+                    }
+                    
+                    extensions.append(serverName)
                     
                 case .supportedGroups:
-                    if let ellipticCurves = TLSSupportedGroupsExtension(inputStream: BinaryInputStream(extensionData)) {
-                        extensions.append(ellipticCurves)
+                    guard let ellipticCurves = TLSSupportedGroupsExtension(inputStream: BinaryInputStream(extensionData)) else {
+                    
+                        fatalError("Could not read supported groups extension")
                     }
+
+                    extensions.append(ellipticCurves)
                     
                 case .ecPointFormats:
-                    if let pointFormats = TLSEllipticCurvePointFormatsExtension(inputStream: BinaryInputStream(extensionData)) {
-                        extensions.append(pointFormats)
+                    guard let pointFormats = TLSEllipticCurvePointFormatsExtension(inputStream: BinaryInputStream(extensionData)) else {
+                    
+                        fatalError("Could not read EC point formats extension")
                     }
+                    
+                    extensions.append(pointFormats)
                     
                 case .keyShare:
-                    if let keyShare = TLSKeyShareExtension(inputStream: BinaryInputStream(extensionData), helloType: helloType) {
-                        extensions.append(keyShare)
+                    guard let keyShare = TLSKeyShareExtension(inputStream: BinaryInputStream(extensionData), messageType: messageType) else {
+
+                        fatalError("Could not read key share extension")
                     }
+                    
+                    extensions.append(keyShare)
                     
                 case .supportedVersions:
-                    if let supportedVersions = TLSSupportedVersionsExtension(inputStream: BinaryInputStream(extensionData)) {
-                        extensions.append(supportedVersions)
+                    guard let supportedVersions = TLSSupportedVersionsExtension(inputStream: BinaryInputStream(extensionData), messageType: messageType) else {
+                    
+                        fatalError("Could not read supported versions extension")
                     }
                     
+                    extensions.append(supportedVersions)
+                    
                 case .secureRenegotiationInfo:
-                    if let secureRenogotiationInfo = TLSSecureRenegotiationInfoExtension(inputStream: BinaryInputStream(extensionData)) {
-                        extensions.append(secureRenogotiationInfo)
+                    guard let secureRenogotiationInfo = TLSSecureRenegotiationInfoExtension(inputStream: BinaryInputStream(extensionData)) else {
+                    
+                        fatalError("Could not read secure renegotiation info extension")
                     }
+                    
+                    extensions.append(secureRenogotiationInfo)
+                    
+                case .signatureAlgorithms:
+                    break
                     
                 default:
                     print("Unsupported extension type \(rawExtensionType)")
@@ -193,7 +223,7 @@ class TLSClientHello : TLSHandshakeMessage
         bytesLeft -= 1 + rawCompressionMethods.count
 
         if bytesLeft > 0 {
-            if let extensions = TLSReadExtensions(from: inputStream, length: bytesLeft, helloType: .clientHello) {
+            if let extensions = TLSReadExtensions(from: inputStream, length: bytesLeft, messageType: .clientHello) {
                 self.extensions = extensions
             }
         }
@@ -209,7 +239,7 @@ class TLSClientHello : TLSHandshakeMessage
         
         self.rawCipherSuites = rawCipherSuitesRead
         print("compression methods: \(rawCompressionMethods)")
-        self.legacyCompressionMethods = rawCompressionMethods.flatMap {CompressionMethod(rawValue: $0)}
+        self.legacyCompressionMethods = rawCompressionMethods.compactMap {CompressionMethod(rawValue: $0)}
         print("Known compression methods: \(self.legacyCompressionMethods)")
 
         super.init(type: .handshake(.clientHello))

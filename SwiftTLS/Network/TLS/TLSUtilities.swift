@@ -676,7 +676,10 @@ func TLSMessageNameForType(_ messageType : TLSMessageType) -> String
             
         case .noRenegotiation:
             alertDescriptionString = "NoRenegotiation"
-            
+        
+        case .missingExtension:
+            alertDescriptionString = "MissingExtension"
+
         case .unsupportedExtension:
             alertDescriptionString = "UnsupportedExtension"
             
@@ -691,6 +694,15 @@ func TLSMessageNameForType(_ messageType : TLSMessageType) -> String
 
         case .badCertificateHashValue:
             alertDescriptionString = "BadCertificateHashValue"
+
+        case .unknownPSKIdentity:
+            alertDescriptionString = "UnknownPSKIdentity"
+
+        case .certificateRequired:
+            alertDescriptionString = "CertificateRequired"
+
+        case .noApplicationProtocol:
+            alertDescriptionString = "NoApplicationProtocol"
 
         }
         

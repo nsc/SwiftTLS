@@ -42,7 +42,7 @@ class BlockCipher
     private let mode: BlockCipherMode
     private let cipher : CipherAlgorithm
     var authTag : [UInt8]?
-    
+
     var IV : [UInt8] {
         get {
             return _IV

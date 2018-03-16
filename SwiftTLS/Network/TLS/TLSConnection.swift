@@ -8,7 +8,7 @@
 import Foundation
 import CommonCrypto
 
-let tls1_3_prefix = [UInt8]("TLS 1.3, ".utf8)
+let tls1_3_prefix = [UInt8]("tls13 ".utf8)
 
 public class TLSConnection
 {
@@ -198,7 +198,6 @@ public class TLSConnection
     func didReceiveHandshakeMessage(_ message : TLSHandshakeMessage)
     {
         if let clientHello = message as? TLSClientHello {
-            print("TLS version: \(clientHello.legacyVersion)")
             print("Supported Cipher Suites:")
             for cipherSuite in clientHello.cipherSuites {
                 print("\(cipherSuite)")
@@ -256,7 +255,7 @@ public class TLSConnection
         
         try self.handleHandshakeMessage(message)
         
-        if handshakeType != .finished {
+        if handshakeType != .finished && handshakeType != .newSessionTicket {
             try self.receiveNextTLSMessage()
         }
     }

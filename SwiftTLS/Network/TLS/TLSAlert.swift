@@ -40,11 +40,16 @@ enum TLSAlert : UInt8
     case internalError = 80
     case userCancelled = 90
     case noRenegotiation = 100
+    case missingExtension = 109
     case unsupportedExtension = 110
     case certificateUnobtainable = 111
     case unrecognizedName = 112
     case badCertificateStatusResponse = 113
     case badCertificateHashValue = 114
+    case unknownPSKIdentity = 115
+    case certificateRequired = 116
+    case noApplicationProtocol = 120
+
 }
 
 class TLSAlertMessage : TLSMessage
@@ -62,15 +67,20 @@ class TLSAlertMessage : TLSMessage
 
     required init?(inputStream: InputStreamType, context: TLSConnection)
     {
-        if  let level : UInt8 = inputStream.read(),
+        guard let level : UInt8 = inputStream.read(),
             let alertLevel = TLSAlertLevel(rawValue: level),
-            let rawAlert : UInt8 = inputStream.read(),
-            let alert = TLSAlert(rawValue: rawAlert)
+            let rawAlert : UInt8 = inputStream.read()
+        else {
+            return nil
+        }
+
+        if let alert = TLSAlert(rawValue: rawAlert)
         {
             self.alertLevel = alertLevel
             self.alert = alert
         }
         else {
+            fatalError("Unkown alert: \(rawAlert)")
             return nil
         }
         

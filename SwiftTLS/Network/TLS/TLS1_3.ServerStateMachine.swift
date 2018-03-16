@@ -53,6 +53,10 @@ extension TLS1_3 {
             
             switch message.handshakeType
             {
+            case .helloRetryRequest:
+                try self.transition(to: .helloRetryRequestSent)
+                break
+                
             case .serverHello:
                 try self.transition(to: .serverHelloSent)
                 
@@ -91,7 +95,13 @@ extension TLS1_3 {
             {
             case .clientHello:
                 try self.transition(to: .clientHelloReceived)
-                try self.protocolHandler!.sendServerHello()
+                
+                if self.server!.cipherSuite == nil {
+                    try self.protocolHandler!.sendHelloRetryRequest(for: message as! TLSClientHello)
+                }
+                else {
+                    try self.protocolHandler!.sendServerHello()
+                }
                 
             case .finished:
                 try self.transition(to: .finishedReceived)
@@ -117,11 +127,11 @@ extension TLS1_3 {
             
             switch (self.state)
             {
-            case .idle:
+            case .idle, .helloRetryRequestSent:
                 return state == .clientHelloReceived
                 
             case .clientHelloReceived:
-                return state == .serverHelloSent
+                return state == .serverHelloSent || state == .helloRetryRequestSent
                 
             case .serverHelloSent :
                 return state == .encryptedExtensionsSent

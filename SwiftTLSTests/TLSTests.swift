@@ -26,17 +26,20 @@ class TSLTests: XCTestCase {
         // wait for server to be up
         sleep(1)
         
-        var configuration = TLSConfiguration(supportedVersions: [.v1_2])
-        configuration.cipherSuites = [.TLS_RSA_WITH_AES_256_CBC_SHA]
+        var configuration = TLSConfiguration(supportedVersions: [.v1_3])
+        
+        configuration.cipherSuites = [.TLS_AES_128_GCM_SHA256]
+//        configuration.cipherSuites = [.TLS_RSA_WITH_AES_256_CBC_SHA]
 //        configuration.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
 //        configuration.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256]
 //        configuration.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256]
         let socket = TLSClientSocket(configuration: configuration)
 
-        let (host, port) = ("127.0.0.1", 4433)
+//        let (host, port) = ("127.0.0.1", 4433)
         
         do {
-            try socket.connect(IPAddress.addressWithString(host, port: port)!)
+//            try socket.connect(IPAddress.addressWithString(host, port: port)!)
+            try socket.connect(hostname: "localhost", port: 4433)
             try socket.write([UInt8]("GET / HTTP/1.1\r\nHost: example.com\r\n\r\n".utf8))
             let data = try socket.read(count: 100)
             print("\(String.fromUTF8Bytes(data))")
@@ -46,14 +49,17 @@ class TSLTests: XCTestCase {
             print("Error: \(error)")
             XCTFail()
         }
-        catch {}
+        catch let error {
+            print("Error: \(error)")
+            XCTFail()
+        }
     
         opensslServer.terminate()
     }
     
     func createServer(with cipherSuite: CipherSuite, port: Int) -> TLSServerSocket
     {
-        var configuration = TLSConfiguration(supportedVersions: [.v1_2])
+        var configuration = TLSConfiguration(supportedVersions: [.v1_3])
         
         configuration.cipherSuites = [cipherSuite]
         configuration.identity = PEMFileIdentity(pemFile: Bundle(for: type(of: self)).url(forResource: "mycert.pem", withExtension: nil)!.path)
@@ -68,7 +74,7 @@ class TSLTests: XCTestCase {
     {
         let server = createServer(with: cipherSuite, port: 12345)
         
-        let client = TLSClientSocket(supportedVersions: [.v1_2])
+        let client = TLSClientSocket(supportedVersions: [.v1_3])
         client.connection.configuration.cipherSuites = [cipherSuite]
         
         let expectation = self.expectation(description: "accept connection successfully")
@@ -76,12 +82,13 @@ class TSLTests: XCTestCase {
         let address = IPv4Address.localAddress()
         address.port = UInt16(12345)
         
+        var serverSideClientSocket: SocketProtocol? = nil
         let serverQueue = DispatchQueue(label: "server queue", attributes: [])
         do {
             serverQueue.async {
                 do {
-                    let client = try server.acceptConnection(address)
-                    try client.write([1,2,3])
+                    serverSideClientSocket = try server.acceptConnection(address)
+                    try serverSideClientSocket?.write([1,2,3])
                 } catch(let error) {
                     XCTFail("\(error)")
                 }
@@ -94,13 +101,13 @@ class TSLTests: XCTestCase {
                 expectation.fulfill()
             }
             client.close()
-            server.close()
+            serverSideClientSocket?.close()
         }
         catch (let error) {
             XCTFail("\(error)")
         }
         
-        self.waitForExpectations(timeout: 10.0) {
+        self.waitForExpectations(timeout: 30.0) {
             (error : Error?) -> Void in
         }
     }
@@ -112,7 +119,8 @@ class TSLTests: XCTestCase {
 //            .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
 //            .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
 //            .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-            .TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+//            .TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+            .TLS_AES_128_GCM_SHA256
         ]
         
         for cipherSuite in cipherSuites {
@@ -120,56 +128,56 @@ class TSLTests: XCTestCase {
         }
     }
 
-    func notest_renegotiate()
-    {
-        let cipherSuite = CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-        let server = createServer(with: cipherSuite, port: 12345)
-        
-        let client = TLSClientSocket(supportedVersions: [.v1_2])
-        client.connection.configuration.cipherSuites = [cipherSuite]
-        
-        let expectation = self.expectation(description: "accept connection successfully")
-        
-        let address = IPv4Address.localAddress()
-        address.port = UInt16(12345)
-        
-        let serverQueue = DispatchQueue(label: "server queue", attributes: [])
-        do {
-            serverQueue.async {
-                do {
-                    let client = try server.acceptConnection(address)
-                    try client.write([1,2,3])
-                    
-                    while true {
-                        if let data = try? client.read(count: 1024) {
-                            try client.write(data)
-                        }
-                    }
-                } catch(let error) {
-                    XCTFail("\(error)")
-                }
-            }
-            sleep(1)
-            
-            try client.connect(address)
-            let response = try client.read(count: 3)
-            try client.renegotiate()
-            try client.write([1,2,3])
-
-            if response == [1,2,3] as [UInt8] {
-                expectation.fulfill()
-            }
-            client.close()
-            server.close()
-        }
-        catch (let error) {
-            XCTFail("\(error)")
-        }
-        
-        self.waitForExpectations(timeout: 10.0) {
-            (error : Error?) -> Void in
-        }
-    }
+//    func notest_renegotiate()
+//    {
+//        let cipherSuite = CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+//        let server = createServer(with: cipherSuite, port: 12345)
+//        
+//        let client = TLSClientSocket(supportedVersions: [.v1_2])
+//        client.connection.configuration.cipherSuites = [cipherSuite]
+//        
+//        let expectation = self.expectation(description: "accept connection successfully")
+//        
+//        let address = IPv4Address.localAddress()
+//        address.port = UInt16(12345)
+//        
+//        let serverQueue = DispatchQueue(label: "server queue", attributes: [])
+//        do {
+//            serverQueue.async {
+//                do {
+//                    let client = try server.acceptConnection(address)
+//                    try client.write([1,2,3])
+//                    
+//                    while true {
+//                        if let data = try? client.read(count: 1024) {
+//                            try client.write(data)
+//                        }
+//                    }
+//                } catch(let error) {
+//                    XCTFail("\(error)")
+//                }
+//            }
+//            sleep(1)
+//            
+//            try client.connect(address)
+//            let response = try client.read(count: 3)
+//            try client.renegotiate()
+//            try client.write([1,2,3])
+//
+//            if response == [1,2,3] as [UInt8] {
+//                expectation.fulfill()
+//            }
+//            client.close()
+//            server.close()
+//        }
+//        catch (let error) {
+//            XCTFail("\(error)")
+//        }
+//        
+//        self.waitForExpectations(timeout: 10.0) {
+//            (error : Error?) -> Void in
+//        }
+//    }
 
 //    func test_write_withDataSentOverEncryptedConnection_yieldsThatSameDataOnTheOtherEnd()
 //    {

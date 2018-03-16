@@ -107,7 +107,7 @@ extension TLS1_2 {
                 break
                 
             default:
-                throw TLSError.error("Cipher suite \(server.cipherSuite) doesn't need server key exchange")
+                throw TLSError.error("Cipher suite \(server.cipherSuite!) doesn't need server key exchange")
             }
         }
 
@@ -252,15 +252,23 @@ extension TLS1_2 {
             
             switch (server.keyExchange, clientKeyExchange.keyExchange) {
                 
-            case (.dhe(let keyExchange), .dhe),
-                 (.ecdhe(let keyExchange), .ecdhe):
+            case (.dhe(let keyExchange), .dhe):
+                if let sharedSecret = keyExchange.calculateSharedSecret() {
+                    
+                    preMasterSecret = sharedSecret
+                }
+                else {
+                    fatalError("Client Key Exchange has no DHE public key")
+                }
+
+            case (.ecdhe(let keyExchange), .ecdhe):
                 
                 if let sharedSecret = keyExchange.calculateSharedSecret() {
                     
                     preMasterSecret = sharedSecret
                 }
                 else {
-                    fatalError("Client Key Exchange has no (EC)DHE public key")
+                    fatalError("Client Key Exchange has no ECDHE public key")
                 }
                 
             case (.rsa, .rsa):

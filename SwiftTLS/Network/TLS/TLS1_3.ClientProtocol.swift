@@ -119,6 +119,9 @@ extension TLS1_3 {
                         throw TLSError.alert(alert: .decodeError, alertLevel: .fatal)
                     }
                     
+                case .supportedVersions:
+                    break
+                    
                 default:
                     print("Unhandled extension \(serverExtension)")
                 }

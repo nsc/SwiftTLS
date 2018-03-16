@@ -81,17 +81,31 @@ extension DiffieHellmanParameters : Streamable
     }
 }
 
-enum ECCurveType : UInt8
+enum NumericECCurveType : UInt8
 {
-    case explicitPrime  = 1
-    case explicitChar2  = 2
-    case namedCurve     = 3
+    case explicitPrime = 1
+    case explicitChar2 = 2
+    case namedCurve    = 3
+}
+
+enum ECCurveType
+{
+    var numericECCurveType : NumericECCurveType {
+        switch self {
+        case .explicitPrime: return NumericECCurveType.explicitPrime
+        case .explicitChar2: return NumericECCurveType.explicitChar2
+        case .namedCurve(_): return NumericECCurveType.namedCurve
+        }
+    }
+    
+    case explicitPrime
+    case explicitChar2
+    case namedCurve(NamedGroup)
 }
 
 struct ECDiffieHellmanParameters
 {
     var curveType : ECCurveType
-    var namedCurve : NamedGroup?
     
     var publicKey : EllipticCurvePoint!
     
@@ -99,9 +113,9 @@ struct ECDiffieHellmanParameters
         get {
             switch self.curveType
             {
-            case .namedCurve:
-                guard let curve = EllipticCurve.named(self.namedCurve!) else {
-                    fatalError("Unsuppored curve \(self.namedCurve)")
+            case .namedCurve(let namedCurve):
+                guard let curve = EllipticCurve.named(namedCurve) else {
+                    fatalError("Unsuppored curve \(namedCurve)")
                 }
                 return curve
                 
@@ -113,22 +127,19 @@ struct ECDiffieHellmanParameters
     
     init(namedCurve: NamedGroup)
     {
-        self.curveType = .namedCurve
-        self.namedCurve = namedCurve
+        self.curveType = .namedCurve(namedCurve)
     }
     
     init?(inputStream : InputStreamType)
     {
         guard
             let rawCurveType : UInt8 = inputStream.read(),
-            let curveType = ECCurveType(rawValue: rawCurveType)
+            let numericCurveType = NumericECCurveType(rawValue: rawCurveType)
         else {
             return nil
         }
         
-        self.curveType = curveType
-        
-        switch curveType
+        switch numericCurveType
         {
         case .namedCurve:
             guard
@@ -139,7 +150,7 @@ struct ECDiffieHellmanParameters
                 return nil
             }
             
-            self.namedCurve = namedCurve
+            self.curveType = .namedCurve(namedCurve)
             
             // only uncompressed format is currently supported
             if rawPublicKeyPoint[0] != 4 {
@@ -152,7 +163,7 @@ struct ECDiffieHellmanParameters
             let y = BigInt(bigEndianParts: [UInt8](rawPublicKeyPoint[1+numBytes..<1+2*numBytes]))
             self.publicKey = EllipticCurvePoint(x: x, y: y)
         default:
-            fatalError("Error: unsupported curve type \(curveType)")
+            fatalError("Error: unsupported curve type \(numericCurveType)")
         }
     }
 }
@@ -163,10 +174,10 @@ extension ECDiffieHellmanParameters : Streamable
     {
         switch self.curveType
         {
-        case .namedCurve:
+        case .namedCurve(let namedCurve):
             
-            target.write(self.curveType.rawValue)
-            target.write(self.namedCurve!.rawValue)
+            target.write(self.curveType.numericECCurveType.rawValue)
+            target.write(namedCurve.rawValue)
             let Q = self.publicKey
             let curvePointData : [UInt8] = [4] + Q!.x.asBigEndianData() + Q!.y.asBigEndianData()
             target.write(UInt8(curvePointData.count))

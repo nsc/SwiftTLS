@@ -89,13 +89,43 @@ extension TLS1_3 {
             print("Selected cipher suite is \(cipherSuite)")
             
             guard let keyShare = selectKeyShare(clientHello: clientHello) else {
-                throw TLSError.error("Could not agree on a keyShare")
+                // Return without setting cipher suite and key share. The state machine
+                // will send a retry request if possible.
+                return
             }
             
             server.cipherSuite = cipherSuite
             server.clientKeyShare = keyShare
         }
         
+        func sendHelloRetryRequest(for clientHello: TLSClientHello) throws
+        {
+            guard let cipherSuite = server.selectCipherSuite(clientHello.cipherSuites) else {
+                try server.abortHandshake()
+                return
+            }
+            
+            guard let supportedGroupsExtension = clientHello.extensions.filter({$0 is TLSSupportedGroupsExtension}).first else {
+                try server.abortHandshake()
+                return
+            }
+            
+            let supportedGroups = (supportedGroupsExtension as! TLSSupportedGroupsExtension).ellipticCurves
+            let commonGroups: [NamedGroup] = self.server.configuration.supportedGroups.filter({supportedGroups.contains($0)})
+            
+            guard commonGroups.count > 0 else {
+                try server.abortHandshake()
+                return
+            }
+            
+            let extensions: [TLSExtension] = [
+                TLSSupportedGroupsExtension(ellipticCurves: commonGroups)
+            ]
+            
+            let helloRetryRequest = TLSHelloRetryRequest(serverVersion: TLSProtocolVersion.v1_3, cipherSuite: cipherSuite, extensions: extensions)
+            try server.sendHandshakeMessage(helloRetryRequest)
+        }
+
         override func sendFinished() throws
         {
             let verifyData = self.finishedData(forClient: connection.isClient)

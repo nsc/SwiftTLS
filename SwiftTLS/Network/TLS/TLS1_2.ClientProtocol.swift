@@ -73,7 +73,7 @@ extension TLS1_2 {
         
         func handleServerHello(_ serverHello: TLSServerHello) throws
         {
-            let version = serverHello.version
+            let version = serverHello.legacyVersion
             print("Server wants to speak \(version)")
             
             guard version.isKnownVersion &&
@@ -115,7 +115,7 @@ extension TLS1_2 {
                 self.securityParameters.isUsingSecureRenegotiation = false
             }
             
-            if let sessionID = serverHello.sessionID {
+            if let sessionID = serverHello.legacySessionID {
                 if  let pendingSessionID = client.pendingSessionID,
                     sessionID == pendingSessionID {
                     let hostname = client.hostNames!.first!
@@ -269,21 +269,23 @@ extension TLS1_2 {
                 client.keyExchange = .dhe(dhKeyExchange)
                 
             case .ecdhe(let ecdhParameters):
-                if ecdhParameters.curveType != .namedCurve {
+                switch ecdhParameters.curveType
+                {
+                case .namedCurve(let namedCurve):
+                    guard
+                        let curve = EllipticCurve.named(namedCurve)
+                        else {
+                            throw TLSError.error("Unsupported curve \(namedCurve)")
+                    }
+                    print("Using curve \(namedCurve)")
+
+                    let ecdhKeyExchange = ECDHKeyExchange(curve: curve)
+                    ecdhKeyExchange.peerPublicKeyPoint = ecdhParameters.publicKey
+                    client.keyExchange = .ecdhe(ecdhKeyExchange)
+
+                default:
                     throw TLSError.error("Unsupported curve type \(ecdhParameters.curveType)")
                 }
-                
-                guard
-                    let namedCurve = ecdhParameters.namedCurve,
-                    let curve = EllipticCurve.named(namedCurve)
-                    else {
-                        throw TLSError.error("Unsupported curve \(ecdhParameters.namedCurve)")
-                }
-                print("Using curve \(namedCurve)")
-                
-                let ecdhKeyExchange = ECDHKeyExchange(curve: curve)
-                ecdhKeyExchange.peerPublicKeyPoint = ecdhParameters.publicKey
-                client.keyExchange = .ecdhe(ecdhKeyExchange)
             }
             
             // verify signature

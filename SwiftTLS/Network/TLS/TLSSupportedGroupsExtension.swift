@@ -32,12 +32,11 @@ struct TLSSupportedGroupsExtension : TLSExtension
 
         for ec in rawEllipticCurves
         {
-            if let ellipticCurve = NamedGroup(rawValue: ec) {
-                self.ellipticCurves.append(ellipticCurve)
+            guard let ellipticCurve = NamedGroup(rawValue: ec) else {
+                continue
             }
-            else {
-                return nil
-            }
+            
+            self.ellipticCurves.append(ellipticCurve)
         }
     }
     

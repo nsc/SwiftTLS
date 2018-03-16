@@ -88,7 +88,7 @@ class TLSServer : TLSConnection
             self.recordLayer        = TLS1_3.RecordLayer(connection: self, dataProvider: self.recordLayer?.dataProvider)
             
         default:
-            fatalError("Unsupported protocol \(version)")
+            fatalError("Unsupported protocol \(version!)")
         }
         
         if let state = state {

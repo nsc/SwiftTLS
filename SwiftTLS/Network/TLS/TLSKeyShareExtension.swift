@@ -14,15 +14,18 @@ struct KeyShareEntry {
     
     init?(inputStream: InputStreamType)
     {
-        guard let namedGroup = NamedGroup(inputStream: inputStream) else {
-            return nil
-        }
-        
+        // When we don't know the named group, we still have to read the whole
+        // entry. Therefore the check if namedGroup is nil is done further below.
+        let namedGroup = NamedGroup(inputStream: inputStream)
         guard let keyExchange : [UInt8] = inputStream.read16() else {
             return nil
         }
+        
+        guard let group = namedGroup else {
+            return nil
+        }
 
-        self.namedGroup = namedGroup
+        self.namedGroup = group
         self.keyExchange = keyExchange
     }
     
@@ -47,10 +50,11 @@ enum KeyShare {
     case serverHello(serverShare: KeyShareEntry)
 }
 
-enum TLSHelloType {
+enum TLSMessageExtensionType {
     case clientHello
     case helloRetryRequest
     case serverHello
+    case newSessionTicket
 }
 
 struct TLSKeyShareExtension : TLSExtension
@@ -68,9 +72,9 @@ struct TLSKeyShareExtension : TLSExtension
         self.keyShare = keyShare
     }
     
-    init?(inputStream: InputStreamType, helloType: TLSHelloType) {
+    init?(inputStream: InputStreamType, messageType: TLSMessageExtensionType) {
         
-        switch helloType {
+        switch messageType {
         case .clientHello:
             guard let numBytes16 : UInt16 = inputStream.read() else {
                 return nil
@@ -81,13 +85,13 @@ struct TLSKeyShareExtension : TLSExtension
             
             while numBytes > 0 {
                 let bytesRead = inputStream.bytesRead
-                guard let keyShareEntry = KeyShareEntry(inputStream: inputStream) else {
-                    return nil
-                }
+                let keyShareEntry = KeyShareEntry(inputStream: inputStream)
                 
                 numBytes -= (inputStream.bytesRead - bytesRead)
-                
-                clientShares.append(keyShareEntry)
+
+                if let keyShareEntry = keyShareEntry {
+                    clientShares.append(keyShareEntry)
+                }
             }
             
             self.keyShare = .clientHello(clientShares: clientShares)
@@ -105,6 +109,9 @@ struct TLSKeyShareExtension : TLSExtension
             }
             
             self.keyShare = .serverHello(serverShare: keyShareEntry)
+        
+        default:
+            return nil
         }
     }
     
@@ -125,10 +132,22 @@ struct TLSKeyShareExtension : TLSExtension
             target.write(extensionsData)
             
         case .helloRetryRequest(let selectedGroup):
-            selectedGroup.writeTo(&target)
+            selectedGroup.writeTo(&data)
+            
+            let extensionsData = data.buffer
+            
+            target.write(self.extensionType.rawValue)
+            target.write(UInt16(extensionsData.count))
+            target.write(extensionsData)
 
         case .serverHello(let serverShare):
-            serverShare.writeTo(&target)
+            serverShare.writeTo(&data)
+            
+            let extensionsData = data.buffer
+            
+            target.write(self.extensionType.rawValue)
+            target.write(UInt16(extensionsData.count))
+            target.write(extensionsData)
         }
         
     }

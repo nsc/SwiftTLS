@@ -9,7 +9,6 @@
 import Foundation
 //import SwiftTLS
 import OpenSSL
-import SwiftHelper
 
 func server(port: Int = 443, certificatePath: String, dhParametersPath : String? = nil, cipherSuite: CipherSuite? = nil)
 {
@@ -89,23 +88,25 @@ func connectTo(host : String, port : Int = 443, supportedVersions: [TLSProtocolV
     if let cipherSuite = cipherSuite {
         cipherSuites = [cipherSuite]
     }
-        
-    if supportedVersions.contains(.v1_2) {
-        cipherSuites.append(contentsOf: [
-            .TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-            .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-            .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-            .TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-            .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
-            .TLS_RSA_WITH_AES_256_CBC_SHA,
-            .TLS_RSA_WITH_AES_128_CBC_SHA256,
-        ])
-    }
     else {
-        cipherSuites.append(contentsOf: [
-            .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
-            .TLS_RSA_WITH_AES_256_CBC_SHA
-        ])
+        if supportedVersions.contains(.v1_2) {
+            cipherSuites.append(contentsOf: [
+                .TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+                .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+                .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+                .TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+                .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
+                .TLS_RSA_WITH_AES_256_CBC_SHA,
+                .TLS_RSA_WITH_AES_128_CBC_SHA256,
+                ])
+        }
+        
+        if supportedVersions.contains(.v1_3) {
+            cipherSuites.append(contentsOf: [
+                .TLS_AES_128_GCM_SHA256,
+                .TLS_AES_256_GCM_SHA384
+                ])
+        }
     }
     
     configuration.cipherSuites = cipherSuites
@@ -294,7 +295,7 @@ case "server":
                 break
             }
             
-            var argument = arguments[argumentIndex]
+            let argument = arguments[argumentIndex]
             
             argumentIndex += 1
             
@@ -306,7 +307,7 @@ case "server":
                     throw MyError.Error("Missing argument for --TLSVersion")
                 }
                 
-                var argument = arguments[argumentIndex]
+                let argument = arguments[argumentIndex]
                 argumentIndex += 1
                 
                 switch argument
@@ -334,7 +335,7 @@ case "server":
                     throw MyError.Error("Missing argument for --cipherSuite")
                 }
                 
-                var argument = arguments[argumentIndex]
+                let argument = arguments[argumentIndex]
                 argumentIndex += 1
                 
                 cipherSuite = CipherSuite(fromString:argument)
@@ -353,7 +354,7 @@ case "server":
                         throw MyError.Error("Missing argument for --port")
                     }
                     
-                    var argument = arguments[argumentIndex]
+                    let argument = arguments[argumentIndex]
                     argumentIndex += 1
                     
                     if let p = Int(argument) {
@@ -365,7 +366,7 @@ case "server":
                         throw MyError.Error("Missing argument for --certificate")
                     }
                     
-                    var argument = arguments[argumentIndex]
+                    let argument = arguments[argumentIndex]
                     argumentIndex += 1
 
                     certificatePath = argument
@@ -375,7 +376,7 @@ case "server":
                         throw MyError.Error("Missing argument for --dhParameters")
                     }
                     
-                    var argument = arguments[argumentIndex]
+                    let argument = arguments[argumentIndex]
                     argumentIndex += 1
                     
                     dhParameters = argument
@@ -395,7 +396,7 @@ case "server":
                         throw MyError.Error("Missing argument for --connect")
                     }
                     
-                    var argument = arguments[argumentIndex]
+                    let argument = arguments[argumentIndex]
                     argumentIndex += 1
                     
                     if argument.contains(":") {
@@ -433,7 +434,6 @@ case "server":
                 exit(1)
             }
             
-            let supportedVersions: [TLSProtocolVersion]
             if let version = protocolVersion {
                 var versions: [TLSProtocolVersion]
                 if version == .v1_3 {
@@ -471,7 +471,7 @@ case "probeCiphers":
                 break
             }
             
-            var argument = arguments[argumentIndex]
+            let argument = arguments[argumentIndex]
             
             argumentIndex += 1
             
@@ -482,7 +482,7 @@ case "probeCiphers":
                     throw MyError.Error("Missing argument for --TLSVersion")
                 }
                 
-                var argument = arguments[argumentIndex]
+                let argument = arguments[argumentIndex]
                 argumentIndex += 1
                 
                 switch argument

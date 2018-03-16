@@ -91,7 +91,10 @@ extension TLS1_3 {
 
             case .encryptedExtensions:
                 try self.transitionTo(state: .encryptedExtensionsReceived)
-                
+
+            case .newSessionTicket:
+                try self.transitionTo(state: .newSessionTicketReceived)
+
             default:
                 print("Unsupported handshake message \(handshakeType.rawValue)")
             }
@@ -136,13 +139,13 @@ extension TLS1_3 {
                 
             case .finishedSent:
                 return state == .connected
-                
+
             case .finishedReceived:
                 return state == .finishedSent
                 
-            case .connected where (state == .closeReceived || state == .closeSent):
-                return true
-                
+            case .connected:
+                return (state == .closeReceived || state == .closeSent || state == .newSessionTicketReceived)
+                                
             default:
                 return false
             }

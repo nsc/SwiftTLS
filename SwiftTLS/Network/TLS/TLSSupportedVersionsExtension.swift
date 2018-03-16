@@ -23,23 +23,44 @@ struct TLSSupportedVersionsExtension : TLSExtension
         self.supportedVersions = supportedVersions
     }
     
-    init?(inputStream: InputStreamType) {
+    init?(inputStream: InputStreamType, messageType: TLSMessageExtensionType) {
         self.supportedVersions = []
         
-        guard
-            let rawSupportedVersions : [UInt16] = inputStream.read8()
+        switch messageType {
+            
+        case .clientHello:
+            guard
+                let rawSupportedVersions : [UInt16] = inputStream.read8()
+                else {
+                    return nil
+            }
+            
+            for rawVersion in rawSupportedVersions
+            {
+                if let version = TLSProtocolVersion(rawValue: rawVersion) {
+                    self.supportedVersions.append(version)
+                }
+                else {
+                    return nil
+                }
+            }
+            
+        case .serverHello:
+            guard
+                let rawSupportedVersion: UInt16 = inputStream.read()
             else {
+                    return nil
+            }
+            
+            guard let version = TLSProtocolVersion(rawValue: rawSupportedVersion) else {
                 return nil
-        }
+            }
+            
+            self.supportedVersions.append(version)
         
-        for rawVersion in rawSupportedVersions
-        {
-            if let version = TLSProtocolVersion(rawValue: rawVersion) {
-                self.supportedVersions.append(version)
-            }
-            else {
-                return nil
-            }
+        default:
+            fatalError("Supported Version is not a valid extension in \(extensionType)")
+            return nil
         }
     }
     

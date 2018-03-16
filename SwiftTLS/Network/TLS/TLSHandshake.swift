@@ -65,6 +65,9 @@ class TLSHandshakeMessage : TLSMessage
         case .certificateVerify:
             message = TLSCertificateVerify(inputStream: inputStream, context: context)
             
+        case .newSessionTicket:
+            message = TLSNewSessionTicket(inputStream: inputStream, context: context)
+
         default:
             fatalError("Unsupported handshake message \(handshakeType)")
         }

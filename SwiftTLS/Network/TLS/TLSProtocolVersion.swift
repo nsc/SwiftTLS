@@ -20,6 +20,15 @@ public struct TLSProtocolVersion : RawRepresentable, CustomStringConvertible, Co
         _rawValue = rawValue
     }
     
+    init?(inputStream: InputStreamType)
+    {
+        guard let rawSupportedVersion : UInt16 = inputStream.read() else {
+            return nil
+        }
+        
+        self.init(rawValue: rawSupportedVersion)
+    }
+    
     private var _rawValue: UInt16
     public var rawValue: UInt16 {
         get {
@@ -32,7 +41,8 @@ public struct TLSProtocolVersion : RawRepresentable, CustomStringConvertible, Co
     public static let v1_2 = TLSProtocolVersion(rawValue: 0x0303)!
     // FIXME: As long as the TLS 1.3 RFC has draft status, we are using a draft version
     // number as of section 4.2.1.1.
-    public static let v1_3 = TLSProtocolVersion(rawValue: 0x7f12)! // draft-18
+//    public static let v1_3 = TLSProtocolVersion(rawValue: 0x7f17)! // draft-23
+    public static let v1_3 = TLSProtocolVersion(rawValue: 0x7f1a)! // draft-26
 //    public static let v1_3 = TLSProtocolVersion(rawValue: 0x0304)!
     
     public var description: String {

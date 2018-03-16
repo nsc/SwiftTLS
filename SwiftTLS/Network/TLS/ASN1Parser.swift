@@ -7,7 +7,6 @@
 //
 
 import Foundation
-import SwiftHelper
 
 enum ASN1TypeTag : UInt8
 {

@@ -22,7 +22,7 @@ extension RSA {
     }
     
     func ssa_pss_sign(message: [UInt8]) throws -> [UInt8] {
-        let modBits = self.n.numberOfBits
+        let modBits = self.n.bitWidth
         let em = try emsa_pss_encode(message: message,
                                      encodedMessageBits: modBits - 1,
                                      saltLength: saltLength)
@@ -37,7 +37,7 @@ extension RSA {
         let s = os2ip(octetString: signature)
         let m: BigInt
         do { m = try rsavp1(s: s) } catch { return false }
-        let modBits = self.n.numberOfBits
+        let modBits = self.n.bitWidth
         let emLen = (modBits - 1 + 7)/8
         let em: [UInt8]
         do { em = try i2osp(x: m, xLen: emLen) } catch { return false }
@@ -52,9 +52,18 @@ extension RSA {
     
     func i2osp(x: BigInt, xLen: Int) throws -> [UInt8] {
         var octetString = x.asBigEndianData()
-        let paddingLength = xLen - octetString.count
+
+        var paddingLength = xLen - octetString.count
         if paddingLength < 0 {
-            throw Error.integerTooLarge
+            // Remove leading zeroes in excess of xLen
+            let nonZeroOctetString = octetString.drop(while: {$0 == 0})
+            if nonZeroOctetString.count <= xLen {
+                paddingLength = xLen - nonZeroOctetString.count
+                octetString = [UInt8](nonZeroOctetString)
+            }
+            else {
+                throw Error.integerTooLarge
+            }
         }
         
         octetString = [UInt8](repeating: 0, count: paddingLength) + octetString

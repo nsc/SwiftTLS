@@ -25,7 +25,7 @@ class TLSEncryptedExtensions : TLSHandshakeMessage
             return nil
         }
         
-        if let extensions = TLSReadExtensions(from: inputStream, length: bodyLength, helloType: .serverHello) {
+        if let extensions = TLSReadExtensions(from: inputStream, length: bodyLength, messageType: .serverHello) {
             self.extensions = extensions
         }
         

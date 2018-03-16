@@ -76,14 +76,16 @@ class TLSVersionTests: XCTestCase {
         result(server)
     }
     
-    func test_receiveClientHello_withHigherUnknownVersion_fallsBackToHighestSupportedVersion() {
-        let version = TLSProtocolVersion(major: 10, minor: 10)
-        let highestSupportedVersion = TLSProtocolVersion.v1_2
-
-        receiveClientHello(with: version, highestSupportedVersion: highestSupportedVersion, result: { (server: Server) in
-            XCTAssert(server.negotiatedProtocolVersion == highestSupportedVersion)
-        })
-    }
+    // TODO:
+    // As of TLS 1.3 we know that there will be no higher legacy version than 1.2. What is actually supposed to happen in this case?
+//    func test_receiveClientHello_withHigherUnknownVersion_fallsBackToHighestSupportedVersion() {
+//        let version = TLSProtocolVersion(major: 10, minor: 10)
+//        let highestSupportedVersion = TLSProtocolVersion.v1_2
+//
+//        receiveClientHello(with: version, highestSupportedVersion: highestSupportedVersion, result: { (server: Server) in
+//            XCTAssert(server.negotiatedProtocolVersion == highestSupportedVersion)
+//        })
+//    }
 
     func test_receiveClientHello_withLowerUnknownVersion_abortsHandshake() {
         let version = TLSProtocolVersion(major: 1, minor: 1)
@@ -136,7 +138,7 @@ class TLSVersionTests: XCTestCase {
 
     }
     
-    func test_TLSClientHello_withTLSVersion1_3_hasCorrectSupportedVersionsExtensionAndLegacyProtocolVersion() {
-        
-    }
+//    func test_TLSClientHello_withTLSVersion1_3_hasCorrectSupportedVersionsExtensionAndLegacyProtocolVersion() {
+//        
+//    }
 }

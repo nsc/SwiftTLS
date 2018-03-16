@@ -236,11 +236,11 @@ struct RSA
         {
         case .sha1:
             hashedData = Hash_SHA1(data)
-            hashSize = HashAlgorithm.sha1.size
+            hashSize = HashAlgorithm.sha1.hashLength
             
         case .sha256:
             hashedData = Hash_SHA256(data)
-            hashSize = HashAlgorithm.sha256.size
+            hashSize = HashAlgorithm.sha256.hashLength
 
         default:
             throw TLSError.error("Unsupported hash algorithm \(oid)")

@@ -11,13 +11,14 @@ import Foundation
 struct TLS1_3 {}
 
 extension TLS1_3 {
-    static let clientHandshakeTrafficSecretLabel    = [UInt8]("client handshake traffic secret".utf8)
-    static let serverHandshakeTrafficSecretLabel    = [UInt8]("server handshake traffic secret".utf8)
-    static let clientApplicationTrafficSecretLabel  = [UInt8]("client application traffic secret".utf8)
-    static let serverApplicationTrafficSecretLabel  = [UInt8]("server application traffic secret".utf8)
-    static let exporterSecretLabel                  = [UInt8]("exporter master secret".utf8)
-    static let resumptionMasterSecretLabel          = [UInt8]("resumption master secret".utf8)
+    static let clientHandshakeTrafficSecretLabel    = [UInt8]("c hs traffic".utf8)
+    static let serverHandshakeTrafficSecretLabel    = [UInt8]("s hs traffic".utf8)
+    static let clientApplicationTrafficSecretLabel  = [UInt8]("c ap traffic".utf8)
+    static let serverApplicationTrafficSecretLabel  = [UInt8]("s ap traffic".utf8)
+    static let exporterSecretLabel                  = [UInt8]("exp master".utf8)
+    static let resumptionMasterSecretLabel          = [UInt8]("res master".utf8)
     static let finishedLabel                        = [UInt8]("finished".utf8)
+    static let derivedLabel                         = [UInt8]("derived".utf8)
 
     static let clientCertificateVerifyContext       = [UInt8]("TLS 1.3, client CertificateVerify".utf8)
     static let serverCertificateVerifyContext       = [UInt8]("TLS 1.3, server CertificateVerify".utf8)
@@ -137,12 +138,15 @@ extension TLS1_3 {
         internal func deriveEarlySecret() {
             let zeroes = [UInt8](repeating: 0, count: connection.hashAlgorithm.hashLength)
             self.handshakeState.earlySecret = HKDF_Extract(salt: zeroes, inputKeyingMaterial: connection.preSharedKey ?? zeroes)
+            
+            print("early secret: \(hex(self.handshakeState.earlySecret!))")
         }
         
         internal func deriveHandshakeSecret(with keyExchange: PFSKeyExchange) {
             let sharedSecret = keyExchange.calculateSharedSecret()
 
-            let handshakeSecret = HKDF_Extract(salt: self.handshakeState.earlySecret!, inputKeyingMaterial: sharedSecret!)
+            let derivedSecret = Derive_Secret(secret: self.handshakeState.earlySecret!, label: derivedLabel, messages: [])
+            let handshakeSecret = HKDF_Extract(salt: derivedSecret, inputKeyingMaterial: sharedSecret!)
             self.handshakeState.handshakeSecret = handshakeSecret
             
             let handshakeMessages = connection.handshakeMessageData
@@ -150,6 +154,9 @@ extension TLS1_3 {
             let clientHandshakeSecret = Derive_Secret(secret: handshakeSecret, label: TLS1_3.clientHandshakeTrafficSecretLabel, messages: handshakeMessages)
             let serverHandshakeSecret = Derive_Secret(secret: handshakeSecret, label: TLS1_3.serverHandshakeTrafficSecretLabel, messages: handshakeMessages)
             
+            print("clientHandshakeSecret: \(hex(clientHandshakeSecret))")
+            print("serverHandshakeSecret: \(hex(serverHandshakeSecret))")
+
             self.handshakeState.clientHandshakeTrafficSecret = clientHandshakeSecret
             self.handshakeState.serverHandshakeTrafficSecret = serverHandshakeSecret
 
@@ -158,7 +165,10 @@ extension TLS1_3 {
         
         internal func deriveApplicationTrafficSecrets() {
             let zeroes = [UInt8](repeating: 0, count: connection.hashAlgorithm.hashLength)
-            let masterSecret = HKDF_Extract(salt: self.handshakeState.handshakeSecret!, inputKeyingMaterial: zeroes)
+            
+            let derivedSecret = Derive_Secret(secret: self.handshakeState.handshakeSecret!, label: derivedLabel, messages: [])
+
+            let masterSecret = HKDF_Extract(salt: derivedSecret, inputKeyingMaterial: zeroes)
             self.handshakeState.masterSecret = masterSecret
             
             let handshakeMessages = connection.handshakeMessageData
@@ -166,6 +176,9 @@ extension TLS1_3 {
             let clientTrafficSecret = Derive_Secret(secret: masterSecret, label: TLS1_3.clientApplicationTrafficSecretLabel, messages: handshakeMessages)
             let serverTrafficSecret = Derive_Secret(secret: masterSecret, label: TLS1_3.serverApplicationTrafficSecretLabel, messages: handshakeMessages)
             
+            print("clientTrafficSecret: \(hex(clientTrafficSecret))")
+            print("serverTrafficSecret: \(hex(serverTrafficSecret))")
+
             self.handshakeState.clientTrafficSecret = clientTrafficSecret
             self.handshakeState.serverTrafficSecret = serverTrafficSecret
         }

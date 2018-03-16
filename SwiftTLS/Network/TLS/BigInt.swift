@@ -351,16 +351,23 @@ extension BigInt : Comparable
     }
 }
 
+extension Array: Hashable where Element: Hashable {
+    public var hashValue: Int {
+        return self.reduce(0, { $0 ^ $1.hashValue})
+    }
+}
+
 extension BigInt : Hashable
 {
     public var hashValue: Int {
-        return 0
+        return _words.hashValue
     }
 }
 
 extension BigInt : Numeric
 {
     public init?<T>(exactly source: T) where T : BinaryInteger {
+        fatalError()
     }
     
     public typealias Magnitude = BigInt
@@ -422,7 +429,7 @@ extension BigInt : Numeric
     }
     
     public static func +=(lhs: inout BigInt, rhs: BigInt) {
-        
+        fatalError()
     }
     
     
@@ -488,7 +495,7 @@ extension BigInt : Numeric
     }
     
     public static func -=(lhs: inout BigInt, rhs: BigInt) {
-        
+        fatalError()
     }
     
     public static func *(a: BigInt, b: BigInt) -> BigInt {
@@ -549,7 +556,7 @@ extension BigInt : Numeric
     }
     
     public static func *=(lhs: inout BigInt, rhs: BigInt) {
-        
+        fatalError()
     }
 
 }
@@ -784,19 +791,19 @@ extension BigInt : BinaryInteger
     }
     
     public static func %=(lhs: inout BigInt, rhs: BigInt) {
-        
+        lhs = division(lhs, rhs).1
     }
     
     public static func &=(lhs: inout BigInt, rhs: BigInt) {
-        
+        fatalError()
     }
     
     public static func |=(lhs: inout BigInt, rhs: BigInt) {
-        
+        fatalError()
     }
     
     public static func ^=(lhs: inout BigInt, rhs: BigInt) {
-        
+        fatalError()
     }
     
     public func quotientAndRemainder(dividingBy rhs: BigInt) -> (quotient: BigInt, remainder: BigInt) {

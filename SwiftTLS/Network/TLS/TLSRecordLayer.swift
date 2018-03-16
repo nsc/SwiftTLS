@@ -10,8 +10,8 @@ import Foundation
 
 protocol TLSRecordLayer
 {
-    weak var dataProvider : TLSDataProvider? { get set }
-    weak var connection : TLSConnection?  { get set }
+    var dataProvider : TLSDataProvider? { get set }
+    var connection : TLSConnection?  { get set }
     var protocolVersion: TLSProtocolVersion  { get set }
     var isClient : Bool { get }
 

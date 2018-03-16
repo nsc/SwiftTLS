@@ -9,21 +9,39 @@ import Foundation
 
 class TLSServerHello : TLSHandshakeMessage
 {
-    var version : TLSProtocolVersion
+    var legacyVersion : TLSProtocolVersion
     var random : Random
-    var sessionID : TLSSessionID?
+    var legacySessionID : TLSSessionID?
     var cipherSuite : CipherSuite
-    var compressionMethod : CompressionMethod?
+    var legacyCompressionMethod : CompressionMethod?
     
     var extensions : [TLSExtension] = []
 
+    var version : TLSProtocolVersion {
+        if self.legacyVersion < .v1_2 {
+            return self.legacyVersion
+        }
+        else {
+            guard let supportedVersions = self.extensions.filter({$0.extensionType == .supportedVersions}).first as? TLSSupportedVersionsExtension else {
+                return self.legacyVersion
+            }
+            
+            guard supportedVersions.supportedVersions.count > 0 else {
+                // This is most certainly an error ... figure out what to do here
+                return self.legacyVersion
+            }
+            
+            return supportedVersions.supportedVersions.first!
+        }
+    }
+    
     init(serverVersion : TLSProtocolVersion, random : Random, sessionID : TLSSessionID?, cipherSuite : CipherSuite, compressionMethod : CompressionMethod = .null)
     {
-        self.version = serverVersion
+        self.legacyVersion = serverVersion
         self.random = random
-        self.sessionID = sessionID
+        self.legacySessionID = sessionID
         self.cipherSuite = cipherSuite
-        self.compressionMethod = compressionMethod
+        self.legacyCompressionMethod = compressionMethod
         
         super.init(type: .handshake(.serverHello))
     }
@@ -39,39 +57,28 @@ class TLSServerHello : TLSHandshakeMessage
             return nil
         }
         
-        self.version = TLSProtocolVersion(major: major, minor: minor)
+        self.legacyVersion = TLSProtocolVersion(major: major, minor: minor)
         self.random = random
 
         var bytesLeft = bodyLength - 34
-        if self.version < TLSProtocolVersion.v1_3 {
-            guard
-                let sessionIDSize : UInt8 = inputStream.read(),
-                let rawSessionID : [UInt8] = inputStream.read(count: Int(sessionIDSize)),
-                let rawCiperSuite : UInt16 = inputStream.read(), (CipherSuite(rawValue: rawCiperSuite) != nil),
-                let rawCompressionMethod : UInt8 = inputStream.read(), (CompressionMethod(rawValue: rawCompressionMethod) != nil)
-                else {
-                    return nil
-            }
-            bytesLeft -= 1 + Int(sessionIDSize)
-            bytesLeft -= 3
 
-            self.sessionID = TLSSessionID(rawSessionID)
-            self.cipherSuite = CipherSuite(rawValue: rawCiperSuite)!
-            self.compressionMethod = CompressionMethod(rawValue: rawCompressionMethod)!
-
-        }
-        else {
-            // TLS 1.3
-            guard let rawCiperSuite : UInt16 = inputStream.read(), (CipherSuite(rawValue: rawCiperSuite) != nil) else {
+        guard
+            let sessionIDSize : UInt8 = inputStream.read(),
+            let rawSessionID : [UInt8] = inputStream.read(count: Int(sessionIDSize)),
+            let rawCiperSuite : UInt16 = inputStream.read(), (CipherSuite(rawValue: rawCiperSuite) != nil),
+            let rawCompressionMethod : UInt8 = inputStream.read(), (CompressionMethod(rawValue: rawCompressionMethod) != nil)
+            else {
                 return nil
-            }
-            bytesLeft -= 2
-            
-            self.cipherSuite = CipherSuite(rawValue: rawCiperSuite)!
         }
+        bytesLeft -= 1 + Int(sessionIDSize)
+        bytesLeft -= 3
+        
+        self.legacySessionID = TLSSessionID(rawSessionID)
+        self.cipherSuite = CipherSuite(rawValue: rawCiperSuite)!
+        self.legacyCompressionMethod = CompressionMethod(rawValue: rawCompressionMethod)!
         
         if bytesLeft > 0 {
-            if let extensions = TLSReadExtensions(from: inputStream, length: bytesLeft, helloType: .serverHello) {
+            if let extensions = TLSReadExtensions(from: inputStream, length: bytesLeft, messageType: .serverHello) {
                 self.extensions = extensions
             }
         }
@@ -83,25 +90,20 @@ class TLSServerHello : TLSHandshakeMessage
     {
         var buffer = DataBuffer()
         
-        buffer.write(self.version.rawValue)
+        buffer.write(self.legacyVersion.rawValue)
         
         random.writeTo(&buffer)
         
-        
-        if self.version < TLSProtocolVersion.v1_3 {
-            if let session_id = self.sessionID {
-                session_id.writeTo(&buffer)
-            }
-            else {
-                buffer.write(UInt8(0))
-            }
+        if let session_id = self.legacySessionID {
+            session_id.writeTo(&buffer)
+        }
+        else {
+            buffer.write(UInt8(0))
         }
         
         buffer.write(self.cipherSuite.rawValue)
         
-        if self.version < TLSProtocolVersion.v1_3 {
-            buffer.write(self.compressionMethod!.rawValue)
-        }
+        buffer.write(self.legacyCompressionMethod!.rawValue)
         
         TLSWriteExtensions(&buffer, extensions: self.extensions)
 

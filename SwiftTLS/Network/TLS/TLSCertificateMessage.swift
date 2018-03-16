@@ -55,7 +55,6 @@ class TLSCertificateMessage : TLSHandshakeMessage
                         
                         if let cert = x509Cert {
                             certificates!.append(cert)
-                            print("common name: \(cert.commonName)")
                         }
                     }
                     

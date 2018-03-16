@@ -52,6 +52,7 @@ enum NamedGroup : UInt16 {
             return nil
         }
         
+        print("Named curve: 0x\(String(format: "%x", rawNamedCurve))")
         self.init(rawValue: rawNamedCurve)
     }
 }

@@ -1,4 +1,0 @@
-module SwiftHelper [system] {
-    header "../../Network/SwiftHelper.h"
-    export *
-}
