@@ -13,8 +13,6 @@ enum TLSState
     case idle
     case clientHelloSent
     case clientHelloReceived
-    case helloRetryRequestSent
-    case helloRetryRequestReceived
     case serverHelloSent
     case serverHelloReceived
     case serverKeyExchangeSent
@@ -43,6 +41,8 @@ enum TLSState
     case encryptedExtensionsReceived
     case newSessionTicketSent
     case newSessionTicketReceived
+    case helloRetryRequestSent
+    case helloRetryRequestReceived
 }
 
 protocol TLSConnectionStateMachine

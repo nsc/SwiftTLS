@@ -8,56 +8,35 @@
 
 import Foundation
 
-class TLSHelloRetryRequest : TLSHandshakeMessage
+let helloRetryRequestRandom = Random([
+    0xCF, 0x21, 0xAD, 0x74, 0xE5, 0x9A, 0x61, 0x11, 0xBE, 0x1D, 0x8C, 0x02, 0x1E, 0x65, 0xB8, 0x91,
+    0xC2, 0xA2, 0x11, 0x16, 0x7A, 0xBB, 0x8C, 0x5E, 0x07, 0x9E, 0x09, 0xE2, 0xC8, 0xA8, 0x33, 0x9C
+] as [UInt8])!
+
+class TLSHelloRetryRequest : TLSServerHello
 {
-    let serverVersion: TLSProtocolVersion
-    let cipherSuite: CipherSuite
-    let extensions: [TLSExtension]
-    
     init(serverVersion: TLSProtocolVersion, cipherSuite: CipherSuite, extensions: [TLSExtension])
     {
-        self.serverVersion = serverVersion
-        self.cipherSuite = cipherSuite
+        super.init(serverVersion: serverVersion, random: helloRetryRequestRandom, cipherSuite: cipherSuite)
+        
         self.extensions = extensions
-        
-        super.init(type: .handshake(.helloRetryRequest))
+    }
+
+    override var handshakeType: TLSHandshakeType {
+        return .helloRetryRequest
     }
     
-    required init?(inputStream : InputStreamType, context: TLSConnection)
+    convenience init(_ serverHello: TLSServerHello)
     {
-        guard let (type, bodyLength) = TLSHandshakeMessage.readHeader(inputStream), type == TLSHandshakeType.helloRetryRequest else {
-            return nil
-        }
+        self.init(serverVersion: serverHello.legacyVersion,
+                  cipherSuite: serverHello.cipherSuite,
+                  extensions: serverHello.extensions)
         
-        guard
-            let version = TLSProtocolVersion(inputStream: inputStream),
-            let rawCipherSuite: UInt16 = inputStream.read(),
-            let cipherSuite = CipherSuite(rawValue: rawCipherSuite)
-        else {
-            return nil
-        }
-        
-        if let extensions = TLSReadExtensions(from: inputStream, length: bodyLength, messageType: .serverHello) {
-            self.extensions = extensions
-        }
-        else {
-            self.extensions = []
-        }
-        
-        self.serverVersion = version
-        self.cipherSuite = cipherSuite
-        
-        super.init(type: .handshake(.helloRetryRequest))
+        self.legacySessionID = serverHello.legacySessionID
     }
     
-    override func writeTo<Target : OutputStreamType>(_ target: inout Target)
-    {
-        var data = DataBuffer()
-        data.write(self.serverVersion.rawValue)
-        data.write(self.cipherSuite.rawValue)
-        TLSWriteExtensions(&data, extensions: self.extensions)
-        
-        self.writeHeader(type: .helloRetryRequest, bodyLength: data.buffer.count, target: &target)
-        target.write(data.buffer)
+    required init?(inputStream: InputStreamType, context: TLSConnection) {
+        fatalError("HelloRetryRequest is never directly constructed from an input stream, since the handshake type is serverHello.")
     }
+    
 }

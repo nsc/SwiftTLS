@@ -30,6 +30,8 @@ enum TLSHandshakeType : UInt8 {
     case helloRetryRequest = 6          // TLS 1.3
     case encryptedExtensions = 8        // TLS 1.3
     case keyUpdate = 24                 // TLS 1.3
+    
+    case messageHash = 254
 }
 
 enum TLSMessageType

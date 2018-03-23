@@ -36,9 +36,43 @@ public class TLSConnection
     
     var handshakeMessages: [TLSHandshakeMessage]
     
+    var transcriptHash: [UInt8] {
+        var handshakeData: [UInt8] = []
+        for message in self.handshakeMessages {
+            if let version = self.negotiatedProtocolVersion,
+                version == .v1_3 {
+                
+                // Check for special construct when a HelloRetryRequest is included
+                // see section "The Transcript Hash" in RFC TLS 1.3
+                if message is TLSHelloRetryRequest {
+                    let hashLength = self.hashAlgorithm.hashLength
+                    let hashValue = self.hashAlgorithm.hashFunction(handshakeData)
+                    
+                    handshakeData = [TLSHandshakeType.messageHash.rawValue, 0, 0, UInt8(hashLength)] + hashValue
+                }
+            }
+            
+            let handshakeMessageData : [UInt8]
+            if let messageData = message.rawHandshakeMessageData {
+                handshakeMessageData = messageData
+            }
+            else {
+                var messageBuffer = DataBuffer()
+                message.writeTo(&messageBuffer)
+                
+                handshakeMessageData = messageBuffer.buffer
+            }
+            
+            handshakeData.append(contentsOf: handshakeMessageData)
+        }
+        
+        return self.hashAlgorithm.hashFunction(handshakeData)
+    }
+    
     var handshakeMessageData: [UInt8] {
         var handshakeData: [UInt8] = []
         for message in self.handshakeMessages {
+            
             let handshakeMessageData : [UInt8]
             if let messageData = message.rawHandshakeMessageData {
                 handshakeMessageData = messageData

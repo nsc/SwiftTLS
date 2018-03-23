@@ -578,7 +578,10 @@ func TLSHandshakeMessageNameForType(_ handshakeType : TLSHandshakeType) -> Strin
         
     case .keyUpdate:
         messageName = "KeyUpdate"
-        
+
+    case .messageHash:
+        messageName = "MessageHash"
+
     }
 
     
@@ -597,7 +600,7 @@ func TLSMessageNameForType(_ messageType : TLSMessageType) -> String
         
     case .handshake(let handshakeType):
         let handshakeMessageName = TLSHandshakeMessageNameForType(handshakeType)
-        messageName = "Handshake(\(handshakeMessageName))"
+        messageName = "\(handshakeMessageName)"
         
     case .alert(let alertLevel, let alertDescription):
         let alertLevelString : String

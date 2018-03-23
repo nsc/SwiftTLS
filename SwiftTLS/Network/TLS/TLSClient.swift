@@ -56,7 +56,11 @@ class TLSClient : TLSConnection
         case .serverHello:
             let serverHello = message as! TLSServerHello
             try self.clientProtocolHandler.handleServerHello(serverHello)
-            
+
+        case .helloRetryRequest:
+            let helloRetryRequest = message as! TLSHelloRetryRequest
+            try self.clientProtocolHandler.handleServerHello(helloRetryRequest)
+
         case .certificate:
             let certificateMessage = message as! TLSCertificateMessage
             self.protocolHandler.handleCertificate(certificateMessage)

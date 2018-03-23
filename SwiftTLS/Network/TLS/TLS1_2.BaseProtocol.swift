@@ -200,9 +200,9 @@ extension TLS1_2 {
         {
             let finishedLabel = isClient ? TLSClientFinishedLabel : TLSServerFinishedLabel
             
-            let handshakeData = connection.handshakeMessageData
-            
             if connection.negotiatedProtocolVersion! < TLSProtocolVersion.v1_2 {
+                let handshakeData = connection.handshakeMessageData
+
                 let clientHandshakeMD5  = Hash_MD5(handshakeData)
                 let clientHandshakeSHA1 = Hash_SHA1(handshakeData)
                 
@@ -211,11 +211,11 @@ extension TLS1_2 {
                 return PRF(secret: self.securityParameters.masterSecret!, label: finishedLabel, seed: seed, outputLength: 12)
             }
             else {
-                let clientHandshake = connection.hashAlgorithm.hashFunction(handshakeData)
+                let transcriptHash = connection.transcriptHash
                 
                 assert(self.securityParameters.masterSecret != nil)
                 
-                return PRF(secret: self.securityParameters.masterSecret!, label: finishedLabel, seed: clientHandshake, outputLength: 12)
+                return PRF(secret: self.securityParameters.masterSecret!, label: finishedLabel, seed: transcriptHash, outputLength: 12)
             }
         }
         

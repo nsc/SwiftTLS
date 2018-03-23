@@ -45,7 +45,7 @@ struct TLSSupportedVersionsExtension : TLSExtension
                 }
             }
             
-        case .serverHello:
+        case .serverHello, .helloRetryRequest:
             guard
                 let rawSupportedVersion: UInt16 = inputStream.read()
             else {

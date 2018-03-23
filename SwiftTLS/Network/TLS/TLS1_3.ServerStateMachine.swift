@@ -87,7 +87,7 @@ extension TLS1_3 {
         
         func serverDidReceiveHandshakeMessage(_ message : TLSHandshakeMessage) throws
         {
-            print("Server: did receive handshake message \(TLSMessageNameForType(message.type))")
+            print("Server: did receive message \(TLSHandshakeMessageNameForType(message.handshakeType))")
             
             let handshakeType = message.handshakeType
             

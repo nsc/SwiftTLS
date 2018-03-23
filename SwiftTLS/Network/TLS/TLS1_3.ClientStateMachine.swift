@@ -69,7 +69,7 @@ extension TLS1_3 {
         
         func clientDidReceiveHandshakeMessage(_ message : TLSHandshakeMessage) throws
         {
-            print("Client: did receive handshake message \(TLSMessageNameForType(message.type))")
+            print("Client: did receive message \(TLSHandshakeMessageNameForType(message.handshakeType))")
             
             let handshakeType = message.handshakeType
             
@@ -77,7 +77,11 @@ extension TLS1_3 {
             {
             case .serverHello:
                 try self.transitionTo(state: .serverHelloReceived)
-                
+
+            case .helloRetryRequest:
+                try self.transitionTo(state: .helloRetryRequestReceived)
+                try self.protocolHandler!.sendClientHello()
+
             case .certificate:
                 try self.transitionTo(state: .certificateReceived)
                 
@@ -120,7 +124,10 @@ extension TLS1_3 {
                 return state == .clientHelloSent
                 
             case .clientHelloSent:
-                return state == .serverHelloReceived
+                return state == .serverHelloReceived || state == .helloRetryRequestReceived
+                
+            case .helloRetryRequestReceived:
+                return state == .clientHelloSent
                 
             case .serverHelloReceived:
                 return state == .encryptedExtensionsReceived

@@ -64,7 +64,7 @@ extension TLS1_3 {
             var proofData = [UInt8](repeating: 0x20, count: 64)
             proofData += connection.isClient ? clientCertificateVerifyContext : serverCertificateVerifyContext
             proofData += [0]
-            proofData += self.handshakeHash
+            proofData += self.transcriptHash
             
             let signature = try signer.sign(data: proofData)
             let certificateVerify = TLSCertificateVerify(algorithm: signer.signatureScheme, signature: signature)
@@ -72,9 +72,8 @@ extension TLS1_3 {
             try self.connection.sendHandshakeMessage(certificateVerify)
         }
         
-        var handshakeHash: [UInt8] {
-            let handshakeData = connection.handshakeMessageData
-            return connection.hashAlgorithm.hashFunction(handshakeData)
+        var transcriptHash: [UInt8] {
+            return connection.transcriptHash
         }
         
         func finishedData(forClient isClient: Bool) -> [UInt8]
@@ -83,9 +82,9 @@ extension TLS1_3 {
             let hashLength = connection.hashAlgorithm.hashLength
             let finishedKey = HKDF_Expand_Label(secret: secret, label: finishedLabel, hashValue: [], outputLength: hashLength)
 
-            let handshakeHash = self.handshakeHash
+            let transcriptHash = self.transcriptHash
             
-            let finishedData = connection.hmac(finishedKey, handshakeHash)
+            let finishedData = connection.hmac(finishedKey, transcriptHash)
             
             return finishedData
         }
@@ -128,11 +127,8 @@ extension TLS1_3 {
             return HKDF_Expand(prk: secret, info: hkdfLabel, outputLength: outputLength)
         }
         
-        internal func Derive_Secret(secret: [UInt8], label: [UInt8], messages: [UInt8]) -> [UInt8] {
-            let hashLength = connection.hashAlgorithm.hashLength
-            let hashValue = connection.hashAlgorithm.hashFunction(messages)
-            
-            return HKDF_Expand_Label(secret: secret, label: label, hashValue: hashValue, outputLength: hashLength)
+        internal func Derive_Secret(secret: [UInt8], label: [UInt8], transcriptHash: [UInt8]) -> [UInt8] {
+            return HKDF_Expand_Label(secret: secret, label: label, hashValue: transcriptHash, outputLength: transcriptHash.count)
         }
 
         internal func deriveEarlySecret() {
@@ -145,14 +141,14 @@ extension TLS1_3 {
         internal func deriveHandshakeSecret(with keyExchange: PFSKeyExchange) {
             let sharedSecret = keyExchange.calculateSharedSecret()
 
-            let derivedSecret = Derive_Secret(secret: self.handshakeState.earlySecret!, label: derivedLabel, messages: [])
+            let derivedSecret = Derive_Secret(secret: self.handshakeState.earlySecret!, label: derivedLabel, transcriptHash: self.connection.hashAlgorithm.hashFunction([]))
             let handshakeSecret = HKDF_Extract(salt: derivedSecret, inputKeyingMaterial: sharedSecret!)
             self.handshakeState.handshakeSecret = handshakeSecret
             
-            let handshakeMessages = connection.handshakeMessageData
+            let transcriptHash = connection.transcriptHash
             
-            let clientHandshakeSecret = Derive_Secret(secret: handshakeSecret, label: TLS1_3.clientHandshakeTrafficSecretLabel, messages: handshakeMessages)
-            let serverHandshakeSecret = Derive_Secret(secret: handshakeSecret, label: TLS1_3.serverHandshakeTrafficSecretLabel, messages: handshakeMessages)
+            let clientHandshakeSecret = Derive_Secret(secret: handshakeSecret, label: TLS1_3.clientHandshakeTrafficSecretLabel, transcriptHash: transcriptHash)
+            let serverHandshakeSecret = Derive_Secret(secret: handshakeSecret, label: TLS1_3.serverHandshakeTrafficSecretLabel, transcriptHash: transcriptHash)
             
             print("clientHandshakeSecret: \(hex(clientHandshakeSecret))")
             print("serverHandshakeSecret: \(hex(serverHandshakeSecret))")
@@ -166,15 +162,15 @@ extension TLS1_3 {
         internal func deriveApplicationTrafficSecrets() {
             let zeroes = [UInt8](repeating: 0, count: connection.hashAlgorithm.hashLength)
             
-            let derivedSecret = Derive_Secret(secret: self.handshakeState.handshakeSecret!, label: derivedLabel, messages: [])
+            let derivedSecret = Derive_Secret(secret: self.handshakeState.handshakeSecret!, label: derivedLabel, transcriptHash: self.connection.hashAlgorithm.hashFunction([]))
 
             let masterSecret = HKDF_Extract(salt: derivedSecret, inputKeyingMaterial: zeroes)
             self.handshakeState.masterSecret = masterSecret
             
-            let handshakeMessages = connection.handshakeMessageData
+            let transcriptHash = connection.transcriptHash
 
-            let clientTrafficSecret = Derive_Secret(secret: masterSecret, label: TLS1_3.clientApplicationTrafficSecretLabel, messages: handshakeMessages)
-            let serverTrafficSecret = Derive_Secret(secret: masterSecret, label: TLS1_3.serverApplicationTrafficSecretLabel, messages: handshakeMessages)
+            let clientTrafficSecret = Derive_Secret(secret: masterSecret, label: TLS1_3.clientApplicationTrafficSecretLabel, transcriptHash: transcriptHash)
+            let serverTrafficSecret = Derive_Secret(secret: masterSecret, label: TLS1_3.serverApplicationTrafficSecretLabel, transcriptHash: transcriptHash)
             
             print("clientTrafficSecret: \(hex(clientTrafficSecret))")
             print("serverTrafficSecret: \(hex(serverTrafficSecret))")

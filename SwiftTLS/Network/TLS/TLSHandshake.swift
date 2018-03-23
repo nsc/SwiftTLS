@@ -41,7 +41,14 @@ class TLSHandshakeMessage : TLSMessage
             message = TLSClientHello(inputStream: inputStream, context: context)
             
         case .serverHello:
-            message = TLSServerHello(inputStream: inputStream, context: context)
+            if let serverHello = TLSServerHello(inputStream: inputStream, context: context) {
+                if serverHello.random == helloRetryRequestRandom {
+                    message = TLSHelloRetryRequest(serverHello)
+                }
+                else {
+                    message = serverHello
+                }
+            }
             
         case .certificate:
             message = TLSCertificateMessage(inputStream: inputStream, context: context)

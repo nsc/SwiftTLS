@@ -78,7 +78,9 @@ class TLSServerHello : TLSHandshakeMessage
         self.legacyCompressionMethod = CompressionMethod(rawValue: rawCompressionMethod)!
         
         if bytesLeft > 0 {
-            if let extensions = TLSReadExtensions(from: inputStream, length: bytesLeft, messageType: .serverHello) {
+            let messageType: TLSMessageExtensionType = (self.random == helloRetryRequestRandom) ? .helloRetryRequest : .serverHello
+
+            if let extensions = TLSReadExtensions(from: inputStream, length: bytesLeft, messageType: messageType) {
                 self.extensions = extensions
             }
         }

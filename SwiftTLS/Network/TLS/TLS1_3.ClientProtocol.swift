@@ -19,6 +19,8 @@ extension TLS1_3 {
         // protocol handler and hand it the client hello random
         var clientHelloRandom: Random?
         
+        var selectedGroupFromHelloRetryRequest: NamedGroup?
+        
         init(client: TLSClient)
         {
             super.init(connection: client)
@@ -48,22 +50,35 @@ extension TLS1_3 {
             clientHello.extensions.append(TLSSupportedGroupsExtension(ellipticCurves: groups))
             
             var keyShareEntries : [KeyShareEntry] = []
-            for group in groups {
-                
+            
+            if let group = self.selectedGroupFromHelloRetryRequest {
                 if let curve = EllipticCurve.named(group) {
                     let keyExchange = ECDHKeyExchange(curve: curve)
                     let Q = keyExchange.calculatePublicKeyPoint()
-                    
+
                     let data = DataBuffer(Q).buffer
                     keyShareEntries.append(KeyShareEntry(namedGroup: group, keyExchange: data))
-                    
+
                     self.client.keyExchangesAnnouncedToServer[group] = .ecdhe(keyExchange)
                 }
+
+//                for group in groups {
+//
+//                    if let curve = EllipticCurve.named(group) {
+//                        let keyExchange = ECDHKeyExchange(curve: curve)
+//                        let Q = keyExchange.calculatePublicKeyPoint()
+//
+//                        let data = DataBuffer(Q).buffer
+//                        keyShareEntries.append(KeyShareEntry(namedGroup: group, keyExchange: data))
+//
+//                        self.client.keyExchangesAnnouncedToServer[group] = .ecdhe(keyExchange)
+//                    }
+//                }
             }
             
             clientHello.extensions.append(TLSSignatureAlgorithmExtension(signatureAlgorithms: [.rsa_pkcs1_sha256, .rsa_pss_sha256]))
             clientHello.extensions.append(TLSKeyShareExtension(keyShare: .clientHello(clientShares: keyShareEntries)))
-                            
+            
             try client.sendHandshakeMessage(clientHello)
         }
         
@@ -93,6 +108,12 @@ extension TLS1_3 {
                 return
             }
             
+            if let helloRetryRequest = serverHello as? TLSHelloRetryRequest {
+                try self.handleHelloRetryRequest(helloRetryRequest)
+                
+                return
+            }
+
             client.recordLayer?.protocolVersion = .v1_3
             client.negotiatedProtocolVersion    = .v1_3
             
@@ -129,6 +150,28 @@ extension TLS1_3 {
             
             if self.handshakeState.earlySecret == nil || self.handshakeState.handshakeSecret == nil {
                 throw TLSError.alert(alert: .handshakeFailure, alertLevel: .fatal)
+            }
+        }
+        
+        func handleHelloRetryRequest(_ helloRetryRequest: TLSHelloRetryRequest) throws {
+            for helloRetryRequestExtension in helloRetryRequest.extensions {
+                switch helloRetryRequestExtension.extensionType {
+                case .keyShare:
+                    if case .helloRetryRequest(let keyShare) = (helloRetryRequestExtension as! TLSKeyShareExtension).keyShare {
+                        self.selectedGroupFromHelloRetryRequest = keyShare
+                    }
+                    else {
+                        // FIXME: Is this the right error to throw here? What does the RFC say about it?
+                        throw TLSError.alert(alert: .decodeError, alertLevel: .fatal)
+                    }
+
+                case .supportedVersions:
+                    break
+                    
+                default:
+                    print("Unhandled extension \(helloRetryRequestExtension)")
+
+                }
             }
         }
         
