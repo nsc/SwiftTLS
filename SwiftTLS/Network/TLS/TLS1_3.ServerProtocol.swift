@@ -23,7 +23,7 @@ extension TLS1_3 {
         func sendServerHello() throws {
             let serverHelloRandom = Random()
             let serverHello = TLSServerHello(
-                serverVersion: server.negotiatedProtocolVersion!,
+                serverVersion: .v1_2,
                 random: serverHelloRandom,
                 sessionID: nil,
                 cipherSuite: server.cipherSuite!,
@@ -41,11 +41,14 @@ extension TLS1_3 {
             let keyShareExtension = TLSKeyShareExtension(keyShare: .serverHello(serverShare: serverKeyShare))
             serverHello.extensions.append(keyShareExtension)
             
+            let supportedVersions = TLSSupportedVersionsExtension(supportedVersions: [server.negotiatedProtocolVersion!])
+            serverHello.extensions.append(supportedVersions)
+            
             // Normally we would use sendHandshakeMessage here, which would implicitly add the message to
-            // the handShakeMessages and cal didSendHandshakeMessage on the stateMachine.
+            // the handShakeMessages and didSendHandshakeMessage on the stateMachine.
             // But since that would immediately trigger the sending of EncryptedExtensions, we have no chance
             // to establish the encryption keys inbetween.
-            // So until we come can come up with a different architecture to do this, we are doing the three
+            // So until we can come up with a different architecture to do this, we are doing the three
             // steps here by hand, intermixed with establishing the encryption keys
             try server.sendMessage(serverHello)
             server.handshakeMessages.append(serverHello)

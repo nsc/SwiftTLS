@@ -64,19 +64,30 @@ struct TLSSupportedVersionsExtension : TLSExtension
         }
     }
     
-    func writeTo<Target : OutputStreamType>(_ target: inout Target) {
-        let data = DataBuffer()
-        for version in self.supportedVersions {
-            data.write(version.rawValue)
+    func writeTo<Target : OutputStreamType>(_ target: inout Target, messageType: TLSMessageExtensionType) {
+        switch messageType {
+        case .clientHello:
+            let data = DataBuffer()
+            for version in self.supportedVersions {
+                data.write(version.rawValue)
+            }
+            
+            let extensionsData = data.buffer
+            let extensionsLength = extensionsData.count
+            
+            target.write(self.extensionType.rawValue)
+            target.write(UInt16(extensionsData.count + 1))
+            target.write(UInt8(extensionsLength))
+            target.write(extensionsData)
+            
+        case .serverHello:
+            target.write(self.extensionType.rawValue)
+            target.write(UInt16(2))
+            target.write(self.supportedVersions.first!.rawValue)
+
+        default:
+            fatalError("Unsupported message type \(messageType)")
         }
-        
-        let extensionsData = data.buffer
-        let extensionsLength = extensionsData.count
-        
-        target.write(self.extensionType.rawValue)
-        target.write(UInt16(extensionsData.count + 1))
-        target.write(UInt8(extensionsLength))
-        target.write(extensionsData)
     }
    
 }

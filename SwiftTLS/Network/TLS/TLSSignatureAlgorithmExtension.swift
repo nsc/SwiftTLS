@@ -23,7 +23,7 @@ struct TLSSignatureAlgorithmExtension : TLSExtension
         self.signatureAlgorithms = signatureAlgorithms
     }
     
-    init?(inputStream: InputStreamType) {
+    init?(inputStream: InputStreamType, messageType: TLSMessageExtensionType) {
         self.signatureAlgorithms = []
         
         guard
@@ -43,7 +43,7 @@ struct TLSSignatureAlgorithmExtension : TLSExtension
         }
     }
     
-    func writeTo<Target : OutputStreamType>(_ target: inout Target) {
+    func writeTo<Target : OutputStreamType>(_ target: inout Target, messageType: TLSMessageExtensionType) {
         let data = DataBuffer()
         for algorithm in self.signatureAlgorithms {
             data.write(algorithm.rawValue)

@@ -21,7 +21,7 @@ struct TLSEllipticCurvePointFormatsExtension : TLSExtension
         self.ellipticCurvePointFormats = ellipticCurvePointFormats
     }
     
-    init?(inputStream: InputStreamType) {
+    init?(inputStream: InputStreamType, messageType: TLSMessageExtensionType) {
         self.ellipticCurvePointFormats = []
         
         guard
@@ -41,7 +41,7 @@ struct TLSEllipticCurvePointFormatsExtension : TLSExtension
         }
     }
     
-    func writeTo<Target : OutputStreamType>(_ target: inout Target) {
+    func writeTo<Target : OutputStreamType>(_ target: inout Target, messageType: TLSMessageExtensionType) {
         let data = DataBuffer()
         for ec in self.ellipticCurvePointFormats {
             data.write(ec.rawValue)

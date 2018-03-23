@@ -35,7 +35,7 @@ class TLSServerHello : TLSHandshakeMessage
         }
     }
     
-    init(serverVersion : TLSProtocolVersion, random : Random, sessionID : TLSSessionID?, cipherSuite : CipherSuite, compressionMethod : CompressionMethod = .null)
+    init(serverVersion : TLSProtocolVersion, random : Random, sessionID : TLSSessionID? = nil, cipherSuite : CipherSuite, compressionMethod : CompressionMethod = .null)
     {
         self.legacyVersion = serverVersion
         self.random = random
@@ -105,7 +105,7 @@ class TLSServerHello : TLSHandshakeMessage
         
         buffer.write(self.legacyCompressionMethod!.rawValue)
         
-        TLSWriteExtensions(&buffer, extensions: self.extensions)
+        TLSWriteExtensions(&buffer, extensions: self.extensions, messageType: .serverHello)
 
         let data = buffer.buffer
         

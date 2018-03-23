@@ -72,7 +72,7 @@ class TLSNewSessionTicket : TLSHandshakeMessage
         data.write(UInt16(self.ticket.count))
         data.write(self.ticket)
 
-        TLSWriteExtensions(&data, extensions: self.extensions)
+        TLSWriteExtensions(&data, extensions: self.extensions, messageType: .newSessionTicket)
         
         self.writeHeader(type: .newSessionTicket, bodyLength: data.buffer.count, target: &target)
         target.write(data.buffer)

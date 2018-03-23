@@ -28,7 +28,7 @@ struct TLSServerNameExtension : TLSExtension
         self.serverNames = serverNames
     }
     
-    init?(inputStream: InputStreamType) {
+    init?(inputStream: InputStreamType, messageType: TLSMessageExtensionType) {
         guard
             let serverNamesLength : UInt16 = inputStream.read()
         else {
@@ -56,7 +56,7 @@ struct TLSServerNameExtension : TLSExtension
         }
     }
     
-    func writeTo<Target : OutputStreamType>(_ target: inout Target) {
+    func writeTo<Target : OutputStreamType>(_ target: inout Target, messageType: TLSMessageExtensionType) {
         let data = DataBuffer()
         for serverName in self.serverNames {
             let utf8 = [UInt8](serverName.utf8)

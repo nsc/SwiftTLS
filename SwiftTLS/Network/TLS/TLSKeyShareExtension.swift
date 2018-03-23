@@ -54,6 +54,9 @@ enum TLSMessageExtensionType {
     case clientHello
     case helloRetryRequest
     case serverHello
+    case encryptedExtensions
+    case certificate
+    case certificateRequest
     case newSessionTicket
 }
 
@@ -115,7 +118,7 @@ struct TLSKeyShareExtension : TLSExtension
         }
     }
     
-    func writeTo<Target : OutputStreamType>(_ target: inout Target) {
+    func writeTo<Target : OutputStreamType>(_ target: inout Target, messageType: TLSMessageExtensionType) {
         var data = DataBuffer()
         
         switch keyShare {

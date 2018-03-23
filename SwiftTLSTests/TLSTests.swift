@@ -42,7 +42,7 @@ class TSLTests: XCTestCase {
             try socket.connect(hostname: "localhost", port: 4433)
             try socket.write([UInt8]("GET / HTTP/1.1\r\nHost: example.com\r\n\r\n".utf8))
             let data = try socket.read(count: 100)
-            print("\(String.fromUTF8Bytes(data))")
+            print("\(String(describing: String.fromUTF8Bytes(data)))")
             socket.close()
         }
         catch let error as SocketError {

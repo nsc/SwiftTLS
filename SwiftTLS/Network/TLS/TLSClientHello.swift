@@ -28,8 +28,11 @@ enum TLSExtensionType : UInt16
     case secureRenegotiationInfo = 0xff01
 }
 
-protocol TLSExtension : Streamable
+protocol TLSExtension
 {
+    init?(inputStream: InputStreamType, messageType: TLSMessageExtensionType)
+    func writeTo<Target : OutputStreamType>(_ target: inout Target, messageType: TLSMessageExtensionType)
+
     var extensionType : TLSExtensionType {
         get
     }
@@ -72,14 +75,14 @@ func TLSReadExtensions(from inputStream: InputStreamType, length: Int, messageTy
                         break
                     }
                     
-                    guard let serverName = TLSServerNameExtension(inputStream: BinaryInputStream(extensionData)) else {
+                    guard let serverName = TLSServerNameExtension(inputStream: BinaryInputStream(extensionData), messageType: messageType) else {
                         fatalError("Could not read server name extension")
                     }
                     
                     extensions.append(serverName)
                     
                 case .supportedGroups:
-                    guard let ellipticCurves = TLSSupportedGroupsExtension(inputStream: BinaryInputStream(extensionData)) else {
+                    guard let ellipticCurves = TLSSupportedGroupsExtension(inputStream: BinaryInputStream(extensionData), messageType: messageType) else {
                     
                         fatalError("Could not read supported groups extension")
                     }
@@ -87,7 +90,7 @@ func TLSReadExtensions(from inputStream: InputStreamType, length: Int, messageTy
                     extensions.append(ellipticCurves)
                     
                 case .ecPointFormats:
-                    guard let pointFormats = TLSEllipticCurvePointFormatsExtension(inputStream: BinaryInputStream(extensionData)) else {
+                    guard let pointFormats = TLSEllipticCurvePointFormatsExtension(inputStream: BinaryInputStream(extensionData), messageType: messageType) else {
                     
                         fatalError("Could not read EC point formats extension")
                     }
@@ -111,7 +114,7 @@ func TLSReadExtensions(from inputStream: InputStreamType, length: Int, messageTy
                     extensions.append(supportedVersions)
                     
                 case .secureRenegotiationInfo:
-                    guard let secureRenogotiationInfo = TLSSecureRenegotiationInfoExtension(inputStream: BinaryInputStream(extensionData)) else {
+                    guard let secureRenogotiationInfo = TLSSecureRenegotiationInfoExtension(inputStream: BinaryInputStream(extensionData), messageType: messageType) else {
                     
                         fatalError("Could not read secure renegotiation info extension")
                     }
@@ -135,13 +138,13 @@ func TLSReadExtensions(from inputStream: InputStreamType, length: Int, messageTy
     return extensions
 }
 
-func TLSWriteExtensions<Target: OutputStreamType>(_ target: inout Target, extensions: [TLSExtension])
+func TLSWriteExtensions<Target: OutputStreamType>(_ target: inout Target, extensions: [TLSExtension], messageType: TLSMessageExtensionType)
 {
     if extensions.count != 0 {
         var extensionsData = DataBuffer()
         
         for anExtension in extensions {
-            anExtension.writeTo(&extensionsData)
+            anExtension.writeTo(&extensionsData, messageType: messageType)
         }
         
         target.write(UInt16(extensionsData.buffer.count))
@@ -266,7 +269,7 @@ class TLSClientHello : TLSHandshakeMessage
         buffer.write(UInt8(self.legacyCompressionMethods.count))
         buffer.write(self.legacyCompressionMethods.map { $0.rawValue})
         
-        TLSWriteExtensions(&buffer, extensions: self.extensions)
+        TLSWriteExtensions(&buffer, extensions: self.extensions, messageType: .clientHello)
         
         let data = buffer.buffer
         

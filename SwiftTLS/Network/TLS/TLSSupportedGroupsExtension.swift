@@ -21,7 +21,7 @@ struct TLSSupportedGroupsExtension : TLSExtension
         self.ellipticCurves = ellipticCurves
     }
     
-    init?(inputStream: InputStreamType) {
+    init?(inputStream: InputStreamType, messageType: TLSMessageExtensionType) {
         self.ellipticCurves = []
         
         guard
@@ -40,7 +40,7 @@ struct TLSSupportedGroupsExtension : TLSExtension
         }
     }
     
-    func writeTo<Target : OutputStreamType>(_ target: inout Target) {
+    func writeTo<Target : OutputStreamType>(_ target: inout Target, messageType: TLSMessageExtensionType) {
         let data = DataBuffer()
         for ec in self.ellipticCurves {
             data.write(ec.rawValue)

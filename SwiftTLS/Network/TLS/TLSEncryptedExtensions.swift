@@ -25,7 +25,7 @@ class TLSEncryptedExtensions : TLSHandshakeMessage
             return nil
         }
         
-        if let extensions = TLSReadExtensions(from: inputStream, length: bodyLength, messageType: .serverHello) {
+        if let extensions = TLSReadExtensions(from: inputStream, length: bodyLength, messageType: .encryptedExtensions) {
             self.extensions = extensions
         }
         
@@ -35,7 +35,7 @@ class TLSEncryptedExtensions : TLSHandshakeMessage
     override func writeTo<Target : OutputStreamType>(_ target: inout Target)
     {
         var data = DataBuffer()
-        TLSWriteExtensions(&data, extensions: self.extensions)
+        TLSWriteExtensions(&data, extensions: self.extensions, messageType: .encryptedExtensions)
         
         self.writeHeader(type: .encryptedExtensions, bodyLength: data.buffer.count, target: &target)
         target.write(data.buffer)
