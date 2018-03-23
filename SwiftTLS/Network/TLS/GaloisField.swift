@@ -74,7 +74,7 @@ struct GF2_128_Element {
     }
     
     func asBigEndianByteArray() -> [UInt8] {
-        return hi.bigEndianByteArray() + lo.bigEndianByteArray()
+        return hi.bigEndianBytes + lo.bigEndianBytes
     }
 }
 

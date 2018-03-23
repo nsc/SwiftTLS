@@ -42,7 +42,7 @@ extension TLS1_3 {
                 let sequenceNumberSize = MemoryLayout<SequenceNumberType>.size
                 let writeIVLeftPart  = [UInt8](writeIV[0 ..< writeIV.count - sequenceNumberSize])
                 let writeIVRightPart = [UInt8](writeIV[writeIV.count - sequenceNumberSize ..< writeIV.count])
-                let IV : [UInt8] = writeIVLeftPart + (writeIVRightPart ^ writeSequenceNumber.bigEndianByteArray())
+                let IV : [UInt8] = writeIVLeftPart + (writeIVRightPart ^ writeSequenceNumber.bigEndianBytes)
                 
                 return IV
             }
@@ -52,7 +52,7 @@ extension TLS1_3 {
                 let sequenceNumberSize = MemoryLayout<SequenceNumberType>.size
                 let readIVLeftPart  = [UInt8](readIV[0 ..< readIV.count - sequenceNumberSize])
                 let readIVRightPart = [UInt8](readIV[readIV.count - sequenceNumberSize..<readIV.count])
-                let IV : [UInt8] = readIVLeftPart + (readIVRightPart ^ readSequenceNumber.bigEndianByteArray())
+                let IV : [UInt8] = readIVLeftPart + (readIVRightPart ^ readSequenceNumber.bigEndianBytes)
                 
                 return IV
             }

@@ -8,29 +8,31 @@
 
 import CommonCrypto
 
-extension UInt32 {
-    func bigEndianByteArray() -> [UInt8] {
-        return [
-            UInt8((self & 0xff000000)   >> 24),
-            UInt8((self & 0xff0000)     >> 16),
-            UInt8((self & 0xff00)       >> 8),
-            UInt8((self & 0xff)),
-        ]
+extension UnsignedInteger where Self : FixedWidthInteger {
+    init?<T : RandomAccessCollection>(bigEndianBytes: T) where T.Element == UInt8, T.Index == Int
+    {
+        guard bigEndianBytes.count == Self.bitWidth / 8 else {
+            return nil
+        }
+        
+        self = bigEndianBytes.reduce(0 as Self, { $0 << 8 | Self($1)})
     }
-}
+    
+    var bigEndianBytes: [UInt8] {
+        
+        let bitWidth = type(of: self).bitWidth
+        
+        var bytes = [UInt8]()
+        var shift = bitWidth
+        var mask  = Self(0xff) << (shift - 8)
 
-extension UInt64 {
-    func bigEndianByteArray() -> [UInt8] {
-        return [
-            UInt8((self & 0xff00000000000000)   >> 56),
-            UInt8((self & 0xff000000000000)     >> 48),
-            UInt8((self & 0xff0000000000)       >> 40),
-            UInt8((self & 0xff00000000)         >> 32),
-            UInt8((self & 0xff000000)           >> 24),
-            UInt8((self & 0xff0000)             >> 16),
-            UInt8((self & 0xff00)               >> 8),
-            UInt8((self & 0xff)),
-        ]
+        for _ in 0..<bitWidth / 8 {
+            shift -= 8
+            bytes.append(UInt8((self & mask) >> shift))
+            mask = mask >> 8
+        }
+        
+        return bytes
     }
 }
 
@@ -238,7 +240,7 @@ class BlockCipher
         if IV.count != 12 {
             let lenA = UInt64(0)
             let lenIV = UInt64(IV.count) << 3
-            let len = lenA.bigEndianByteArray() + lenIV.bigEndianByteArray()
+            let len = lenA.bigEndianBytes + lenIV.bigEndianBytes
             let ivMAC = ghashUpdate(GF2_128_Element(), h: H, x: IV)
             IV = ghashUpdate(ivMAC, h: H, x: len).asBigEndianByteArray()
         }
@@ -269,7 +271,7 @@ class BlockCipher
         for i in 0..<numSteps {
 
             counter32 += 1
-            counter.block[12..<16] = counter32.bigEndianByteArray()[0..<4]
+            counter.block[12..<16] = counter32.bigEndianBytes[0..<4]
 
             let start = (blockSize * i)
             var end   = (blockSize * (i + 1))
@@ -300,13 +302,13 @@ class BlockCipher
         }
         
         if inputData.count + authDataCount > 0 {
-            let len = UInt64(authDataCount << 3).bigEndianByteArray() + UInt64(inputData.count << 3).bigEndianByteArray()
+            let len = UInt64(authDataCount << 3).bigEndianBytes + UInt64(inputData.count << 3).bigEndianBytes
             mac = ghashUpdate(mac, h: H, x: len)
         }
 
         var authTag = MemoryBlock(blockSize: 16)
         _ = cryptorUpdate(inputBlock: Y0, outputBlock: &authTag)
-        authTag ^= MemoryBlock(mac.hi.bigEndianByteArray() + mac.lo.bigEndianByteArray())
+        authTag ^= MemoryBlock(mac.hi.bigEndianBytes + mac.lo.bigEndianBytes)
         self.authTag = authTag.block
         
         return outputData

@@ -194,17 +194,31 @@ extension InputStreamType
 
 }
 
-class Random : Streamable
+class Random : Streamable, Equatable
 {
     static let NumberOfRandomBytes = 28
     var gmtUnixTime : UInt32
     var randomBytes : [UInt8]
+    
+    var bytes: [UInt8] {
+        return self.gmtUnixTime.bigEndianBytes + randomBytes
+    }
     
     init()
     {
         randomBytes = TLSRandomBytes(count: 28)
         
         gmtUnixTime = UInt32(Date().timeIntervalSinceReferenceDate)
+    }
+    
+    init?(_ bytes: [UInt8])
+    {
+        guard bytes.count == 32 else {
+            return nil
+        }
+        
+        self.gmtUnixTime = UInt32(bigEndianBytes: bytes[0..<4])!
+        self.randomBytes = [UInt8](bytes[4..<32])
     }
     
     required init?(inputStream : InputStreamType)
@@ -223,6 +237,10 @@ class Random : Streamable
     func writeTo<Target : OutputStreamType>(_ target: inout Target) {
         target.write(gmtUnixTime)
         target.write(randomBytes)
+    }
+    
+    static func == (lhs: Random, rhs: Random) -> Bool {
+        return lhs.gmtUnixTime == rhs.gmtUnixTime && lhs.randomBytes == rhs.randomBytes
     }
 }
 
