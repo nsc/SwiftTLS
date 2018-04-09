@@ -103,6 +103,12 @@ class ASN1Integer : ASN1Object
 {
     var value : [UInt8]
     
+    var intValue: Int? {
+        guard let v = UInt64(bigEndianBytes: value) else { return nil }
+        
+        return Int(v)
+    }
+    
     init(value : [UInt8])
     {
         self.value = value
@@ -204,6 +210,10 @@ class ASN1Null : ASN1Object
 class ASN1ObjectIdentifier : ASN1Object
 {
     var identifier : [Int]
+    var oid: OID? {
+        return OID(id: identifier)
+    }
+    
     init(identifier: [Int])
     {
         self.identifier = identifier
@@ -240,6 +250,15 @@ class ASN1Sequence : ASN1Object
         }
 
         return self.objects == other.objects
+    }
+    
+    subscript(index: Int) -> ASN1Object? {
+        guard self.objects.count >= index else { return nil }
+        
+        let object = self.objects[index]
+        guard !(object is ASN1Null) else { return nil}
+        
+        return object
     }
 }
 

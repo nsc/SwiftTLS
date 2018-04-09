@@ -40,18 +40,14 @@ struct TLSSupportedGroupsExtension : TLSExtension
         }
     }
     
-    func writeTo<Target : OutputStreamType>(_ target: inout Target, messageType: TLSMessageExtensionType) {
-        let data = DataBuffer()
+    func writeTo<Target : OutputStreamType>(_ target: inout Target, messageType: TLSMessageExtensionType, context: TLSConnection?) {
+        var extensionData: [UInt8] = []
         for ec in self.ellipticCurves {
-            data.write(ec.rawValue)
+            extensionData.write(ec.rawValue)
         }
         
-        let extensionsData = data.buffer
-        let extensionsLength = extensionsData.count
-        
         target.write(self.extensionType.rawValue)
-        target.write(UInt16(extensionsData.count + 2))
-        target.write(UInt16(extensionsLength))
-        target.write(extensionsData)
+        target.write(UInt16(extensionData.count + 2))
+        target.write16(extensionData)
     }
 }

@@ -33,15 +33,12 @@ struct TLSSecureRenegotiationInfoExtension : TLSExtension
         self.renegotiatedConnection = info
     }
 
-    func writeTo<Target : OutputStreamType>(_ target: inout Target, messageType: TLSMessageExtensionType) {
+    func writeTo<Target : OutputStreamType>(_ target: inout Target, messageType: TLSMessageExtensionType, context: TLSConnection?) {
         let extensionsLength = renegotiatedConnection.count + 1
         
         target.write(self.extensionType.rawValue)
         target.write(UInt16(extensionsLength))
-        target.write(UInt8(renegotiatedConnection.count))
-        if renegotiatedConnection.count != 0 {
-            target.write(renegotiatedConnection)
-        }
+        target.write8(renegotiatedConnection)
     }
 
 }

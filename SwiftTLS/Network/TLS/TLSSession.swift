@@ -52,9 +52,8 @@ struct TLSSessionID : Streamable
         return nil
     }
     
-    func writeTo<Target : OutputStreamType>(_ target: inout Target) {
-        target.write(UInt8(sessionID.count))
-        target.write(sessionID)
+    func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?) {
+        target.write8(sessionID)
     }
 }
 

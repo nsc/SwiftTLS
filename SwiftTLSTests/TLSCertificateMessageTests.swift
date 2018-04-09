@@ -29,12 +29,13 @@ class TLSCertificateMessageTests: XCTestCase {
         let certificate = X509.Certificate(derData: certificateData)!
         let sut = TLSCertificateMessage(certificates: [certificate])
 
-        var data = DataBuffer()
-        sut.writeTo(&data)
-        let cert2Message = TLSCertificateMessage(inputStream: BinaryInputStream(data.buffer), context: TLSConnection())!
-        var data2 = DataBuffer()
-        cert2Message.writeTo(&data2)
+        let context = TLSConnection()
+        var data = [UInt8]()
+        sut.writeTo(&data, context: context)
+        let cert2Message = TLSCertificateMessage(inputStream: BinaryInputStream(data), context: context)!
+        var data2 = [UInt8]()
+        cert2Message.writeTo(&data2, context: context)
         
-        XCTAssertEqual(data.buffer, data2.buffer)
+        XCTAssertEqual(data, data2)
     }
 }

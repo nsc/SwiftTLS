@@ -20,7 +20,11 @@ extension TLS1_2 {
             super.init(connection: server)
         }
         
-        func sendServerHello() throws {
+        var serverContext: TLSServerContext {
+            return self.connection.context as! TLSServerContext
+        }
+
+        func sendServerHello(for clientHello: TLSClientHello) throws {
             var sessionID: TLSSessionID
             if let session = server.currentSession {
                 sessionID = session.sessionID
@@ -29,7 +33,7 @@ extension TLS1_2 {
                 // create new session id
                 repeat {
                     sessionID = TLSSessionID.new()
-                } while server.serverContext.sessionCache[sessionID] != nil
+                } while self.serverContext.sessionCache[sessionID] != nil
                 
                 server.pendingSessionID = sessionID
             }
@@ -54,7 +58,7 @@ extension TLS1_2 {
             
             print("ServerHello extensions = \(serverHello.extensions)")
             
-            self.securityParameters.serverRandom = DataBuffer(serverHelloRandom).buffer
+            self.securityParameters.serverRandom = [UInt8](serverHelloRandom)
             if let session = server.currentSession {
                 self.setPendingSecurityParametersForCipherSuite(session.cipherSpec)
             }
@@ -179,7 +183,7 @@ extension TLS1_2 {
                 server.negotiatedProtocolVersion = server.configuration.supportedVersions.first!
             }
             
-            self.securityParameters.clientRandom = DataBuffer(clientHello.random).buffer
+            self.securityParameters.clientRandom = [UInt8](clientHello.random)
             
             server.cipherSuite = server.selectCipherSuite(clientHello.cipherSuites)
             
@@ -193,7 +197,7 @@ extension TLS1_2 {
             
             print("client hello session ID: \(String(describing: clientHello.legacySessionID))")
             if let sessionID = clientHello.legacySessionID {
-                if let session = server.serverContext.sessionCache[sessionID] {
+                if let session = self.serverContext.sessionCache[sessionID] {
                     print("Using cached session ID: \(sessionID.sessionID)")
                     server.currentSession = session
                     server.isReusingSession = true
@@ -212,7 +216,7 @@ extension TLS1_2 {
                 
                 if let sessionID = server.pendingSessionID {
                     let session = TLSSession(sessionID: sessionID, cipherSpec: server.cipherSuite!, masterSecret: self.securityParameters.masterSecret!)
-                    server.serverContext.sessionCache[sessionID] = session
+                    self.serverContext.sessionCache[sessionID] = session
                     print("Save session \(session)")
                 }
                 
@@ -274,7 +278,7 @@ extension TLS1_2 {
             case (.rsa, .rsa):
                 // RSA
                 if let encryptedPreMasterSecret = clientKeyExchange.encryptedPreMasterSecret {
-                    preMasterSecret = server.configuration.identity!.rsa!.decrypt(encryptedPreMasterSecret)
+                    preMasterSecret = try! server.configuration.identity!.rsa!.decrypt(encryptedPreMasterSecret)
                 }
                 else {
                     fatalError("Client Key Exchange has no encrypted master secret")

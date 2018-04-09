@@ -20,8 +20,17 @@ public struct TLSConfiguration
     
     var supportedVersions: [TLSProtocolVersion]
     
+    var supportsSessionResumption = true
+    
     // TLS 1.3
     var supportedGroups: [NamedGroup] = [.secp256r1]
+    
+    enum EarlyDataSupport {
+        case notSupported
+        case supported(maximumEarlyDataSize: Int)
+    }
+    
+    var earlyData: EarlyDataSupport = .notSupported
     
     init(supportedVersions: [TLSProtocolVersion], identity: Identity? = nil)
     {
@@ -58,4 +67,13 @@ public struct TLSConfiguration
     func supports(_ version: TLSProtocolVersion) -> Bool {
         return self.supportedVersions.contains(version)
     }
+    
+    func createServerContext() -> TLSServerContext {
+        return TLSServerContext()
+    }
+
+    func createClientContext() -> TLSClientContext {
+        return TLSClientContext()
+    }
+
 }

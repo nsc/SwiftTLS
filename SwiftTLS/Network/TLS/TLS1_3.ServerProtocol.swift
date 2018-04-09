@@ -9,23 +9,45 @@
 import Foundation
 
 extension TLS1_3 {
+    class ServerHandshakeState : HandshakeState {
+        enum EarlyDataState {
+            case none
+            case rejected
+            case accepted
+        }
+        
+        var serverEarlyDataState: EarlyDataState = .none
+    }
+
     class ServerProtocol : BaseProtocol, TLSServerProtocol
     {
         weak var server: TLSServer! {
             return self.connection as! TLSServer
         }
-        
+
+        var serverContext: TLSServerContext {
+            return self.connection.context as! TLSServerContext
+        }
+
+        var serverHandshakeState: ServerHandshakeState {
+            return self.handshakeState as! ServerHandshakeState
+        }
+
         init(server: TLSServer)
         {
             super.init(connection: server)
         }
 
-        func sendServerHello() throws {
+        override func reset() {
+            self.handshakeState = ServerHandshakeState()
+        }
+
+        func sendServerHello(for clientHello: TLSClientHello) throws {
             let serverHelloRandom = Random()
             let serverHello = TLSServerHello(
                 serverVersion: .v1_2,
                 random: serverHelloRandom,
-                sessionID: nil,
+                sessionID: clientHello.legacySessionID,
                 cipherSuite: server.cipherSuite!,
                 compressionMethod: .null)
 
@@ -44,6 +66,20 @@ extension TLS1_3 {
             let supportedVersions = TLSSupportedVersionsExtension(supportedVersions: [server.negotiatedProtocolVersion!])
             serverHello.extensions.append(supportedVersions)
             
+            if clientHello.extensions.contains(where: {$0 is TLSEarlyDataIndication}) {
+                if case .supported(_) = self.server.configuration.earlyData {
+                    self.serverHandshakeState.serverEarlyDataState = .accepted
+                    deriveEarlyTrafficSecret()
+                }
+                else {
+                    self.serverHandshakeState.serverEarlyDataState = .rejected
+                }
+            }
+            
+            if let selectedIdentity = self.handshakeState.selectedIdentity {
+                serverHello.extensions.append(TLSPreSharedKeyExtension(preSharedKey: .serverHello(selectedIdentity)))
+            }
+            
             // Normally we would use sendHandshakeMessage here, which would implicitly add the message to
             // the handShakeMessages and didSendHandshakeMessage on the stateMachine.
             // But since that would immediately trigger the sending of EncryptedExtensions, we have no chance
@@ -56,11 +92,19 @@ extension TLS1_3 {
             deriveEarlySecret()
             deriveHandshakeSecret(with: keyExchange)
             
+            self.recordLayer.changeKeys(withClientTrafficSecret: self.handshakeState.clientHandshakeTrafficSecret!,
+                                        serverTrafficSecret: self.handshakeState.serverHandshakeTrafficSecret!)
+
             try server.stateMachine?.didSendHandshakeMessage(serverHello)
         }
         
         func sendEncryptedExtensions() throws {
-            let encryptedExtensions = TLSEncryptedExtensions(extensions: [])
+            var extensions: [TLSExtension] = []
+            if case .accepted = self.serverHandshakeState.serverEarlyDataState {
+                extensions.append(TLSEarlyDataIndication())
+            }
+            
+            let encryptedExtensions = TLSEncryptedExtensions(extensions: extensions)
             try server.sendHandshakeMessage(encryptedExtensions)
         }
         
@@ -68,7 +112,6 @@ extension TLS1_3 {
 
             guard let negotiatedProtocolVersion = selectVersion(for: clientHello) else {
                 try server.abortHandshake()
-                return
             }
             
             if negotiatedProtocolVersion < .v1_3 {
@@ -83,6 +126,85 @@ extension TLS1_3 {
             server.negotiatedProtocolVersion = negotiatedProtocolVersion
             
             print("ClientHello extensions: \(clientHello.extensions)")
+
+            var clientPSKKeyExchangeModes: [PSKKeyExchangeMode]? = nil
+            var clientKeyShares: [KeyShareEntry]? = nil
+            var clientOfferedPSKs: OfferedPSKs? = nil
+            
+            for clientExtension in clientHello.extensions {
+                switch clientExtension.extensionType {
+                case .serverName:
+                    self.connection.serverNames = (clientExtension as! TLSServerNameExtension).serverNames
+
+                case .keyShare:
+                    if case .clientHello(let keyShares) = (clientExtension as! TLSKeyShareExtension).keyShare {
+                        clientKeyShares = keyShares
+                    }
+                    
+                case .pskKeyExchangeModes:
+                    clientPSKKeyExchangeModes = (clientExtension as! TLSPSKKeyExchangeModesExtension).keyExchangeModes
+                    
+                case .preSharedKey:
+                    if case .clientHello(let offeredPSKs) = (clientExtension as! TLSPreSharedKeyExtension).preSharedKey {
+                        clientOfferedPSKs = offeredPSKs
+                    }
+                    
+                default:
+                    break
+                }
+            }
+            
+            // Check that the combination of offered extensions for key share and PSKs is sane
+            if let offeredPSKs = clientOfferedPSKs {
+                guard let pskKeyExchangeModes = clientPSKKeyExchangeModes else {
+                    try server.abortHandshake()
+                }
+                
+                guard offeredPSKs.binders.count == offeredPSKs.identities.count else {
+                    try server.abortHandshake(with: .illegalParameter)
+                }
+                
+                let bindersSize = offeredPSKs.bindersNetworkSize
+                let clientHelloData = clientHello.messageData(with: self.connection)
+                let truncatedClientHelloData = [UInt8](clientHelloData.dropLast(bindersSize))
+                
+                var selectedIdentity: UInt16? = nil
+                var chosenTicket: Ticket? = nil
+                for i in 0..<offeredPSKs.identities.count {
+                    let identity = offeredPSKs.identities[i]
+                    
+                    if let ticket = self.ticketsForCurrentConnection().filter({$0.identity == identity.identity}).first {
+                        let ticketAge = ticket.lifeTime
+                        let identityAge = identity.obfuscatedTicketAge.subtractingReportingOverflow(ticket.ageAdd).0
+                        
+                        self.handshakeState.preSharedKey = ticket.preSharedKey
+                        deriveEarlySecret()
+                        self.handshakeState.resumptionBinderSecret = deriveResumptionPSKBinderSecret()
+                        
+                        let binderKey = deriveBinderKey()
+                        
+                        let binderValue = binderValueWithHashAlgorithm(ticket.hashAlgorithm, binderKey: binderKey, truncatedTranscriptData: truncatedClientHelloData)
+                        
+                        let binder = offeredPSKs.binders[i]
+                        
+                        if binder.binder == binderValue {
+                            chosenTicket = ticket
+                            self.handshakeState.preSharedKey = ticket.preSharedKey
+                            self.handshakeState.selectedIdentity = UInt16(i)
+
+                            break
+                        }
+                    }
+                }
+                
+                if let ticket = chosenTicket {
+                    print("Choose ticket \(ticket.identity)")
+                }
+                else {
+                    self.handshakeState.preSharedKey = nil
+                    self.handshakeState.resumptionBinderSecret = nil
+                }
+            }
             
             guard let cipherSuite = server.selectCipherSuite(clientHello.cipherSuites) else {
                 try server.sendAlert(.handshakeFailure, alertLevel: .fatal)
@@ -91,7 +213,10 @@ extension TLS1_3 {
             
             print("Selected cipher suite is \(cipherSuite)")
             
-            guard let keyShare = selectKeyShare(clientHello: clientHello) else {
+            guard let keyShares = clientKeyShares,
+                  let keyShare = selectKeyShare(fromClientKeyShares: keyShares)
+            else {
+                    
                 // Return without setting cipher suite and key share. The state machine
                 // will send a retry request if possible.
                 return
@@ -105,12 +230,10 @@ extension TLS1_3 {
         {
             guard let cipherSuite = server.selectCipherSuite(clientHello.cipherSuites) else {
                 try server.abortHandshake()
-                return
             }
             
             guard let supportedGroupsExtension = clientHello.extensions.filter({$0 is TLSSupportedGroupsExtension}).first else {
                 try server.abortHandshake()
-                return
             }
             
             let supportedGroups = (supportedGroupsExtension as! TLSSupportedGroupsExtension).ellipticCurves
@@ -118,32 +241,101 @@ extension TLS1_3 {
             
             guard commonGroups.count > 0 else {
                 try server.abortHandshake()
-                return
             }
             
             let extensions: [TLSExtension] = [
-                TLSSupportedGroupsExtension(ellipticCurves: commonGroups)
+                TLSSupportedVersionsExtension(supportedVersions: [.v1_3]),
+                TLSKeyShareExtension(keyShare: .helloRetryRequest(selectedGroup: commonGroups[0]))
             ]
             
-            let helloRetryRequest = TLSHelloRetryRequest(serverVersion: TLSProtocolVersion.v1_3, cipherSuite: cipherSuite, extensions: extensions)
+            let helloRetryRequest = TLSHelloRetryRequest(serverVersion: TLSProtocolVersion.v1_2, cipherSuite: cipherSuite, extensions: extensions)
+            helloRetryRequest.legacySessionID = clientHello.legacySessionID
+            
             try server.sendHandshakeMessage(helloRetryRequest)
         }
 
-        override func sendFinished() throws
-        {
+        override func sendFinished() throws {
             let verifyData = self.finishedData(forClient: connection.isClient)
             
             try self.connection.sendHandshakeMessage(TLSFinished(verifyData: verifyData))
-            
+                        
             // The secret contains all the handshake messages up to Server Finished, so the server has to derive
             // it after sending its Finished
             deriveApplicationTrafficSecrets()
+
+            self.recordLayer.changeWriteKeys(withTrafficSecret: self.handshakeState.serverTrafficSecret!)
+
+            if case .accepted = self.serverHandshakeState.serverEarlyDataState {
+                activateEarlyTrafficSecret()
+                
+                // Read until EndOfEarlyData
+                EndOfEarlyDataLoop: while true {
+                    let message = try self.recordLayer.readMessage()
+                    print("Early data: \(message)")
+                    
+                    switch message
+                    {
+                    case is TLSEndOfEarlyData:
+                        self.server.handshakeMessages.append(message as! TLSEndOfEarlyData)
+                        break EndOfEarlyDataLoop
+                        
+                    case is TLSApplicationData:
+                        let data = (message as! TLSApplicationData).applicationData
+                        print("\t\(data)")
+                        if let earlyDataResponseHandler = server.earlyDataResponseHandler {
+                            if let response = earlyDataResponseHandler(Data(bytes: data)) {
+                                var buffer = [UInt8](repeating: 0, count: data.count)
+                                buffer.withUnsafeMutableBufferPointer {
+                                    _ = response.copyBytes(to: $0)
+                                }
+                                
+                                try server.sendApplicationData(buffer)
+                            }
+                        }
+                        
+                        // TODO: give this data to the server
+                        break
+
+                    default:
+                        try server.abortHandshake(with: .unexpectedMessage)
+                    }
+                }
+                
+                self.recordLayer.changeReadKeys(withTrafficSecret: self.handshakeState.clientHandshakeTrafficSecret!)
+            }
         }
 
+        func sendNewSessionTicket() throws {
+            guard let serverNames = self.connection.serverNames else {
+                fatalError("Trying to sent NewSessionTicket, when the client didn't specify a server name")
+            }
+
+            let identity = TLSRandomBytes(count: 32)
+            let ageAdd = arc4random()
+            // Currently we are sending only one session ticket per connection. If we want to support more than one, we would need
+            // to chance the nonce here.
+            let ticket = Ticket(serverNames: serverNames, identity: identity, nonce: [0], lifeTime: 3600, ageAdd: ageAdd, cipherSuite: server.cipherSuite!, hashAlgorithm: server.hashAlgorithm)
+
+            deriveSessionResumptionSecret()
+            ticket.derivePreSharedKey(for: connection, sessionResumptionSecret: self.handshakeState.sessionResumptionSecret!)
+            
+            self.context.ticketStorage.add(ticket)
+            
+            try server.sendHandshakeMessage(TLSNewSessionTicket(ticket: ticket), appendToTranscript: false)
+        }
+        
         func handleFinished(_ finished: TLSFinished) throws {
+            // Verify finished data
+            let finishedData = self.finishedData(forClient: true)
+            if finishedData != finished.verifyData {
+                print("Server error: could not verify Finished message.")
+                try server.sendAlert(.decryptError, alertLevel: .fatal)
+            }
+                
+            server.handshakeMessages.append(finished)
+
             // Activate the application traffic secret after Client Finished
-            self.recordLayer.changeTrafficSecrets(clientTrafficSecret: self.handshakeState.clientTrafficSecret!,
-                                                  serverTrafficSecret: self.handshakeState.serverTrafficSecret!)
+            self.recordLayer.changeReadKeys(withTrafficSecret: self.handshakeState.clientTrafficSecret!)
         }
         
         func handleCertificate(_ certificate: TLSCertificateMessage) {
@@ -186,21 +378,12 @@ extension TLS1_3 {
             return protocolVersion
         }
         
-        func selectKeyShare(clientHello: TLSClientHello) -> KeyShareEntry?
+        func selectKeyShare(fromClientKeyShares keyShares: [KeyShareEntry]) -> KeyShareEntry?
         {
-            guard let keyShareExtension = clientHello.extensions.first(where: { $0 is TLSKeyShareExtension }) as? TLSKeyShareExtension else {
-                return nil
-            }
-            
-            if case .clientHello(let keyShares) = keyShareExtension.keyShare {
-                for keyShare in keyShares {
-                    if server.configuration.supportedGroups.contains(keyShare.namedGroup) {
-                        return keyShare
-                    }
+            for keyShare in keyShares {
+                if server.configuration.supportedGroups.contains(keyShare.namedGroup) {
+                    return keyShare
                 }
-            }
-            else {
-                return nil
             }
 
             return nil

@@ -15,19 +15,18 @@ class TLSServer : TLSConnection
             return self.protocolHandler as! TLSServerProtocol
         }
     }
-    internal var serverContext: TLSServerContext
-    override public var context: TLSContext {
-        return serverContext
-    }
 
-    internal var clientKeyShare: KeyShareEntry? = nil
-
-    override init(configuration: TLSConfiguration, dataProvider : TLSDataProvider? = nil)
+    var clientKeyShare: KeyShareEntry? = nil
+    var earlyDataResponseHandler: TLSServerSocket.EarlyDataResponseHandler? = nil
+    
+    override init(configuration: TLSConfiguration, context: TLSContext? = nil, dataProvider : TLSDataProvider? = nil)
     {
-        self.serverContext = TLSServerContext()
+        super.init(configuration: configuration, context: context, dataProvider: dataProvider)
         
-        super.init(configuration: configuration, dataProvider: dataProvider)
-        
+        if !(context is TLSServerContext) {
+            self.context = configuration.createServerContext()
+        }
+
         setupServer(with: configuration)
     }
     

@@ -8,15 +8,23 @@
 
 import Foundation
 
-enum RSA_PKCS1PaddingType : UInt8
-{
-    case none  = 0
-    case type1 = 1
-    case type2 = 2
-}
-
 struct RSA
 {
+    enum Error : Swift.Error {
+        case maskTooLong
+        case messageTooLong
+        case encodingError
+        case integerTooLarge
+        case decryptionError
+        case invalidSignature
+        case cipherTextRepresentativeOutOfRange
+        case messageRepresentativeOutOfRange
+        case signatureRepresentativeOutOfRange
+        case intendedEncodedMessageLengthTooShort
+        
+        case error(message: String)
+    }
+
     let n : BigInt
     let e : BigInt
 
@@ -27,7 +35,7 @@ struct RSA
     let dQ : BigInt?
     let qInv : BigInt?
     
-    var signatureScheme: TLSSignatureScheme = .rsa_pss_sha256
+    var signatureAlgorithm: X509.SignatureAlgorithm?
     
     static func fromPEMFile(_ file : String) -> RSA?
     {
@@ -127,6 +135,13 @@ struct RSA
         return nil
     }
     
+    init?(certificate: X509.Certificate)
+    {
+        self.init(publicKey: certificate.tbsCertificate.subjectPublicKeyInfo.subjectPublicKey.bits)
+        
+        self.signatureAlgorithm = certificate.tbsCertificate.signature.algorithm
+    }
+    
     private init(n : BigInt, e : BigInt, d : BigInt, p : BigInt, q : BigInt, dP : BigInt, dQ : BigInt, qInv : BigInt)
     {
         self.n = n
@@ -180,82 +195,13 @@ struct RSA
         self.qInv = nil
     }
     
-    func signData(_ data : [UInt8]) throws -> BigInt
-    {
-        print("signData with n = \(self.n)")
+    var nOctetLength: Int {
+        let modBits = self.n.bitWidth
+        let octetLength = (modBits - 1 + 7)/8
         
-        let hashAlgorithm = signatureScheme.hashAlgorithm!
-        let hash = self.hash(data, hashAlgorithm: hashAlgorithm)
-        
-        let writer = ASN1Writer()
-        let sequence = ASN1Sequence(objects: [
-            ASN1Sequence(objects: [
-                ASN1ObjectIdentifier(oid: self.oidForHashAlgorithm(hashAlgorithm)),
-                ASN1Null()
-                ]),
-            ASN1OctetString(data: hash)
-            ])
-        
-        let derData = writer.dataFromObject(sequence)
-        
-        let paddedData = self.paddedData(derData, paddingType: .type1)!
-        
-        let m = BigInt(bigEndianParts: paddedData)
-        let signature = try rsasp1(m: m)
-        
-        return signature
+        return octetLength
     }
     
-    func verifySignature(_ signature : BigInt, data: [UInt8]) throws -> Bool
-    {
-        let verification = try rsavp1(s: signature)
-        
-        guard let unpaddedVerification = self.unpaddedData(verification.asBigEndianData()) else {
-            return false
-        }
-        
-        guard let sequence = ASN1Parser(data: unpaddedVerification).parseObject() as? ASN1Sequence, sequence.objects.count == 2 else {
-            return false
-        }
-
-        guard let subSequence = sequence.objects[0] as? ASN1Sequence, subSequence.objects.count >= 1 else {
-            return false
-        }
-        
-        guard
-            let oidObject = subSequence.objects[0] as? ASN1ObjectIdentifier,
-            let oid = OID(id: oidObject.identifier)
-        else {
-            return false
-        }
-        
-        let hash : [UInt8]
-        let hashedData : [UInt8]
-        let hashSize: Int
-        switch oid
-        {
-        case .sha1:
-            hashedData = Hash_SHA1(data)
-            hashSize = HashAlgorithm.sha1.hashLength
-            
-        case .sha256:
-            hashedData = Hash_SHA256(data)
-            hashSize = HashAlgorithm.sha256.hashLength
-
-        default:
-            throw TLSError.error("Unsupported hash algorithm \(oid)")
-        }
-
-        let m = BigInt(bigEndianParts: hashedData)
-
-        guard let octetString = sequence.objects[1] as? ASN1OctetString else {
-            return false
-        }
-        hash = octetString.value
-                
-        return hash == [UInt8]((m % n).asBigEndianData().suffix(hashSize))
-    }
-
     func rsasp1(m: BigInt) throws -> BigInt {
         guard m < self.n - 1 else {
             throw Error.messageRepresentativeOutOfRange
@@ -281,192 +227,40 @@ struct RSA
         return m
     }
 
-    func encrypt(_ data: [UInt8]) -> [UInt8]
-    {
-        let padded = paddedData(data, paddingType: .type2)!
-        let m = BigInt(bigEndianParts: padded) % n
-        let encrypted = modular_pow(m, e, n)
+    func rsaep(m: BigInt) throws -> BigInt {
+        guard m < self.n - 1 else {
+            throw Error.messageRepresentativeOutOfRange
+        }
         
-        return encrypted.asBigEndianData()
+        let c = modular_pow(m, e, n)
+        
+        return c
     }
     
-    func decrypt(_ data: [UInt8]) -> [UInt8]
-    {
-        precondition(self.d != nil)
+    func rsadp(c: BigInt) throws -> BigInt {
+        guard c < self.n - 1 else {
+            throw Error.cipherTextRepresentativeOutOfRange
+        }
         
-        let encrypted = BigInt(bigEndianParts: data) % n
-        let decrypted = modular_pow(encrypted, d!, n)
+        guard let d = self.d else {
+            throw TLSError.error("Decryption primitive used without a private key")
+        }
         
-        let paddedData = decrypted.asBigEndianData()
+        // FIXME: Use second form (CRT) when applicable
+        let m = modular_pow(c, d, n)
         
-        return unpaddedData(paddedData)!
+        return m
+    }
+
+    // We are currently only supporting PKCS1 encryption, not OAEP
+    func encrypt(_ data: [UInt8]) throws -> [UInt8] {
+        return try rsaes_pkcs1_v1_5_encrypt(m: data)
     }
     
-    private func paddedData(_ data : [UInt8], length: Int = 0, paddingType : RSA_PKCS1PaddingType) -> [UInt8]?
-    {
-        var length = length
-        if length == 0 {
-            length = self.n.bitWidth / 8
-        }
+    func decrypt(_ data: [UInt8]) throws -> [UInt8] {
+        return try rsaes_pkcs1_v1_5_decrypt(c: data)
+    }
         
-
-        switch paddingType
-        {
-        case .none:
-            return data
-            
-        case .type1:
-            let dataLength = data.count
-            if dataLength + 3 > length {
-                return nil
-            }
-            
-            var paddedData : [UInt8] = [0,1]
-            let paddingLength = length - 3 - dataLength
-            paddedData += [UInt8](repeating: 0xff, count: paddingLength)
-            paddedData += [0]
-            paddedData += data
-            
-            return paddedData
-
-        case .type2:
-            let dataLength = data.count
-            if dataLength + 3 > length {
-                return nil
-            }
-            
-            var paddedData : [UInt8] = [0,2]
-            let paddingLength = length - 3 - dataLength
-            
-            for _ in 0..<paddingLength {
-                var randomNumber : UInt32
-                while true {
-                    randomNumber = arc4random()
-                    let randomByte = UInt8(UInt(randomNumber) & UInt(0xff))
-                    if randomByte == 0 {
-                        continue
-                    }
-                    
-                    paddedData += [randomByte]
-                    break
-                }
-            }
-            paddedData += [0]
-            paddedData += data
-            
-            return paddedData
-
-        }
-    }
-    
-    private func unpaddedData(_ paddedData : [UInt8], length: Int = 0) -> [UInt8]?
-    {
-        var length = length
-        if length == 0 {
-            length = self.n.bitWidth / 8
-        }
-
-        var paddingType = RSA_PKCS1PaddingType.none
-        if paddedData.count > 3 {
-            if paddedData[0] == 0 {
-                switch paddedData[1] {
-                case 1:
-                    paddingType = .type1
-                case 2:
-                    paddingType = .type2
-                default:
-                    paddingType = .none
-                }
-            }
-        }
-        
-        switch paddingType
-        {
-        case .none:
-            return paddedData
-            
-        case .type1:
-            guard paddedData.count == length else {
-                return nil
-            }
-            
-            // skip over padding
-            var firstNonPaddingIndex : Int = 0
-            for i in 2 ..< paddedData.count
-            {
-                if paddedData[i] == 0xff {
-                    continue
-                }
-                
-                firstNonPaddingIndex = i
-                break
-            }
-            
-            // FIXME: Check that we have the minimum amount of necessary padding
-            
-            guard firstNonPaddingIndex < paddedData.count && paddedData[firstNonPaddingIndex] == 0 else {
-                return nil
-            }
-            
-            return [UInt8](paddedData[(firstNonPaddingIndex + 1) ..< paddedData.count])
-
-        case .type2:
-            guard paddedData.count == length else {
-                return nil
-            }
-            
-            // skip over padding
-            var firstNonPaddingIndex : Int = 0
-            for i in 2 ..< paddedData.count
-            {
-                if paddedData[i] != 0 {
-                    continue
-                }
-                
-                firstNonPaddingIndex = i
-                break
-            }
-            
-            // FIXME: Check that we have the minimum amount of necessary padding
-            
-            guard firstNonPaddingIndex < paddedData.count && paddedData[firstNonPaddingIndex] == 0 else {
-                return nil
-            }
-            
-            return [UInt8](paddedData[(firstNonPaddingIndex + 1) ..< paddedData.count])
-        }
-    }
-    
-    private func oidForHashAlgorithm(_ hashAlgorithm : HashAlgorithm) -> OID
-    {
-        switch hashAlgorithm
-        {
-//        case .MD5:
-//            return Hash_MD5(data)
-            
-        case .sha1:
-            return OID.sha1
-
-        case .sha256:
-            return OID.sha256
-
-//        case .SHA224:
-//            return Hash_SHA224(data)
-//            
-//        case .SHA256:
-//            return Hash_SHA256(data)
-//            
-//        case .SHA384:
-//            return Hash_SHA384(data)
-//            
-//        case .SHA512:
-//            return Hash_SHA512(data)
-            
-        default:
-            fatalError("Unsupported hash algorithm \(hashAlgorithm)")
-        }
-    }
-    
     func hash(_ data : [UInt8], hashAlgorithm: HashAlgorithm) -> [UInt8]
     {
         switch hashAlgorithm
@@ -493,19 +287,79 @@ struct RSA
             fatalError("Unsupported hash algorithm \(hashAlgorithm)")
         }
     }
+    
+    func os2ip(octetString: [UInt8]) -> BigInt {
+        return BigInt(bigEndianParts: octetString)
+    }
+    
+    func i2osp(x: BigInt, xLen: Int) throws -> [UInt8] {
+        var octetString = x.asBigEndianData()
+        
+        var paddingLength = xLen - octetString.count
+        if paddingLength < 0 {
+            // Remove leading zeroes in excess of xLen
+            let nonZeroOctetString = octetString.drop(while: {$0 == 0})
+            if nonZeroOctetString.count <= xLen {
+                paddingLength = xLen - nonZeroOctetString.count
+                octetString = [UInt8](nonZeroOctetString)
+            }
+            else {
+                throw Error.integerTooLarge
+            }
+        }
+        
+        octetString = [UInt8](repeating: 0, count: paddingLength) + octetString
+        
+        return octetString
+    }
 }
 
 extension RSA : Signing
 {
     func sign(data: [UInt8]) throws -> [UInt8]
     {
-        let signature = try self.signData(data)
+        guard let signatureAlgorithm = self.signatureAlgorithm else {
+            throw Error.error(message: "Can't sign data without a signature algorithm specified.")
+        }
         
-        return signature.asBigEndianData()
+        switch signatureAlgorithm {
+            
+        case .rsa_pkcs1(_):
+            return try rsassa_pkcs1_v1_5_sign(m: data)
+            
+        case .rsassa_pss(_, _):
+            return try rsassa_pss_sign(message: data)
+            
+        default:
+            fatalError("Invalid signature scheme \(signatureAlgorithm)")
+        }
     }
     
     func verify(signature : [UInt8], data : [UInt8]) throws -> Bool
     {
-        return try self.verifySignature(BigInt(bigEndianParts: signature), data: data)
+        guard let signatureAlgorithm = self.signatureAlgorithm else {
+            throw Error.error(message: "Can't verify signature without a signature algorithm specified.")
+        }
+
+        switch signatureAlgorithm {
+            
+        case .rsa_pkcs1(_):
+            return try rsassa_pkcs1_v1_5_verify(m: data, s: signature)
+            
+        case .rsassa_pss(_, _):
+            return try rsassa_pss_verify(message: data, signature: signature)
+            
+        default:
+            fatalError("Invalid signature scheme \(signatureAlgorithm)")
+        }
+    }
+    
+    var algorithm: X509.SignatureAlgorithm {
+        guard let signatureAlgorithm = self.signatureAlgorithm else {
+            fatalError("Can't sign or verify without a signature algorithm")
+        }
+        
+        return signatureAlgorithm
     }
 }
+

@@ -33,7 +33,7 @@ class TLSFinished : TLSHandshakeMessage
         super.init(type: .handshake(.finished))
     }
     
-    override func writeTo<Target : OutputStreamType>(_ target: inout Target)
+    override func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?)
     {
         self.writeHeader(type: .finished, bodyLength: self.verifyData.count, target: &target)
         target.write(self.verifyData)

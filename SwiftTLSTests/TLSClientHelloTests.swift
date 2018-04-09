@@ -20,15 +20,17 @@ class TLSClientHelloTests: XCTestCase {
             cipherSuites: [.TLS_RSA_WITH_RC4_128_SHA],
             compressionMethods: [.null])
         
-        var buffer = DataBuffer()
-        clientHello.writeTo(&buffer)
+        let context = TLSConnection()
+        var buffer = [UInt8]()
+        clientHello.writeTo(&buffer, context: context)
         
         var expectedData = [UInt8]([TLSHandshakeType.clientHello.rawValue, 0, 0, 41, 3, 1])
-        var randomData = DataBuffer()
-        random.writeTo(&randomData)
-        expectedData.append(contentsOf: randomData.buffer)
+        var randomData = [UInt8]()
+        random.writeTo(&randomData, context: context)
+        expectedData.append(contentsOf: randomData)
         expectedData.append(contentsOf: [0, 0, 2, 0, 5, 1, 0])
-        XCTAssert(buffer.buffer == expectedData)
+        
+        XCTAssert(buffer == expectedData)
     }
     
     var testClientHelloData : [UInt8] {
@@ -94,10 +96,11 @@ class TLSClientHelloTests: XCTestCase {
             TLSSecureRenegotiationInfoExtension(renegotiatedConnection: [1,2,3,4])
         ]
 
-        var buffer = DataBuffer()
-        clientHello.writeTo(&buffer)
+        let context = TLSConnection()
+        var buffer = [UInt8]()
+        clientHello.writeTo(&buffer, context: context)
 
-        if let newClientHello = TLSClientHello(inputStream: BinaryInputStream(buffer.buffer), context:  TLSConnection()) {
+        if let newClientHello = TLSClientHello(inputStream: BinaryInputStream(buffer), context: context) {
             XCTAssertTrue(newClientHello.extensions.count != 0)
             
             let count = clientHello.extensions.count

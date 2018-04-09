@@ -62,6 +62,9 @@ extension TLS1_3 {
             case .finished:
                 try self.transitionTo(state: .finishedSent)
                 
+            case .endOfEarlyData:
+                try self.transitionTo(state: .endOfEarlyDataSent)
+
             default:
                 print("Unsupported handshake message \(message.handshakeType)")
             }
@@ -97,6 +100,12 @@ extension TLS1_3 {
                 try self.transitionTo(state: .encryptedExtensionsReceived)
 
             case .newSessionTicket:
+                let newSessionTicket = message as! TLSNewSessionTicket
+                print("New Session Ticket received:")
+                print("    ticket   = \(hex(newSessionTicket.ticket))")
+                print("    Nonce    = \(hex(newSessionTicket.ticketNonce))")
+                print("    lifeTime = \(newSessionTicket.ticketLifetime)")
+                print("    ageAdd   = \(newSessionTicket.ticketAgeAdd)")
                 try self.transitionTo(state: .newSessionTicketReceived)
 
             default:
@@ -109,6 +118,13 @@ extension TLS1_3 {
         }
         
         func clientDidConnect() throws {
+            if let client = self.client {
+                if case .accepted = (client.clientProtocolHandler as! ClientProtocol).clientHandshakeState.earlyDataState {
+                    client.earlyDataWasSent = true
+                } else {
+                    client.earlyDataWasSent = false
+                }
+            }
             try transitionTo(state: .connected)
         }
         
@@ -148,6 +164,9 @@ extension TLS1_3 {
                 return state == .connected
 
             case .finishedReceived:
+                return state == .finishedSent || state == .endOfEarlyDataSent
+                
+            case .endOfEarlyDataSent:
                 return state == .finishedSent
                 
             case .connected:

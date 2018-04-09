@@ -35,6 +35,10 @@ class TLSServerHello : TLSHandshakeMessage
         }
     }
     
+    var isHelloRetryRequest: Bool {
+        return self.random == helloRetryRequestRandom
+    }
+    
     init(serverVersion : TLSProtocolVersion, random : Random, sessionID : TLSSessionID? = nil, cipherSuite : CipherSuite, compressionMethod : CompressionMethod = .null)
     {
         self.legacyVersion = serverVersion
@@ -80,36 +84,40 @@ class TLSServerHello : TLSHandshakeMessage
         if bytesLeft > 0 {
             let messageType: TLSMessageExtensionType = (self.random == helloRetryRequestRandom) ? .helloRetryRequest : .serverHello
 
-            if let extensions = TLSReadExtensions(from: inputStream, length: bytesLeft, messageType: messageType) {
-                self.extensions = extensions
+            // In TLS 1.2 extensions are optional, i.e. they are only read if there are left-over bytes at the end of the message
+            if bytesLeft > 0 {
+                self.extensions = TLSReadExtensions(from: inputStream, length: bytesLeft, messageType: messageType, context: context)
+            }
+            else {
+                self.extensions = []
             }
         }
 
         super.init(type: .handshake(.serverHello))
     }
     
-    override func writeTo<Target : OutputStreamType>(_ target: inout Target)
+    override func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?)
     {
-        var buffer = DataBuffer()
+        var data = [UInt8]()
         
-        buffer.write(self.legacyVersion.rawValue)
+        data.write(self.legacyVersion.rawValue)
         
-        random.writeTo(&buffer)
+        random.writeTo(&data, context: context)
         
         if let session_id = self.legacySessionID {
-            session_id.writeTo(&buffer)
+            session_id.writeTo(&data, context: context)
         }
         else {
-            buffer.write(UInt8(0))
+            data.write(UInt8(0))
         }
         
-        buffer.write(self.cipherSuite.rawValue)
+        data.write(self.cipherSuite.rawValue)
         
-        buffer.write(self.legacyCompressionMethod!.rawValue)
+        data.write(self.legacyCompressionMethod!.rawValue)
         
-        TLSWriteExtensions(&buffer, extensions: self.extensions, messageType: .serverHello)
-
-        let data = buffer.buffer
+        if self.extensions.count != 0 {
+            TLSWriteExtensions(&data, extensions: self.extensions, messageType: .serverHello, context: context)
+        }
         
         self.writeHeader(type: .serverHello, bodyLength: data.count, target: &target)
         target.write(data)

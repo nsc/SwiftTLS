@@ -32,15 +32,17 @@ class TLSServerHelloTests: XCTestCase {
             cipherSuite: .TLS_RSA_WITH_RC4_128_SHA,
             compressionMethod: .null)
         
-        var buffer = DataBuffer()
-        clientHello.writeTo(&buffer)
+        let context = TLSConnection()
+        var buffer = [UInt8]()
+        clientHello.writeTo(&buffer, context: context)
         
         var expectedData = [UInt8]([TLSHandshakeType.serverHello.rawValue, 0, 0, 38, 3, 3])
-        var randomData = DataBuffer()
-        random.writeTo(&randomData)
-        expectedData.append(contentsOf: randomData.buffer)
+        var randomData = [UInt8]()
+        random.writeTo(&randomData, context: context)
+        expectedData.append(contentsOf: randomData)
         expectedData.append(contentsOf: [0, 0, 5, 0])
-        XCTAssert(buffer.buffer == expectedData)
+        
+        XCTAssert(buffer == expectedData)
     }
     
     var testServerHelloData : [UInt8] {

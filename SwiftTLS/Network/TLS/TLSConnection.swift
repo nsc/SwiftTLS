@@ -15,9 +15,7 @@ public class TLSConnection
     internal var protocolHandler: TLSProtocol!
 
     public var configuration: TLSConfiguration
-    public var context: TLSContext {
-        return TLSClientContext()
-    }
+    public var context: TLSContext!
     
     var negotiatedProtocolVersion: TLSProtocolVersion? {
         didSet {
@@ -27,7 +25,7 @@ public class TLSConnection
         }
     }
     
-    var hostNames: [String]?
+    var serverNames: [String]?
     
     var cipherSuite: CipherSuite?
     var stateMachine: TLSConnectionStateMachine?
@@ -44,7 +42,7 @@ public class TLSConnection
                 
                 // Check for special construct when a HelloRetryRequest is included
                 // see section "The Transcript Hash" in RFC TLS 1.3
-                if message is TLSHelloRetryRequest {
+                if message is TLSServerHello && (message as! TLSServerHello).isHelloRetryRequest {
                     let hashLength = self.hashAlgorithm.hashLength
                     let hashValue = self.hashAlgorithm.hashFunction(handshakeData)
                     
@@ -52,18 +50,7 @@ public class TLSConnection
                 }
             }
             
-            let handshakeMessageData : [UInt8]
-            if let messageData = message.rawHandshakeMessageData {
-                handshakeMessageData = messageData
-            }
-            else {
-                var messageBuffer = DataBuffer()
-                message.writeTo(&messageBuffer)
-                
-                handshakeMessageData = messageBuffer.buffer
-            }
-            
-            handshakeData.append(contentsOf: handshakeMessageData)
+            handshakeData.append(contentsOf: message.messageData(with: self))
         }
         
         return self.hashAlgorithm.hashFunction(handshakeData)
@@ -72,19 +59,7 @@ public class TLSConnection
     var handshakeMessageData: [UInt8] {
         var handshakeData: [UInt8] = []
         for message in self.handshakeMessages {
-            
-            let handshakeMessageData : [UInt8]
-            if let messageData = message.rawHandshakeMessageData {
-                handshakeMessageData = messageData
-            }
-            else {
-                var messageBuffer = DataBuffer()
-                message.writeTo(&messageBuffer)
-                
-                handshakeMessageData = messageBuffer.buffer
-            }
-            
-            handshakeData.append(contentsOf: handshakeMessageData)
+            handshakeData.append(contentsOf: message.messageData(with: self))
         }
         
         return handshakeData
@@ -104,7 +79,7 @@ public class TLSConnection
     var currentSession: TLSSession?
     
     // The session ID that will be used once the handshake is finished and the session
-    // can be set up
+    // can be set up. This is used in TLS < 1.3 only
     var pendingSessionID: TLSSessionID?
     
     var isReusingSession: Bool
@@ -114,26 +89,22 @@ public class TLSConnection
     var hashAlgorithm: HashAlgorithm = .sha256
     
     var hmac: HMACFunction {
-        switch self.hashAlgorithm {
-        case .sha256:
-            return HMAC_SHA256
-            
-        case .sha384:
-            return HMAC_SHA384
-            
-        default:
-            fatalError("Unsupported HMAC hash function \(self.hashAlgorithm)")
-        }
+        return self.hashAlgorithm.macAlgorithm.hmacFunction
     }
     
     // TLS 1.3
     var preSharedKey: [UInt8]?
     
+    var earlyData: [UInt8]? = nil
+    var earlyDataWasSent: Bool = false
+    
     private var connectionEstablishedCompletionBlock : ((_ error : TLSError?) -> ())?
 
-    init(configuration: TLSConfiguration, dataProvider : TLSDataProvider? = nil)
+    init(configuration: TLSConfiguration, context: TLSContext? = nil, dataProvider : TLSDataProvider? = nil)
     {
         self.configuration = configuration
+        
+        self.context = context
         
         self.negotiatedProtocolVersion = configuration.supportedVersions.first!
         self.handshakeMessages = []
@@ -216,16 +187,20 @@ public class TLSConnection
         try self.sendMessage(alertMessage)
     }
     
-    func abortHandshake() throws
+    func abortHandshake(with alert: TLSAlert = .handshakeFailure) throws -> Never
     {
-        try self.sendAlert(.handshakeFailure, alertLevel: .fatal)
-        throw TLSError.alert(alert: .handshakeFailure, alertLevel: .fatal)
+        try self.sendAlert(alert, alertLevel: .fatal)
+        throw TLSError.alert(alert: alert, alertLevel: .fatal)
     }
     
-    func sendHandshakeMessage(_ message : TLSHandshakeMessage) throws
+    func sendHandshakeMessage(_ message : TLSHandshakeMessage, appendToTranscript: Bool = true) throws
     {
         try self.sendMessage(message)
-        self.handshakeMessages.append(message)
+        
+        if appendToTranscript {
+            self.handshakeMessages.append(message)
+        }
+        
         try self.stateMachine?.didSendHandshakeMessage(message)
     }
     
@@ -281,7 +256,7 @@ public class TLSConnection
 
         self.didReceiveHandshakeMessage(message)
         
-        if (handshakeType != .finished) {
+        if handshakeType != .finished && handshakeType != .newSessionTicket {
             // don't add the incoming Finished message to handshakeMessages.
             // We need to verify it's data against the handshake messages before it.
             self.handshakeMessages.append(message)
@@ -325,11 +300,13 @@ public class TLSConnection
     
     func selectCipherSuite(_ cipherSuites : [CipherSuite]) -> CipherSuite?
     {
-        for clientCipherSuite in cipherSuites {
-            for myCipherSuite in self.configuration.cipherSuites {
-                if clientCipherSuite == myCipherSuite {
-                    return myCipherSuite
-                }
+        guard let version = self.negotiatedProtocolVersion else {
+            return nil
+        }
+        
+        for cipherSuite in self.configuration.cipherSuites.filter({TLSCipherSuiteDescriptorForCipherSuite($0)?.supportedProtocolVersions.contains(version) ?? false}) {
+            if cipherSuites.contains(cipherSuite) {
+                return cipherSuite
             }
         }
         

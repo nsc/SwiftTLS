@@ -26,102 +26,98 @@ extension TLS1_3 {
         
         struct EncryptionParameters {
             var cipherSuiteDecriptor: CipherSuiteDescriptor
-            var readKey: [UInt8]
-            var readIV:  [UInt8]
-            var writeKey: [UInt8]
-            var writeIV:  [UInt8]
-            var readSequenceNumber: SequenceNumberType = 0
-            var writeSequenceNumber: SequenceNumberType = 0
+            var key: [UInt8]
+            var iv: [UInt8]
+            var sequenceNumber: SequenceNumberType = 0
             
             var blockSize: Int {
                 return cipherSuiteDecriptor.bulkCipherAlgorithm.blockSize
             }
             
-            var currentWriteIV: [UInt8] {
-                // XOR the write IV with the sequence number as of RFC???? section 5.3 Per-Record Nonce
+            var currentIV: [UInt8] {
+                // XOR the IV with the sequence number as of RFC???? section 5.3 Per-Record Nonce
                 let sequenceNumberSize = MemoryLayout<SequenceNumberType>.size
-                let writeIVLeftPart  = [UInt8](writeIV[0 ..< writeIV.count - sequenceNumberSize])
-                let writeIVRightPart = [UInt8](writeIV[writeIV.count - sequenceNumberSize ..< writeIV.count])
-                let IV : [UInt8] = writeIVLeftPart + (writeIVRightPart ^ writeSequenceNumber.bigEndianBytes)
+                let ivLeftPart  = [UInt8](self.iv[0 ..< self.iv.count - sequenceNumberSize])
+                let ivRightPart = [UInt8](self.iv[self.iv.count - sequenceNumberSize ..< self.iv.count])
+                let iv : [UInt8] = ivLeftPart + (ivRightPart ^ sequenceNumber.bigEndianBytes)
                 
-                return IV
-            }
-
-            var currentReadIV: [UInt8] {
-                // XOR the read IV with the sequence number as of RFC???? section 5.3 Per-Record Nonce
-                let sequenceNumberSize = MemoryLayout<SequenceNumberType>.size
-                let readIVLeftPart  = [UInt8](readIV[0 ..< readIV.count - sequenceNumberSize])
-                let readIVRightPart = [UInt8](readIV[readIV.count - sequenceNumberSize..<readIV.count])
-                let IV : [UInt8] = readIVLeftPart + (readIVRightPart ^ readSequenceNumber.bigEndianBytes)
-                
-                return IV
+                return iv
             }
         }
         
-        var encryptionParameters: EncryptionParameters?
+        var readEncryptionParameters: EncryptionParameters?
+        var writeEncryptionParameters: EncryptionParameters?
 
         private var encryptor : BlockCipher!
         private var decryptor : BlockCipher!
 
-        func changeTrafficSecrets(clientTrafficSecret: [UInt8], serverTrafficSecret: [UInt8]) {
+        private func newBlockCipherAndEncryptionParameters(withTrafficSecret trafficSecret: [UInt8], forReading isReading: Bool) -> (blockCipher: BlockCipher, encryptionParameters: EncryptionParameters) {
             guard let cipherSuite = connection?.cipherSuite else {
-                fatalError("changeTrafficKeys called with no cipherSuite selected")
+                fatalError("changeTrafficKey called with no cipherSuite selected")
             }
             
             guard let cipherSuiteDescriptor = TLSCipherSuiteDescriptorForCipherSuite(cipherSuite)
                 else {
                     fatalError("Unsupported cipher suite \(cipherSuite)")
             }
-
-            guard let cipherMode = cipherSuiteDescriptor.blockCipherMode else {
+            
+            guard let blockCipherMode = cipherSuiteDescriptor.blockCipherMode else {
                 fatalError("changeTrafficKeys called with no cipherMode selected")
             }
-
+            
             let ivSize = cipherSuiteDescriptor.fixedIVLength
             let keySize = cipherSuiteDescriptor.bulkCipherAlgorithm.keySize
             
-            
             // calculate traffic keys and IVs as of RFC???? Section 7.3 Traffic Key Calculation
-            let clientWriteKey = protocolHandler.HKDF_Expand_Label(secret: clientTrafficSecret, label: keyLabel,  hashValue: [], outputLength: keySize)
-            let clientWriteIV  = protocolHandler.HKDF_Expand_Label(secret: clientTrafficSecret, label: ivLabel, hashValue: [], outputLength: ivSize)
-            let serverWriteKey = protocolHandler.HKDF_Expand_Label(secret: serverTrafficSecret, label: keyLabel,  hashValue: [], outputLength: keySize)
-            let serverWriteIV  = protocolHandler.HKDF_Expand_Label(secret: serverTrafficSecret, label: ivLabel, hashValue: [], outputLength: ivSize)
+            let key = protocolHandler.HKDF_Expand_Label(secret: trafficSecret, label: keyLabel,  hashValue: [], outputLength: keySize)
+            let iv  = protocolHandler.HKDF_Expand_Label(secret: trafficSecret, label: ivLabel, hashValue: [], outputLength: ivSize)
             
-//            print("client write key: \(hex(clientWriteKey))")
-//            print("client write IV : \(hex(clientWriteIV))")
-//            print("server write key: \(hex(serverWriteKey))")
-//            print("server write IV : \(hex(serverWriteIV))")
-            
-            var encryptionParameters : EncryptionParameters
-            if self.isClient {
-                encryptionParameters = EncryptionParameters(cipherSuiteDecriptor: cipherSuiteDescriptor,
-                                                            readKey: serverWriteKey,
-                                                            readIV: serverWriteIV,
-                                                            writeKey: clientWriteKey,
-                                                            writeIV: clientWriteIV,
-                                                            readSequenceNumber: 0,
-                                                            writeSequenceNumber: 0)
-            }
-            else {
-                encryptionParameters = EncryptionParameters(cipherSuiteDecriptor: cipherSuiteDescriptor,
-                                                            readKey: clientWriteKey,
-                                                            readIV: clientWriteIV,
-                                                            writeKey: serverWriteKey,
-                                                            writeIV: serverWriteIV,
-                                                            readSequenceNumber: 0,
-                                                            writeSequenceNumber: 0)
-            }
-            
-            self.encryptionParameters = encryptionParameters
+            let encryptionParameters = EncryptionParameters(cipherSuiteDecriptor: cipherSuiteDescriptor,
+                                                            key: key,
+                                                            iv: iv,
+                                                            sequenceNumber: 0)
             
             let cipherAlgorithm = cipherSuiteDescriptor.bulkCipherAlgorithm
-            self.encryptor = BlockCipher.encryptionBlockCipher(cipherAlgorithm, mode: cipherMode, key: encryptionParameters.writeKey, IV: [])
-            self.decryptor = BlockCipher.decryptionBlockCipher(cipherAlgorithm, mode: cipherMode, key: encryptionParameters.readKey, IV: [])
+            let cryptor: BlockCipher
+            if isReading {
+                print("\(self.connection!.isClient ? "Client" : "Server"): change read key to \(key)")
+                cryptor  = BlockCipher.decryptionBlockCipher(cipherAlgorithm, mode: blockCipherMode, key: key, IV: [])!
+            } else {
+                print("\(self.connection!.isClient ? "Client" : "Server"): change write key to \(key)")
+                cryptor  = BlockCipher.encryptionBlockCipher(cipherAlgorithm, mode: blockCipherMode, key: key, IV: [])!
+            }
+                
+            return (cryptor, encryptionParameters)
+        }
+        
+        func changeWriteKeys(withTrafficSecret trafficSecret: [UInt8]) {
+            let (blockCipher, encryptionParameters) = self.newBlockCipherAndEncryptionParameters(withTrafficSecret: trafficSecret, forReading: false)
+            
+            self.writeEncryptionParameters = encryptionParameters
+            self.encryptor = blockCipher
+        }
+
+        func changeReadKeys(withTrafficSecret trafficSecret: [UInt8]) {
+            let (blockCipher, encryptionParameters) = self.newBlockCipherAndEncryptionParameters(withTrafficSecret: trafficSecret, forReading: true)
+
+            self.readEncryptionParameters = encryptionParameters
+            self.decryptor = blockCipher
+        }
+        
+        func changeKeys(withClientTrafficSecret clientTrafficSecret: [UInt8], serverTrafficSecret: [UInt8]) {
+            if self.isClient {
+                changeWriteKeys(withTrafficSecret: clientTrafficSecret)
+                changeReadKeys(withTrafficSecret: serverTrafficSecret)
+            }
+            else {
+                changeWriteKeys(withTrafficSecret: serverTrafficSecret)
+                changeReadKeys(withTrafficSecret: clientTrafficSecret)
+            }
         }
         
         override func recordData(forContentType contentType: ContentType, data: [UInt8]) throws -> [UInt8]
         {
-            if let encryptionParameters = self.encryptionParameters {
+            if let encryptionParameters = self.writeEncryptionParameters {
                 
                 let paddingLength = 12
                 let padding = [UInt8](repeating: 0, count: paddingLength)
@@ -130,34 +126,34 @@ extension TLS1_3 {
                 
                 let cipherSuiteDescriptor = encryptionParameters.cipherSuiteDecriptor
 
-                let authDataBuffer = DataBuffer()
+                var authDataBuffer: [UInt8] = []
                 authDataBuffer.write(ContentType.applicationData.rawValue)
                 authDataBuffer.write(TLSProtocolVersion.v1_2.rawValue)
                 authDataBuffer.write(UInt16(plainTextRecordData.count + cipherSuiteDescriptor.authTagSize))
 
-                let additionalData = authDataBuffer.buffer
+                let additionalData = authDataBuffer
 
-                if let b = self.encrypt(plainTextRecordData, authData: additionalData, key: encryptionParameters.writeKey, IV: encryptionParameters.currentWriteIV) {
+                if let b = self.encrypt(plainTextRecordData, authData: additionalData, key: encryptionParameters.key, IV: encryptionParameters.currentIV) {
                     cipherText = b + self.encryptor.authTag!
                 }
                 else {
                     throw TLSError.error("Could not encrypt")
                 }
                 
-                self.encryptionParameters!.writeSequenceNumber += 1
+                self.writeEncryptionParameters!.sequenceNumber += 1
                 
                 let record = TLSRecord(contentType: .applicationData, protocolVersion: .v1_2, body: cipherText)
-                return DataBuffer(record).buffer
+                return [UInt8](record)
             }
             else {
                 // no security parameters have been negotiated yet
                 let record = TLSRecord(contentType: contentType, protocolVersion: .v1_2, body: data)
-                return DataBuffer(record).buffer
+                return [UInt8](record)
             }
         }
 
         override func data(forContentType contentType: ContentType, recordData: [UInt8]) throws -> (ContentType, [UInt8]) {
-            guard let encryptionParameters = self.encryptionParameters else {
+            guard let encryptionParameters = self.readEncryptionParameters else {
                 return (contentType, recordData)
             }
             
@@ -176,25 +172,23 @@ extension TLS1_3 {
             let cipherText = [UInt8](recordData[0..<(recordData.count - cipherSuiteDescriptor.authTagSize)])
             let authTag    = [UInt8](recordData[(recordData.count - cipherSuiteDescriptor.authTagSize)..<recordData.count])
             
-            let authDataBuffer = DataBuffer()
-            authDataBuffer.write(ContentType.applicationData.rawValue)
-            authDataBuffer.write(TLSProtocolVersion.v1_2.rawValue)
-            authDataBuffer.write(UInt16(cipherText.count + cipherSuiteDescriptor.authTagSize))
+            var additionalData: [UInt8] = []
+            additionalData.write(ContentType.applicationData.rawValue)
+            additionalData.write(TLSProtocolVersion.v1_2.rawValue)
+            additionalData.write(UInt16(cipherText.count + cipherSuiteDescriptor.authTagSize))
             
-            let additionalData = authDataBuffer.buffer
-
-            if let message = self.decrypt(cipherText, authData: additionalData, key: encryptionParameters.readKey, IV: encryptionParameters.currentReadIV) {
+            if let messageData = self.decrypt(cipherText, authData: additionalData, key: encryptionParameters.key, IV: encryptionParameters.currentIV) {
             
-                self.encryptionParameters!.readSequenceNumber += 1
-
                 if authTag != self.decryptor.authTag! {
                     // FIXME: Check if this actually *is* the correct alert
                     throw TLSError.alert(alert: .badRecordMAC, alertLevel: .fatal)
                 }
                 
+                self.readEncryptionParameters!.sequenceNumber += 1
+                
                 // check padding by searching for the first non-zero byte backwards
-                var index = message.count - 1
-                while index >= 0 && message[index] == 0 {
+                var index = messageData.count - 1
+                while index >= 0 && messageData[index] == 0 {
                     index -= 1
                 }
                 
@@ -202,12 +196,12 @@ extension TLS1_3 {
                     throw TLSError.alert(alert: .unexpectedMessage, alertLevel: .fatal)
                 }
                 
-                if let contentType = ContentType(rawValue:message[index]) {
+                if let contentType = ContentType(rawValue:messageData[index]) {
                     if index == 0 && contentType != .applicationData {
                         throw TLSError.alert(alert: .unexpectedMessage, alertLevel: .fatal)
                     }
                     
-                    return (contentType, [UInt8](message[0..<index]))
+                    return (contentType, [UInt8](messageData[0..<index]))
                 }
                 else {
                     throw TLSError.alert(alert: .unexpectedMessage, alertLevel: .fatal)
@@ -229,6 +223,28 @@ extension TLS1_3 {
             return self.decryptor.update(data: data, authData: authData, key: key, IV: IV)
         }
     
+        override func readMessage() throws -> TLSMessage
+        {
+            // When we are a server still in the handshake phase and we have rejected early data, we need to try to decrypt incoming packets
+            // with our handshake keys until we can actually decrypt it.
+            // Since early data is encrypted with early data keys, this will fail for until the the client sends its Finished.
+            guard let serverProtocolHandler = ((self.connection as? TLSServer)?.serverProtocolHandler as? ServerProtocol),
+                serverProtocolHandler.server.stateMachine!.state != .connected,
+                case .rejected = serverProtocolHandler.serverHandshakeState.serverEarlyDataState
+            else {
+                return try super.readMessage()
+            }
+            
+            let message: TLSMessage
+            do {
+                message = try super.readMessage()
+            } catch TLSError.alert(let alert, _) where alert == .badRecordMAC {
+                // ignore message and read the next one
+                return try readMessage()
+            }
+            
+            return message
+        }
     }
 
 }

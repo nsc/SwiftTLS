@@ -43,7 +43,7 @@ class TLSBaseRecordLayer : TLSRecordLayer
     func sendMessage(_ message : TLSMessage) throws
     {
         let contentType = message.contentType
-        let messageData = DataBuffer(message).buffer
+        let messageData = [UInt8](message, context: self.connection)
         
         try sendData(contentType: contentType, data: messageData)
     }

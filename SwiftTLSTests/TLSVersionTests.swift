@@ -24,11 +24,11 @@ class TLSVersionTests: XCTestCase {
                 _negotiatedProtocolVersion = newValue
             }
         }
-        override func sendHandshakeMessage(_ message: TLSHandshakeMessage) throws {
+        override func sendHandshakeMessage(_ message: TLSHandshakeMessage, appendToTranscript: Bool = true) throws {
         }
         
         var hasAbortedHandshake: Bool = false
-        override func abortHandshake() throws {
+        override func abortHandshake(with alert: TLSAlert) throws -> Never{
             hasAbortedHandshake = true
             throw Alert()
         }
@@ -45,11 +45,11 @@ class TLSVersionTests: XCTestCase {
                 _negotiatedProtocolVersion = newValue
             }
         }
-        override func sendHandshakeMessage(_ message: TLSHandshakeMessage) throws {
+        override func sendHandshakeMessage(_ message: TLSHandshakeMessage, appendToTranscript: Bool = true) throws {
         }
         
         var hasAbortedHandshake: Bool = false
-        override func abortHandshake() throws {
+        override func abortHandshake(with alert: TLSAlert) throws -> Never {
             hasAbortedHandshake = true
             throw Alert()
         }

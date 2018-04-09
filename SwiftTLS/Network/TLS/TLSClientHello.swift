@@ -79,9 +79,7 @@ class TLSClientHello : TLSHandshakeMessage
         bytesLeft -= 1 + rawCompressionMethods.count
 
         if bytesLeft > 0 {
-            if let extensions = TLSReadExtensions(from: inputStream, length: bytesLeft, messageType: .clientHello) {
-                self.extensions = extensions
-            }
+            self.extensions = TLSReadExtensions(from: inputStream, length: bytesLeft, messageType: .clientHello, context: context)
         }
 
         let clientVersion = TLSProtocolVersion(major: major, minor: minor)
@@ -101,32 +99,35 @@ class TLSClientHello : TLSHandshakeMessage
         super.init(type: .handshake(.clientHello))
     }
 
-    override func writeTo<Target: OutputStreamType>(_ target: inout Target)
+    override func writeTo<Target: OutputStreamType>(_ target: inout Target, context: TLSConnection?)
     {
-        var buffer = DataBuffer()
+        var data = [UInt8]()
         
-        buffer.write(legacyVersion.rawValue)
+        data.write(legacyVersion.rawValue)
         
-        random.writeTo(&buffer)
+        random.writeTo(&data, context: context)
         
         if let session_id = self.legacySessionID {
-            session_id.writeTo(&buffer)
+            session_id.writeTo(&data, context: context)
         }
         else {
-            buffer.write(UInt8(0))
+            data.write(UInt8(0))
         }
         
-        buffer.write(UInt16(rawCipherSuites.count * MemoryLayout<UInt16>.size))
-        buffer.write(rawCipherSuites)
+        data.write16(rawCipherSuites)
         
-        buffer.write(UInt8(self.legacyCompressionMethods.count))
-        buffer.write(self.legacyCompressionMethods.map { $0.rawValue})
+        let rawCompressionMethods = self.legacyCompressionMethods.map { $0.rawValue}
+        data.write8(rawCompressionMethods)
         
-        TLSWriteExtensions(&buffer, extensions: self.extensions, messageType: .clientHello)
-        
-        let data = buffer.buffer
+        if self.extensions.count != 0 {
+            TLSWriteExtensions(&data, extensions: self.extensions, messageType: .clientHello, context: context)
+        }
         
         self.writeHeader(type: .clientHello, bodyLength: data.count, target: &target)
         target.write(data)
     }
+    
+//    var truncatedMessageData: [UInt8] {
+//        
+//    }
 }

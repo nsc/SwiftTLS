@@ -46,6 +46,20 @@ enum NamedGroup : UInt16 {
         }
     }
     
+    var oid: OID {
+        switch self
+        {
+        case .secp256r1:
+            return .ecdsa_secp256r1
+
+        case .secp521r1:
+            return .ansip521r1
+
+        default:
+            fatalError("Unknown OID for \(self)")
+        }
+    }
+    
     init?(inputStream: InputStreamType)
     {
         guard let rawNamedCurve : UInt16 = inputStream.read() else {
@@ -58,7 +72,7 @@ enum NamedGroup : UInt16 {
 }
 
 extension NamedGroup : Streamable {
-    func writeTo<Target : OutputStreamType>(_ target: inout Target) {
+    func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?) {
         target.write(self.rawValue)
     }
 }
@@ -100,7 +114,7 @@ struct EllipticCurvePoint
 }
 
 extension EllipticCurvePoint : Streamable {
-    func writeTo<Target : OutputStreamType>(_ target: inout Target) {
+    func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?) {
         let data = self.x.asBigEndianData() + self.y.asBigEndianData()
         
         target.write(UInt8(4)) // uncompressed ECPoint encoding
@@ -122,6 +136,7 @@ func !=(a: EllipticCurvePoint, b: EllipticCurvePoint) -> Bool
 // where (4a^3 + 27b^2) % p ≢ 0
 struct EllipticCurve
 {
+    let name: NamedGroup
     let p : BigInt
     let a : BigInt
     let b : BigInt
@@ -238,6 +253,7 @@ struct EllipticCurveParameters {
 }
 
 let secp256r1 = EllipticCurve(
+    name: .secp256r1,
     p: BigInt(hexString: "FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF")!,
     a: BigInt(hexString: "FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFC")!,
     b: BigInt(hexString: "5AC635D8AA3A93E7B3EBBD55769886BC651D06B0CC53B0F63BCE3C3E27D2604B")!,
@@ -249,6 +265,7 @@ let secp256r1 = EllipticCurve(
     )
 
 let secp521r1 = EllipticCurve(
+    name: .secp521r1,
     p: BigInt(hexString: "01FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")!,
     a: BigInt(hexString: "01FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC")!,
     b: BigInt(hexString: "0051953EB9618E1C9A1F929A21A0B68540EEA2DA725B99B315F3B8B489918EF109E156193951EC7E937B1652C0BD3BB1BF073573DF883D2C34F1EF451FD46B503F00")!,

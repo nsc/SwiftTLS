@@ -55,7 +55,7 @@ extension ECDHKeyExchange : PFSKeyExchange
                 return nil
             }
             
-            return DataBuffer(Q).buffer
+            return [UInt8](Q)
         }
     }
 
@@ -63,7 +63,7 @@ extension ECDHKeyExchange : PFSKeyExchange
         get {
             guard let peerPublicKeyPoint = self.peerPublicKeyPoint else { return nil }
             
-            return DataBuffer(peerPublicKeyPoint).buffer
+            return [UInt8](peerPublicKeyPoint)
         }
         
         set {

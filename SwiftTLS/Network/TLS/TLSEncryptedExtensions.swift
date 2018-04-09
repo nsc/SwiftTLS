@@ -8,36 +8,36 @@
 
 import Foundation
 
-class TLSEncryptedExtensions : TLSHandshakeMessage
-{
-    var extensions: [TLSExtension] = []
-    
-    init(extensions: [TLSExtension])
+extension TLS1_3 {
+    class TLSEncryptedExtensions : TLSHandshakeMessage
     {
-        self.extensions = extensions
+        var extensions: [TLSExtension] = []
         
-        super.init(type: .handshake(.encryptedExtensions))
-    }
-    
-    required init?(inputStream : InputStreamType, context: TLSConnection)
-    {
-        guard let (type, bodyLength) = TLSHandshakeMessage.readHeader(inputStream), type == TLSHandshakeType.encryptedExtensions else {
-            return nil
-        }
-        
-        if let extensions = TLSReadExtensions(from: inputStream, length: bodyLength, messageType: .encryptedExtensions) {
+        init(extensions: [TLSExtension])
+        {
             self.extensions = extensions
+            
+            super.init(type: .handshake(.encryptedExtensions))
         }
         
-        super.init(type: .handshake(.encryptedExtensions))
-    }
-    
-    override func writeTo<Target : OutputStreamType>(_ target: inout Target)
-    {
-        var data = DataBuffer()
-        TLSWriteExtensions(&data, extensions: self.extensions, messageType: .encryptedExtensions)
+        required init?(inputStream : InputStreamType, context: TLSConnection)
+        {
+            guard let (type, bodyLength) = TLSHandshakeMessage.readHeader(inputStream), type == TLSHandshakeType.encryptedExtensions else {
+                return nil
+            }
+            
+            self.extensions = TLSReadExtensions(from: inputStream, length: bodyLength, messageType: .encryptedExtensions, context: context)
+            
+            super.init(type: .handshake(.encryptedExtensions))
+        }
         
-        self.writeHeader(type: .encryptedExtensions, bodyLength: data.buffer.count, target: &target)
-        target.write(data.buffer)
+        override func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?)
+        {
+            var data = [UInt8]()
+            TLSWriteExtensions(&data, extensions: self.extensions, messageType: .encryptedExtensions, context: context)
+            
+            self.writeHeader(type: .encryptedExtensions, bodyLength: data.count, target: &target)
+            target.write(data)
+        }
     }
 }

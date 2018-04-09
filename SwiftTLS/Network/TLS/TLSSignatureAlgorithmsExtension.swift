@@ -1,5 +1,5 @@
 //
-//  TLSSignatureAlgorithmExtension.swift
+//  TLSSignatureAlgorithmsExtension.swift
 //  SwiftTLS
 //
 //  Created by Nico Schmidt on 27.01.17.
@@ -8,7 +8,7 @@
 
 import Foundation
 
-struct TLSSignatureAlgorithmExtension : TLSExtension
+struct TLSSignatureAlgorithmsExtension : TLSExtension
 {
     var extensionType : TLSExtensionType {
         get {
@@ -43,19 +43,17 @@ struct TLSSignatureAlgorithmExtension : TLSExtension
         }
     }
     
-    func writeTo<Target : OutputStreamType>(_ target: inout Target, messageType: TLSMessageExtensionType) {
-        let data = DataBuffer()
+    func writeTo<Target : OutputStreamType>(_ target: inout Target, messageType: TLSMessageExtensionType, context: TLSConnection?) {
+        var data: [UInt8] = []
         for algorithm in self.signatureAlgorithms {
             data.write(algorithm.rawValue)
         }
         
-        let extensionsData = data.buffer
-        let extensionsLength = extensionsData.count
+        let extensionData = data
         
         target.write(self.extensionType.rawValue)
-        target.write(UInt16(extensionsData.count + 2))
-        target.write(UInt16(extensionsLength))
-        target.write(extensionsData)
+        target.write(UInt16(extensionData.count + 2))
+        target.write16(extensionData)
     }
     
 }

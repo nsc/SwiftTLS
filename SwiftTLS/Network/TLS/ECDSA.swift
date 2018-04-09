@@ -8,18 +8,24 @@
 
 import Foundation
 
-struct ECDSA
+struct ECDSA : Signing
 {
+    var algorithm: X509.SignatureAlgorithm {
+        return .ecPublicKey(curveName: self.curve.name.oid, hash: hashAlgorithm)
+    }
+    
     let curve : EllipticCurve
     
     var privateKey : BigInt?
     var publicKey : EllipticCurvePoint
+    var hashAlgorithm: HashAlgorithm
     
     init(curve: EllipticCurve, publicKey: EllipticCurvePoint, privateKey: BigInt? = nil)
     {
         self.curve = curve
         self.publicKey = publicKey
         self.privateKey = privateKey
+        self.hashAlgorithm = .sha256
     }
     
     init?(publicKeyInfo : X509.SubjectPublicKeyInfo)
@@ -27,13 +33,13 @@ struct ECDSA
         assert(publicKeyInfo.subjectPublicKey.bits.count * 8 == publicKeyInfo.subjectPublicKey.numberOfBits)
 
         let algorithmIdentifier = publicKeyInfo.algorithm
-        guard algorithmIdentifier.algorithm == .ecPublicKey else { return nil }
-        guard let curveName = algorithmIdentifier.parameters as? OID else { return nil }
+        guard case .ecPublicKey(let curveName, let hashAlgorithm) = algorithmIdentifier.algorithm else { return nil }
      
-        switch curveName
+        switch (curveName, hashAlgorithm)
         {
-        case .ansip521r1:
+        case (.ansip521r1, .sha256):
             self.curve = EllipticCurve.named(.secp521r1)!
+            self.hashAlgorithm = hashAlgorithm
             
         default:
             print("Unknown curve \(curveName)")
@@ -70,6 +76,10 @@ struct ECDSA
         } while s.isZero
         
         return (r, s)
+    }
+    
+    func sign(data: [UInt8]) throws -> [UInt8] {
+        fatalError("Signature generation not implemented in ECDSA")
     }
     
     func verify(signature: [UInt8], data: [UInt8]) -> Bool

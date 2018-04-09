@@ -32,7 +32,7 @@ enum TLSExtensionType : UInt16
 protocol TLSExtension
 {
     init?(inputStream: InputStreamType, messageType: TLSMessageExtensionType)
-    func writeTo<Target : OutputStreamType>(_ target: inout Target, messageType: TLSMessageExtensionType)
+    func writeTo<Target : OutputStreamType>(_ target: inout Target, messageType: TLSMessageExtensionType, context: TLSConnection?)
     
     var extensionType : TLSExtensionType {
         get
@@ -40,13 +40,13 @@ protocol TLSExtension
     
 }
 
-func TLSReadExtensions(from inputStream: InputStreamType, length: Int, messageType: TLSMessageExtensionType) -> [TLSExtension]?
+func TLSReadExtensions(from inputStream: InputStreamType, length: Int, messageType: TLSMessageExtensionType, context: TLSConnection?) -> [TLSExtension]
 {
     guard
         let extensionsSize : UInt16 = inputStream.read(),
         let extensionsData : [UInt8] = inputStream.read(count: Int(extensionsSize))
         else {
-            return nil
+            fatalError("Could not read extensions")
     }
     
     var length = length
@@ -106,6 +106,30 @@ func TLSReadExtensions(from inputStream: InputStreamType, length: Int, messageTy
                     
                     extensions.append(keyShare)
                     
+                case .preSharedKey:
+                    guard let preSharedKey = TLSPreSharedKeyExtension(inputStream: BinaryInputStream(extensionData), messageType: messageType) else {
+                        
+                        fatalError("Could not read pre shared key extension")
+                    }
+                    
+                    extensions.append(preSharedKey)
+
+                case .earlyData:
+                    guard let earlyData = TLSEarlyDataIndication(inputStream: BinaryInputStream(extensionData), messageType: messageType) else {
+                        
+                        fatalError("Could not read early data extension")
+                    }
+                    
+                    extensions.append(earlyData)
+
+                case .pskKeyExchangeModes:
+                    guard let pskKeyExchangeModes = TLSPSKKeyExchangeModesExtension(inputStream: BinaryInputStream(extensionData), messageType: messageType) else {
+                        
+                        fatalError("Could not read PSK key exchange modes extension")
+                    }
+                    
+                    extensions.append(pskKeyExchangeModes)
+
                 case .supportedVersions:
                     guard let supportedVersions = TLSSupportedVersionsExtension(inputStream: BinaryInputStream(extensionData), messageType: messageType) else {
                         
@@ -139,16 +163,12 @@ func TLSReadExtensions(from inputStream: InputStreamType, length: Int, messageTy
     return extensions
 }
 
-func TLSWriteExtensions<Target: OutputStreamType>(_ target: inout Target, extensions: [TLSExtension], messageType: TLSMessageExtensionType)
+func TLSWriteExtensions<Target: OutputStreamType>(_ target: inout Target, extensions: [TLSExtension], messageType: TLSMessageExtensionType, context: TLSConnection?)
 {
-    if extensions.count != 0 {
-        var extensionsData = DataBuffer()
-        
-        for anExtension in extensions {
-            anExtension.writeTo(&extensionsData, messageType: messageType)
-        }
-        
-        target.write(UInt16(extensionsData.buffer.count))
-        target.write(extensionsData.buffer)
+    var extensionData = [UInt8]()
+    for anExtension in extensions {
+        anExtension.writeTo(&extensionData, messageType: messageType, context: context)
     }
+    
+    target.write16(extensionData)
 }

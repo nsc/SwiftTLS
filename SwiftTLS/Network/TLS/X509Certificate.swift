@@ -17,6 +17,33 @@ struct X509
         case v3 = 2
     }
     
+    enum SignatureAlgorithm {
+        case rsaEncryption
+        case rsa_pkcs1(hash: HashAlgorithm)
+        case ecdsa(hash: HashAlgorithm)
+        case rsassa_pss(hash: HashAlgorithm, saltLength: Int)
+        case ecPublicKey(curveName: OID, hash: HashAlgorithm)
+        
+        var hashAlgorithm: HashAlgorithm? {
+            switch self {
+            case .rsa_pkcs1(let hashAlgorithm):
+                return hashAlgorithm
+
+            case .rsassa_pss(let hashAlgorithm, _):
+                return hashAlgorithm
+
+            case .ecdsa(let hashAlgorithm):
+                return hashAlgorithm
+
+            case .ecPublicKey(_, let hashAlgorithm):
+                return hashAlgorithm
+
+            default:
+                return nil
+            }
+        }
+    }
+    
     struct Name
     {
 //        Implementations of this specification MUST
@@ -119,44 +146,76 @@ struct X509
     
     struct AlgorithmIdentifier
     {
-        var algorithm   : OID
-        var parameters  : Any?
+        private var algorithmOID   : OID
+        private var parameters  : Any?
 
+        var algorithm: SignatureAlgorithm
+        var oid: OID {
+            return algorithmOID
+        }
+        
         init?(asn1sequence : ASN1Sequence)
         {
             guard asn1sequence.objects.count >= 1 else { return nil }
             guard let asn1algorithm = asn1sequence.objects[0] as? ASN1ObjectIdentifier else { return nil }
             guard let algorithmOID = OID(id: asn1algorithm.identifier) else { return nil }
             
-            self.algorithm = algorithmOID
+            self.algorithmOID = algorithmOID
             
             switch algorithmOID
             {
             case .sha1WithRSAEncryption:
-                break
-                
+                self.algorithm = .rsa_pkcs1(hash: .sha1)
+
             case .sha256WithRSAEncryption:
-                break
+                self.algorithm = .rsa_pkcs1(hash: .sha256)
 
             case .sha384WithRSAEncryption:
-                break
+                self.algorithm = .rsa_pkcs1(hash: .sha384)
 
             case .rsaEncryption:
-                break
+                self.algorithm = .rsaEncryption
+
+            case .rsassa_pss:
+                // RFC 4055 Section 3.1 RSASSA-PSS Public Keys
+                //
+                // id-RSASSA-PSS  OBJECT IDENTIFIER  ::=  { pkcs-1 10 }
+                //
+                // RSASSA-PSS-params  ::=  SEQUENCE  {
+                //     hashAlgorithm      [0] HashAlgorithm DEFAULT
+                //     sha1Identifier,
+                //     maskGenAlgorithm   [1] MaskGenAlgorithm DEFAULT
+                //     mgf1SHA1Identifier,
+                //     saltLength         [2] INTEGER DEFAULT 20,
+                //     trailerField       [3] INTEGER DEFAULT 1  }
+
+                guard let parameters = asn1sequence.objects[1] as? ASN1Sequence else { return nil }
+                
+                guard let hashAlgorithm = HashAlgorithm(oid: (((parameters[0] as? ASN1TaggedObject)?.object as? ASN1Sequence)?[0] as? ASN1ObjectIdentifier)?.oid ?? .sha1) else {
+                    print("Error: unsupported hash algorithm \(parameters)")
+                    return nil
+                }
+                
+                let saltLength    = ((parameters[2] as? ASN1TaggedObject)?.object as? ASN1Integer) ?? ASN1Integer(value: [20])
+                guard let saltLengthInt = saltLength.intValue else {
+                    print("Error: ridiculously long salt length: \(saltLength.value)")
+                    return nil
+                }
+                    
+                self.algorithm  = .rsassa_pss(hash: hashAlgorithm, saltLength: saltLengthInt)
                 
             case .ecdsaWithSHA256:
-                break
+                self.algorithm = .ecdsa(hash: .sha256)
 
             case .ecPublicKey:
                 guard let curveType = asn1sequence.objects[1] as? ASN1ObjectIdentifier else { return nil }
                 guard let oid = OID(id: curveType.identifier) else { return nil }
                 
-                self.parameters = oid
-                
-                break
+                self.algorithm = .ecPublicKey(curveName: oid, hash: .sha256)
 
             default:
                 print("Unsupported signature algorithm \(algorithmOID)")
+                return nil
             }
             
         }
@@ -239,15 +298,31 @@ struct X509
         var signatureAlgorithm  : AlgorithmIdentifier
         var signatureValue      : BitString
         
-        let data: [UInt8]
+        var data: [UInt8]
         
         var rsa: RSA? {
+            guard case .rsaEncryption = tbsCertificate.subjectPublicKeyInfo.algorithm.oid else {
+                return nil
+            }
+            
             let publicKeyInfo = tbsCertificate.subjectPublicKeyInfo
             return RSA(publicKey: publicKeyInfo.subjectPublicKey.bits)
         }
         
         var publicKeySigner: Signing? {
-            return self.rsa
+            let publicKeyInfo = tbsCertificate.subjectPublicKeyInfo
+
+            switch tbsCertificate.subjectPublicKeyInfo.algorithm.oid {
+            case .rsaEncryption:
+                return RSA(publicKey: publicKeyInfo.subjectPublicKey.bits)
+
+            case .ecPublicKey:
+                return ECDSA(publicKeyInfo: publicKeyInfo)
+                
+            default:
+                print("Unsuported certificate public key \(tbsCertificate.subjectPublicKeyInfo.algorithm.oid)")
+                return nil
+            }
         }
         
         var commonName: String? {
@@ -256,9 +331,18 @@ struct X509
         
         init?(derData : [UInt8])
         {
+            guard let certificate = ASN1Parser(data: derData).parseObject() as? ASN1Sequence else { return nil }
+        
+            self.init(asn1Sequence: certificate)
             self.data = derData
-            
-            guard let certificate = ASN1Parser(data:derData).parseObject() as? ASN1Sequence else { return nil }
+        }
+    
+        init?(derData : Data) {
+            self.init(derData: derData.UInt8Array())
+        }
+    
+        init?(asn1Sequence certificate: ASN1Sequence)
+        {
             guard certificate.objects.count == 3 else { return nil }
             
             guard let asn1tbsCertificate        = certificate.objects[0] as? ASN1Sequence  else { return nil }
@@ -272,10 +356,39 @@ struct X509
             self.tbsCertificate = tbsCertificate
             self.signatureAlgorithm = signatureAlgorithm
             self.signatureValue = signature
+            self.data = []
         }
-    
-        init?(derData : Data) {
-            self.init(derData: derData.UInt8Array())
+        
+        init?(PEMFile file: String)
+        {
+            for (section, object) in ASN1Parser.sectionsFromPEMFile(file) {
+                switch section
+                {
+                case "CERTIFICATE":
+                    guard let sequence = object as? ASN1Sequence else {
+                        return nil
+                    }
+                    
+                    ASN1_printObject(sequence)
+                    
+                    self.init(asn1Sequence: sequence)
+                    return
+                    
+                default:
+                    break
+                }
+            }
+            
+            return nil
         }
+
+    }
+}
+
+extension X509.Certificate : Streamable {
+    func writeTo<Target>(_ target: inout Target, context: TLSConnection?) where Target : OutputStreamType {
+        let certificateData = self.data
+        target.writeUInt24(certificateData.count)
+        target.write(certificateData)
     }
 }

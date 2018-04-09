@@ -34,7 +34,7 @@ class PreMasterSecret : Streamable
         return nil
     }
     
-    func writeTo<Target : OutputStreamType>(_ target: inout Target) {
+    func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?) {
         target.write(self.clientVersion.rawValue)
         target.write(random)
     }
@@ -47,7 +47,7 @@ class TLSClientKeyExchange : TLSHandshakeMessage
     
     init(preMasterSecret : [UInt8], rsa : RSA)
     {
-        self.encryptedPreMasterSecret = rsa.encrypt(preMasterSecret)
+        self.encryptedPreMasterSecret = try! rsa.encrypt(preMasterSecret)
         self.keyExchange = .rsa
         
         super.init(type: .handshake(.clientKeyExchange))
@@ -114,29 +114,26 @@ class TLSClientKeyExchange : TLSHandshakeMessage
         return nil        
     }
 
-    override func writeTo<Target : OutputStreamType>(_ target: inout Target)
+    override func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?)
     {
         switch self.keyExchange
         {
         case .dhe(let keyExchange):
             if let publicKey = keyExchange.publicKey {
                 self.writeHeader(type: .clientKeyExchange, bodyLength: publicKey.count + 2, target: &target)
-                target.write(UInt16(publicKey.count))
-                target.write(publicKey)
+                target.write16(publicKey)
             }
             
         case .ecdhe(let keyExchange):
             if let publicKey = keyExchange.publicKey {
                 self.writeHeader(type: .clientKeyExchange, bodyLength: publicKey.count + 1, target: &target)
-                target.write(UInt8(publicKey.count))
-                target.write(publicKey)
+                target.write8(publicKey)
             }
         
         case .rsa:
             if let encryptedPreMasterSecret = self.encryptedPreMasterSecret {
                 self.writeHeader(type: .clientKeyExchange, bodyLength: encryptedPreMasterSecret.count + 2, target: &target)
-                target.write(UInt16(encryptedPreMasterSecret.count))
-                target.write(encryptedPreMasterSecret)
+                target.write16(encryptedPreMasterSecret)
             }
         }
 

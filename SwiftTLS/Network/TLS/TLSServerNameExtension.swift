@@ -56,21 +56,16 @@ struct TLSServerNameExtension : TLSExtension
         }
     }
     
-    func writeTo<Target : OutputStreamType>(_ target: inout Target, messageType: TLSMessageExtensionType) {
-        let data = DataBuffer()
+    func writeTo<Target : OutputStreamType>(_ target: inout Target, messageType: TLSMessageExtensionType, context: TLSConnection?) {
+        var extensionData: [UInt8] = []
         for serverName in self.serverNames {
             let utf8 = [UInt8](serverName.utf8)
-            data.write(TLSServerNameType.hostName.rawValue)
-            data.write(UInt16(utf8.count))
-            data.write(utf8)
+            extensionData.write(TLSServerNameType.hostName.rawValue)
+            extensionData.write16(utf8)
         }
-        
-        let extensionsData = data.buffer
-        let extensionsLength = extensionsData.count
-        
+                
         target.write(self.extensionType.rawValue)
-        target.write(UInt16(extensionsData.count + 2))
-        target.write(UInt16(extensionsLength))
-        target.write(extensionsData)
+        target.write(UInt16(extensionData.count + 2))
+        target.write16(extensionData)
     }
 }

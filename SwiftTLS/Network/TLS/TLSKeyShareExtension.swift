@@ -37,10 +37,9 @@ struct KeyShareEntry {
 }
 
 extension KeyShareEntry : Streamable {
-    func writeTo<Target : OutputStreamType>(_ target: inout Target) {
+    func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?) {
         target.write(namedGroup)
-        target.write(UInt16(keyExchange.count))
-        target.write(keyExchange)
+        target.write16(keyExchange)
     }
 }
 
@@ -118,39 +117,30 @@ struct TLSKeyShareExtension : TLSExtension
         }
     }
     
-    func writeTo<Target : OutputStreamType>(_ target: inout Target, messageType: TLSMessageExtensionType) {
-        var data = DataBuffer()
+    func writeTo<Target : OutputStreamType>(_ target: inout Target, messageType: TLSMessageExtensionType, context: TLSConnection?) {
+        var extensionData: [UInt8] = []
         
         switch keyShare {
         case .clientHello(let clientShares):
             for clientShare in clientShares {
-                clientShare.writeTo(&data)
+                clientShare.writeTo(&extensionData, context: context)
             }
-            let extensionsData = data.buffer
-            let extensionsLength = extensionsData.count
             
             target.write(self.extensionType.rawValue)
-            target.write(UInt16(extensionsData.count + 2))
-            target.write(UInt16(extensionsLength))
-            target.write(extensionsData)
+            target.write(UInt16(extensionData.count + 2))
+            target.write16(extensionData)
             
         case .helloRetryRequest(let selectedGroup):
-            selectedGroup.writeTo(&data)
-            
-            let extensionsData = data.buffer
+            selectedGroup.writeTo(&extensionData, context: context)
             
             target.write(self.extensionType.rawValue)
-            target.write(UInt16(extensionsData.count))
-            target.write(extensionsData)
+            target.write16(extensionData)
 
         case .serverHello(let serverShare):
-            serverShare.writeTo(&data)
-            
-            let extensionsData = data.buffer
+            serverShare.writeTo(&extensionData, context: context)
             
             target.write(self.extensionType.rawValue)
-            target.write(UInt16(extensionsData.count))
-            target.write(extensionsData)
+            target.write16(extensionData)
         }
         
     }

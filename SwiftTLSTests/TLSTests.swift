@@ -19,7 +19,7 @@ class TSLTests: XCTestCase {
         super.tearDown()
     }
 
-    func test_connectTLS() {
+    func notest_connectTLS() {
         let certificatePath = Bundle(for: type(of: self)).url(forResource: "mycert.pem", withExtension: nil)!.path
         let opensslServer = Process.launchedProcess(launchPath: "/usr/local/bin/openssl", arguments: ["s_server",  "-cert", certificatePath, "-www",  "-debug", "-cipher", "ALL:NULL" ])
         
@@ -70,38 +70,73 @@ class TSLTests: XCTestCase {
         return TLSServerSocket(configuration: configuration)
     }
     
-    func test_clientServerWithCipherSuite(_ cipherSuite : CipherSuite)
+    func test_clientServerWithCipherSuite(_ cipherSuite : CipherSuite, serverSupportsEarlyData: Bool = true, clientSupportsEarlyData: Bool = true)
     {
+        let supportedVersions: [TLSProtocolVersion] = [.v1_3]
+        var clientConfiguration = TLSConfiguration(supportedVersions: supportedVersions)
+        clientConfiguration.cipherSuites = [cipherSuite]
+        clientConfiguration.earlyData = .supported(maximumEarlyDataSize: 4096)
+     
         let server = createServer(with: cipherSuite, port: 12345)
-        
-        let client = TLSClientSocket(supportedVersions: [.v1_3])
-        client.connection.configuration.cipherSuites = [cipherSuite]
+        server.connection.configuration.earlyData = .supported(maximumEarlyDataSize: 4096)
         
         let expectation = self.expectation(description: "accept connection successfully")
         
         let address = IPv4Address.localAddress()
         address.port = UInt16(12345)
         
+        var clientContext: TLSClientContext? = nil
+
+        var numberOfTries = 3
+
         var serverSideClientSocket: SocketProtocol? = nil
         let serverQueue = DispatchQueue(label: "server queue", attributes: [])
         do {
             serverQueue.async {
                 do {
-                    serverSideClientSocket = try server.acceptConnection(address)
-                    try serverSideClientSocket?.write([1,2,3])
+                    try server.listen(on: address)
+                    
+                    for _ in 0..<numberOfTries {
+                        var hasSentEarlyData = false
+                        serverSideClientSocket = try server.acceptConnection(withEarlyDataResponseHandler: {
+                            (earlyData: Data) in
+                            
+                            hasSentEarlyData = true
+                            
+                            return Data(bytes: [1,2,3])
+                        })
+                        if !hasSentEarlyData {
+                            try serverSideClientSocket?.write([1,2,3])
+                        }
+                        serverSideClientSocket?.close()
+                    }
+                    
+                    server.close()
                 } catch(let error) {
                     XCTFail("\(error)")
                 }
             }
             sleep(1)
             
-            try client.connect(address)
-            let response = try client.read(count: 3)
-            if response == [1,2,3] as [UInt8] {
+            var numberOfSuccesses = 0
+            for _ in 0..<3 {
+                let client = TLSClientSocket(configuration: clientConfiguration, context: clientContext)
+                if clientContext == nil {
+                    clientContext = client.context as? TLSClientContext
+                }
+                
+                let earlyDataWasSent = try client.connect(hostname: "127.0.0.1", port: Int(address.port), withEarlyData: Data(bytes: [1,2,3]))
+
+                let response = try client.read(count: 3)
+                if response == [1,2,3] as [UInt8] {
+                    numberOfSuccesses += 1
+                }
+                client.close()
+            }
+            
+            if numberOfSuccesses == numberOfTries {
                 expectation.fulfill()
             }
-            client.close()
-            serverSideClientSocket?.close()
         }
         catch (let error) {
             XCTFail("\(error)")
@@ -110,6 +145,34 @@ class TSLTests: XCTestCase {
         self.waitForExpectations(timeout: 30.0) {
             (error : Error?) -> Void in
         }
+    }
+    
+    func test_acceptConnection_whenClientConnectsWithNeitherClientNorServerSupportingEarlyData_works()
+    {
+        let cipherSuite: CipherSuite = .TLS_AES_128_GCM_SHA256
+        
+        test_clientServerWithCipherSuite(cipherSuite, serverSupportsEarlyData: false, clientSupportsEarlyData: false)
+    }
+
+    func test_acceptConnection_whenClientConnectsWithClientSupportingEarlyDataAndServerRejectingIt_works()
+    {
+        let cipherSuite: CipherSuite = .TLS_AES_128_GCM_SHA256
+        
+        test_clientServerWithCipherSuite(cipherSuite, serverSupportsEarlyData: false, clientSupportsEarlyData: true)
+    }
+
+    func test_acceptConnection_whenClientConnectsWithServerSupportingEarlyDataButClientNot_works()
+    {
+        let cipherSuite: CipherSuite = .TLS_AES_128_GCM_SHA256
+        
+        test_clientServerWithCipherSuite(cipherSuite, serverSupportsEarlyData: true, clientSupportsEarlyData: false)
+    }
+
+    func test_acceptConnection_whenClientConnectsWithBothClientAndServerSupportingEarlyData_works()
+    {
+        let cipherSuite: CipherSuite = .TLS_AES_128_GCM_SHA256
+        
+        test_clientServerWithCipherSuite(cipherSuite, serverSupportsEarlyData: true, clientSupportsEarlyData: true)
     }
     
     func test_acceptConnection_whenClientConnects_works()

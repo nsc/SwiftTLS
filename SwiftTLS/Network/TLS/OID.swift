@@ -117,11 +117,14 @@ import Foundation
 
 enum OID : String
 {
+    
     case ecPublicKey                                = "1.2.840.10045.2.1"
     case ecdsaWithSHA256                            = "1.2.840.10045.4.3.2"
+    case ecdsa_secp256r1                            = "1.2.840.10045.3.1.7"
     
     case rsaEncryption                              = "1.2.840.113549.1.1.1"
     case sha1WithRSAEncryption                      = "1.2.840.113549.1.1.5"
+    case rsassa_pss                                 = "1.2.840.113549.1.1.10"
     case sha256WithRSAEncryption                    = "1.2.840.113549.1.1.11"
     case sha384WithRSAEncryption                    = "1.2.840.113549.1.1.12"
     
@@ -163,7 +166,10 @@ enum OID : String
     case certificateExtensionExtKeyUsage            = "2.5.29.37"
 
     case sha256                                     = "2.16.840.1.101.3.4.2.1"
-    
+    case sha384                                     = "2.16.840.1.101.3.4.2.2"
+    case sha512                                     = "2.16.840.1.101.3.4.2.3"
+    case sha224                                     = "2.16.840.1.101.3.4.2.4"
+
     init?(id : [Int])
     {
         guard id.count >= 1 else {

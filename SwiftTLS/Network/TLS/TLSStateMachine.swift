@@ -29,6 +29,8 @@ enum TLSState
     case clientKeyExchangeReceived
     case changeCipherSpecSent
     case changeCipherSpecReceived
+    case endOfEarlyDataSent
+    case endOfEarlyDataReceived
     case finishedSent
     case finishedReceived
     case connected

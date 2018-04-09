@@ -64,7 +64,7 @@ public struct DiffieHellmanParameters
 
 extension DiffieHellmanParameters : Streamable
 {
-    func writeTo<Target : OutputStreamType>(_ target: inout Target)
+    func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?)
     {
         let dh_p  = self.p.asBigEndianData()
         let dh_g  = self.g.asBigEndianData()
@@ -170,7 +170,7 @@ struct ECDiffieHellmanParameters
 
 extension ECDiffieHellmanParameters : Streamable
 {
-    func writeTo<Target : OutputStreamType>(_ target: inout Target)
+    func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?)
     {
         switch self.curveType
         {
@@ -180,8 +180,7 @@ extension ECDiffieHellmanParameters : Streamable
             target.write(namedCurve.rawValue)
             let Q = self.publicKey
             let curvePointData : [UInt8] = [4] + Q!.x.asBigEndianData() + Q!.y.asBigEndianData()
-            target.write(UInt8(curvePointData.count))
-            target.write(curvePointData)
+            target.write8(curvePointData)
             
         default:
             fatalError("Error: unsupported curve type \(curveType)")
@@ -191,14 +190,14 @@ extension ECDiffieHellmanParameters : Streamable
 
 extension KeyExchangeParameters : Streamable
 {
-    func writeTo<Target : OutputStreamType>(_ target: inout Target) {
+    func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?) {
         switch self
         {
         case .dhe(let dhe):
-            dhe.writeTo(&target)
+            dhe.writeTo(&target, context: context)
         
         case .ecdhe(let ecdhe):
-            ecdhe.writeTo(&target)
+            ecdhe.writeTo(&target, context: context)
         }
     }
 }
@@ -211,7 +210,7 @@ class TLSServerKeyExchange : TLSHandshakeMessage
     
     var parametersData : [UInt8] {
         get {
-            return DataBuffer(parameters).buffer
+            return [UInt8](parameters)
         }
     }
 
@@ -226,7 +225,7 @@ class TLSServerKeyExchange : TLSHandshakeMessage
         let securityParameters = server.securityParameters
         var data = securityParameters.clientRandom!
         data += securityParameters.serverRandom!
-        data += DataBuffer(self.parameters).buffer
+        data += [UInt8](self.parameters)
         
         self.signedParameters = try TLSSignedData(data: data, context: context)
         
@@ -280,22 +279,21 @@ class TLSServerKeyExchange : TLSHandshakeMessage
         super.init(type: .handshake(.serverKeyExchange))
     }
 
-    override func writeTo<Target : OutputStreamType>(_ target: inout Target)
+    override func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?)
     {
-        var body = DataBuffer()
+        var body = [UInt8]()
 
         switch parameters {
         case .dhe(let diffieHellmanParameters):
-            diffieHellmanParameters.writeTo(&body)
+            diffieHellmanParameters.writeTo(&body, context: context)
         
         case .ecdhe(let ecdhParameters):
-            ecdhParameters.writeTo(&body)
+            ecdhParameters.writeTo(&body, context: context)
         }
         
-        self.signedParameters.writeTo(&body)
-        let bodyData = body.buffer
+        self.signedParameters.writeTo(&body, context: context)
         
-        self.writeHeader(type: .serverKeyExchange, bodyLength: bodyData.count, target: &target)
-        target.write(bodyData)
+        self.writeHeader(type: .serverKeyExchange, bodyLength: body.count, target: &target)
+        target.write(body)
     }
 }

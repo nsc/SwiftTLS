@@ -15,7 +15,11 @@ extension TLS1_2 {
             return self.connection as! TLSClient
         }
         
-        var serverKey: RSA?
+        var serverKey: Signing?
+        
+        var clientContext: TLSClientContext {
+            return self.connection.context as! TLSClientContext
+        }
         
         init(client: TLSClient)
         {
@@ -36,8 +40,8 @@ extension TLS1_2 {
             }
             
             //        if !self.isRenegotiatingSecurityParameters {
-            if let hostname = client.hostNames?.first {
-                client.pendingSessionID = client.clientContext.sessionCache[hostname]?.sessionID
+            if let hostname = client.serverNames?.first {
+                client.pendingSessionID = self.clientContext.sessionCache[hostname]?.sessionID
             }
             //        }
             
@@ -49,8 +53,8 @@ extension TLS1_2 {
                 cipherSuites: cipherSuites,
                 compressionMethods: [.null])
             
-            if client.hostNames != nil {
-                clientHello.extensions.append(TLSServerNameExtension(serverNames: client.hostNames!))
+            if client.serverNames != nil {
+                clientHello.extensions.append(TLSServerNameExtension(serverNames: client.serverNames!))
             }
             
             //        print("initial handshake = \(self.isInitialHandshake), secure renegotiation = \(self.securityParameters.isUsingSecureRenegotiation)")
@@ -66,7 +70,7 @@ extension TLS1_2 {
             
             client.isInitialHandshake = false
             
-            self.securityParameters.clientRandom = DataBuffer(clientHelloRandom).buffer
+            self.securityParameters.clientRandom = [UInt8](clientHelloRandom)
             
             try client.sendHandshakeMessage(clientHello)
         }
@@ -80,14 +84,13 @@ extension TLS1_2 {
                 client.configuration.supports(version) else
             {
                 try client.abortHandshake()
-                return
             }
             
             client.recordLayer?.protocolVersion = version
             client.negotiatedProtocolVersion = version
             
             client.cipherSuite = serverHello.cipherSuite
-            self.securityParameters.serverRandom = DataBuffer(serverHello.random).buffer
+            self.securityParameters.serverRandom = [UInt8](serverHello.random)
             
             print("ServerHello extensions = \(serverHello.extensions)")
             
@@ -118,8 +121,8 @@ extension TLS1_2 {
             if let sessionID = serverHello.legacySessionID {
                 if  let pendingSessionID = client.pendingSessionID,
                     sessionID == pendingSessionID {
-                    let hostname = client.hostNames!.first!
-                    let session = client.clientContext.sessionCache[hostname]!
+                    let serverName = client.serverNames!.first!
+                    let session = self.clientContext.sessionCache[serverName]!
                     if session.sessionID == sessionID {
                         client.currentSession = session
                         client.isReusingSession = true
@@ -142,7 +145,7 @@ extension TLS1_2 {
                 // doesn't know about TLS 1.3. So even though our configuration might support 1.3, we have to
                 // use the legay version here.
                 let legacyVersion = client.configuration.supportedVersions.filter({$0 <= TLSProtocolVersion.v1_2}).first!
-                let preMasterSecret = DataBuffer(PreMasterSecret(clientVersion: legacyVersion)).buffer
+                let preMasterSecret = [UInt8](PreMasterSecret(clientVersion: legacyVersion))
                 self.setPreMasterSecretAndCommitSecurityParameters(preMasterSecret, cipherSuite: serverHello.cipherSuite)
             }
         }
@@ -171,7 +174,7 @@ extension TLS1_2 {
                 try connection.sendHandshakeMessage(message)
 
             case .rsa:
-                if let rsa = self.serverKey {
+                if let rsa = self.serverKey as? RSA {
                     // RSA
                     let message = TLSClientKeyExchange(preMasterSecret: self.preMasterSecret!, rsa: rsa)
                     try connection.sendHandshakeMessage(message)
@@ -206,10 +209,10 @@ extension TLS1_2 {
                     return
                 }
                 else if let sessionID = client.pendingSessionID {
-                    if let hostname = client.hostNames?.first {
+                    if let serverName = client.serverNames?.first {
                         let session = TLSSession(sessionID: sessionID, cipherSpec: client.cipherSuite!, masterSecret: self.securityParameters.masterSecret!)
-                        client.clientContext.sessionCache[hostname] = session
-                        print("Save session for \(hostname)")
+                        self.clientContext.sessionCache[serverName] = session
+                        print("Save session for \(serverName)")
                     }
                 }
                 
@@ -224,7 +227,7 @@ extension TLS1_2 {
         func handleCertificate(_ certificate: TLSCertificateMessage) {
             let certificates = certificate.certificates
             client.serverCertificates = certificates
-            self.serverKey = certificates.first!.rsa
+            self.serverKey = certificates.first!.publicKeySigner
         }
         
         override func handleMessage(_ message: TLSMessage) throws {

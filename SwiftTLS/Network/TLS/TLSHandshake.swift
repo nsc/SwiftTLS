@@ -9,8 +9,6 @@ import Foundation
 
 class TLSHandshakeMessage : TLSMessage
 {
-    var rawHandshakeMessageData : [UInt8]?
-    
     var handshakeType : TLSHandshakeType {
         get {
             switch (self.type)
@@ -42,7 +40,7 @@ class TLSHandshakeMessage : TLSMessage
             
         case .serverHello:
             if let serverHello = TLSServerHello(inputStream: inputStream, context: context) {
-                if serverHello.random == helloRetryRequestRandom {
+                if serverHello.isHelloRetryRequest {
                     message = TLSHelloRetryRequest(serverHello)
                 }
                 else {
@@ -67,20 +65,23 @@ class TLSHandshakeMessage : TLSMessage
             
         // TLS 1.3
         case .encryptedExtensions:
-            message = TLSEncryptedExtensions(inputStream: inputStream, context: context)
+            message = TLS1_3.TLSEncryptedExtensions(inputStream: inputStream, context: context)
 
         case .certificateVerify:
-            message = TLSCertificateVerify(inputStream: inputStream, context: context)
+            message = TLS1_3.TLSCertificateVerify(inputStream: inputStream, context: context)
             
         case .newSessionTicket:
-            message = TLSNewSessionTicket(inputStream: inputStream, context: context)
+            message = TLS1_3.TLSNewSessionTicket(inputStream: inputStream, context: context)
+
+        case .endOfEarlyData:
+            message = TLS1_3.TLSEndOfEarlyData(inputStream: inputStream, context: context)
 
         default:
             fatalError("Unsupported handshake message \(handshakeType)")
         }
         
         if let message = message {
-            message.rawHandshakeMessageData = bodyData
+            message.rawMessageData = bodyData
             return (message, excessData)
         }
         
@@ -107,8 +108,9 @@ class TLSHandshakeMessage : TLSMessage
         return nil
     }
     
-    override func writeTo<Target : OutputStreamType>(_ target: inout Target)
+    override func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?)
     {
+        self.writeHeader(type: self.handshakeType, bodyLength: 0, target: &target)
     }
 }
 

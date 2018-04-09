@@ -62,6 +62,31 @@ enum HashAlgorithm : UInt8 {
         }
     }
 
+    var oid: OID {
+        switch self
+        {
+        case .sha1:
+            return OID.sha1
+            
+        case .sha256:
+            return OID.sha256
+            
+        default:
+            fatalError("Unsupported hash algorithm \(self)")
+        }
+    }
+    
+    init?(oid: OID)
+    {
+        switch oid
+        {
+        case .sha256:
+            self = .sha256
+            
+        default:
+            return nil
+        }
+    }
 }
 
 enum SignatureAlgorithm : UInt8 {
@@ -112,7 +137,7 @@ struct TLSSignedData : Streamable
         }
     }
     
-    func writeTo<Target : OutputStreamType>(_ target: inout Target)
+    func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?)
     {
         if self.hashAlgorithm != nil && self.signatureAlgorithm != nil {
             target.write(self.hashAlgorithm!.rawValue)
@@ -187,6 +212,25 @@ enum MACAlgorithm {
                 return Int(CC_SHA512_DIGEST_LENGTH)
                 
             }
+        }
+    }
+    
+    var hmacFunction: HMACFunction {
+        switch self {
+        case .hmac_md5:
+            return HMAC_MD5
+            
+        case .hmac_sha1:
+            return HMAC_SHA1
+            
+        case .hmac_sha256:
+            return HMAC_SHA256
+            
+        case .hmac_sha384:
+            return HMAC_SHA384
+            
+        case .hmac_sha512:
+            return HMAC_SHA512
         }
     }
 }

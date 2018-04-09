@@ -13,7 +13,7 @@ enum TLSSocketError : Error {
 
 protocol OutputStreamType
 {
-    func write(_ data : [UInt8])
+    mutating func write(_ data : [UInt8])
 }
 
 protocol InputStreamType
@@ -24,30 +24,50 @@ protocol InputStreamType
 
 protocol Streamable
 {
-    func writeTo<Target : OutputStreamType>(_ target: inout Target)
+    func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?)
 }
 
 extension OutputStreamType
 {
-    func write(_ data : [UInt16]) {
+    private mutating func write(_ data : [UInt16]) {
         for a in data {
             self.write([UInt8(a >> 8), UInt8(a & 0xff)])
         }
     }
 
-    func write(_ data : UInt8) {
+    mutating func write8(_ data: [UInt8]) {
+        self.write(UInt8(data.count))
+        self.write(data)
+    }
+
+    mutating func write16(_ data: [UInt8]) {
+        self.write(UInt16(data.count))
+        self.write(data)
+    }
+
+    mutating func write16(_ data: [UInt16]) {
+        self.write(UInt16(data.count * MemoryLayout<UInt16>.size))
+        self.write(data)
+    }
+
+    mutating func write24(_ data: [UInt8]) {
+        self.writeUInt24(data.count)
+        self.write(data)
+    }
+
+    mutating func write(_ data : UInt8) {
         self.write([data])
     }
     
-    func write(_ data : UInt16) {
+    mutating func write(_ data : UInt16) {
         self.write([UInt8(data >> 8), UInt8(data & 0xff)])
     }
     
-    func write(_ data : UInt32) {
+    mutating func write(_ data : UInt32) {
         self.write([UInt8((data >> 24) & 0xff), UInt8((data >> 16) & 0xff), UInt8((data >>  8) & 0xff), UInt8((data >>  0) & 0xff)])
     }
     
-    func write(_ data : UInt64) {
+    mutating func write(_ data : UInt64) {
         let a = UInt8((data >> 56) & 0xff)
         let b = UInt8((data >> 48) & 0xff)
         let c = UInt8((data >> 40) & 0xff)
@@ -60,13 +80,13 @@ extension OutputStreamType
         self.write([a, b, c, d, e, f, g, h])
     }
     
-    func writeUInt24(_ value : Int)
+    mutating func writeUInt24(_ value : Int)
     {
         self.write([UInt8((value >> 16) & 0xff), UInt8((value >>  8) & 0xff), UInt8((value >>  0) & 0xff)])
     }
     
     mutating func write<T: Streamable>(_ data: T) {
-        data.writeTo(&self)
+        data.writeTo(&self, context: nil)
     }
 }
 
@@ -234,7 +254,7 @@ class Random : Streamable, Equatable
         }
     }
     
-    func writeTo<Target : OutputStreamType>(_ target: inout Target) {
+    func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?) {
         target.write(gmtUnixTime)
         target.write(randomBytes)
     }
@@ -336,14 +356,33 @@ public class TLSClientSocket : TLSSocket, ClientSocketProtocol
         return self.connection as! TLSClient
     }
     
+    private var earlyData: Data?
+    
     convenience public init(supportedVersions: [TLSProtocolVersion])
     {
         self.init(configuration: TLSConfiguration(supportedVersions: supportedVersions))
     }
     
-    init(configuration: TLSConfiguration)
+    init(configuration: TLSConfiguration, context: TLSClientContext? = nil)
     {
-        super.init(connection: TLSClient(configuration: configuration))
+        super.init(connection: TLSClient(configuration: configuration, context: context))
+    }
+
+    public func connect(_ address: IPAddress, withEarlyData earlyData: Data) throws
+    {
+        self.earlyData = earlyData
+        try self.socket?.connect(address)
+        try self.client.startConnection(withEarlyData: self.earlyData)
+    }
+
+    // Connect with early data. If the early data could actually be sent, returns true, fals otherwise
+    public func connect(hostname: String, port: Int = 443, withEarlyData earlyData: Data) throws -> Bool
+    {
+        self.earlyData = earlyData
+        
+        try connect(hostname: hostname, port: port)
+        
+        return self.client.earlyDataWasSent
     }
 
     public func connect(hostname: String, port: Int = 443) throws
@@ -353,7 +392,7 @@ public class TLSClientSocket : TLSSocket, ClientSocketProtocol
             if port != 443 {
                 hostNameAndPort = "\(hostname):\(port)"
             }
-            self.connection.hostNames = [hostNameAndPort]
+            self.connection.serverNames = [hostNameAndPort]
             
             try connect(address)
         }
@@ -368,7 +407,7 @@ public class TLSClientSocket : TLSSocket, ClientSocketProtocol
     public func connect(_ address: IPAddress) throws
     {
         try self.socket?.connect(address)
-        try self.client.startConnection()
+        try self.client.startConnection(withEarlyData: self.earlyData)
     }
     
 //    public func renegotiate() throws
@@ -397,15 +436,36 @@ public class TLSServerSocket : TLSSocket, ServerSocketProtocol
         super.init(connection: TLSServer(configuration: configuration))
     }
 
-    public func acceptConnection(_ address: IPAddress) throws -> SocketProtocol
+    public func listen(on address: IPAddress) throws {
+        try self.socket?.listen(on: address)
+    }
+
+    public func acceptConnection() throws -> SocketProtocol {
+        return try acceptConnection(withEarlyDataResponseHandler: nil)
+    }
+
+    public typealias EarlyDataResponseHandler = ((_ earlyData: Data) -> (Data?))
+    
+    /// Accept a connection
+    ///
+    /// - Parameter earlyDataResponseHandler: if the client sends early data and the server is configured
+    ///                                       to accept it, the earlyDataResponseHandler is called with the early data
+    ///                                       and it can return a response that is send with the first flight
+    ///
+    /// - Returns: the socket rerpresenting the client that has connected
+    /// - Throws: Mainly TLSError I think :) (Make this more rigorous)
+    public func acceptConnection(withEarlyDataResponseHandler earlyDataResponseHandler: EarlyDataResponseHandler?) throws -> SocketProtocol
     {
-        let clientSocket = try self.socket?.acceptConnection(address) as! TCPSocket
+        let clientSocket = try self.socket?.acceptConnection() as! TCPSocket
         
         let clientTLSSocket = TLSServerSocket(supportedVersions: self.connection.configuration.supportedVersions)
         clientTLSSocket.socket = clientSocket
         clientTLSSocket.connection.signer = self.connection.signer
         clientTLSSocket.connection.configuration = self.connection.configuration
         clientTLSSocket.connection.recordLayer.dataProvider = clientTLSSocket
+        clientTLSSocket.connection.context = self.context
+        
+        clientTLSSocket.server.earlyDataResponseHandler = earlyDataResponseHandler
         
         try clientTLSSocket.server.acceptConnection()
         

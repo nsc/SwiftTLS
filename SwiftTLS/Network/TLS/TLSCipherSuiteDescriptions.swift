@@ -27,6 +27,8 @@ struct CipherSuiteDescriptor {
     var authTagSize : Int = 0 // only for AEAD
     var hashFunction: HashAlgorithm
     
+    var supportedProtocolVersions: [TLSProtocolVersion]
+    
     init(cipherSuite: CipherSuite,
          keyExchangeAlgorithm: KeyExchangeAlgorithm? = nil,
          certificateType: CertificateType? = .rsa,
@@ -36,7 +38,8 @@ struct CipherSuiteDescriptor {
          fixedIVLength: Int = 0,
          recordIVLength: Int = 0,
          authTagSize: Int = 0,
-         hashFunction: HashAlgorithm
+         hashFunction: HashAlgorithm,
+         supportedProtocolVersions: [TLSProtocolVersion] = [.v1_2]
     )
     {
         self.cipherSuite = cipherSuite
@@ -58,6 +61,7 @@ struct CipherSuiteDescriptor {
         }
 
         self.hashFunction = hashFunction
+        self.supportedProtocolVersions = supportedProtocolVersions
     }
 }
 
@@ -215,7 +219,8 @@ let TLSCipherSuiteDescritions : [CipherSuiteDescriptor] = [
         blockCipherMode: .gcm,
         fixedIVLength: 12,
         authTagSize: 16,
-        hashFunction: .sha256
+        hashFunction: .sha256,
+        supportedProtocolVersions: [.v1_3]
     ),
 
     CipherSuiteDescriptor(
@@ -226,7 +231,8 @@ let TLSCipherSuiteDescritions : [CipherSuiteDescriptor] = [
         blockCipherMode: .gcm,
         fixedIVLength: 12,
         authTagSize: 16,
-        hashFunction: .sha384
+        hashFunction: .sha384,
+        supportedProtocolVersions: [.v1_3]
     )
 
 ]

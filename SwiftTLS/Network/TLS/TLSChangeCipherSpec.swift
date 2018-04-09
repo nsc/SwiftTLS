@@ -25,7 +25,7 @@ class TLSChangeCipherSpec : TLSMessage
         return nil
     }
     
-    override func writeTo<Target : OutputStreamType>(_ target: inout Target) {
+    override func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?) {
         target.write(TLSChangeCipherSpecType.changeCipherSpec.rawValue)
     }
 }

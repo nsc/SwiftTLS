@@ -15,17 +15,14 @@ class TLSClient : TLSConnection
             return self.protocolHandler as! TLSClientProtocol
         }
     }
-    internal var clientContext: TLSClientContext
-    override public var context: TLSContext {
-        return clientContext
-    }
-    
-    internal var keyExchangesAnnouncedToServer: [NamedGroup : KeyExchange] = [:]
-    
-    override init(configuration: TLSConfiguration, dataProvider : TLSDataProvider? = nil)
+        
+    override init(configuration: TLSConfiguration, context: TLSContext? = nil, dataProvider : TLSDataProvider? = nil)
     {
-        self.clientContext = TLSClientContext()
-        super.init(configuration: configuration, dataProvider: dataProvider)
+        super.init(configuration: configuration, context: context, dataProvider: dataProvider)
+
+        if !(context is TLSClientContext) {
+            self.context = configuration.createClientContext()
+        }
         
         var protocolVersion = self.configuration.supportedVersions.first
         if protocolVersion == nil {
@@ -35,9 +32,17 @@ class TLSClient : TLSConnection
         setupClient(with: protocolVersion!)
     }
     
-    func startConnection() throws
+    func startConnection(withEarlyData earlyData: Data? = nil) throws
     {
         reset()
+        
+        if let data = earlyData {
+            var buffer = [UInt8](repeating: 0, count: data.count)
+            buffer.withUnsafeMutableBufferPointer {
+                _ = data.copyBytes(to: $0)
+            }
+            self.earlyData = buffer
+        }
         
         try self.sendClientHello()
         try self.receiveNextTLSMessage()
@@ -56,10 +61,6 @@ class TLSClient : TLSConnection
         case .serverHello:
             let serverHello = message as! TLSServerHello
             try self.clientProtocolHandler.handleServerHello(serverHello)
-
-        case .helloRetryRequest:
-            let helloRetryRequest = message as! TLSHelloRetryRequest
-            try self.clientProtocolHandler.handleServerHello(helloRetryRequest)
 
         case .certificate:
             let certificateMessage = message as! TLSCertificateMessage

@@ -111,7 +111,7 @@ class EllipticCurveTests: XCTestCase {
         let p = BigInt(97)
         let G = EllipticCurvePoint(x: BigInt(17), y: BigInt(11))
         let n = BigInt(1)
-        let curve = EllipticCurve(p: p, a: a, b: b, G: G, n: n)
+        let curve = EllipticCurve(name: .arbitrary_explicit_prime_curves, p: p, a: a, b: b, G: G, n: n)
 
         XCTAssert(G.isOnCurve(curve))
         
@@ -153,7 +153,7 @@ class EllipticCurveTests: XCTestCase {
         
         let data = [1,2,3,4,5,6,7,8] as [UInt8]
         
-        let signature = ecdsa.sign(data: data)
+        let signature: (BigInt, BigInt) = ecdsa.sign(data: data)
         
         // use ECDSA only with a public key for verification
         let ecdsa2 = ECDSA(curve: curve, publicKey: publicKey)

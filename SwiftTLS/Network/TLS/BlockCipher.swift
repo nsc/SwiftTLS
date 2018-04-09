@@ -11,7 +11,7 @@ import CommonCrypto
 extension UnsignedInteger where Self : FixedWidthInteger {
     init?<T : RandomAccessCollection>(bigEndianBytes: T) where T.Element == UInt8, T.Index == Int
     {
-        guard bigEndianBytes.count == Self.bitWidth / 8 else {
+        guard bigEndianBytes.count <= Self.bitWidth / 8 else {
             return nil
         }
         

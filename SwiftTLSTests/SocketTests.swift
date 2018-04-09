@@ -32,7 +32,8 @@ class SocketTests: XCTestCase {
 
         DispatchQueue.global().async {
             do {
-                _ = try server.acceptConnection(address)
+                try server.listen(on: address)
+                _ = try server.acceptConnection()
                 
                 expectation.fulfill()
                 server.close()

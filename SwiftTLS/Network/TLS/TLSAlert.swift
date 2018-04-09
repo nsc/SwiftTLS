@@ -87,7 +87,7 @@ class TLSAlertMessage : TLSMessage
         super.init(type: .alert(self.alertLevel, self.alert))
     }
 
-    override func writeTo<Target : OutputStreamType>(_ target: inout Target)
+    override func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?)
     {
         let data = [alertLevel.rawValue, alert.rawValue]
         target.write(data)

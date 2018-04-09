@@ -22,7 +22,7 @@ class ECDSATests: XCTestCase {
         let publicKeyInfo   = cert.tbsCertificate.subjectPublicKeyInfo
         
         let ecdsa = ECDSA(publicKeyInfo: publicKeyInfo)!
-        let verified = ecdsa.verify(signature: cert.signatureValue.bits, data: Hash_SHA256(tbsData))
+        let verified = ecdsa.verify(signature: cert.signatureValue.bits, data: ecdsa.hashAlgorithm.hashFunction(tbsData))
         
         XCTAssertTrue(verified)
     }

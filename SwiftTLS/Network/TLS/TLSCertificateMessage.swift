@@ -78,21 +78,34 @@ class TLSCertificateMessage : TLSHandshakeMessage
         }
     }
 
-    override func writeTo<Target : OutputStreamType>(_ target: inout Target)
+    override func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?)
     {
-        let buffer = DataBuffer()
-        
-        for certificate in self.certificates {
-            let certificateData = certificate.data
-            buffer.writeUInt24(certificateData.count)
-            buffer.write(certificateData)
+        guard let context = context else {
+            fatalError()
+        }
+
+        var certificateData: [UInt8] = []
+
+        if context.negotiatedProtocolVersion! >= .v1_3 {
+            let certificateRequestContext = self.certificateRequestContext ?? []
+            certificateData.write8(certificateRequestContext)
         }
         
-        let data = buffer.buffer
+        var certificatesList: [UInt8] = []
+        for certificate in self.certificates {
+            let certificateData = certificate.data
+            certificatesList.writeUInt24(certificateData.count)
+            certificatesList.write(certificateData)
+            
+            if context.negotiatedProtocolVersion! >= .v1_3 {
+                let extensions: [TLSExtension] = []
+                TLSWriteExtensions(&certificatesList, extensions: extensions, messageType: .certificate, context: context)
+            }
+        }
+        certificateData.write24(certificatesList)
 
-        let bodyLength = data.count + 3 // add 3 bytes for the 24 bit length of the certifacte data below
+        let bodyLength = certificateData.count
         self.writeHeader(type: .certificate, bodyLength: bodyLength, target: &target)
-        target.writeUInt24(data.count)
-        target.write(data)
+        target.write(certificateData)
     }
 }

@@ -16,17 +16,31 @@ class DataBuffer : OutputStreamType
         buffer = []
     }
     
-    init(_ streamable : Streamable)
-    {
-        buffer = []
-        var s = self
-        streamable.writeTo(&s)
-    }
+//    init(_ streamable : Streamable)
+//    {
+//        buffer = []
+//        var s = self
+//        streamable.writeTo(&s)
+//    }
     
     func write(_ data : [UInt8]) {
         buffer.append(contentsOf: data)
     }
     
+}
+
+extension Array: OutputStreamType where Element == UInt8
+{
+    init(_ streamable: Streamable, context: TLSConnection? = nil)
+    {
+        self.init()
+        
+        streamable.writeTo(&self, context: context)
+    }
+    
+    mutating func write(_ data: [UInt8]) {
+        self.append(contentsOf: data)
+    }
 }
 
 extension RangeReplaceableCollection where Iterator.Element == UInt8

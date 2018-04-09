@@ -16,6 +16,8 @@ class TLSApplicationData : TLSMessage
     {
         self.applicationData = applicationData
         super.init(type: .applicationData)
+
+        self.rawMessageData = applicationData
     }
     
     // FIXME: This constructor is only needed to fulfill the TLSMessage requirement

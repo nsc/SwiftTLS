@@ -82,7 +82,21 @@ class TLSMessage : Streamable
         return nil
     }
     
-    func writeTo<Target : OutputStreamType>(_ target: inout Target)
+    func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?)
     {
     }
+    
+    func messageData(with context: TLSConnection) -> [UInt8] {
+        if let messageData = self.rawMessageData {
+            return messageData
+        }
+        else {
+            var messageData: [UInt8] = []
+            self.writeTo(&messageData, context: context)
+            
+            return messageData
+        }
+    }
+
+    var rawMessageData : [UInt8]?
 }

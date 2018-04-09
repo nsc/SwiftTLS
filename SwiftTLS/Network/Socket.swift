@@ -40,7 +40,8 @@ public protocol ClientSocketProtocol : SocketProtocol
 
 public protocol ServerSocketProtocol : SocketProtocol
 {
-    func acceptConnection(_ address : IPAddress) throws -> SocketProtocol
+    func listen(on address: IPAddress) throws
+    func acceptConnection() throws -> SocketProtocol
 }
 
 public extension SocketProtocol
@@ -106,38 +107,6 @@ class Socket : SocketProtocol
         }
     }
     
-    func acceptConnection(_ address : IPAddress) throws -> SocketProtocol
-    {
-        if self.socketDescriptor != nil {
-            self.close()
-        }
-        self.socketDescriptor = createSocket(address.unsafeSockAddrPointer.pointee.sa_family)
-        
-        guard let socket = self.socketDescriptor else {
-            throw SocketError.closed
-        }
-        
-        var result = Darwin.bind(socket, address.unsafeSockAddrPointer, socklen_t(address.unsafeSockAddrPointer.pointee.sa_len))
-        if result < 0 {
-            throw SocketError.posixError(errno: errno)
-        }
-        
-        result = Darwin.listen(socket, 5)
-        if result < 0 {
-            throw SocketError.posixError(errno: errno)
-        }
-        
-        let clientSocket = Darwin.accept(socket, nil, nil)
-        if clientSocket == Int32(-1) {
-            throw SocketError.posixError(errno: errno)
-        }
-        
-        var yes : Int32 = 1
-        setsockopt(clientSocket, IPPROTO_TCP, TCP_NODELAY, &yes, socklen_t(MemoryLayout<Int32>.size))
-
-        return type(of: self).init(socketDescriptor: clientSocket)
-    }
-
     func sendTo(_ address : IPAddress?, data : [UInt8]) throws
     {
         if let socket = self.socketDescriptor {
@@ -246,6 +215,47 @@ class Socket : SocketProtocol
     func _write(_ socket: Int32, _ buffer: UnsafeRawPointer, _ count: Int) -> Int
     {
         return Darwin.write(socket, buffer, count)
+    }
+}
+
+extension Socket : ServerSocketProtocol
+{
+    func listen(on address: IPAddress) throws {
+        if self.socketDescriptor != nil {
+            self.close()
+        }
+        self.socketDescriptor = createSocket(address.unsafeSockAddrPointer.pointee.sa_family)
+        
+        guard let socket = self.socketDescriptor else {
+            throw SocketError.closed
+        }
+        
+        var result = Darwin.bind(socket, address.unsafeSockAddrPointer, socklen_t(address.unsafeSockAddrPointer.pointee.sa_len))
+        if result < 0 {
+            throw SocketError.posixError(errno: errno)
+        }
+        
+        result = Darwin.listen(socket, 5)
+        if result < 0 {
+            throw SocketError.posixError(errno: errno)
+        }
+    }
+    
+    func acceptConnection() throws -> SocketProtocol
+    {
+        guard let socket = self.socketDescriptor else {
+            throw SocketError.closed
+        }
+        
+        let clientSocket = Darwin.accept(socket, nil, nil)
+        if clientSocket == Int32(-1) {
+            throw SocketError.posixError(errno: errno)
+        }
+        
+        var yes : Int32 = 1
+        setsockopt(clientSocket, IPPROTO_TCP, TCP_NODELAY, &yes, socklen_t(MemoryLayout<Int32>.size))
+        
+        return type(of: self).init(socketDescriptor: clientSocket)
     }
 }
 

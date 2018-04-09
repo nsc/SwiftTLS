@@ -20,18 +20,18 @@ class RSATests: XCTestCase {
             return
         }
         
-        let signatureScheme = TLSSignatureScheme.rsa_pkcs1_sha1
-        rsa.signatureScheme = signatureScheme
+        let signatureAlgorithm = X509.SignatureAlgorithm.rsa_pkcs1(hash: .sha1)
+        rsa.signatureAlgorithm = signatureAlgorithm
         
         let data = [1,2,3,4,5,6,7,8] as [UInt8]
         
-        let signature = try! rsa.signData(data)
+        let signature = try! rsa.sign(data: data)
         
         print(signature)
         
         var rsa2 = RSA(n: rsa.n, publicExponent: rsa.e)
-        rsa2.signatureScheme = signatureScheme
-        let verified = try! rsa2.verifySignature(signature, data: data)
+        rsa2.signatureAlgorithm = signatureAlgorithm
+        let verified = try! rsa2.verify(signature: signature, data: data)
         
         XCTAssert(verified)
     }
@@ -45,17 +45,37 @@ class RSATests: XCTestCase {
             return
         }
         
-        let data = [1,2,3,4,5,6,7,8] as [UInt8]
-        let rsa2 = RSA(n: rsa.n, publicExponent: rsa.e)
-        let encrypted = rsa2.encrypt(data)
-        print(encrypted)
-        
-        let decrypted = rsa.decrypt(encrypted)
-        print(decrypted)
-        
-        XCTAssert(data == decrypted)
+        do {
+            let data = [1,2,3,4,5,6,7,8] as [UInt8]
+            let rsa2 = RSA(n: rsa.n, publicExponent: rsa.e)
+            let encrypted = try rsa2.encrypt(data)
+            print(encrypted)
+            
+            let decrypted = try rsa.decrypt(encrypted)
+            print(decrypted)
+            
+            XCTAssert(data == decrypted)
+        } catch {
+            XCTFail()
+        }
     }
 
+    func test_verify_signatureFromSelfSignedRSAPSSCertificate_verifies() {
+        let url = Bundle(for: type(of: self)).url(forResource: "Self Signed RSA-PSS SHA-256.pem", withExtension: nil)
+//        let data = try! Data(contentsOf: url!)
+        guard let cert = X509.Certificate(PEMFile: url!.path) else { XCTFail(); return }
+        
+        let tbsData     = cert.tbsCertificate.DEREncodedCertificate!
+        let publicKey   = cert.tbsCertificate.subjectPublicKeyInfo.subjectPublicKey
+        XCTAssert(publicKey.numberOfBits == publicKey.bits.count * 8)
+        
+        let rsa         = RSA(certificate: cert)
+        
+        let verified = try! rsa!.verify(signature: cert.signatureValue.bits, data: tbsData)
+        
+        XCTAssert(verified)
+    }
+    
     func test_verify_signatureFromSelfSignedRSACertificate_verifies()
     {
         let certificatePath = Bundle(for: type(of: self)).path(forResource: "Self Signed RSA SHA-256.cer", ofType: "")!
@@ -67,8 +87,8 @@ class RSATests: XCTestCase {
         let publicKey   = cert.tbsCertificate.subjectPublicKeyInfo.subjectPublicKey
         XCTAssert(publicKey.numberOfBits == publicKey.bits.count * 8)
         
-        let rsa         = RSA(publicKey: publicKey.bits)
-
+        let rsa         = RSA(certificate: cert)
+        
         let verified = try! rsa!.verify(signature: cert.signatureValue.bits, data: tbsData)
 
         XCTAssert(verified)
@@ -83,19 +103,19 @@ class RSATests: XCTestCase {
             return
         }
         
-        let signatureScheme = TLSSignatureScheme.rsa_pss_sha256
-        rsa.signatureScheme = signatureScheme
+        let signatureAlgorithm = X509.SignatureAlgorithm.rsassa_pss(hash: .sha256, saltLength: 64)
+        rsa.signatureAlgorithm = signatureAlgorithm
 
         let data = [1,2,3,4,5,6,7,8] as [UInt8]
         
-        let signature = try! rsa.ssa_pss_sign(message: data)
+        let signature = try! rsa.rsassa_pss_sign(message: data)
         
         print(signature)
         
         var rsa2 = RSA(n: rsa.n, publicExponent: rsa.e)
-        rsa2.signatureScheme = signatureScheme
+        rsa2.signatureAlgorithm = signatureAlgorithm
 
-        let verified = try! rsa2.ssa_pss_verify(message: data, signature: signature)
+        let verified = try! rsa2.rsassa_pss_verify(message: data, signature: signature)
         
         XCTAssert(verified)
     }

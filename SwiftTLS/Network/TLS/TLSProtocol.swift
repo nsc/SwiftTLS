@@ -21,7 +21,8 @@ protocol TLSProtocol
     // - ServerKeyExchange
     // - ChangeCipherSpec
     // - EncryptedExtensions
-    // - 
+    // - HelloRetryRequest
+    // - NewSessionTicket
     func handleMessage(_ message : TLSMessage) throws
     
     func sendCertificate() throws
@@ -36,6 +37,6 @@ protocol TLSClientProtocol : TLSProtocol
 
 protocol TLSServerProtocol : TLSProtocol
 {
-    func sendServerHello() throws
+    func sendServerHello(for clientHello: TLSClientHello) throws
     func handleClientHello(_ clientHello: TLSClientHello) throws
 }

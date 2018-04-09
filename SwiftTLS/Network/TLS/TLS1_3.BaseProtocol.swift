@@ -11,6 +11,11 @@ import Foundation
 struct TLS1_3 {}
 
 extension TLS1_3 {
+    static let externalPSKBinderSecretLabel         = [UInt8]("ext binder".utf8)
+    static let resumptionPSKBinderSecretLabel       = [UInt8]("res binder".utf8)
+    static let clientEarlyTrafficSecretLabel        = [UInt8]("c e traffic".utf8)
+    static let earlyExporterMasterSecretLabel       = [UInt8]("e exp master".utf8)
+
     static let clientHandshakeTrafficSecretLabel    = [UInt8]("c hs traffic".utf8)
     static let serverHandshakeTrafficSecretLabel    = [UInt8]("s hs traffic".utf8)
     static let clientApplicationTrafficSecretLabel  = [UInt8]("c ap traffic".utf8)
@@ -19,18 +24,24 @@ extension TLS1_3 {
     static let resumptionMasterSecretLabel          = [UInt8]("res master".utf8)
     static let finishedLabel                        = [UInt8]("finished".utf8)
     static let derivedLabel                         = [UInt8]("derived".utf8)
+    static let resumptionLabel                      = [UInt8]("resumption".utf8)
 
     static let clientCertificateVerifyContext       = [UInt8]("TLS 1.3, client CertificateVerify".utf8)
     static let serverCertificateVerifyContext       = [UInt8]("TLS 1.3, server CertificateVerify".utf8)
     
     class HandshakeState {
+        var preSharedKey: [UInt8]?
         var earlySecret: [UInt8]?
+        var clientEarlyTrafficSecret: [UInt8]?
         var handshakeSecret: [UInt8]?
         var clientHandshakeTrafficSecret: [UInt8]?
         var serverHandshakeTrafficSecret: [UInt8]?
         var masterSecret: [UInt8]?
         var clientTrafficSecret: [UInt8]?
         var serverTrafficSecret: [UInt8]?
+        var sessionResumptionSecret: [UInt8]?
+        var resumptionBinderSecret: [UInt8]?
+        var selectedIdentity: UInt16?
     }
     
     class BaseProtocol {
@@ -41,11 +52,19 @@ extension TLS1_3 {
         }
         
         var handshakeState: HandshakeState = HandshakeState()
-        var peerHandshakeState: HandshakeState = HandshakeState()
+
+        var context: TLSContext {
+            return self.connection.context
+        }
         
         init(connection: TLSConnection)
         {
             self.connection = connection
+            
+            reset()
+        }
+        
+        func reset() {
         }
         
         func sendCertificate() throws
@@ -59,15 +78,21 @@ extension TLS1_3 {
         func sendCertificateVerify() throws
         {
             let identity = self.connection.configuration.identity!
-            let signer = identity.signer
+            var signer = identity.signer
             
             var proofData = [UInt8](repeating: 0x20, count: 64)
             proofData += connection.isClient ? clientCertificateVerifyContext : serverCertificateVerifyContext
             proofData += [0]
             proofData += self.transcriptHash
             
+            if var rsa = signer as? RSA {
+                let hashAlgorithm: HashAlgorithm = .sha256
+                rsa.signatureAlgorithm = .rsassa_pss(hash: .sha256, saltLength: hashAlgorithm.hashLength)
+                signer = rsa
+            }
+            
             let signature = try signer.sign(data: proofData)
-            let certificateVerify = TLSCertificateVerify(algorithm: signer.signatureScheme, signature: signature)
+            let certificateVerify = TLSCertificateVerify(algorithm: TLSSignatureScheme(signatureAlgorithm: signer.algorithm)!, signature: signature)
             
             try self.connection.sendHandshakeMessage(certificateVerify)
         }
@@ -76,12 +101,11 @@ extension TLS1_3 {
             return connection.transcriptHash
         }
         
-        func finishedData(forClient isClient: Bool) -> [UInt8]
-        {
+        func finishedData(forClient isClient: Bool) -> [UInt8] {
             let secret = isClient ? handshakeState.clientHandshakeTrafficSecret! : handshakeState.serverHandshakeTrafficSecret!
-            let hashLength = connection.hashAlgorithm.hashLength
-            let finishedKey = HKDF_Expand_Label(secret: secret, label: finishedLabel, hashValue: [], outputLength: hashLength)
 
+            let finishedKey = deriveFinishedKey(secret: secret)
+            
             let transcriptHash = self.transcriptHash
             
             let finishedData = connection.hmac(finishedKey, transcriptHash)
@@ -92,6 +116,22 @@ extension TLS1_3 {
         func sendFinished() throws
         {
             fatalError("sendFinished not overridden")
+        }
+        
+        func binderValueWithHashAlgorithm(_ hashAlgorithm: HashAlgorithm, binderKey: [UInt8], truncatedTranscriptData: [UInt8]) -> [UInt8] {
+
+            let hash = hashAlgorithm.hashFunction(truncatedTranscriptData)
+            let binder = hashAlgorithm.macAlgorithm.hmacFunction(binderKey, hash)
+            
+            return binder
+        }
+        
+        func ticketsForCurrentConnection() -> [Ticket] {
+            guard let serverNames = connection.serverNames, serverNames.count > 0 else {
+                return []
+            }
+            
+            return self.context.ticketStorage[serverName: serverNames.first!]
         }
         
         // TLS 1.3 uses HKDF to derive its key material
@@ -117,7 +157,7 @@ extension TLS1_3 {
             return [UInt8](output[0..<outputLength])
         }
         
-        internal func HKDF_Expand_Label(secret: [UInt8], label: [UInt8], hashValue: [UInt8], outputLength: Int) -> [UInt8] {
+        func HKDF_Expand_Label(secret: [UInt8], label: [UInt8], hashValue: [UInt8], outputLength: Int) -> [UInt8] {
             
             let label = tls1_3_prefix + label
             var hkdfLabel = [UInt8((outputLength >> 8) & 0xff), UInt8(outputLength & 0xff)]
@@ -127,17 +167,43 @@ extension TLS1_3 {
             return HKDF_Expand(prk: secret, info: hkdfLabel, outputLength: outputLength)
         }
         
-        internal func Derive_Secret(secret: [UInt8], label: [UInt8], transcriptHash: [UInt8]) -> [UInt8] {
+        func Derive_Secret(secret: [UInt8], label: [UInt8], transcriptHash: [UInt8]) -> [UInt8] {
             return HKDF_Expand_Label(secret: secret, label: label, hashValue: transcriptHash, outputLength: transcriptHash.count)
         }
 
-        internal func deriveEarlySecret() {
+        func deriveEarlySecret() {
             let zeroes = [UInt8](repeating: 0, count: connection.hashAlgorithm.hashLength)
-            self.handshakeState.earlySecret = HKDF_Extract(salt: zeroes, inputKeyingMaterial: connection.preSharedKey ?? zeroes)
-            
-            print("early secret: \(hex(self.handshakeState.earlySecret!))")
+            self.handshakeState.earlySecret = HKDF_Extract(salt: zeroes, inputKeyingMaterial: self.handshakeState.preSharedKey ?? zeroes)
         }
         
+        func deriveEarlyTrafficSecret() {
+            let clientEarlyTrafficSecret = Derive_Secret(secret: self.handshakeState.earlySecret!, label: TLS1_3.clientEarlyTrafficSecretLabel, transcriptHash: connection.transcriptHash)
+            self.handshakeState.clientEarlyTrafficSecret = clientEarlyTrafficSecret
+        }
+        
+        func activateEarlyTrafficSecret() {
+            if self.connection.isClient {
+                print("Client: activate early traffic secret")
+                self.recordLayer.changeWriteKeys(withTrafficSecret: self.handshakeState.clientEarlyTrafficSecret!)
+                
+                print("Client: key = \(self.recordLayer.writeEncryptionParameters!.key)")
+            }
+            else {
+                print("Server: activate early traffic secret")
+                self.recordLayer.changeReadKeys(withTrafficSecret: self.handshakeState.clientEarlyTrafficSecret!)
+
+                print("Server: key = \(self.recordLayer.readEncryptionParameters!.key)")
+            }
+        }
+        
+        internal func deriveResumptionPSKBinderSecret() -> [UInt8] {
+            guard let earlySecret = self.handshakeState.earlySecret else {
+                fatalError("Early Secret must be derived before resumption binder secret")
+            }
+            
+            return Derive_Secret(secret: earlySecret, label: resumptionPSKBinderSecretLabel, transcriptHash: self.connection.hashAlgorithm.hashFunction([]))
+        }
+                
         internal func deriveHandshakeSecret(with keyExchange: PFSKeyExchange) {
             let sharedSecret = keyExchange.calculateSharedSecret()
 
@@ -150,13 +216,8 @@ extension TLS1_3 {
             let clientHandshakeSecret = Derive_Secret(secret: handshakeSecret, label: TLS1_3.clientHandshakeTrafficSecretLabel, transcriptHash: transcriptHash)
             let serverHandshakeSecret = Derive_Secret(secret: handshakeSecret, label: TLS1_3.serverHandshakeTrafficSecretLabel, transcriptHash: transcriptHash)
             
-            print("clientHandshakeSecret: \(hex(clientHandshakeSecret))")
-            print("serverHandshakeSecret: \(hex(serverHandshakeSecret))")
-
             self.handshakeState.clientHandshakeTrafficSecret = clientHandshakeSecret
             self.handshakeState.serverHandshakeTrafficSecret = serverHandshakeSecret
-
-            self.recordLayer.changeTrafficSecrets(clientTrafficSecret: clientHandshakeSecret, serverTrafficSecret: serverHandshakeSecret)
         }
         
         internal func deriveApplicationTrafficSecrets() {
@@ -171,13 +232,39 @@ extension TLS1_3 {
 
             let clientTrafficSecret = Derive_Secret(secret: masterSecret, label: TLS1_3.clientApplicationTrafficSecretLabel, transcriptHash: transcriptHash)
             let serverTrafficSecret = Derive_Secret(secret: masterSecret, label: TLS1_3.serverApplicationTrafficSecretLabel, transcriptHash: transcriptHash)
-            
-            print("clientTrafficSecret: \(hex(clientTrafficSecret))")
-            print("serverTrafficSecret: \(hex(serverTrafficSecret))")
 
             self.handshakeState.clientTrafficSecret = clientTrafficSecret
             self.handshakeState.serverTrafficSecret = serverTrafficSecret
         }
+        
+        internal func deriveSessionResumptionSecret() {
+            guard let masterSecret = self.handshakeState.masterSecret else {
+                fatalError("deriveSessionResumptionSecret called before master secret has been derived.")
+            }
+            
+            let transcriptHash = connection.transcriptHash
+            let sessionResumptionSecret = Derive_Secret(secret: masterSecret,
+                                                        label: TLS1_3.resumptionMasterSecretLabel,
+                                                        transcriptHash: transcriptHash)
 
+            self.handshakeState.sessionResumptionSecret = sessionResumptionSecret
+        }
+        
+        internal func deriveFinishedKey(secret: [UInt8]) -> [UInt8] {
+            let hashLength = connection.hashAlgorithm.hashLength
+            let finishedKey = HKDF_Expand_Label(secret: secret, label: finishedLabel, hashValue: [], outputLength: hashLength)
+            
+            return finishedKey
+        }
+        
+        internal func deriveBinderKey() -> [UInt8] {
+            guard let resumptionBinderSecret = self.handshakeState.resumptionBinderSecret else {
+                fatalError("resumption binder secret used before it was derived")
+            }
+
+            let binderKey = deriveFinishedKey(secret: resumptionBinderSecret)
+            
+            return binderKey
+        }
     }
 }

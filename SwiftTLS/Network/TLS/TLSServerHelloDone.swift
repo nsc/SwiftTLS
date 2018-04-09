@@ -25,7 +25,7 @@ class TLSServerHelloDone : TLSHandshakeMessage
         super.init(type: .handshake(.serverHelloDone))
     }
     
-    override func writeTo<Target : OutputStreamType>(_ target: inout Target)
+    override func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?)
     {
         self.writeHeader(type: .serverHelloDone, bodyLength: 0, target: &target)
     }

@@ -8,20 +8,20 @@
 
 import Foundation
 
-// FIXME: Look this up. This currently serves as a placeholder only
-let saltLength = 8
-
 extension RSA {
-    enum Error : Swift.Error {
-        case maskTooLong
-        case messageTooLong
-        case encodingError
-        case integerTooLarge
-        case messageRepresentativeOutOfRange
-        case signatureRepresentativeOutOfRange
+    private var saltLength: Int {
+        guard let signatureAlgorithm = self.signatureAlgorithm else {
+            fatalError("signature algorithm not specified")
+        }
+        
+        guard case .rsassa_pss(_, let saltLength) = signatureAlgorithm else {
+            fatalError("Invalid signature algorithm for RSA PSS")
+        }
+        
+        return saltLength
     }
     
-    func ssa_pss_sign(message: [UInt8]) throws -> [UInt8] {
+    func rsassa_pss_sign(message: [UInt8]) throws -> [UInt8] {
         let modBits = self.n.bitWidth
         let em = try emsa_pss_encode(message: message,
                                      encodedMessageBits: modBits - 1,
@@ -33,46 +33,20 @@ extension RSA {
         return try i2osp(x: s, xLen: k)
     }
     
-    func ssa_pss_verify(message: [UInt8], signature: [UInt8]) throws -> Bool {
+    func rsassa_pss_verify(message: [UInt8], signature: [UInt8]) throws -> Bool {
         let s = os2ip(octetString: signature)
         let m: BigInt
         do { m = try rsavp1(s: s) } catch { return false }
-        let modBits = self.n.bitWidth
-        let emLen = (modBits - 1 + 7)/8
+        
         let em: [UInt8]
-        do { em = try i2osp(x: m, xLen: emLen) } catch { return false }
+        do { em = try i2osp(x: m, xLen: self.nOctetLength) } catch { return false }
         
         return emsa_pss_verify(message: message, encodedMessage: em,
-                               encodedMessageBits: modBits - 1, saltLength: saltLength)
-    }
-    
-    func os2ip(octetString: [UInt8]) -> BigInt {
-        return BigInt(bigEndianParts: octetString)
-    }
-    
-    func i2osp(x: BigInt, xLen: Int) throws -> [UInt8] {
-        var octetString = x.asBigEndianData()
-
-        var paddingLength = xLen - octetString.count
-        if paddingLength < 0 {
-            // Remove leading zeroes in excess of xLen
-            let nonZeroOctetString = octetString.drop(while: {$0 == 0})
-            if nonZeroOctetString.count <= xLen {
-                paddingLength = xLen - nonZeroOctetString.count
-                octetString = [UInt8](nonZeroOctetString)
-            }
-            else {
-                throw Error.integerTooLarge
-            }
-        }
-        
-        octetString = [UInt8](repeating: 0, count: paddingLength) + octetString
-        
-        return octetString
+                               encodedMessageBits: self.n.bitWidth - 1, saltLength: saltLength)
     }
     
     func mgf1(mgfSeed: [UInt8], maskLen: Int) throws -> [UInt8] {
-        let hashAlgorithm = signatureScheme.hashAlgorithm!
+        let hashAlgorithm = self.signatureAlgorithm!.hashAlgorithm!
         let hLen = hashAlgorithm.hashLength
         let hashFunction = hashAlgorithm.hashFunction
         
@@ -94,7 +68,7 @@ extension RSA {
                          saltLength sLen: Int) throws -> [UInt8]
     {
         let emLen = (emBits + 7)/8
-        let hashAlgorithm = signatureScheme.hashAlgorithm!
+        let hashAlgorithm = signatureAlgorithm!.hashAlgorithm!
         let hLen = hashAlgorithm.hashLength
         if emLen < hLen + sLen + 2 {
             throw Error.encodingError
@@ -103,18 +77,13 @@ extension RSA {
         let mHash = self.hash(m, hashAlgorithm: hashAlgorithm)
 
         let salt = TLSRandomBytes(count: sLen)
-        print("encode: salt = \(salt)")
 
         let mDash = [UInt8](repeating: 0, count: 8) + mHash + salt
-        print("encode: mDash = \(mDash)")
         let h = self.hash(mDash, hashAlgorithm: hashAlgorithm)
         let ps = [UInt8](repeating: 0, count: emLen - sLen - hLen - 2)
         let db = ps + [0x01 as UInt8] + salt
         let dbMask = try mgf1(mgfSeed: h, maskLen: emLen - hLen - 1)
         var maskedDB = db ^ dbMask
-        
-        print("encode: db = \(db)")
-        print("encode: maskedDB = \(maskedDB)")
         
         // Set the leftmost 8 * emLen - emBits bits of the leftmost octet in
         // maskedDB to zero.
@@ -132,7 +101,7 @@ extension RSA {
                          saltLength sLen: Int) -> Bool
     {
         let emLen = (emBits + 7)/8
-        let hashAlgorithm = signatureScheme.hashAlgorithm!
+        let hashAlgorithm = signatureAlgorithm!.hashAlgorithm!
         let hLen = hashAlgorithm.hashLength
         if emLen < hLen + sLen + 2 {
             return false

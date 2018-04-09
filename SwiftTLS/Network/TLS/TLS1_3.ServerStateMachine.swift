@@ -44,7 +44,7 @@ extension TLS1_3 {
         
         func didSendMessage(_ message : TLSMessage)
         {
-            print("Server: did send message message \(TLSMessageNameForType(message.type))")
+            print("Server: did send message \(TLSMessageNameForType(message.type))")
         }
         
         func serverDidSendHandshakeMessage(_ message : TLSHandshakeMessage) throws
@@ -79,7 +79,10 @@ extension TLS1_3 {
                 
             case .finished:
                 try self.transition(to: .finishedSent)
-                
+
+            case .newSessionTicket:
+                try self.transition(to: .newSessionTicketSent)
+
             default:
                 print("Unsupported handshake message \(message.handshakeType)")
             }
@@ -100,11 +103,16 @@ extension TLS1_3 {
                     try self.protocolHandler!.sendHelloRetryRequest(for: message as! TLSClientHello)
                 }
                 else {
-                    try self.protocolHandler!.sendServerHello()
+                    let clientHello = message as! TLSClientHello
+                    try self.protocolHandler!.sendServerHello(for: clientHello)
                 }
                 
             case .finished:
                 try self.transition(to: .finishedReceived)
+                
+                if self.server!.configuration.supportsSessionResumption && !(self.server!.serverNames?.isEmpty ?? true)  {
+                    try self.protocolHandler!.sendNewSessionTicket()
+                }
                                 
             default:
                 print("Unsupported handshake message \(handshakeType.rawValue)")
@@ -149,16 +157,13 @@ extension TLS1_3 {
                 return state == .finishedReceived
                 
             case .finishedReceived:
+                return state == .connected || state == .newSessionTicketSent
+                
+            case .newSessionTicketSent:
                 return state == .connected
                 
             case .connected:
-                switch state {
-                case .closeSent, .closeReceived:
-                    return true
-                    
-                default:
-                    return false
-                }
+                return (state == .closeReceived || state == .closeSent || state == .newSessionTicketSent)
                 
             default:
                 return false

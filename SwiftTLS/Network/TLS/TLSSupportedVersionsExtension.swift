@@ -64,21 +64,19 @@ struct TLSSupportedVersionsExtension : TLSExtension
         }
     }
     
-    func writeTo<Target : OutputStreamType>(_ target: inout Target, messageType: TLSMessageExtensionType) {
+    func writeTo<Target : OutputStreamType>(_ target: inout Target, messageType: TLSMessageExtensionType, context: TLSConnection?) {
         switch messageType {
         case .clientHello:
-            let data = DataBuffer()
+            var data: [UInt8] = []
             for version in self.supportedVersions {
                 data.write(version.rawValue)
             }
             
-            let extensionsData = data.buffer
-            let extensionsLength = extensionsData.count
+            let extensionData = data
             
             target.write(self.extensionType.rawValue)
-            target.write(UInt16(extensionsData.count + 1))
-            target.write(UInt8(extensionsLength))
-            target.write(extensionsData)
+            target.write(UInt16(extensionData.count + 1))
+            target.write8(extensionData)
             
         case .serverHello:
             target.write(self.extensionType.rawValue)

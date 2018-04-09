@@ -242,12 +242,12 @@ extension TLS1_2 {
                 encryptionParameters.sequenceNumber += 1
                 
                 let record = TLSRecord(contentType: contentType, protocolVersion: self.protocolVersion, body: cipherText)
-                return DataBuffer(record).buffer
+                return [UInt8](record)
             }
             else {
                 // no security parameters have been negotiated yet
                 let record = TLSRecord(contentType: contentType, protocolVersion: self.protocolVersion, body: data)
-                return DataBuffer(record).buffer
+                return [UInt8](record)
             }
         }
         
@@ -269,13 +269,13 @@ extension TLS1_2 {
         private func MACHeader(forContentType contentType: ContentType, dataLength: Int, isRead: Bool) -> [UInt8]? {
             guard let encryptionParameters = isRead ? self.currentReadEncryptionParameters : self.currentWriteEncryptionParameters else { return nil }
             
-            let macData = DataBuffer()
+            var macData: [UInt8] = []
             macData.write(encryptionParameters.sequenceNumber)
             macData.write(contentType.rawValue)
             macData.write(self.protocolVersion.rawValue)
             macData.write(UInt16(dataLength))
             
-            return macData.buffer
+            return macData
         }
         
         private func calculateMessageMAC(secret: [UInt8], contentType : ContentType, data : [UInt8], isRead : Bool) -> [UInt8]?

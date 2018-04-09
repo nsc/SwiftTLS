@@ -8,7 +8,8 @@
 
 protocol Signing
 {
-    var signatureScheme: TLSSignatureScheme { get }
+    var algorithm: X509.SignatureAlgorithm { get }
+
     func sign(data : [UInt8]) throws -> [UInt8]
     func verify(signature : [UInt8], data : [UInt8]) throws -> Bool
 }

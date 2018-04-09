@@ -29,6 +29,56 @@ public enum TLSSignatureScheme : UInt16 {
     case ed25519 = 0x0807
     case ed448 = 0x0808
     
+    init?(signatureAlgorithm: X509.SignatureAlgorithm)
+    {
+        switch (signatureAlgorithm) {
+        case .rsa_pkcs1(let hashAlgorithm):
+            switch hashAlgorithm {
+            case .sha1:
+                self = .rsa_pkcs1_sha1
+
+            case .sha256:
+                self = .rsa_pkcs1_sha256
+
+            case .sha384:
+                self = .rsa_pkcs1_sha384
+            
+            case .sha512:
+                self = .rsa_pkcs1_sha512
+                
+            default:
+                return nil
+            }
+
+        case .rsassa_pss(let hashAlgorithm, _):
+            switch hashAlgorithm {
+            case .sha256:
+                self = .rsa_pss_sha256
+                
+            case .sha384:
+                self = .rsa_pss_sha384
+                
+            case .sha512:
+                self = .rsa_pss_sha512
+                
+            default:
+                return nil
+            }
+            
+        case .ecPublicKey(let curveName, let hashAlgorithm):
+            switch (curveName, hashAlgorithm) {
+            case (.ansip521r1, .sha512):
+                self = .ecdsa_secp521r1_sha512
+                
+            default:
+                return nil
+            }
+        default:
+            return nil
+        }
+        
+    }
+    
     var hashAlgorithm: HashAlgorithm? {
         switch self {
         case .rsa_pkcs1_sha1:

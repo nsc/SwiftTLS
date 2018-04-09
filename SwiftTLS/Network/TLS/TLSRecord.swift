@@ -91,7 +91,7 @@ class TLSRecord : Streamable {
         target.write(UInt16(contentLength))
     }
     
-    func writeTo<Target : OutputStreamType>(_ target: inout Target)
+    func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?)
     {
         type(of: self).writeRecordHeader(&target, contentType: self.contentType, protocolVersion: self.protocolVersion, contentLength: self.body.count)
         target.write(self.body)

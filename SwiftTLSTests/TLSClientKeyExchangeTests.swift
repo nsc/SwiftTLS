@@ -33,12 +33,13 @@ class TLSClientKeyExchangeTests: XCTestCase {
                     1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,
                     1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,
                     1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]
-                let data = DataBuffer()
+                
+                var data = [UInt8]()
                 data.write(TLSHandshakeType.clientKeyExchange.rawValue)
                 data.writeUInt24(encryptedPreMasterSecret.count)
                 data.write(UInt16(encryptedPreMasterSecret.count))
                 data.write(encryptedPreMasterSecret)
-                super.init(inputStream: BinaryInputStream(data.buffer), context: TLSConnection())
+                super.init(inputStream: BinaryInputStream(data), context: TLSConnection())
             }
 
             required init?(inputStream: InputStreamType, context: TLSConnection) {
@@ -46,13 +47,14 @@ class TLSClientKeyExchangeTests: XCTestCase {
             }
         }
         
-        var data = DataBuffer()
-        SUT().writeTo(&data)
-        let msg2 = TLSClientKeyExchange(inputStream: BinaryInputStream(data.buffer), context: TLSConnection())!
-        var data2 = DataBuffer()
-        msg2.writeTo(&data2)
+        let context = TLSConnection()
+        var data = [UInt8]()
+        SUT().writeTo(&data, context: context)
+        let msg2 = TLSClientKeyExchange(inputStream: BinaryInputStream(data), context: context)!
+        var data2 = [UInt8]()
+        msg2.writeTo(&data2, context: context)
         
-        XCTAssertEqual(data.buffer, data2.buffer)
+        XCTAssertEqual(data, data2)
     }
 
 }

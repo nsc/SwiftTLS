@@ -111,7 +111,8 @@ extension TLS1_2 {
             {
             case .clientHello:
                 try self.transitionTo(state: .clientHelloReceived)
-                try self.protocolHandler!.sendServerHello()
+                let clientHello = message as! TLSClientHello
+                try self.protocolHandler!.sendServerHello(for: clientHello)
                 
             case .clientKeyExchange:
                 try self.transitionTo(state: .clientKeyExchangeReceived)
