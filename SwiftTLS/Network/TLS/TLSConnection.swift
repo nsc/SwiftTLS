@@ -27,7 +27,15 @@ public class TLSConnection
     
     var serverNames: [String]?
     
-    var cipherSuite: CipherSuite?
+    var cipherSuite: CipherSuite? {
+        didSet {
+            if  let cipherSuite = cipherSuite,
+                let cipherSuiteDescription = TLSCipherSuiteDescriptorForCipherSuite(cipherSuite) {
+                
+                self.hashAlgorithm = cipherSuiteDescription.hashAlgorithm
+            }
+        }
+    }
     var stateMachine: TLSConnectionStateMachine?
     
     var serverCertificates: [X509.Certificate]?

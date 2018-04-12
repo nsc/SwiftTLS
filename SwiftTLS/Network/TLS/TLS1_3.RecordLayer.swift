@@ -80,10 +80,10 @@ extension TLS1_3 {
             let cipherAlgorithm = cipherSuiteDescriptor.bulkCipherAlgorithm
             let cryptor: BlockCipher
             if isReading {
-                print("\(self.connection!.isClient ? "Client" : "Server"): change read key to \(key)")
+                print("\(self.connection!.isClient ? "Client" : "Server"): change read key to \(hex(key))")
                 cryptor  = BlockCipher.decryptionBlockCipher(cipherAlgorithm, mode: blockCipherMode, key: key, IV: [])!
             } else {
-                print("\(self.connection!.isClient ? "Client" : "Server"): change write key to \(key)")
+                print("\(self.connection!.isClient ? "Client" : "Server"): change write key to \(hex(key))")
                 cryptor  = BlockCipher.encryptionBlockCipher(cipherAlgorithm, mode: blockCipherMode, key: key, IV: [])!
             }
                 

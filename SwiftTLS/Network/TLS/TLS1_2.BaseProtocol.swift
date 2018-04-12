@@ -93,11 +93,11 @@ extension TLS1_2 {
             self.securityParameters.blockLength         = cipherAlgorithm.blockSize
             self.securityParameters.fixedIVLength       = cipherSuiteDescriptor.fixedIVLength
             self.securityParameters.recordIVLength      = cipherSuiteDescriptor.recordIVLength
-            self.securityParameters.hmac                = cipherSuiteDescriptor.hashFunction.macAlgorithm
+            self.securityParameters.hmac                = cipherSuiteDescriptor.hashAlgorithm.macAlgorithm
             
             var useConfiguredHashFunctionForPRF = self.securityParameters.blockCipherMode! == .gcm || cipherSuiteDescriptor.keyExchangeAlgorithm == .ecdhe
             
-            switch cipherSuiteDescriptor.hashFunction
+            switch cipherSuiteDescriptor.hashAlgorithm
             {
             case .sha256, .sha384:
                 break
@@ -111,7 +111,7 @@ extension TLS1_2 {
                 self.connection.hashAlgorithm = .sha256
             }
             else {
-                switch cipherSuiteDescriptor.hashFunction {
+                switch cipherSuiteDescriptor.hashAlgorithm {
                 case .sha256:
                     self.connection.hashAlgorithm = .sha256
                     
@@ -119,7 +119,7 @@ extension TLS1_2 {
                     self.connection.hashAlgorithm = .sha384
                     
                 default:
-                    print("Error: cipher suite \(cipherSuite) has \(cipherSuiteDescriptor.hashFunction)")
+                    print("Error: cipher suite \(cipherSuite) has \(cipherSuiteDescriptor.hashAlgorithm)")
                     fatalError("AEAD cipher suites can only use SHA256 or SHA384")
                     break
                 }

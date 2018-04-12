@@ -25,7 +25,7 @@ struct CipherSuiteDescriptor {
     var fixedIVLength : Int
     var recordIVLength : Int
     var authTagSize : Int = 0 // only for AEAD
-    var hashFunction: HashAlgorithm
+    var hashAlgorithm: HashAlgorithm
     
     var supportedProtocolVersions: [TLSProtocolVersion]
     
@@ -60,13 +60,13 @@ struct CipherSuiteDescriptor {
             self.recordIVLength = bulkCipherAlgorithm.blockSize
         }
 
-        self.hashFunction = hashFunction
+        self.hashAlgorithm = hashFunction
         self.supportedProtocolVersions = supportedProtocolVersions
     }
 }
 
 
-let TLSCipherSuiteDescritions : [CipherSuiteDescriptor] = [
+let TLSCipherSuiteDescriptions : [CipherSuiteDescriptor] = [
     CipherSuiteDescriptor(
         cipherSuite: .TLS_RSA_WITH_NULL_MD5,
         keyExchangeAlgorithm: .rsa,
@@ -239,7 +239,7 @@ let TLSCipherSuiteDescritions : [CipherSuiteDescriptor] = [
 
 let TLSCipherSuiteDescriptionDictionary : [CipherSuite:CipherSuiteDescriptor] = {
     var dict = [CipherSuite:CipherSuiteDescriptor]()
-    for cipherSuite in TLSCipherSuiteDescritions {
+    for cipherSuite in TLSCipherSuiteDescriptions {
         dict[cipherSuite.cipherSuite] = cipherSuite
     }
     
