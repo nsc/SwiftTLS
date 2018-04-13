@@ -130,6 +130,9 @@ extension TLS1_3 {
                     }
                 }
             }
+            else {
+                print("Client: No tickets for current connection")
+            }
             
             // The PSK Extension needs to be the last extension
             if let preSharedKeyExtension = self.preSharedKeyExtension(for: clientHello) {

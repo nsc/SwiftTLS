@@ -56,21 +56,40 @@ extension TLS1_3 {
                 
                 self.tickets[serverName] = tickets
             }
+            
+            print("Add ticket: \(self.tickets.debugDescription)")
         }
         
         func remove(_ ticket: Ticket) {
             for serverName in ticket.serverNames {
                 var tickets = self.tickets[serverName, default: []]
-                if let index = tickets.index(where: {$0 === ticket}) {
+                if let index = tickets.index(where: {$0.identity == ticket.identity}) {
                     tickets.remove(at: index)
                 }
                 
                 self.tickets[serverName] = tickets
             }
+            
+            print("Remove ticket: \(self.tickets.debugDescription)")
         }
         
         subscript(serverName serverName: String) -> [Ticket] {
             return self.tickets[serverName] ?? []
         }
+    }
+}
+
+extension TLS1_3.Ticket : CustomDebugStringConvertible {
+    var debugDescription: String {
+        return """
+        
+        serverNames:    \(serverNames)
+        identity:       \(hex(identity))
+        nonce:          \(hex(nonce))
+        lifeTime:       \(lifeTime)
+        ageAdd:         \(ageAdd)
+        cipherSuite:    \(cipherSuite)
+        hashAlgorithm   \(hashAlgorithm)
+        """
     }
 }

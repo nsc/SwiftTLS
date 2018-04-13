@@ -108,6 +108,9 @@ class TSLTests: XCTestCase {
                         if !hasSentEarlyData {
                             try serverSideClientSocket?.write([1,2,3])
                         }
+
+                        try serverSideClientSocket?.write([4,5,6])
+
                         serverSideClientSocket?.close()
                     }
                     
@@ -129,7 +132,10 @@ class TSLTests: XCTestCase {
 
                 let response = try client.read(count: 3)
                 if response == [1,2,3] as [UInt8] {
-                    numberOfSuccesses += 1
+                    let response = try client.read(count: 3)
+                    if response == [4,5,6] as [UInt8] {
+                        numberOfSuccesses += 1
+                    }
                 }
                 client.close()
             }

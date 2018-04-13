@@ -65,7 +65,12 @@ extension TLS1_3 {
             case .encryptedExtensions:
                 try self.transition(to: .encryptedExtensionsSent)
                 
-                try self.protocolHandler!.sendCertificate()
+                if self.protocolHandler!.isUsingPreSharedKey {
+                    try self.protocolHandler!.sendFinished()
+                }
+                else {
+                    try self.protocolHandler!.sendCertificate()
+                }
                 
             case .certificate:
                 try self.transition(to: .certificateSent)
@@ -145,6 +150,10 @@ extension TLS1_3 {
                 return state == .encryptedExtensionsSent
 
             case .encryptedExtensionsSent :
+                if self.protocolHandler!.isUsingPreSharedKey {
+                    return state == .finishedSent
+                }
+                
                 return state == .certificateSent
 
             case .certificateSent:

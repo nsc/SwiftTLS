@@ -53,6 +53,10 @@ extension TLS1_3 {
         
         var handshakeState: HandshakeState = HandshakeState()
 
+        var isUsingPreSharedKey: Bool {
+            return self.handshakeState.preSharedKey != nil
+        }
+        
         var context: TLSContext {
             return self.connection.context
         }

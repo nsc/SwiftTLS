@@ -149,7 +149,11 @@ extension TLS1_3 {
                 return state == .encryptedExtensionsReceived
                 
             case .encryptedExtensionsReceived:
-                return (state == .certificateRequestReceived || state == .certificateReceived || state == .finishedReceived)
+                if self.protocolHandler!.isUsingPreSharedKey {
+                        return state == .finishedReceived
+                }
+                
+                return state == .certificateRequestReceived || state == .certificateReceived
                 
             case .certificateRequestReceived:
                 return state == .certificateReceived

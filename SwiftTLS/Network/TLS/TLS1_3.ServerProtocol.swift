@@ -192,6 +192,8 @@ extension TLS1_3 {
                             self.handshakeState.preSharedKey = ticket.preSharedKey
                             self.handshakeState.selectedIdentity = UInt16(i)
 
+                            self.context.ticketStorage.remove(ticket)
+
                             break
                         }
                     }
