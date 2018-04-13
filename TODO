@@ -18,3 +18,6 @@ TLS 1.3:
 
 
 - improve BigInt multiply and pow performance
+
+TLS 1.2:
+- fix session reuse

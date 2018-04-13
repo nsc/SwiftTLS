@@ -314,7 +314,7 @@ struct X509
 
             switch tbsCertificate.subjectPublicKeyInfo.algorithm.oid {
             case .rsaEncryption:
-                return RSA(publicKey: publicKeyInfo.subjectPublicKey.bits)
+                return RSA(certificate: self)
 
             case .ecPublicKey:
                 return ECDSA(publicKeyInfo: publicKeyInfo)

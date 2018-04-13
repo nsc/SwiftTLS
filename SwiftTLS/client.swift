@@ -87,7 +87,7 @@ func connectTo(host : String, port : Int = 443, supportedVersions: [TLSProtocolV
         // Connect twice to test session resumption
         var context: TLSClientContext? = nil
         var socket: TLSClientSocket
-        for _ in 0..<5 {
+        for _ in 0..<1 {
             do {
                 print("Connecting to \(host):\(port)")
                 socket = TLSClientSocket(configuration: configuration, context: context)
