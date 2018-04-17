@@ -1,18 +1,21 @@
+- generate correct alert messages
 - check padding
 - implement TLS 1.2 extension to choose hash function other than SHA256
-- generate correct alert messages
 - support ECDSA certificates
 
 TLS 1.3:
+- validate ticket age, before using a ticket
 - mitigate 0-RTT replay
 - KeyUpdate
 - post handshake authentication
 - support external PSKs
 - exporters
-- validate ticket age, before using a ticket
-
 
 - improve BigInt multiply and pow performance
 
 TLS 1.2:
 - fix session reuse
+
+Linux:
+- set up swift package
+- implement symmetric crypto (AES, SHA-1, SHA-2)

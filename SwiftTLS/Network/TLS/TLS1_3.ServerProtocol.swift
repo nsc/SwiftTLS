@@ -125,8 +125,6 @@ extension TLS1_3 {
             
             server.negotiatedProtocolVersion = negotiatedProtocolVersion
             
-            print("ClientHello extensions: \(clientHello.extensions)")
-
             var clientPSKKeyExchangeModes: [PSKKeyExchangeMode]? = nil
             var clientKeyShares: [KeyShareEntry]? = nil
             var clientOfferedPSKs: OfferedPSKs? = nil

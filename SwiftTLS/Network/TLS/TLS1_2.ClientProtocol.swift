@@ -60,7 +60,6 @@ extension TLS1_2 {
             //        print("initial handshake = \(self.isInitialHandshake), secure renegotiation = \(self.securityParameters.isUsingSecureRenegotiation)")
             if self.isRenegotiatingSecurityParameters {
                 clientHello.extensions.append(TLSSecureRenegotiationInfoExtension(renegotiatedConnection: self.securityParameters.clientVerifyData))
-                print("ClientHello extensions = \(clientHello.extensions)")
             }
             
             if client.configuration.cipherSuites.contains(where: { if let descriptor = TLSCipherSuiteDescriptorForCipherSuite($0) { return descriptor.keyExchangeAlgorithm == .ecdhe} else { return false } }) {
@@ -91,9 +90,7 @@ extension TLS1_2 {
             
             client.cipherSuite = serverHello.cipherSuite
             self.securityParameters.serverRandom = [UInt8](serverHello.random)
-            
-            print("ServerHello extensions = \(serverHello.extensions)")
-            
+                        
             if let secureRenegotiationInfo = serverHello.extensions.filter({$0 is TLSSecureRenegotiationInfoExtension}).first as? TLSSecureRenegotiationInfoExtension {
                 print("Client setting secure renegotiation")
                 self.securityParameters.isUsingSecureRenegotiation = true

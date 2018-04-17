@@ -127,7 +127,6 @@ extension TLS1_2 {
             let clientHelloContainsEmptyRenegotiationSCSV = clientHello.cipherSuites.contains(.TLS_EMPTY_RENEGOTIATION_INFO_SCSV)
             let secureRenegotiationInfo = clientHello.extensions.filter({$0 is TLSSecureRenegotiationInfoExtension}).first as? TLSSecureRenegotiationInfoExtension
             
-            print("ClientHello extensions: \(clientHello.extensions)")
             if server.isInitialHandshake {
                 // RFC 5746, Section 3.6
                 if clientHelloContainsEmptyRenegotiationSCSV {

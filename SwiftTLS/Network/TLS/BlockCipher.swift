@@ -34,6 +34,25 @@ extension UnsignedInteger where Self : FixedWidthInteger {
         
         return bytes
     }
+    
+//    var bytes: [UInt8] {
+//        
+//        let bitWidth = type(of: self).bitWidth
+//        
+//        let byteLength = bitWidth / 8
+//        var bytes = [UInt8](repeating: 0, count: byteLength)
+//        var shift = 0
+//        var mask  = Self(0xff)
+//        
+//        for i in 0..<byteLength {
+//            bytes[i] = UInt8(self & mask) >> shift
+//            shift += 8
+//            mask = mask << 8
+//        }
+//        
+//        return bytes
+//    }
+//
 }
 
 class BlockCipher
@@ -145,7 +164,7 @@ class BlockCipher
         }
     }
     
-    private func cryptorUpdate(inputBlock: MemoryBlock, outputBlock: inout MemoryBlock) -> Bool {
+    func cryptorUpdate(inputBlock: MemoryBlock, outputBlock: inout MemoryBlock) -> Bool {
         var outputDataWritten: Int = 0
         let blockSize = self.cipher.blockSize
         precondition(blockSize == inputBlock.block.count)
