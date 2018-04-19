@@ -81,10 +81,10 @@ extension TLS1_3 {
             let cryptor: BlockCipher
             if isReading {
                 print("\(self.connection!.isClient ? "Client" : "Server"): change read key to \(hex(key))")
-                cryptor  = BlockCipher.decryptionBlockCipher(cipherAlgorithm, mode: blockCipherMode, key: key, IV: [])!
+                cryptor  = BlockCipher.decryptionBlockCipher(cipherAlgorithm, mode: blockCipherMode, key: key)!
             } else {
                 print("\(self.connection!.isClient ? "Client" : "Server"): change write key to \(hex(key))")
-                cryptor  = BlockCipher.encryptionBlockCipher(cipherAlgorithm, mode: blockCipherMode, key: key, IV: [])!
+                cryptor  = BlockCipher.encryptionBlockCipher(cipherAlgorithm, mode: blockCipherMode, key: key)!
             }
                 
             return (cryptor, encryptionParameters)

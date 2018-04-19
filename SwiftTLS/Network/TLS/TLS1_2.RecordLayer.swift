@@ -320,7 +320,7 @@ extension TLS1_2 {
             
             if self.encryptor == nil
             {
-                self.encryptor = BlockCipher.encryptionBlockCipher(encryptionParameters.bulkCipherAlgorithm, mode: encryptionParameters.blockCipherMode!, key: key, IV: IV)
+                self.encryptor = BlockCipher.encryptionBlockCipher(encryptionParameters.bulkCipherAlgorithm, mode: encryptionParameters.blockCipherMode!, key: key)
             }
             
             if self.protocolVersion >= TLSProtocolVersion.v1_1 {
@@ -337,7 +337,7 @@ extension TLS1_2 {
             
             if self.decryptor == nil
             {
-                self.decryptor = BlockCipher.decryptionBlockCipher(encryptionParameters.bulkCipherAlgorithm, mode: encryptionParameters.blockCipherMode!, key: key, IV: IV)
+                self.decryptor = BlockCipher.decryptionBlockCipher(encryptionParameters.bulkCipherAlgorithm, mode: encryptionParameters.blockCipherMode!, key: key)
             }
             
             if self.protocolVersion >= TLSProtocolVersion.v1_1 {

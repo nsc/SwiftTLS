@@ -58,7 +58,7 @@ private let K: [UInt32] = [
     0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
 ]
 
-class SHA256  {
+class SHA256 : Hash {
     private var H: (UInt32, UInt32, UInt32, UInt32, UInt32, UInt32, UInt32, UInt32)
     private var nextMessageBlock: [UInt8] = []
     private var messageLength = 0
@@ -71,11 +71,7 @@ class SHA256  {
         self.H = H
     }
     
-    class func new() -> SHA256 {
-        return SHA256()
-    }
-    
-    class func hash(_ m: [UInt8]) -> [UInt8] {
+    static func hash(_ m: [UInt8]) -> [UInt8] {
         let sha = self.init()
         sha.update(m)
         return sha.finalize()
@@ -94,6 +90,8 @@ class SHA256  {
         var g = H.6
         var h = H.7
         
+        let blockLength = type(of: self).blockLength
+
         m.withUnsafeMutableBufferPointer {
             let M = UnsafeRawPointer($0.baseAddress!).bindMemory(to: UInt32.self, capacity: blockLength/4)
             
@@ -126,11 +124,13 @@ class SHA256  {
         H.7 = h &+ H.7
     }
     
-    var blockLength: Int {
+    static var blockLength: Int {
         return 512/8
     }
     
     func update(_ m: [UInt8]) {
+        let blockLength = type(of: self).blockLength
+        
         nextMessageBlock.append(contentsOf: m)
         
         messageLength += m.count
@@ -143,6 +143,8 @@ class SHA256  {
     }
     
     func finalize() -> [UInt8] {
+        let blockLength = type(of: self).blockLength
+
         precondition(nextMessageBlock.count <= blockLength)
         
         if nextMessageBlock.count < blockLength {
@@ -190,10 +192,6 @@ class SHA224 : SHA256
         super.init(H: (0xc1059ed8, 0x367cd507, 0x3070dd17, 0xf70e5939, 0xffc00b31, 0x68581511, 0x64f98fa7, 0xbefa4fa4))
     }
     
-    override class func new() -> SHA256 {
-        return SHA224()
-    }
-
     override func finalize() -> [UInt8] {
         return [UInt8](super.finalize().prefix(224/8))
     }

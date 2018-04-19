@@ -750,6 +750,8 @@ private func rijndaelKeySetupEnc(_ rk: inout [UInt32], _ cipherKey: [UInt8], _ b
         return
 
     case .aes256:
+        rk[4] = UInt32(bigEndianBytes: cipherKey[16..<20])!
+        rk[5] = UInt32(bigEndianBytes: cipherKey[20..<24])!
         rk[6] = UInt32(bigEndianBytes: cipherKey[24..<28])!
         rk[7] = UInt32(bigEndianBytes: cipherKey[28..<32])!
 
@@ -771,8 +773,8 @@ private func rijndaelKeySetupEnc(_ rk: inout [UInt32], _ cipherKey: [UInt8], _ b
                 break
             }
             
-            temp = rk[11]
-            rk[12] = rk[ 4] ^
+            temp = rk[offset + 11]
+            rk[offset + 12] = rk[offset + 4] ^
                 (Te4[Int((temp >> 24))       ] & 0xff000000) ^
                 (Te4[Int((temp >> 16) & 0xff)] & 0x00ff0000) ^
                 (Te4[Int((temp >>  8) & 0xff)] & 0x0000ff00) ^
@@ -1091,7 +1093,7 @@ struct AES {
         case decrypting
     }
     
-    let bitSize: BitSize = .aes128
+    let bitSize: BitSize
     let roundKey: [UInt32]
     let direction: Direction
     init(key: [UInt8], bitSize: BitSize, encrypt: Bool)
@@ -1105,6 +1107,7 @@ struct AES {
             rijndaelKeySetupDec(&roundKey, key, bitSize)
             direction = .decrypting
         }
+        self.bitSize = bitSize
         self.roundKey = roundKey
     }
     

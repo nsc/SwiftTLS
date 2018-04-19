@@ -28,14 +28,14 @@ class BlockCipherTests : XCTestCase {
 
         print(data)
         
-        let encryptor = BlockCipher.encryptionBlockCipher(.aes128, mode: .cbc, key: key, IV: iv)!
+        let encryptor = BlockCipher.encryptionBlockCipher(.aes128, mode: .cbc, key: key)!
         
-        let cipherText = encryptor.update(data: data, key: key, IV: nil)!
+        let cipherText = encryptor.update(data: data, key: key, IV: iv)!
         print(cipherText)
         
-        let decryptor = BlockCipher.decryptionBlockCipher(.aes128, mode: .cbc, key: key, IV: iv)!
+        let decryptor = BlockCipher.decryptionBlockCipher(.aes128, mode: .cbc, key: key)!
         
-        let plainText = decryptor.update(data: cipherText, key: key, IV: nil)!
+        let plainText = decryptor.update(data: cipherText, key: key, IV: iv)!
         
         print(plainText)
         
@@ -142,7 +142,7 @@ class BlockCipherTests : XCTestCase {
             let authData = UInt8ArrayFromHexString(authDataString)
             let authTag = UInt8ArrayFromHexString(authTagString)
             
-            let encryptor = BlockCipher.encryptionBlockCipher(.aes128, mode: .gcm, key: key, IV: iv)!
+            let encryptor = BlockCipher.encryptionBlockCipher(.aes128, mode: .gcm, key: key)!
             
             let cipherText = encryptor.update(data: plainText, authData: authData, key: key, IV: iv)!
             XCTAssert(cipherText == expectedCipherText, "\(testCaseName) failed")
@@ -162,7 +162,7 @@ class BlockCipherTests : XCTestCase {
             let authData = UInt8ArrayFromHexString(authDataString)
             let authTag = UInt8ArrayFromHexString(authTagString)
             
-            let encryptor = BlockCipher.decryptionBlockCipher(.aes128, mode: .gcm, key: key, IV: iv)!
+            let encryptor = BlockCipher.decryptionBlockCipher(.aes128, mode: .gcm, key: key)!
             
             let plainText = encryptor.update(data: cipherText, authData: authData, key: key, IV: iv)!
             XCTAssert(plainText == expectedPlainText, "\(testCaseName) failed")

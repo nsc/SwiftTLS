@@ -23,7 +23,7 @@ private let K1: UInt32 = 0x6ed9eba1
 private let K2: UInt32 = 0x8f1bbcdc
 private let K3: UInt32 = 0xca62c1d6
 
-struct SHA1 {
+class SHA1 : Hash {
     private var H: (UInt32, UInt32, UInt32, UInt32, UInt32)
     private var nextMessageBlock: [UInt8] = []
     private var messageLength = 0
@@ -33,12 +33,12 @@ struct SHA1 {
     }
     
     static func hash(_ m: [UInt8]) -> [UInt8] {
-        var sha1 = SHA1()
+        let sha1 = SHA1()
         sha1.update(m)
         return sha1.finalize()
     }
     
-    private mutating func updateWithBlock(_ m: [UInt8]) {
+    private func updateWithBlock(_ m: [UInt8]) {
         var m = m
         var W = [UInt32](repeating: 0, count: 80)
         
@@ -48,6 +48,8 @@ struct SHA1 {
         var d = H.3
         var e = H.4
         
+        let blockLength = type(of: self).blockLength
+
         m.withUnsafeMutableBufferPointer {
             let M = UnsafeRawPointer($0.baseAddress!).bindMemory(to: UInt32.self, capacity: blockLength/4)
             
@@ -92,11 +94,13 @@ struct SHA1 {
         H.4 = e &+ H.4
     }
     
-    var blockLength: Int {
+    static var blockLength: Int {
         return 512/8
     }
     
-    mutating func update(_ m: [UInt8]) {
+    func update(_ m: [UInt8]) {
+        let blockLength = type(of: self).blockLength
+
         nextMessageBlock.append(contentsOf: m)
         
         messageLength += m.count
@@ -108,7 +112,9 @@ struct SHA1 {
         }
     }
     
-    mutating func finalize() -> [UInt8] {
+    func finalize() -> [UInt8] {
+        let blockLength = type(of: self).blockLength
+        
         precondition(nextMessageBlock.count <= blockLength)
         
         if nextMessageBlock.count < blockLength {

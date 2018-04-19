@@ -52,7 +52,7 @@ private let K: [UInt64] = [
     0x28db77f523047d84, 0x32caab7b40c72493, 0x3c9ebe0a15c9bebc, 0x431d67c49c100d4c,
     0x4cc5d4becb3e42b6, 0x597f299cfc657e2a, 0x5fcb6fab3ad6faec, 0x6c44198c4a475817]
 
-class SHA512  {
+class SHA512 : Hash {
     private var H: (UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64)
     private var nextMessageBlock: [UInt8] = []
     // the message length is 128 bit long and represented as a tuple (hi, lo)
@@ -88,6 +88,8 @@ class SHA512  {
         var g = H.6
         var h = H.7
         
+        let blockLength = type(of: self).blockLength
+
         m.withUnsafeMutableBufferPointer {
             let M = UnsafeRawPointer($0.baseAddress!).bindMemory(to: UInt64.self, capacity: blockLength/8)
             
@@ -120,7 +122,7 @@ class SHA512  {
         H.7 = h &+ H.7
     }
     
-    var blockLength: Int {
+    static var blockLength: Int {
         return 1024/8
     }
     
@@ -133,6 +135,7 @@ class SHA512  {
             messageLength.0 += 1
         }
         
+        let blockLength = type(of: self).blockLength
         while nextMessageBlock.count >= blockLength {
             let messageBlock = [UInt8](nextMessageBlock.prefix(blockLength))
             nextMessageBlock.removeFirst(blockLength)
@@ -141,6 +144,7 @@ class SHA512  {
     }
     
     func finalize() -> [UInt8] {
+        let blockLength = type(of: self).blockLength
         precondition(nextMessageBlock.count <= blockLength)
         
         if nextMessageBlock.count < blockLength {
