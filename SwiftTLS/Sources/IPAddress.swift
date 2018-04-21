@@ -7,7 +7,7 @@
 
 import Foundation
 
-public class IPAddress
+public class IPAddress : CustomStringConvertible
 {
     public var port : UInt16 {
         get { return 0}
@@ -20,7 +20,7 @@ public class IPAddress
         get { return _hostname }
     }
     
-    var string : String? {
+    public var description : String {
         get {
             return ""
         }
@@ -48,6 +48,30 @@ public class IPAddress
         localAddress.socketAddress = ipv6address
         
         return localAddress
+    }
+    
+    public class func peerName(with socket: Int32) -> IPAddress? {
+        var storage = sockaddr_storage()
+        var length = socklen_t(MemoryLayout<sockaddr_storage>.size)
+        let address = UnsafeMutableRawPointer(&storage).bindMemory(to: sockaddr.self, capacity: 1)
+        guard getpeername(socket, address, &length) == 0 else {
+            return nil
+        }
+        
+        switch Int32(address.pointee.sa_family) {
+        case AF_INET:
+            let inet4addr = UnsafeMutableRawPointer(&storage).bindMemory(to: sockaddr_in.self, capacity: 1)
+            
+            return IPv4Address(sockaddr: inet4addr.pointee)
+            
+        case AF_INET6:
+            let inet6addr = UnsafeMutableRawPointer(&storage).bindMemory(to: sockaddr_in6.self, capacity: 1)
+
+            return IPv6Address(sockaddr: inet6addr.pointee)
+            
+        default:
+            return nil
+        }
     }
     
     init() {}
@@ -125,6 +149,11 @@ public class IPv4Address : IPAddress
     {
     }
     
+    public init(sockaddr: sockaddr_in)
+    {
+        socketAddress = sockaddr
+    }
+    
     public init?(_ address : String)
     {
         super.init()
@@ -143,8 +172,7 @@ public class IPv4Address : IPAddress
         }
     }
     
-    override var string : String?
-        {
+    public override var description : String {
         get {
             var buffer = Array<CChar>(repeating: 0, count: Int(INET_ADDRSTRLEN))
             let result = inet_ntop(AF_INET,
@@ -156,7 +184,7 @@ public class IPv4Address : IPAddress
                 return String(cString: result!)
             }
             
-            return nil
+            return ""
         }
     }
     
@@ -207,6 +235,11 @@ public class IPv6Address : IPAddress
     {
     }
 
+    public init(sockaddr: sockaddr_in6)
+    {
+        socketAddress = sockaddr
+    }
+
     init?(_ address : String)
     {
         super.init()
@@ -225,8 +258,7 @@ public class IPv6Address : IPAddress
         }
     }
 
-    override var string : String?
-    {
+    public override var description : String {
         get {
             var buffer = Array<CChar>(repeating: 0, count: Int(INET6_ADDRSTRLEN))
             let result = inet_ntop(AF_INET6,
@@ -238,7 +270,7 @@ public class IPv6Address : IPAddress
                 return String(cString: result!)
             }
             
-            return nil
+            return ""
         }
     }
 

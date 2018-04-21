@@ -62,6 +62,14 @@ class Socket : SocketProtocol
 {
     var _readBuffer : [UInt8] = [UInt8](repeating: 0, count: 64 * 1024)
     
+    var peerName: IPAddress? {
+        guard let sock = socketDescriptor else {
+            return nil
+        }
+        
+        return IPAddress.peerName(with: sock)
+    }
+    
     var socketDescriptor : Int32?
     
     init()
@@ -276,6 +284,10 @@ extension Socket : ServerSocketProtocol
         #else
         let clientSocket = Darwin.accept(socket, nil, nil)
         #endif
+
+        if let address = IPAddress.peerName(with: clientSocket) {
+            print("Connection from \(address)")
+        }
         
         if clientSocket == Int32(-1) {
             throw SocketError.posixError(errno: errno)
