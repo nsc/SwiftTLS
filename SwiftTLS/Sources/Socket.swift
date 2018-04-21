@@ -309,9 +309,18 @@ class TCPSocket : Socket
         }
         
         var yes : Int32 = 1
-        #if !os(Linux)
+        #if os(Linux)
+        
+        var sigpipe = sigset_t()
+        sigemptyset(&sigpipe)
+        sigaddset(&sigpipe, SIGPIPE)
+        
+        pthread_sigmask(SIG_BLOCK, &sigpipe, nil)
+        
+        #else
         setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &yes, socklen_t(MemoryLayout<Int32>.size))
         #endif
+        
         setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, socklen_t(MemoryLayout<Int32>.size))
         
 //        var action = sigaction()
