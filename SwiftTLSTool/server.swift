@@ -81,45 +81,58 @@ func server(address: IPAddress, certificatePath: String, dhParametersPath : Stri
     
     while true {
         do {
-            let clientSocket = try server.acceptConnection()
-            print("New connection")
-            while true {
-                let data = try clientSocket.read(count: 4096)
-                let string = String.fromUTF8Bytes(data)!
-                print("Client Request:\n\(string)")
-                if string.hasPrefix("GET ") {
-                    let httpHeader = parseHTTPHeader(string)
-                    print("HTTP header:\n\(httpHeader)")
+            try server.acceptConnection(withEarlyDataResponseHandler: nil) { result in
+                var clientSocket: SocketProtocol
+                switch result {
+                case .client(let socket):
+                    clientSocket = socket
                     
-                    let clientWantsMeToCloseTheConnection = (httpHeader["Connection"]?.lowercased() == "close")
-
-                    let contentLength = string.utf8.count
-                    let header = "HTTP/1.0 200 OK\r\nConnection: Close\r\nContent-Length: \(contentLength)\r\n\r\n"
-                    let body = "\(string)"
-                    try clientSocket.write(header + body)
-                    
-                    if clientWantsMeToCloseTheConnection {
-                        clientSocket.close()
+                case.error(let error):
+                    print("Error accepting connection: \(error)")
+                    return
+                }
+                print("New connection")
+                while true {
+                    do {
+                        let data = try clientSocket.read(count: 4096)
+                        let string = String.fromUTF8Bytes(data)!
+                        print("Client Request:\n\(string)")
+                        if string.hasPrefix("GET ") {
+                            let httpHeader = parseHTTPHeader(string)
+                            print("HTTP header:\n\(httpHeader)")
+                            
+                            let clientWantsMeToCloseTheConnection = (httpHeader["Connection"]?.lowercased() == "close")
+                            
+                            let contentLength = string.utf8.count
+                            let header = "HTTP/1.0 200 OK\r\nConnection: Close\r\nContent-Length: \(contentLength)\r\n\r\n"
+                            let body = "\(string)"
+                            try clientSocket.write(header + body)
+                            
+                            if clientWantsMeToCloseTheConnection {
+                                clientSocket.close()
+                                break
+                            }
+                        }
+                        //                try clientSocket.write(body)
+                        
+                        //            clientSocket.close()
+                    } catch(let error) {
+                        if let tlserror = error as? TLSError {
+                            switch tlserror {
+                            case .error(let message):
+                                print("Error: \(message)")
+                            case .alert(let alert, let level):
+                                print("Alert: \(level) \(alert)")
+                            }
+                        }
+                        
+                        print("Error: \(error)")
+                        break
                     }
                 }
-                //                try clientSocket.write(body)
-                
-                //            clientSocket.close()
             }
-        }
-        catch(let error) {
-            if let tlserror = error as? TLSError {
-                switch tlserror {
-                case .error(let message):
-                    print("Error: \(message)")
-                case .alert(let alert, let level):
-                    print("Alert: \(level) \(alert)")
-                }
-                
-            }
-            
+        } catch (let error) {
             print("Error: \(error)")
-            continue
         }
     }
 }

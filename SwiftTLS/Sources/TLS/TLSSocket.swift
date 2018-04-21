@@ -475,5 +475,36 @@ public class TLSServerSocket : TLSSocket, ServerSocketProtocol
         
         return clientTLSSocket
     }
+    
+    public enum AcceptConnectionResult
+    {
+        case error(Error)
+        case client(SocketProtocol)
+    }
+    
+    public func acceptConnection(withEarlyDataResponseHandler earlyDataResponseHandler: EarlyDataResponseHandler?, completionHandler: @escaping (AcceptConnectionResult) -> ()) throws
+    {
+        let clientSocket = try self.socket?.acceptConnection() as! TCPSocket
+        
+        DispatchQueue.global().async {
+            let clientTLSSocket = TLSServerSocket(supportedVersions: self.connection.configuration.supportedVersions)
+            clientTLSSocket.socket = clientSocket
+            clientTLSSocket.connection.signer = self.connection.signer
+            clientTLSSocket.connection.configuration = self.connection.configuration
+            clientTLSSocket.connection.recordLayer.dataProvider = clientTLSSocket
+            clientTLSSocket.connection.context = self.context
+            
+            clientTLSSocket.server.earlyDataResponseHandler = earlyDataResponseHandler
+         
+            do {
+                try clientTLSSocket.server.acceptConnection()
+            } catch let error {
+                completionHandler(.error(error))
+            }
+            
+            completionHandler(.client(clientTLSSocket))
+        }
+    }
+
 
 }
