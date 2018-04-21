@@ -235,7 +235,7 @@ extension TLS1_2 {
                 switch handshake.handshakeType
                 {
                 case .clientKeyExchange:
-                    self.handleClientKeyExchange(handshake as! TLSClientKeyExchange)
+                    try self.handleClientKeyExchange(handshake as! TLSClientKeyExchange)
                     
                 default:
                     fatalError("handleMessage called with a handshake message that should be handled in a more specific method")
@@ -250,7 +250,7 @@ extension TLS1_2 {
 
         }
         
-        func handleClientKeyExchange(_ clientKeyExchange: TLSClientKeyExchange) {
+        func handleClientKeyExchange(_ clientKeyExchange: TLSClientKeyExchange) throws {
             var preMasterSecret : [UInt8]
             
             switch (server.keyExchange, clientKeyExchange.keyExchange) {
@@ -280,7 +280,11 @@ extension TLS1_2 {
             case (.rsa, .rsa):
                 // RSA
                 if let encryptedPreMasterSecret = clientKeyExchange.encryptedPreMasterSecret {
-                    preMasterSecret = try! server.configuration.identity!.rsa!.decrypt(encryptedPreMasterSecret)
+                    do {
+                        preMasterSecret = try server.configuration.identity!.rsa!.decrypt(encryptedPreMasterSecret)
+                    } catch let error as RSA.Error {
+                        throw TLSError.alert(alert: .decryptError, alertLevel: .fatal)
+                    }
                 }
                 else {
                     fatalError("Client Key Exchange has no encrypted master secret")

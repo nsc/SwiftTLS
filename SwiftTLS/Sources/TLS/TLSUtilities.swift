@@ -527,7 +527,7 @@ func TLSMessageNameForType(_ messageType : TLSMessageType) -> String
         case .badRecordMAC:
             alertDescriptionString = "BadRecordMAC"
             
-        case .decryptionFailed:
+        case .decryptionFailed_RESERVED:
             alertDescriptionString = "DecryptionFailed"
             
         case .recordOverflow:

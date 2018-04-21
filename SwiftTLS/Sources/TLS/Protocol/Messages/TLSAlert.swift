@@ -19,7 +19,7 @@ public enum TLSAlert : UInt8
     case closeNotify = 0
     case unexpectedMessage = 10
     case badRecordMAC = 20
-    case decryptionFailed = 21
+    case decryptionFailed_RESERVED = 21
     case recordOverflow = 22
     case decompressionFailure = 30
     case handshakeFailure = 40
