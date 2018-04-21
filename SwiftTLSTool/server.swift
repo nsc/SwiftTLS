@@ -9,11 +9,11 @@
 import Foundation
 import SwiftTLS
 
-func server(port: Int = 443, certificatePath: String, dhParametersPath : String? = nil, cipherSuite: CipherSuite? = nil)
+func server(address: IPAddress, certificatePath: String, dhParametersPath : String? = nil, cipherSuite: CipherSuite? = nil)
 {    
-    print("Listening on port \(port)")
+    print("Listening on port \(address.port)")
     
-    let supportedVersions: [TLSProtocolVersion] = [.v1_3, .v1_2]
+    let supportedVersions: [TLSProtocolVersion] = [.v1_2]
     
     var cipherSuites : [CipherSuite] = [
         .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
@@ -58,8 +58,6 @@ func server(port: Int = 443, certificatePath: String, dhParametersPath : String?
     configuration.ecdhParameters = ECDiffieHellmanParameters(namedCurve: .secp256r1)
     
     let server = TLSServerSocket(configuration: configuration)
-    let address = IPv4Address.localAddress()
-    address.port = UInt16(port)
     
     do {
         try server.listen(on: address)

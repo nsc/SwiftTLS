@@ -39,6 +39,8 @@ struct RSA
     
     static func fromPEMFile(_ file : String) -> RSA?
     {
+        var certificate: X509.Certificate? = nil
+        var privateKeyRSA: RSA? = nil
         for (section, var object) in ASN1Parser.sectionsFromPEMFile(file)
         {
             switch section
@@ -119,17 +121,29 @@ struct RSA
                 let exponent2   = BigInt(bigEndianParts:(objects[7] as! ASN1Integer).value)
                 let coefficient = BigInt(bigEndianParts:(objects[8] as! ASN1Integer).value)
                 
-                let rsa = RSA(n : n, e: e, d: d, p: p, q: q, dP: exponent1, dQ: exponent2, qInv: coefficient)
+                privateKeyRSA = RSA(n : n, e: e, d: d, p: p, q: q, dP: exponent1, dQ: exponent2, qInv: coefficient)
                 
-                return rsa
-
             case "CERTIFICATE":
+                if let sequence = object as? ASN1Sequence {
+                    certificate = X509.Certificate(asn1Sequence: sequence)
+                }
                 break
 
             default:
                 break
             }
-
+        }
+        
+        if let certificate = certificate {
+            if let rsa = privateKeyRSA {
+                return RSA(n: rsa.n, e: rsa.e, d: rsa.d!, p: rsa.p!, q: rsa.q!, dP: rsa.dP!, dQ: rsa.dQ!, qInv: rsa.qInv!, signatureAlgorithm: certificate.signatureAlgorithm.algorithm)
+            }
+            else {
+                return RSA(certificate: certificate)
+            }
+        }
+        else {
+            return privateKeyRSA
         }
         
         return nil
@@ -142,7 +156,7 @@ struct RSA
         self.signatureAlgorithm = certificate.tbsCertificate.signature.algorithm
     }
     
-    private init(n : BigInt, e : BigInt, d : BigInt, p : BigInt, q : BigInt, dP : BigInt, dQ : BigInt, qInv : BigInt)
+    private init(n : BigInt, e : BigInt, d : BigInt, p : BigInt, q : BigInt, dP : BigInt, dQ : BigInt, qInv : BigInt, signatureAlgorithm: X509.SignatureAlgorithm? = nil)
     {
         self.n = n
         self.e = e
@@ -152,6 +166,7 @@ struct RSA
         self.dP = dP
         self.dQ = dQ
         self.qInv = qInv
+        self.signatureAlgorithm = signatureAlgorithm
     }
 
     init(n: BigInt, publicExponent: BigInt, privateExponent: BigInt? = nil)

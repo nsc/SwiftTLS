@@ -61,8 +61,7 @@ extension RSA {
         
         for _ in 0..<paddingLength {
             while true {
-                var randomByte = UInt8(0)
-                arc4random_buf(&randomByte, 1)
+                let randomByte = UInt8.random
                 if randomByte == 0 {
                     continue
                 }

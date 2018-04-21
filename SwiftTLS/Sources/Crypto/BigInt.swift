@@ -231,10 +231,8 @@ extension BigInt
     static func random(_ max : BigInt) -> BigInt
     {
         let num = max._words.count
-        var n = BigInt(count: num)
-        
-        n._words.withUnsafeMutableBufferPointer { arc4random_buf($0.baseAddress, num * MemoryLayout<BigInt.Word>.size); return }
-        
+        var n = BigInt(bigEndianParts: TLSRandomBytes(count: num * MemoryLayout<Word>.size))
+                
         n.normalize()
         
         n = n % max

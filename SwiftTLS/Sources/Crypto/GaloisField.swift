@@ -114,7 +114,7 @@ func ghashUpdate(_ ghash: GF2_128_Element, h: GF2_128_Element, x: [UInt8]) -> GF
         // copy next chunk from x to xBlock filling with zeros
         xBlock.withUnsafeMutableBufferPointer { dst in
             x.withUnsafeBufferPointer { src in
-                memcpy(dst.baseAddress, src.baseAddress! + startIndex, length)
+                memcpy(dst.baseAddress!, src.baseAddress! + startIndex, length)
                 if length < blockSize {
                     memset(dst.baseAddress! + length, 0, blockSize - length)
                 }

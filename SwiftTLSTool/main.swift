@@ -52,7 +52,8 @@ case "server":
     }
     
     var host: String? = nil
-    var port: Int = 443
+    var port: UInt16 = 443
+    var address: IPAddress? = IPAddress.localAddress()
     var protocolVersion: TLSProtocolVersion? = nil
     var cipherSuite: CipherSuite? = nil
     var certificatePath: String? = nil
@@ -101,6 +102,20 @@ case "server":
                 
                 continue
 
+            case "--port":
+                if arguments.count <= argumentIndex {
+                    throw MyError.Error("Missing argument for --cipherSuite")
+                }
+                
+                let argument = arguments[argumentIndex]
+                argumentIndex += 1
+                
+                if let p = UInt16(argument) {
+                    port = p
+                }
+                
+                continue
+                
             case "--cipherSuite":
                 if arguments.count <= argumentIndex {
                     throw MyError.Error("Missing argument for --cipherSuite")
@@ -120,18 +135,15 @@ case "server":
             if mode! == .server {
                 switch argument
                 {
-                case "--port":
+                case "--address":
                     if arguments.count <= argumentIndex {
-                        throw MyError.Error("Missing argument for --port")
+                        throw MyError.Error("Missing argument for --address")
                     }
                     
                     let argument = arguments[argumentIndex]
                     argumentIndex += 1
                     
-                    if let p = Int(argument) {
-                        port = p
-                    }
-                
+                    address = IPAddress.addressWithString(argument, port: port)
                 case "--certificate":
                     if arguments.count <= argumentIndex {
                         throw MyError.Error("Missing argument for --certificate")
@@ -177,7 +189,7 @@ case "server":
                             throw MyError.Error("\(components[1]) is not a valid port number")
                         }
                         
-                        port = p
+                        port = UInt16(p)
                     }
                     else {
                         host = argument
@@ -220,7 +232,10 @@ case "server":
             }
 
         case .server:
-            server(port: port, certificatePath: certificatePath!, dhParametersPath: dhParameters, cipherSuite: cipherSuite)
+            if let address = address {
+                address.port = port
+                server(address: address, certificatePath: certificatePath!, dhParametersPath: dhParameters, cipherSuite: cipherSuite)
+            }
         }
     }
     

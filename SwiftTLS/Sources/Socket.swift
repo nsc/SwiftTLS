@@ -99,8 +99,12 @@ class Socket : SocketProtocol
         let socket = socketDescriptor!
         
         let addr = address.unsafeSockAddrPointer
-        let status = Darwin.connect(socket, addr, socklen_t(addr.pointee.sa_len))
-
+        #if os(Linux)
+        let status = Glibc.connect(socket, addr, address.sockAddrLength)
+        #else
+        let status = Darwin.connect(socket, addr, address.sockAddrLength)
+        #endif
+        
         if status < 0
         {
             throw SocketError.posixError(errno: errno)
@@ -125,7 +129,7 @@ class Socket : SocketProtocol
                     bytesWrittenThisTurn = currentSlice.withUnsafeBufferPointer {
                         (buffer : UnsafeBufferPointer<UInt8>) -> Int in
                         let bufferPointer = buffer.baseAddress
-                        return sendto(socket, bufferPointer, currentSlice.count, Int32(0), addr, socklen_t(addr.pointee.sa_len))
+                        return sendto(socket, bufferPointer, currentSlice.count, Int32(0), addr, address!.sockAddrLength)
                     }
                 }
                 
@@ -201,20 +205,32 @@ class Socket : SocketProtocol
     internal func _close()
     {
         if let socket = socketDescriptor {            
+            #if os(Linux)
+            _ = Glibc.close(socket)
+            #else
             _ = Darwin.close(socket)
-            
+            #endif
+
             socketDescriptor = nil
         }
     }
     
     func _read(_ socket: Int32, _ buffer: UnsafeMutableRawPointer, _ count: Int) -> Int
     {
+        #if os(Linux)
+        return Glibc.read(socket, buffer, count)
+        #else
         return Darwin.read(socket, buffer, count)
+        #endif
     }
     
     func _write(_ socket: Int32, _ buffer: UnsafeRawPointer, _ count: Int) -> Int
     {
+        #if os(Linux)
+        return Glibc.write(socket, buffer, count)
+        #else
         return Darwin.write(socket, buffer, count)
+        #endif
     }
 }
 
@@ -230,12 +246,20 @@ extension Socket : ServerSocketProtocol
             throw SocketError.closed
         }
         
-        var result = Darwin.bind(socket, address.unsafeSockAddrPointer, socklen_t(address.unsafeSockAddrPointer.pointee.sa_len))
+        #if os(Linux)
+        var result = Glibc.bind(socket, address.unsafeSockAddrPointer, socklen_t(address.sockAddrLength))
+        #else
+        var result = Darwin.bind(socket, address.unsafeSockAddrPointer, socklen_t(address.sockAddrLength))
+        #endif
         if result < 0 {
             throw SocketError.posixError(errno: errno)
         }
         
+        #if os(Linux)
+        result = Glibc.listen(socket, 5)
+        #else
         result = Darwin.listen(socket, 5)
+        #endif
         if result < 0 {
             throw SocketError.posixError(errno: errno)
         }
@@ -247,13 +271,22 @@ extension Socket : ServerSocketProtocol
             throw SocketError.closed
         }
         
+        #if os(Linux)
+        let clientSocket = Glibc.accept(socket, nil, nil)
+        #else
         let clientSocket = Darwin.accept(socket, nil, nil)
+        #endif
+        
         if clientSocket == Int32(-1) {
             throw SocketError.posixError(errno: errno)
         }
         
         var yes : Int32 = 1
+        #if os(Linux)
+        setsockopt(clientSocket, Int32(IPPROTO_TCP), TCP_NODELAY, &yes, socklen_t(MemoryLayout<Int32>.size))
+        #else
         setsockopt(clientSocket, IPPROTO_TCP, TCP_NODELAY, &yes, socklen_t(MemoryLayout<Int32>.size))
+        #endif
         
         return type(of: self).init(socketDescriptor: clientSocket)
     }
@@ -263,21 +296,29 @@ class TCPSocket : Socket
 {
     override func createSocket(_ protocolFamily : sa_family_t) -> Int32?
     {
-        let fd = socket(Int32(protocolFamily), SOCK_STREAM, IPPROTO_TCP)
+        #if os(Linux)
+        let socketType = Int32(SOCK_STREAM.rawValue)
+        #else
+        let socketType = Int32(SOCK_STREAM)
+        #endif
+        
+        let fd = socket(Int32(protocolFamily), socketType, Int32(IPPROTO_TCP))
         
         if fd < 0 {
             return nil
         }
         
         var yes : Int32 = 1
+        #if !os(Linux)
         setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &yes, socklen_t(MemoryLayout<Int32>.size))
+        #endif
         setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, socklen_t(MemoryLayout<Int32>.size))
         
 //        var action = sigaction()
 //        action.sa_handler = 1
 //        sigaction(SIGPIPE, &action, nil)
         
-        setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &yes, socklen_t(MemoryLayout<Int32>.size))
+        setsockopt(fd, Int32(IPPROTO_TCP), Int32(TCP_NODELAY), &yes, socklen_t(MemoryLayout<Int32>.size))
         
         return fd
     }
@@ -288,7 +329,13 @@ class UDPSocket : Socket
 {
     override func createSocket(_ protocolFamily : sa_family_t) -> Int32?
     {
-        let fd = socket(Int32(protocolFamily), SOCK_DGRAM, IPPROTO_UDP)
+        #if os(Linux)
+        let socketType = Int32(SOCK_DGRAM.rawValue)
+        #else
+        let socketType = Int32(SOCK_DGRAM)
+        #endif
+
+        let fd = socket(Int32(protocolFamily), socketType, Int32(IPPROTO_UDP))
 
         if fd < 0 {
             return nil

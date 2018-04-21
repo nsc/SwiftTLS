@@ -662,11 +662,44 @@ public extension String {
     }
 }
 
+extension UnsignedInteger where Self : FixedWidthInteger {
+    static var random: Self {
+        return Self(bigEndianBytes: TLSRandomBytes(count: MemoryLayout<Self>.size))!
+    }
+}
+
 public func TLSRandomBytes(count: Int) -> [UInt8]
 {
     var randomBytes = [UInt8](repeating: 0, count: count)
     
-    arc4random_buf(&randomBytes, count)
+    #if os(Linux)
+    struct SeedSetter {
+        static let fd: Int32? = {
+            let fd = open("/dev/urandom", O_RDONLY)
+            guard fd >= 0 else {
+                return nil
+            }
+            var seed: UInt32 = 0
+            let seedSize = MemoryLayout<UInt32>.size
+            let result = read(fd, &seed, seedSize)
+            guard result == seedSize else {
+                return nil
+            }
+            close(fd)
+            
+            print("Seed: \(seed)")
+            srandom(seed)
+            
+            return fd
+        }()
+    }
     
+    _ = SeedSetter.fd
+    
+    randomBytes = randomBytes.map {_ in UInt8(random() & 0xff)}
+    #else
+    arc4random_buf(&randomBytes, count)
+    #endif
+
     return randomBytes
 }

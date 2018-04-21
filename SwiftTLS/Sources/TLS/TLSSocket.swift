@@ -380,7 +380,7 @@ public class TLSClientSocket : TLSSocket, ClientSocketProtocol
     }
 
     // Connect with early data. If the early data could actually be sent, returns true, fals otherwise
-    public func connect(hostname: String, port: Int = 443, withEarlyData earlyData: Data) throws -> Bool
+    public func connect(hostname: String, port: UInt16 = 443, withEarlyData earlyData: Data) throws -> Bool
     {
         self.earlyData = earlyData
         
@@ -389,7 +389,7 @@ public class TLSClientSocket : TLSSocket, ClientSocketProtocol
         return self.client.earlyDataWasSent
     }
 
-    public func connect(hostname: String, port: Int = 443) throws
+    public func connect(hostname: String, port: UInt16 = 443) throws
     {
         if let address = IPAddress.addressWithString(hostname, port: port) {
             var hostNameAndPort = hostname

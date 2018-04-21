@@ -255,7 +255,9 @@ extension TLS1_2 {
             
             switch (server.keyExchange, clientKeyExchange.keyExchange) {
                 
-            case (.dhe(let keyExchange), .dhe):
+            case (.dhe(var keyExchange), .dhe):
+                keyExchange.peerPublicKey = clientKeyExchange.keyExchange.pfsKeyExchange?.publicKey
+                
                 if let sharedSecret = keyExchange.calculateSharedSecret() {
                     
                     preMasterSecret = sharedSecret
@@ -264,8 +266,9 @@ extension TLS1_2 {
                     fatalError("Client Key Exchange has no DHE public key")
                 }
 
-            case (.ecdhe(let keyExchange), .ecdhe):
-                
+            case (.ecdhe(var keyExchange), .ecdhe):
+                keyExchange.peerPublicKey = clientKeyExchange.keyExchange.pfsKeyExchange?.publicKey
+
                 if let sharedSecret = keyExchange.calculateSharedSecret() {
                     
                     preMasterSecret = sharedSecret

@@ -115,6 +115,15 @@ extension TLS1_3 {
             }
             
             if negotiatedProtocolVersion < .v1_3 {
+                if let supportdVersions = clientHello.extensions.filter({$0 is TLSSupportedVersionsExtension}).first as? TLSSupportedVersionsExtension {
+                    print("Client is only supporting \(supportdVersions.supportedVersions)")
+                }
+                else {
+                    print("Client is only supporting \(clientHello.legacyVersion)")
+                }
+                
+                print("Falling back to \(negotiatedProtocolVersion)")
+                
                 // fallback to lesser version
                 server.setupServer(with: self.server.configuration, version: negotiatedProtocolVersion)
                 
@@ -311,7 +320,7 @@ extension TLS1_3 {
             }
 
             let identity = TLSRandomBytes(count: 32)
-            let ageAdd = arc4random()
+            let ageAdd = UInt32(bigEndianBytes: TLSRandomBytes(count: 4))!
             // Currently we are sending only one session ticket per connection. If we want to support more than one, we would need
             // to chance the nonce here.
             let ticket = Ticket(serverNames: serverNames, identity: identity, nonce: [0], lifeTime: 3600, ageAdd: ageAdd, cipherSuite: server.cipherSuite!, hashAlgorithm: server.hashAlgorithm)

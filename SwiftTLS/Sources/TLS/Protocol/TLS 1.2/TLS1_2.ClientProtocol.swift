@@ -199,9 +199,9 @@ extension TLS1_2 {
                 if client.currentSession != nil {
                     client.handshakeMessages.append(finished)
                     
-                    try client.stateMachine?.didReceiveHandshakeMessage(finished)
+//                    try client.stateMachine?.didReceiveHandshakeMessage(finished)
                     
-                    try self.sendChangeCipherSpec()
+//                    try self.sendChangeCipherSpec()
                     
                     return
                 }

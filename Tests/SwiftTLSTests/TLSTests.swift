@@ -57,9 +57,9 @@ class TSLTests: XCTestCase {
         opensslServer.terminate()
     }
     
-    func createServer(with cipherSuite: CipherSuite, port: Int) -> TLSServerSocket
+    func createServer(with cipherSuite: CipherSuite, port: Int, supportedVersions: [TLSProtocolVersion]) -> TLSServerSocket
     {
-        var configuration = TLSConfiguration(supportedVersions: [.v1_3])
+        var configuration = TLSConfiguration(supportedVersions: supportedVersions)
         
         configuration.cipherSuites = [cipherSuite]
         configuration.identity = PEMFileIdentity(pemFile: Bundle(for: type(of: self)).url(forResource: "mycert.pem", withExtension: nil)!.path)
@@ -72,12 +72,12 @@ class TSLTests: XCTestCase {
     
     func test_clientServerWithCipherSuite(_ cipherSuite : CipherSuite, serverSupportsEarlyData: Bool = true, clientSupportsEarlyData: Bool = true)
     {
-        let supportedVersions: [TLSProtocolVersion] = [.v1_3]
+        let supportedVersions: [TLSProtocolVersion] = [.v1_2]
         var clientConfiguration = TLSConfiguration(supportedVersions: supportedVersions)
         clientConfiguration.cipherSuites = [cipherSuite]
         clientConfiguration.earlyData = .supported(maximumEarlyDataSize: 4096)
      
-        let server = createServer(with: cipherSuite, port: 12345)
+        let server = createServer(with: cipherSuite, port: 12345, supportedVersions: supportedVersions)
         server.connection.configuration.earlyData = .supported(maximumEarlyDataSize: 4096)
         
         let expectation = self.expectation(description: "accept connection successfully")
@@ -128,7 +128,7 @@ class TSLTests: XCTestCase {
                     clientContext = client.context as? TLSClientContext
                 }
                 
-                let earlyDataWasSent = try client.connect(hostname: "127.0.0.1", port: Int(address.port), withEarlyData: Data(bytes: [1,2,3]))
+                let earlyDataWasSent = try client.connect(hostname: "127.0.0.1", port: address.port, withEarlyData: Data(bytes: [1,2,3]))
 
                 let response = try client.read(count: 3)
                 if response == [1,2,3] as [UInt8] {
@@ -185,13 +185,14 @@ class TSLTests: XCTestCase {
     {
         let cipherSuites : [CipherSuite] = [
 //            .TLS_RSA_WITH_AES_256_CBC_SHA,
+            .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
 //            .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
 //            .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
 //            .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 //            .TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
             
 //            .TLS_AES_128_GCM_SHA256
-            .TLS_AES_256_GCM_SHA384
+//            .TLS_AES_256_GCM_SHA384
         ]
         
         for cipherSuite in cipherSuites {

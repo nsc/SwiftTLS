@@ -337,22 +337,10 @@ class BigIntTests: XCTestCase {
         var parts = [UInt8]()
         let min = MemoryLayout<UInt64>.size
         let max = min * 5
-        repeat {
-            let n = Int(arc4random()) % max + min
-            parts = [UInt8]()
-            
-            for _ in 0..<n
-            {
-                parts.append(UInt8(arc4random() & 0xff))
-            }
-            
-            while parts.last != nil && parts.last! == 0 {
-                parts.removeLast()
-            }
+
+        let n = Int(UInt16.random) % max + min
         
-        } while parts.count < min
-        
-        return BigInt(parts)
+        return BigInt(bigEndianParts: TLSRandomBytes(count: n))
     }
     
 //    func test_mod_withNegativeNumbers_givesCorrectResult()
@@ -456,7 +444,7 @@ class BigIntTests: XCTestCase {
         {
             let u = randomBigInt()
             let mod = randomBigInt()
-            let n = BigInt.Word(arc4random() % 10000)
+            let n = BigInt.Word(UInt64.random % 10000)
             
             let s = BIGNUM_mod_pow(u.hexString, String(n, radix: 16), mod.hexString)
             

@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Security
 
 class TLSCertificateMessage : TLSHandshakeMessage
 {

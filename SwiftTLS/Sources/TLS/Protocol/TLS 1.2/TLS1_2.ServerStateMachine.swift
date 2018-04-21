@@ -120,10 +120,7 @@ extension TLS1_2 {
             case .finished:
                 try self.transitionTo(state: .finishedReceived)
                 
-                if self.server!.isReusingSession {
-                    try self.transitionTo(state: .connected)
-                }
-                else {
+                if !self.server!.isReusingSession {
                     try self.protocolHandler!.sendChangeCipherSpec()
                 }
                 
@@ -146,65 +143,49 @@ extension TLS1_2 {
                 return true
             }
             
-            switch (self.state)
+            switch (self.state, state)
             {
-            case .idle where state == .clientHelloReceived:
+            case (.idle, .clientHelloReceived):
                 return true
                 
-            case .clientHelloReceived where state == .serverHelloSent:
+            case (.clientHelloReceived, .serverHelloSent):
                 return true
                 
-            case .serverHelloSent:
-                if self.server!.isReusingSession {
-                    return state == .changeCipherSpecSent
-                }
-                
-                return state == .certificateSent
-                
-            case .certificateSent:
-                if self.server!.cipherSuite!.needsServerKeyExchange() {
-                    return state == .serverKeyExchangeSent
-                }
-                
-                return state == .serverHelloDoneSent
-                
-            case .serverKeyExchangeSent where state == .serverHelloDoneSent:
+            case (.serverHelloSent, .certificateSent) where !self.server!.isReusingSession,
+                 (.serverHelloSent, .changeCipherSpecSent) where self.server!.isReusingSession:
                 return true
                 
-            case .serverHelloDoneSent where state == .clientKeyExchangeReceived:
+            case (.certificateSent, .serverHelloDoneSent) where !self.server!.cipherSuite!.needsServerKeyExchange(),
+                 (.certificateSent, .serverKeyExchangeSent) where self.server!.cipherSuite!.needsServerKeyExchange():
                 return true
                 
-            case .clientKeyExchangeReceived where state == .changeCipherSpecReceived:
+            case (.serverKeyExchangeSent, .serverHelloDoneSent):
                 return true
                 
-            case .changeCipherSpecReceived where state == .finishedReceived:
+            case (.serverHelloDoneSent, .clientKeyExchangeReceived):
                 return true
                 
-            case .finishedReceived:
-                if self.server!.isReusingSession {
-                    return state == .connected
-                }
-                
-                return state == .changeCipherSpecSent
-                
-            case .changeCipherSpecSent where state == .finishedSent:
+            case (.clientKeyExchangeReceived, .changeCipherSpecReceived):
                 return true
                 
-            case .finishedSent:
-                if self.server!.isReusingSession {
-                    return state == .changeCipherSpecReceived
-                }
+            case (.changeCipherSpecReceived, .finishedReceived):
+                return true
                 
-                return state == .connected
+            case (.finishedReceived, .changeCipherSpecSent) where !self.server!.isReusingSession,
+                 (.finishedReceived, .connected) where self.server!.isReusingSession:
+                return true
                 
-            case .connected:
-                switch state {
-                case .closeSent, .closeReceived, .clientHelloReceived:
-                    return true
-                    
-                default:
-                    return false
-                }
+            case (.changeCipherSpecSent, .finishedSent):
+                return true
+                
+            case (.finishedSent, .connected) where !self.server!.isReusingSession,
+                 (.finishedSent, .changeCipherSpecReceived) where self.server!.isReusingSession:
+                return true
+                
+            case (.connected, .closeSent),
+                 (.connected, .closeReceived),
+                 (.connected, .clientHelloReceived):
+                return true
                 
             default:
                 return false

@@ -454,7 +454,12 @@ public class ASN1Parser
     
     public convenience init(data : Data)
     {
-        self.init(data: [UInt8](UnsafeBufferPointer<UInt8>(start: (data as NSData).bytes.assumingMemoryBound(to: UInt8.self), count: data.count)))
+        var array: [UInt8] = []
+        data.withUnsafeBytes { bytes in
+            array = [UInt8](UnsafeBufferPointer<UInt8>(start: bytes, count: data.count))
+        }
+        
+        self.init(data: array)
     }
     
     public class func objectFromPEMFile(_ PEMFile : String) -> ASN1Object?
@@ -791,35 +796,39 @@ public func ASN1_printObject(_ object: ASN1Object, depth : Int = 0)
     }
 }
 
-func base64Blocks(with base64String : String) -> [(String,String)]
+func base64Blocks(with base64 : String) -> [(String,String)]
 {
-    var base64String = base64String
+    var base64String = base64[base64.startIndex...]
     
     var result: [(String, String)] = []
     
-    let beginRegEx = try! NSRegularExpression(pattern: "-----BEGIN (.*)-----\\R")
-    let endRegEx = try! NSRegularExpression(pattern: "-----END (.*)-----\\R")
+    let beginPrefix = "-----BEGIN "
+    let beginSuffix = "-----\n"
+    let endPrefix   = "-----END "
+    let endSuffix   = "-----\n"
     
     while true {
-        guard let beginMatch = beginRegEx.firstMatch(in: base64String, options: [], range: NSMakeRange(0, base64String.utf8.count)) else {
+        guard
+            let beginPrefixRange = base64String.range(of: beginPrefix),
+            let beginSuffixRange = base64String[beginPrefixRange.upperBound...].range(of: beginSuffix)
+        else {
             break
         }
         
-        let beginRange = beginMatch.range
-        let nameRange = beginMatch.range(at: 1)
+        let name = String(base64String[beginPrefixRange.upperBound..<beginSuffixRange.lowerBound])
         
-        let name = (base64String as NSString).substring(with: nameRange)
-        guard let endMatch = endRegEx.firstMatch(in: base64String, options: [], range: NSMakeRange(0, base64String.utf8.count)) else {
-            break
+        guard
+            let endPrefixRange = base64String.range(of: endPrefix),
+            let endSuffixRange = base64String[endPrefixRange.upperBound...].range(of: endSuffix)
+            else {
+                break
         }
         
-        let end = endMatch.range
-        
-        let base64Block = (base64String as NSString).substring(with: NSMakeRange(beginRange.location + beginRange.length, end.location - (beginRange.location + beginRange.length)))
+        let base64Block = String(base64String[beginSuffixRange.upperBound..<endPrefixRange.lowerBound])
         
         result.append((name, base64Block))
         
-        base64String = (base64String as NSString).substring(from: end.location + end.length)
+        base64String = base64String[endSuffixRange.upperBound...]
     }
     
     return result
