@@ -9,6 +9,25 @@
 import Foundation
 import SwiftTLS
 
+func parseHTTPHeader(_ string: String) -> [String:String] {
+    var header: [String:String] = [:]
+    for line in string.split(separator: "\r\n") {
+        if line.starts(with: "GET") || line.starts(with: "POST") {
+            continue
+        }
+        
+        if let colon = line.index(of: ":") {
+            let key = line[..<colon]
+            let afterColon = line.index(after: colon)
+            let value = line[afterColon...].trimmingCharacters(in: .whitespaces)
+            
+            header[String(key)] = String(value)
+        }
+    }
+    
+    return header
+}
+
 func server(address: IPAddress, certificatePath: String, dhParametersPath : String? = nil, cipherSuite: CipherSuite? = nil)
 {    
     print("Listening on port \(address.port)")
@@ -62,7 +81,7 @@ func server(address: IPAddress, certificatePath: String, dhParametersPath : Stri
     do {
         try server.listen(on: address)
     } catch (let error) {
-        print("Error: \(error)")
+        print("Error: server.listen: \(error)")
     }
     
     while true {
@@ -70,14 +89,23 @@ func server(address: IPAddress, certificatePath: String, dhParametersPath : Stri
             let clientSocket = try server.acceptConnection()
             print("New connection")
             while true {
-                let data = try clientSocket.read(count: 1024)
+                let data = try clientSocket.read(count: 4096)
                 let string = String.fromUTF8Bytes(data)!
                 print("Client Request:\n\(string)")
                 if string.hasPrefix("GET ") {
+                    let httpHeader = parseHTTPHeader(string)
+                    print("HTTP header:\n\(httpHeader)")
+                    
+                    let clientWantsMeToCloseTheConnection = (httpHeader["Connection"]?.lowercased() == "close")
+
                     let contentLength = string.utf8.count
                     let header = "HTTP/1.0 200 OK\r\nConnection: Close\r\nContent-Length: \(contentLength)\r\n\r\n"
                     let body = "\(string)"
                     try clientSocket.write(header + body)
+                    
+                    if clientWantsMeToCloseTheConnection {
+                        clientSocket.close()
+                    }
                 }
                 //                try clientSocket.write(body)
                 

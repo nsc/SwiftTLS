@@ -88,12 +88,12 @@ func connectTo(host : String, port : UInt16 = 443, supportedVersions: [TLSProtoc
         // Connect twice to test session resumption
         var context: TLSClientContext? = nil
         var socket: TLSClientSocket
-        for _ in 0..<1 {
+        for _ in 0..<2 {
             do {
                 print("Connecting to \(host):\(port)")
                 socket = TLSClientSocket(configuration: configuration, context: context)
                 
-                let requestData = [UInt8]("GET / HTTP/1.1\r\nHost: \(host)\r\n\r\n".utf8)
+                let requestData = [UInt8]("GET / HTTP/1.1\r\nHost: \(host)\r\nConnection: Close\r\n\r\n".utf8)
                 let earlyDataWasSent = try socket.connect(hostname: host, port: port, withEarlyData: Data(bytes: requestData))
 //                let earlyDataWasSent = false
 //                try socket.connect(hostname: host, port: port)
@@ -116,7 +116,7 @@ func connectTo(host : String, port : UInt16 = 443, supportedVersions: [TLSProtoc
                 print("\(data.count) bytes read.")
                 print("\(String.fromUTF8Bytes(data)!)")
                 //                }
-                socket.close()
+//                socket.close()
             }
             catch (let error) {
                 socket.close()
