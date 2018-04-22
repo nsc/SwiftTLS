@@ -33,17 +33,17 @@ extension TLS1_3 {
             }
             
             guard let signatureScheme = TLSSignatureScheme(rawValue: rawSignatureScheme) else {
-                print("Error: Unknown signature scheme \(String(format: "0x%hs", rawSignatureScheme))")
+                log("Error: Unknown signature scheme \(String(format: "0x%hs", rawSignatureScheme))")
                 return nil
             }
-            print("Signature scheme \(String(format: "0x%04hx", rawSignatureScheme))")
+            log("Signature scheme \(String(format: "0x%04hx", rawSignatureScheme))")
             
             guard let signature: [UInt8] = inputStream.read16() else {
                 return nil
             }
             
             guard bodyLength == (2 + 2 + signature.count) else {
-                print("Error: excess data in CertificateVerify message")
+                log("Error: excess data in CertificateVerify message")
                 return nil
             }
             

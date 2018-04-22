@@ -495,7 +495,7 @@ public class ASN1Parser
                 }
             }
         } catch let error {
-            print("Error: \(error)")
+            log("Error: \(error)")
         }
     
         return sections
@@ -709,7 +709,7 @@ public class ASN1Parser
                         object = ASN1Object()
                         self.cursor += contentLength
                         
-                        print("Error: unhandled ASN1 tag \(type)")
+                        log("Error: unhandled ASN1 tag \(type)")
                     }
                     
                     object?.underlyingData = subData(startCursor..<self.cursor)
@@ -717,7 +717,7 @@ public class ASN1Parser
                     return object
                 }
                 else {
-                    print("Error: unknown ASN1 tag \(type)")
+                    log("Error: unknown ASN1 tag \(type)")
                     return nil
                 }
             }

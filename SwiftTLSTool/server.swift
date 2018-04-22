@@ -30,7 +30,7 @@ func parseHTTPHeader(_ string: String) -> [String:String] {
 
 func server(address: IPAddress, certificatePath: String, dhParametersPath : String? = nil, cipherSuite: CipherSuite? = nil)
 {    
-    print("Listening on port \(address.port)")
+    log("Listening on port \(address.port)")
     
     let supportedVersions: [TLSProtocolVersion] = [.v1_2]
     
@@ -76,7 +76,7 @@ func server(address: IPAddress, certificatePath: String, dhParametersPath : Stri
     do {
         try server.listen(on: address)
     } catch (let error) {
-        print("Error: server.listen: \(error)")
+        log("Error: server.listen: \(error)")
     }
     
     while true {
@@ -88,18 +88,17 @@ func server(address: IPAddress, certificatePath: String, dhParametersPath : Stri
                     clientSocket = socket
                     
                 case.error(let error):
-                    print("Error accepting connection: \(error)")
+                    log("Error accepting connection: \(error)")
                     return
                 }
-                print("New connection")
+
                 while true {
                     do {
                         let data = try clientSocket.read(count: 4096)
                         let string = String.fromUTF8Bytes(data)!
-                        print("Client Request:\n\(string)")
+                        log("Client Request:\n\(string)")
                         if string.hasPrefix("GET ") {
                             let httpHeader = parseHTTPHeader(string)
-                            print("HTTP header:\n\(httpHeader)")
                             
                             let clientWantsMeToCloseTheConnection = (httpHeader["Connection"]?.lowercased() == "close")
                             
@@ -120,19 +119,19 @@ func server(address: IPAddress, certificatePath: String, dhParametersPath : Stri
                         if let tlserror = error as? TLSError {
                             switch tlserror {
                             case .error(let message):
-                                print("Error: \(message)")
+                                log("Error: \(message)")
                             case .alert(let alert, let level):
-                                print("Alert: \(level) \(alert)")
+                                log("Alert: \(level) \(alert)")
                             }
                         }
                         
-                        print("Error: \(error)")
+                        log("Error: \(error)")
                         break
                     }
                 }
             }
         } catch (let error) {
-            print("Error: \(error)")
+            log("Error: \(error)")
         }
     }
 }

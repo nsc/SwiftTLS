@@ -322,7 +322,7 @@ public class TLSSocket : SocketProtocol, TLSDataProvider
             }
             
         case .alert(let level, let alert):
-            print("Alert: \(level) \(alert)")
+            log("Alert: \(level) \(alert)")
             return []
             
         default:
@@ -481,12 +481,15 @@ public class TLSServerSocket : TLSSocket, ServerSocketProtocol
         case error(Error)
         case client(SocketProtocol)
     }
-    
+
     public func acceptConnection(withEarlyDataResponseHandler earlyDataResponseHandler: EarlyDataResponseHandler?, completionHandler: @escaping (AcceptConnectionResult) -> ()) throws
     {
         let clientSocket = try self.socket?.acceptConnection() as! TCPSocket
         
-        DispatchQueue.global().async {
+        let queue = DispatchQueue.global()
+
+        queue.async {
+            
             let clientTLSSocket = TLSServerSocket(supportedVersions: self.connection.configuration.supportedVersions)
             clientTLSSocket.socket = clientSocket
             clientTLSSocket.connection.signer = self.connection.signer
@@ -503,6 +506,8 @@ public class TLSServerSocket : TLSSocket, ServerSocketProtocol
             }
             
             completionHandler(.client(clientTLSSocket))
+            
+            Thread.current.removeThreadNumber()
         }
     }
 

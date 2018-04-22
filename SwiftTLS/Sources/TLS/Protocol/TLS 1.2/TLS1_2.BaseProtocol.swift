@@ -118,7 +118,7 @@ extension TLS1_2 {
                     self.connection.hashAlgorithm = .sha384
                     
                 default:
-                    print("Error: cipher suite \(cipherSuite) has \(cipherSuiteDescriptor.hashAlgorithm)")
+                    log("Error: cipher suite \(cipherSuite) has \(cipherSuiteDescriptor.hashAlgorithm)")
                     fatalError("AEAD cipher suites can only use SHA256 or SHA384")
                     break
                 }

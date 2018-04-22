@@ -57,7 +57,7 @@ extension TLS1_2 {
                 clientHello.extensions.append(TLSServerNameExtension(serverNames: client.serverNames!))
             }
             
-            //        print("initial handshake = \(self.isInitialHandshake), secure renegotiation = \(self.securityParameters.isUsingSecureRenegotiation)")
+            //        log("initial handshake = \(self.isInitialHandshake), secure renegotiation = \(self.securityParameters.isUsingSecureRenegotiation)")
             if self.isRenegotiatingSecurityParameters {
                 clientHello.extensions.append(TLSSecureRenegotiationInfoExtension(renegotiatedConnection: self.securityParameters.clientVerifyData))
             }
@@ -77,7 +77,7 @@ extension TLS1_2 {
         func handleServerHello(_ serverHello: TLSServerHello) throws
         {
             let version = serverHello.legacyVersion
-            print("Server wants to speak \(version)")
+            log("Server wants to speak \(version)")
             
             guard version.isKnownVersion &&
                 client.configuration.supports(version) else
@@ -92,7 +92,7 @@ extension TLS1_2 {
             self.securityParameters.serverRandom = [UInt8](serverHello.random)
                         
             if let secureRenegotiationInfo = serverHello.extensions.filter({$0 is TLSSecureRenegotiationInfoExtension}).first as? TLSSecureRenegotiationInfoExtension {
-                print("Client setting secure renegotiation")
+                log("Client setting secure renegotiation")
                 self.securityParameters.isUsingSecureRenegotiation = true
                 
                 if client.isInitialHandshake {
@@ -132,7 +132,7 @@ extension TLS1_2 {
                 else {
                     client.pendingSessionID = sessionID
                 }
-                print("Session ID: \(sessionID.sessionID)")
+                log("Session ID: \(sessionID.sessionID)")
             }
             
             if client.currentSession == nil && !serverHello.cipherSuite.needsServerKeyExchange()
@@ -190,9 +190,9 @@ extension TLS1_2 {
         func handleFinished(_ finished: TLSFinished) throws {
             
             if (self.verifyFinishedMessage(finished, isClient: false, saveForSecureRenegotiation: true)) {
-                print("Client: Finished verified.")
+                log("Client: Finished verified.")
                 if self.isRenegotiatingSecurityParameters {
-                    print("Client: Renegotiated security parameters successfully.")
+                    log("Client: Renegotiated security parameters successfully.")
                     self.isRenegotiatingSecurityParameters = false
                 }
                 
@@ -209,13 +209,13 @@ extension TLS1_2 {
                     if let serverName = client.serverNames?.first {
                         let session = TLSSession(sessionID: sessionID, cipherSpec: client.cipherSuite!, masterSecret: self.securityParameters.masterSecret!)
                         self.clientContext.sessionCache[serverName] = session
-                        print("Save session for \(serverName)")
+                        log("Save session for \(serverName)")
                     }
                 }
                 
             }
             else {
-                print("Error: could not verify Finished message.")
+                log("Error: could not verify Finished message.")
                 try client.sendAlert(.decryptError, alertLevel: .fatal)
             }
             
@@ -277,7 +277,7 @@ extension TLS1_2 {
                         else {
                             throw TLSError.error("Unsupported curve \(namedCurve)")
                     }
-                    print("Using curve \(namedCurve)")
+                    log("Using curve \(namedCurve)")
 
                     let ecdhKeyExchange = ECDHKeyExchange(curve: curve)
                     ecdhKeyExchange.peerPublicKeyPoint = ecdhParameters.publicKey

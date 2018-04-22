@@ -181,7 +181,7 @@ enum OID : String
             self = oid
         }
         else {
-            print("Error: unknown OID \(identifier)")
+            log("Error: unknown OID \(identifier)")
             return nil
         }
     }

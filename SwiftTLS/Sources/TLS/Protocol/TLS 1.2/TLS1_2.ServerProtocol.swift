@@ -56,7 +56,7 @@ extension TLS1_2 {
                 }
             }
             
-            print("ServerHello extensions = \(serverHello.extensions)")
+            log("ServerHello extensions = \(serverHello.extensions)")
             
             self.securityParameters.serverRandom = [UInt8](serverHelloRandom)
             if let session = server.currentSession {
@@ -168,7 +168,7 @@ extension TLS1_2 {
                 }
             }
             else {
-                print("Renegotiation initiated")
+                log("Renegotiation initiated")
                 
                 self.securityParameters.isUsingSecureRenegotiation = false
             }
@@ -191,13 +191,13 @@ extension TLS1_2 {
                 throw TLSError.error("No shared cipher suites. Client supports:" + clientHello.cipherSuites.map({"\($0)"}).reduce("", {$0 + "\n" + $1}))
             }
             else {
-                print("Selected cipher suite is \(server.cipherSuite!)")
+                log("Selected cipher suite is \(server.cipherSuite!)")
             }
             
-            print("client hello session ID: \(String(describing: clientHello.legacySessionID))")
+            log("client hello session ID: \(String(describing: clientHello.legacySessionID))")
             if let sessionID = clientHello.legacySessionID {
                 if let session = self.serverContext.sessionCache[sessionID] {
-                    print("Using cached session ID: \(sessionID.sessionID)")
+                    log("Using cached session ID: \(sessionID.sessionID)")
                     server.currentSession = session
                     server.isReusingSession = true
                 }
@@ -207,22 +207,22 @@ extension TLS1_2 {
         
         func handleFinished(_ finished: TLSFinished) throws {
             if (self.verifyFinishedMessage(finished, isClient: true, saveForSecureRenegotiation: true)) {
-                print("Server: Finished verified.")
+                log("Server: Finished verified.")
                 if self.isRenegotiatingSecurityParameters {
-                    print("Server: Renegotiated security parameters successfully.")
+                    log("Server: Renegotiated security parameters successfully.")
                     self.isRenegotiatingSecurityParameters = false
                 }
                 
                 if let sessionID = server.pendingSessionID {
                     let session = TLSSession(sessionID: sessionID, cipherSpec: server.cipherSuite!, masterSecret: self.securityParameters.masterSecret!)
                     self.serverContext.sessionCache[sessionID] = session
-                    print("Save session \(session)")
+                    log("Save session \(session)")
                 }
                 
                 server.handshakeMessages.append(finished)
             }
             else {
-                print("Error: could not verify Finished message.")
+                log("Error: could not verify Finished message.")
                 try server.sendAlert(.decryptError, alertLevel: .fatal)
             }
         }

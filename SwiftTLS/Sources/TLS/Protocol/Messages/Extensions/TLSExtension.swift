@@ -53,7 +53,7 @@ func TLSReadExtensions(from inputStream: InputStreamType, length: Int, messageTy
     length -= 2 + extensionsData.count
     
     if length > 0 {
-        print("Error: excess bytes at the end of \(messageType)")
+        log("Error: excess bytes at the end of \(messageType)")
     }
     
     let buffer = BinaryInputStream(extensionsData)
@@ -150,12 +150,12 @@ func TLSReadExtensions(from inputStream: InputStreamType, length: Int, messageTy
                     break
                     
                 default:
-                    print("Unsupported extension type \(rawExtensionType)")
+                    log("Unsupported extension type \(rawExtensionType)")
                     
                 }
             }
             else {
-                print("Unknown extension type \(rawExtensionType)")
+                log("Unknown extension type \(rawExtensionType)")
             }
         }
     }

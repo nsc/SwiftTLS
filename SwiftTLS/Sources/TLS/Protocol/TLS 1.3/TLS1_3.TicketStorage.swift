@@ -57,7 +57,7 @@ extension TLS1_3 {
                 self.tickets[serverName] = tickets
             }
             
-            print("Add ticket: \(self.tickets.debugDescription)")
+            log("Add ticket: \(self.tickets.debugDescription)")
         }
         
         func remove(_ ticket: Ticket) {
@@ -70,7 +70,7 @@ extension TLS1_3 {
                 self.tickets[serverName] = tickets
             }
             
-            print("Remove ticket: \(self.tickets.debugDescription)")
+            log("Remove ticket: \(self.tickets.debugDescription)")
         }
         
         subscript(serverName serverName: String) -> [Ticket] {

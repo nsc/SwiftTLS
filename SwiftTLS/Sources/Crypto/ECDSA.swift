@@ -42,7 +42,7 @@ struct ECDSA : Signing
             self.hashAlgorithm = hashAlgorithm
             
         default:
-            print("Unknown curve \(curveName)")
+            log("Unknown curve \(curveName)")
             return nil
         }
 

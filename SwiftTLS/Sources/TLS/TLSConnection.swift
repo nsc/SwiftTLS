@@ -165,7 +165,7 @@ public class TLSConnection
 
     func didRenegotiate()
     {
-        print("Renegotiated security parameters successfully.")
+        log("Renegotiated security parameters successfully.")
     }
 
     
@@ -214,9 +214,9 @@ public class TLSConnection
     func didReceiveHandshakeMessage(_ message : TLSHandshakeMessage)
     {
         if let clientHello = message as? TLSClientHello {
-            print("Supported Cipher Suites:")
+            log("Supported Cipher Suites:")
             for cipherSuite in clientHello.cipherSuites {
-                print("\(cipherSuite)")
+                log("\(cipherSuite)")
             }
         }
     }

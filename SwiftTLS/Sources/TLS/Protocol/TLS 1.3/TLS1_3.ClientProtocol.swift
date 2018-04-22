@@ -131,7 +131,7 @@ extension TLS1_3 {
                 }
             }
             else {
-                print("Client: No tickets for current connection")
+                log("Client: No tickets for current connection")
             }
             
             // The PSK Extension needs to be the last extension
@@ -160,7 +160,7 @@ extension TLS1_3 {
             deriveEarlyTrafficSecret()
             activateEarlyTrafficSecret()
             
-            print("Client: did send early data")
+            log("Client: did send early data")
             
             try client.sendApplicationData(earlyData)
         }
@@ -248,7 +248,7 @@ extension TLS1_3 {
                 return
             }
             
-            print("Server wants to speak \(serverHello.version)")
+            log("Server wants to speak \(serverHello.version)")
 
             if let helloRetryRequest = serverHello as? TLSHelloRetryRequest {
                 try self.handleHelloRetryRequest(helloRetryRequest)
@@ -300,19 +300,19 @@ extension TLS1_3 {
                     break
                     
                 default:
-                    print("Unhandled extension \(serverExtension)")
+                    log("Unhandled extension \(serverExtension)")
                 }
             }
             
             if let ticket = ticketChosenByServer {
-                print("Server has chosen ticket identity: \(hex(ticket.identity))")
+                log("Server has chosen ticket identity: \(hex(ticket.identity))")
                 self.handshakeState.preSharedKey = ticket.preSharedKey
                 self.context.ticketStorage.remove(ticket)
                 deriveEarlySecret()
             }
             else {
                 if self.ticketsAnnouncedToServer.count > 0 {
-                    print("Server has ignored our ticket")
+                    log("Server has ignored our ticket")
                 }
                 self.handshakeState.preSharedKey = nil
 
@@ -333,7 +333,7 @@ extension TLS1_3 {
         }
         
         func handleEncryptedExtensions(_ encryptedExtensions: TLSEncryptedExtensions) throws {
-            print("EncryptedExtensions: \(encryptedExtensions.extensions)")
+            log("EncryptedExtensions: \(encryptedExtensions.extensions)")
             
             if encryptedExtensions.extensions.contains(where: {$0 is TLSEarlyDataIndication}) {
                 self.clientHandshakeState.earlyDataState = .accepted
@@ -356,7 +356,7 @@ extension TLS1_3 {
                     break
                     
                 default:
-                    print("Unhandled extension \(helloRetryRequestExtension)")
+                    log("Unhandled extension \(helloRetryRequestExtension)")
 
                 }
             }
@@ -438,7 +438,7 @@ extension TLS1_3 {
             // Verify finished data
             let finishedData = self.finishedData(forClient: false)
             if finishedData != finished.verifyData {
-                print("Client error: could not verify Finished message.")
+                log("Client error: could not verify Finished message.")
                 try client.sendAlert(.decryptError, alertLevel: .fatal)
             }
             

@@ -687,7 +687,6 @@ public func TLSRandomBytes(count: Int) -> [UInt8]
             }
             close(fd)
             
-            print("Seed: \(seed)")
             srandom(seed)
             
             return fd

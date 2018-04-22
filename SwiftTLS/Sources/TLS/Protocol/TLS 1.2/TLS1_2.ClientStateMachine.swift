@@ -45,7 +45,7 @@ extension TLS1_2 {
         
         func didSendMessage(_ message : TLSMessage)
         {
-            print("Client: did send message \(TLSMessageNameForType(message.type))")
+            log("Client: did send message \(TLSMessageNameForType(message.type))")
         }
         
         func clientDidSendHandshakeMessage(_ message : TLSHandshakeMessage) throws
@@ -74,7 +74,7 @@ extension TLS1_2 {
         
         func clientDidReceiveHandshakeMessage(_ message : TLSHandshakeMessage) throws
         {
-            print("Client: did receive message \(TLSHandshakeMessageNameForType(message.handshakeType))")
+            log("Client: did receive message \(TLSHandshakeMessageNameForType(message.handshakeType))")
             
             let handshakeType = message.handshakeType
             
@@ -106,19 +106,19 @@ extension TLS1_2 {
         
         func didSendChangeCipherSpec() throws
         {
-            print("did send change cipher spec")
+            log("did send change cipher spec")
             try self.transitionTo(state: .changeCipherSpecSent)
             try self.protocolHandler!.sendFinished()
         }
         
         func didReceiveChangeCipherSpec() throws
         {
-            print("did receive change cipher spec")
+            log("did receive change cipher spec")
             try self.transitionTo(state: .changeCipherSpecReceived)
         }
         
         func clientDidReceiveAlert(_ alert: TLSAlertMessage) {
-            print("Client: did receive message \(alert.alertLevel) \(alert.alert)")
+            log("Client: did receive message \(alert.alertLevel) \(alert.alert)")
         }
         
         func clientDidConnect() throws {

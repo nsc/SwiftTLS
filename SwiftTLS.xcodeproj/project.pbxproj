@@ -90,6 +90,7 @@
 		032D0F3E1B9F5BD3009C13F0 /* certificate.cer in Resources */ = {isa = PBXBuildFile; fileRef = 03DDB6491AC60DAD000B5726 /* certificate.cer */; };
 		032D0F3F1B9F5BD3009C13F0 /* mycert.pem in Resources */ = {isa = PBXBuildFile; fileRef = 031868E51ADD7D9800CB51E1 /* mycert.pem */; };
 		033482FD1C9585AA00625D92 /* GaloisFieldTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033482FC1C9585AA00625D92 /* GaloisFieldTests.swift */; };
+		0347E17C208C847500C8BB01 /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0347E17B208C847500C8BB01 /* Log.swift */; };
 		0348182D2076AC2C00264933 /* server.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0348182C2076AC2C00264933 /* server.swift */; };
 		0348182F2076AC4800264933 /* client.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0348182E2076AC4800264933 /* client.swift */; };
 		034818332076ACBF00264933 /* scan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 034818322076ACBF00264933 /* scan.swift */; };
@@ -363,6 +364,7 @@
 		033B64391B2348190019F3FA /* rsa_ssl.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = rsa_ssl.c; sourceTree = "<group>"; };
 		033B643B1B2348190019F3FA /* stack.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = stack.c; sourceTree = "<group>"; };
 		033B64CD1B234A460019F3FA /* openssl_utils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = openssl_utils.c; sourceTree = "<group>"; };
+		0347E17B208C847500C8BB01 /* Log.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Log.swift; sourceTree = "<group>"; };
 		0348182C2076AC2C00264933 /* server.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = server.swift; sourceTree = "<group>"; };
 		0348182E2076AC4800264933 /* client.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = client.swift; sourceTree = "<group>"; };
 		034818302076AC8700264933 /* probeCipherSuites.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = probeCipherSuites.swift; sourceTree = "<group>"; };
@@ -574,11 +576,12 @@
 				031BAED41C62849A00600133 /* Documentation */,
 				03E6B6D52088CAF00070EDFC /* Certificates */,
 				03E6B6DA2088CAF00070EDFC /* Crypto */,
+				03E6B6F02088CAF00070EDFC /* TLS */,
 				03E6B6D32088CAF00070EDFC /* DataBuffer.swift */,
 				03E6B6D42088CAF00070EDFC /* IPAddress.swift */,
 				03E6B6EF2088CAF00070EDFC /* Socket.swift */,
-				03E6B6F02088CAF00070EDFC /* TLS */,
 				035406BE1C651C5200C48E5D /* Utilities.swift */,
+				0347E17B208C847500C8BB01 /* Log.swift */,
 			);
 			name = SwiftTLS;
 			path = SwiftTLS/Sources;
@@ -1202,6 +1205,7 @@
 			files = (
 				03E6B75E2088CAF00070EDFC /* BlockCipher.swift in Sources */,
 				03E6B7562088CAF00070EDFC /* Signing.swift in Sources */,
+				0347E17C208C847500C8BB01 /* Log.swift in Sources */,
 				03E6B73E2088CAF00070EDFC /* ASN1Parser.swift in Sources */,
 				03E6B7622088CAF00070EDFC /* ECDHKeyExchange.swift in Sources */,
 				035406C01C651C5200C48E5D /* Utilities.swift in Sources */,
@@ -1514,6 +1518,7 @@
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
 				);
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks $(TOOLCHAIN_DIR)/usr/lib/swift/macosx";
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_FORCE_DYNAMIC_LINK_STDLIB = YES;
 				SWIFT_FORCE_STATIC_LINK_STDLIB = NO;
@@ -1538,6 +1543,7 @@
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
 				);
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks $(TOOLCHAIN_DIR)/usr/lib/swift/macosx";
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_FORCE_DYNAMIC_LINK_STDLIB = YES;
 				SWIFT_FORCE_STATIC_LINK_STDLIB = NO;
@@ -1565,6 +1571,7 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
 				LINK_WITH_STANDARD_LIBRARIES = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				PRODUCT_BUNDLE_IDENTIFIER = com.savoysoftware.SwiftTLS;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1594,6 +1601,7 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
 				LINK_WITH_STANDARD_LIBRARIES = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				PRODUCT_BUNDLE_IDENTIFIER = com.savoysoftware.SwiftTLS;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1618,7 +1626,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.savoysoftware.SwiftTLSTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 3.0;
+				SWIFT_VERSION = 4.0;
 			};
 			name = Debug;
 		};
@@ -1633,7 +1641,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.savoysoftware.SwiftTLSTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
-				SWIFT_VERSION = 3.0;
+				SWIFT_VERSION = 4.0;
 			};
 			name = Release;
 		};

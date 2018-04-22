@@ -116,13 +116,13 @@ extension TLS1_3 {
             
             if negotiatedProtocolVersion < .v1_3 {
                 if let supportdVersions = clientHello.extensions.filter({$0 is TLSSupportedVersionsExtension}).first as? TLSSupportedVersionsExtension {
-                    print("Client is only supporting \(supportdVersions.supportedVersions)")
+                    log("Client is only supporting \(supportdVersions.supportedVersions)")
                 }
                 else {
-                    print("Client is only supporting \(clientHello.legacyVersion)")
+                    log("Client is only supporting \(clientHello.legacyVersion)")
                 }
                 
-                print("Falling back to \(negotiatedProtocolVersion)")
+                log("Falling back to \(negotiatedProtocolVersion)")
                 
                 // fallback to lesser version
                 server.setupServer(with: self.server.configuration, version: negotiatedProtocolVersion)
@@ -207,7 +207,7 @@ extension TLS1_3 {
                 }
                 
                 if let ticket = chosenTicket {
-                    print("Choose ticket \(ticket.identity)")
+                    log("Choose ticket \(ticket.identity)")
                 }
                 else {
                     self.handshakeState.preSharedKey = nil
@@ -220,7 +220,7 @@ extension TLS1_3 {
                 throw TLSError.error("No shared cipher suites. Client supports:" + clientHello.cipherSuites.map({"\($0)"}).reduce("", {$0 + "\n" + $1}))
             }
             
-            print("Selected cipher suite is \(cipherSuite)")
+            log("Selected cipher suite is \(cipherSuite)")
             
             guard let keyShares = clientKeyShares,
                   let keyShare = selectKeyShare(fromClientKeyShares: keyShares)
@@ -280,7 +280,7 @@ extension TLS1_3 {
                 // Read until EndOfEarlyData
                 EndOfEarlyDataLoop: while true {
                     let message = try self.recordLayer.readMessage()
-                    print("Early data: \(message)")
+                    log("Early data: \(message)")
                     
                     switch message
                     {
@@ -290,7 +290,7 @@ extension TLS1_3 {
                         
                     case is TLSApplicationData:
                         let data = (message as! TLSApplicationData).applicationData
-                        print("\t\(data)")
+                        log("\t\(data)")
                         if let earlyDataResponseHandler = server.earlyDataResponseHandler {
                             if let response = earlyDataResponseHandler(Data(bytes: data)) {
                                 var buffer = [UInt8](repeating: 0, count: data.count)
@@ -337,7 +337,7 @@ extension TLS1_3 {
             // Verify finished data
             let finishedData = self.finishedData(forClient: true)
             if finishedData != finished.verifyData {
-                print("Server error: could not verify Finished message.")
+                log("Server error: could not verify Finished message.")
                 try server.sendAlert(.decryptError, alertLevel: .fatal)
             }
                 

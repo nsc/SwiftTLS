@@ -44,7 +44,7 @@ extension TLS1_3 {
         
         func didSendMessage(_ message : TLSMessage)
         {
-            print("Client: did send message \(TLSMessageNameForType(message.type))")
+            log("Client: did send message \(TLSMessageNameForType(message.type))")
         }
         
         func clientDidSendHandshakeMessage(_ message : TLSHandshakeMessage) throws
@@ -66,13 +66,13 @@ extension TLS1_3 {
                 try self.transitionTo(state: .endOfEarlyDataSent)
 
             default:
-                print("Unsupported handshake message \(message.handshakeType)")
+                log("Unsupported handshake message \(message.handshakeType)")
             }
         }
         
         func clientDidReceiveHandshakeMessage(_ message : TLSHandshakeMessage) throws
         {
-            print("Client: did receive message \(TLSHandshakeMessageNameForType(message.handshakeType))")
+            log("Client: did receive message \(TLSHandshakeMessageNameForType(message.handshakeType))")
             
             let handshakeType = message.handshakeType
             
@@ -101,20 +101,20 @@ extension TLS1_3 {
 
             case .newSessionTicket:
                 let newSessionTicket = message as! TLSNewSessionTicket
-                print("New Session Ticket received:")
-                print("    ticket   = \(hex(newSessionTicket.ticket))")
-                print("    Nonce    = \(hex(newSessionTicket.ticketNonce))")
-                print("    lifeTime = \(newSessionTicket.ticketLifetime)")
-                print("    ageAdd   = \(newSessionTicket.ticketAgeAdd)")
+                log("New Session Ticket received:")
+                log("    ticket   = \(hex(newSessionTicket.ticket))")
+                log("    Nonce    = \(hex(newSessionTicket.ticketNonce))")
+                log("    lifeTime = \(newSessionTicket.ticketLifetime)")
+                log("    ageAdd   = \(newSessionTicket.ticketAgeAdd)")
                 try self.transitionTo(state: .newSessionTicketReceived)
 
             default:
-                print("Unsupported handshake message \(handshakeType.rawValue)")
+                log("Unsupported handshake message \(handshakeType.rawValue)")
             }
         }
         
         func clientDidReceiveAlert(_ alert: TLSAlertMessage) {
-            print("Client: did receive message \(alert.alertLevel) \(alert.alert)")
+            log("Client: did receive message \(alert.alertLevel) \(alert.alert)")
         }
         
         func clientDidConnect() throws {

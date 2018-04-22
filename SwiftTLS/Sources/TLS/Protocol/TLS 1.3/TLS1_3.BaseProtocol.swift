@@ -187,16 +187,16 @@ extension TLS1_3 {
         
         func activateEarlyTrafficSecret() {
             if self.connection.isClient {
-                print("Client: activate early traffic secret")
+                log("Client: activate early traffic secret")
                 self.recordLayer.changeWriteKeys(withTrafficSecret: self.handshakeState.clientEarlyTrafficSecret!)
                 
-                print("Client: key = \(self.recordLayer.writeEncryptionParameters!.key)")
+//                log("Client: key = \(self.recordLayer.writeEncryptionParameters!.key)")
             }
             else {
-                print("Server: activate early traffic secret")
+                log("Server: activate early traffic secret")
                 self.recordLayer.changeReadKeys(withTrafficSecret: self.handshakeState.clientEarlyTrafficSecret!)
 
-                print("Server: key = \(self.recordLayer.readEncryptionParameters!.key)")
+//                log("Server: key = \(self.recordLayer.readEncryptionParameters!.key)")
             }
         }
         

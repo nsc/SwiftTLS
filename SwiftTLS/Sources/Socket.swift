@@ -286,7 +286,7 @@ extension Socket : ServerSocketProtocol
         #endif
 
         if let address = IPAddress.peerName(with: clientSocket) {
-            print("Connection from \(address)")
+            log("Connection from \(address)")
         }
         
         if clientSocket == Int32(-1) {

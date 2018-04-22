@@ -402,7 +402,7 @@ extension TLS1_2 {
                         var paddingIsCorrect = (paddingLength < message.count)
                         paddingIsCorrect = paddingIsCorrect && (message[(message.count - paddingLength) ..< message.count].filter({$0 != padding}).count == 0)
                         if !paddingIsCorrect {
-                            print("Error: could not decrypt message")
+                            log("Error: could not decrypt message")
                             return nil
                         }
                         messageLength -= paddingLength
@@ -418,7 +418,7 @@ extension TLS1_2 {
                         return messageContent
                     }
                     else {
-                        print("Error: MAC doesn't match")
+                        log("Error: MAC doesn't match")
                     }
                 }
             }

@@ -44,7 +44,7 @@ extension TLS1_2 {
         
         func didSendMessage(_ message : TLSMessage)
         {
-            print("Server: did send message \(TLSMessageNameForType(message.type))")
+            log("Server: did send message \(TLSMessageNameForType(message.type))")
         }
         
         func serverDidSendHandshakeMessage(_ message : TLSHandshakeMessage) throws
@@ -84,26 +84,26 @@ extension TLS1_2 {
                 try self.transitionTo(state: .finishedSent)
                 
             default:
-                print("Unsupported handshake message \(message.handshakeType)")
+                log("Unsupported handshake message \(message.handshakeType)")
             }
         }
         
         func didSendChangeCipherSpec() throws
         {
-            print("did send change cipher spec")
+            log("did send change cipher spec")
             try self.transitionTo(state: .changeCipherSpecSent)
             try self.protocolHandler!.sendFinished()
         }
         
         func didReceiveChangeCipherSpec() throws
         {
-            print("did receive change cipher spec")
+            log("did receive change cipher spec")
             try self.transitionTo(state: .changeCipherSpecReceived)
         }
         
         func serverDidReceiveHandshakeMessage(_ message : TLSHandshakeMessage) throws
         {
-            print("Server: did receive message \(TLSHandshakeMessageNameForType(message.handshakeType))")
+            log("Server: did receive message \(TLSHandshakeMessageNameForType(message.handshakeType))")
             
             let handshakeType = message.handshakeType
             
@@ -125,12 +125,12 @@ extension TLS1_2 {
                 }
                 
             default:
-                print("Unsupported handshake \(handshakeType.rawValue)")
+                log("Unsupported handshake \(handshakeType.rawValue)")
             }
         }
         
         func serverDidReceiveAlert(_ alert: TLSAlertMessage) {
-            print("Server: did receive message \(alert.alertLevel) \(alert.alert)")
+            log("Server: did receive message \(alert.alertLevel) \(alert.alert)")
         }
         
         func serverDidConnect() throws {

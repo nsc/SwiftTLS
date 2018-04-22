@@ -192,13 +192,13 @@ struct X509
                 guard let parameters = asn1sequence.objects[1] as? ASN1Sequence else { return nil }
                 
                 guard let hashAlgorithm = HashAlgorithm(oid: (((parameters[0] as? ASN1TaggedObject)?.object as? ASN1Sequence)?[0] as? ASN1ObjectIdentifier)?.oid ?? .sha1) else {
-                    print("Error: unsupported hash algorithm \(parameters)")
+                    log("Error: unsupported hash algorithm \(parameters)")
                     return nil
                 }
                 
                 let saltLength    = ((parameters[2] as? ASN1TaggedObject)?.object as? ASN1Integer) ?? ASN1Integer(value: [20])
                 guard let saltLengthInt = saltLength.intValue else {
-                    print("Error: ridiculously long salt length: \(saltLength.value)")
+                    log("Error: ridiculously long salt length: \(saltLength.value)")
                     return nil
                 }
                     
@@ -214,7 +214,7 @@ struct X509
                 self.algorithm = .ecPublicKey(curveName: oid, hash: .sha256)
 
             default:
-                print("Unsupported signature algorithm \(algorithmOID)")
+                log("Unsupported signature algorithm \(algorithmOID)")
                 return nil
             }
             
@@ -320,7 +320,7 @@ struct X509
                 return ECDSA(publicKeyInfo: publicKeyInfo)
                 
             default:
-                print("Unsuported certificate public key \(tbsCertificate.subjectPublicKeyInfo.algorithm.oid)")
+                log("Unsuported certificate public key \(tbsCertificate.subjectPublicKeyInfo.algorithm.oid)")
                 return nil
             }
         }

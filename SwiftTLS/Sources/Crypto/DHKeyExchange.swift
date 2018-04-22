@@ -52,7 +52,6 @@ public class DHKeyExchange
         
         
         if self.privateKey == nil {
-            print("Recalculate key pair")
             self.createKeyPair()
         }
         

@@ -122,8 +122,6 @@ extension RSA {
             return false
         }
 
-        print("verify: maskedDB = \(maskedDB)")
-
         let dbMask: [UInt8]
         do {
             dbMask = try mgf1(mgfSeed: h, maskLen: emLen - hLen - 1)
@@ -138,25 +136,19 @@ extension RSA {
         // DB to zero.
         db[0] &= 0xff as UInt8 >> leadingZeroBits
 
-        print("verify: db = \(db)")
-
         // Check that the leftmost emLen - hLen - sLen - 2 octets of db are zero
         for b in db[0..<emLen - hLen - sLen - 2] {
             if b != 0 {
-                print("leftmost \(emLen - hLen - sLen - 2) bits of db are not zero")
                 return false
             }
         }
         
         if db[emLen - hLen - sLen - 2] != 0x01 {
-            print("db[\(emLen - hLen - sLen - 2)] == \(db[emLen - hLen - sLen])")
             return false
         }
         
         let salt = [UInt8](db.suffix(sLen))
-        print("verify: salt = \(salt)")
         let mDash = [UInt8](repeating: 0, count: 8) + mHash + salt
-        print("verify: mDash = \(mDash)")
         let hDash = self.hash(mDash, hashAlgorithm: hashAlgorithm)
         
         return h == hDash

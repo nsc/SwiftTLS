@@ -66,7 +66,7 @@ public enum NamedGroup : UInt16 {
             return nil
         }
         
-        print("Named curve: 0x\(String(format: "%x", rawNamedCurve))")
+        log("Named curve: 0x\(String(format: "%x", rawNamedCurve))")
         self.init(rawValue: rawNamedCurve)
     }
 }
@@ -98,7 +98,7 @@ struct EllipticCurvePoint
     {
         // only uncompressed format is currently supported
         if data[0] != 4 {
-            print("Error: only uncompressed curve points are supported")
+            log("Error: only uncompressed curve points are supported")
             return nil
         }
         

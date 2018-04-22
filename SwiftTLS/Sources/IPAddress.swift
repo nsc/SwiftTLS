@@ -95,7 +95,7 @@ public class IPAddress : CustomStringConvertible
         var addressInfoPointer: UnsafeMutablePointer<addrinfo>? = nil
         let address : IPAddress? = hostname.utf8CString.withUnsafeBufferPointer {
             if getaddrinfo($0.baseAddress, nil, nil, &addressInfoPointer) != 0 {
-                print("Error: \(strerror(errno))")
+                log("Error: \(strerror(errno))")
                 return nil
             }
             

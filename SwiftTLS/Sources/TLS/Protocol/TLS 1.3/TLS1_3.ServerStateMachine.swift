@@ -44,7 +44,7 @@ extension TLS1_3 {
         
         func didSendMessage(_ message : TLSMessage)
         {
-            print("Server: did send message \(TLSMessageNameForType(message.type))")
+            log("Server: did send message \(TLSMessageNameForType(message.type))")
         }
         
         func serverDidSendHandshakeMessage(_ message : TLSHandshakeMessage) throws
@@ -89,13 +89,13 @@ extension TLS1_3 {
                 try self.transition(to: .newSessionTicketSent)
 
             default:
-                print("Unsupported handshake message \(message.handshakeType)")
+                log("Unsupported handshake message \(message.handshakeType)")
             }
         }
         
         func serverDidReceiveHandshakeMessage(_ message : TLSHandshakeMessage) throws
         {
-            print("Server: did receive message \(TLSHandshakeMessageNameForType(message.handshakeType))")
+            log("Server: did receive message \(TLSHandshakeMessageNameForType(message.handshakeType))")
             
             let handshakeType = message.handshakeType
             
@@ -120,12 +120,12 @@ extension TLS1_3 {
                 }
                                 
             default:
-                print("Unsupported handshake message \(handshakeType.rawValue)")
+                log("Unsupported handshake message \(handshakeType.rawValue)")
             }
         }
         
         func serverDidReceiveAlert(_ alert: TLSAlertMessage) {
-            print("Server: did receive message \(alert.alertLevel) \(alert.alert)")
+            log("Server: did receive message \(alert.alertLevel) \(alert.alert)")
         }
         
         func serverDidConnect() throws {
