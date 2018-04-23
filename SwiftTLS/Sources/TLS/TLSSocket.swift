@@ -283,6 +283,14 @@ public class TLSSocket : SocketProtocol, TLSDataProvider
         }
     }
     
+    public var cipherSuite: CipherSuite? {
+        return self.connection?.cipherSuite
+    }
+    
+    public var negotiatedProtocolVersion: TLSProtocolVersion? {
+        return self.connection?.negotiatedProtocolVersion
+    }
+
     var socket : TCPSocket!
     
     public init(connection: TLSConnection)
@@ -350,10 +358,6 @@ public class TLSClientSocket : TLSSocket, ClientSocketProtocol
 {
     public var context: TLSContext {
         return self.client.context
-    }
-    
-    public var cipherSuite: CipherSuite? {
-        return self.connection.cipherSuite
     }
     
     private var client: TLSClient {
@@ -479,7 +483,7 @@ public class TLSServerSocket : TLSSocket, ServerSocketProtocol
     public enum AcceptConnectionResult
     {
         case error(Error)
-        case client(SocketProtocol)
+        case client(TLSSocket)
     }
 
     public func acceptConnection(withEarlyDataResponseHandler earlyDataResponseHandler: EarlyDataResponseHandler?, completionHandler: @escaping (AcceptConnectionResult) -> ()) throws

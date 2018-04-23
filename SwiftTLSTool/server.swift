@@ -82,7 +82,7 @@ func server(address: IPAddress, certificatePath: String, dhParametersPath : Stri
     while true {
         do {
             try server.acceptConnection(withEarlyDataResponseHandler: nil) { result in
-                var clientSocket: SocketProtocol
+                var clientSocket: TLSSocket
                 switch result {
                 case .client(let socket):
                     clientSocket = socket
@@ -95,16 +95,23 @@ func server(address: IPAddress, certificatePath: String, dhParametersPath : Stri
                 while true {
                     do {
                         let data = try clientSocket.read(count: 4096)
-                        let string = String.fromUTF8Bytes(data)!
-                        log("Client Request:\n\(string)")
-                        if string.hasPrefix("GET ") {
-                            let httpHeader = parseHTTPHeader(string)
+                        let clientRequest = String.fromUTF8Bytes(data)!
+                        let response = """
+                        TLS Version: \(clientSocket.negotiatedProtocolVersion!)
+                        Cipher: \(clientSocket.cipherSuite!)
+
+                        Your Request:
+                        \(clientRequest)
+                        """
+                        log("Client Request:\n\(clientRequest)")
+                        if clientRequest.hasPrefix("GET ") {
+                            let httpHeader = parseHTTPHeader(clientRequest)
                             
                             let clientWantsMeToCloseTheConnection = (httpHeader["Connection"]?.lowercased() == "close")
                             
-                            let contentLength = string.utf8.count
+                            let contentLength = response.utf8.count
                             let header = "HTTP/1.0 200 OK\r\nConnection: Close\r\nContent-Length: \(contentLength)\r\n\r\n"
-                            let body = "\(string)"
+                            let body = "\(response)"
                             try clientSocket.write(header + body)
                             
                             if clientWantsMeToCloseTheConnection {
