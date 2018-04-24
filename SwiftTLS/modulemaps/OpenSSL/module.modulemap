@@ -1,6 +1,6 @@
 module OpenSSL [system] {
-    header "../../../external/openssl/openssl/bn.h"
-    header "../../../external/openssl/openssl/rsa.h"
-    header "../../../external/openssl/openssl/opensslconf.h"
+    header "../../../SwiftTLSTests/external/openssl/openssl/bn.h"
+    header "../../../SwiftTLSTests/external/openssl/openssl/rsa.h"
+    header "../../../SwiftTLSTests/external/openssl/openssl/opensslconf.h"
     export *
 }

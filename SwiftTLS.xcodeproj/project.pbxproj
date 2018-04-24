@@ -381,7 +381,6 @@
 		03686BF21D26E45100CF88E2 /* mycert2.pem */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = mycert2.pem; sourceTree = "<group>"; };
 		03686BF41D270AE400CF88E2 /* rfc3447.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = rfc3447.txt; sourceTree = "<group>"; };
 		036A7C131B07C26800AE46F8 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
-		036C47401AC70BEB007C5501 /* NSDataVsArrayPerformanceTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = NSDataVsArrayPerformanceTests.swift; path = ../../SwiftTLSTests/NSDataVsArrayPerformanceTests.swift; sourceTree = "<group>"; };
 		037FC47F1D623B0D009049EC /* rfc5116.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = rfc5116.txt; sourceTree = "<group>"; };
 		037FC4911D623B8F009049EC /* rfc5289.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = rfc5289.txt; sourceTree = "<group>"; };
 		038F68541C428F1000C66050 /* OIDTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = OIDTests.swift; sourceTree = "<group>"; };
@@ -625,7 +624,6 @@
 				0355C0D920825A71007B19A2 /* SHA256Tests.swift */,
 				03091EF120850F730068C085 /* SHA384Tests.swift */,
 				03091EEF20850B7F0068C085 /* SHA512Tests.swift */,
-				036C47401AC70BEB007C5501 /* NSDataVsArrayPerformanceTests.swift */,
 				033AC36C1AC473730004EEC1 /* Supporting Files */,
 			);
 			name = SwiftTLSTests;
@@ -646,7 +644,7 @@
 				033B63C11B2348190019F3FA /* openssl */,
 			);
 			name = external;
-			path = ../../SwiftTLSTests;
+			path = ../../SwiftTLSTests/external;
 			sourceTree = "<group>";
 		};
 		033B63C11B2348190019F3FA /* openssl */ = {
@@ -671,9 +669,8 @@
 				033B642E1B2348190019F3FA /* rsa */,
 				033B643A1B2348190019F3FA /* stack */,
 			);
-			name = openssl;
-			path = external/openssl;
-			sourceTree = SOURCE_ROOT;
+			path = openssl;
+			sourceTree = "<group>";
 		};
 		033B63C21B2348190019F3FA /* bf */ = {
 			isa = PBXGroup;
@@ -1518,7 +1515,7 @@
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
 				);
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path @loader_path/../Frameworks $(TOOLCHAIN_DIR)/usr/lib/swift/macosx";
-				MACOSX_DEPLOYMENT_TARGET = 10.12;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_FORCE_DYNAMIC_LINK_STDLIB = YES;
 				SWIFT_FORCE_STATIC_LINK_STDLIB = NO;
@@ -1543,7 +1540,7 @@
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
 				);
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path @loader_path/../Frameworks $(TOOLCHAIN_DIR)/usr/lib/swift/macosx";
-				MACOSX_DEPLOYMENT_TARGET = 10.12;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_FORCE_DYNAMIC_LINK_STDLIB = YES;
 				SWIFT_FORCE_STATIC_LINK_STDLIB = NO;
@@ -1571,7 +1568,7 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
 				LINK_WITH_STANDARD_LIBRARIES = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.12;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
 				PRODUCT_BUNDLE_IDENTIFIER = com.savoysoftware.SwiftTLS;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1601,7 +1598,7 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
 				LINK_WITH_STANDARD_LIBRARIES = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.12;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
 				PRODUCT_BUNDLE_IDENTIFIER = com.savoysoftware.SwiftTLS;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1620,7 +1617,7 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
-				HEADER_SEARCH_PATHS = external/openssl;
+				HEADER_SEARCH_PATHS = SwiftTLSTests/external/openssl;
 				INFOPLIST_FILE = Tests/SwiftTLSTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.savoysoftware.SwiftTLSTests;
@@ -1635,7 +1632,7 @@
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
 				GCC_NO_COMMON_BLOCKS = YES;
-				HEADER_SEARCH_PATHS = external/openssl;
+				HEADER_SEARCH_PATHS = SwiftTLSTests/external/openssl;
 				INFOPLIST_FILE = Tests/SwiftTLSTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.savoysoftware.SwiftTLSTests;
