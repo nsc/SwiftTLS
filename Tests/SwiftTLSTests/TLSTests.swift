@@ -5,22 +5,20 @@
 //  Copyright (c) 2015 Nico Schmidt. All rights reserved.
 //
 
-import Cocoa
 import XCTest
 @testable import SwiftTLS
 
-class TSLTests: XCTestCase {
-    
-    override func setUp() {
-        super.setUp()
-    }
-    
-    override func tearDown() {
-        super.tearDown()
-    }
+class TLSTests: XCTestCase {
+    static var allTests = [
+        ("test_acceptConnection_whenClientConnectsWithNeitherClientNorServerSupportingEarlyData_works", test_acceptConnection_whenClientConnectsWithNeitherClientNorServerSupportingEarlyData_works),
+        ("test_acceptConnection_whenClientConnectsWithClientSupportingEarlyDataAndServerRejectingIt_works", test_acceptConnection_whenClientConnectsWithClientSupportingEarlyDataAndServerRejectingIt_works),
+        ("test_acceptConnection_whenClientConnectsWithServerSupportingEarlyDataButClientNot_works", test_acceptConnection_whenClientConnectsWithServerSupportingEarlyDataButClientNot_works),
+        ("test_acceptConnection_whenClientConnectsWithBothClientAndServerSupportingEarlyData_works", test_acceptConnection_whenClientConnectsWithBothClientAndServerSupportingEarlyData_works),
+        ("test_acceptConnection_whenClientConnects_works", test_acceptConnection_whenClientConnects_works),
+    ]
 
     func notest_connectTLS() {
-        let certificatePath = Bundle(for: type(of: self)).url(forResource: "mycert.pem", withExtension: nil)!.path
+        let certificatePath = path(forResource: "mycert.pem")
         let opensslServer = Process.launchedProcess(launchPath: "/usr/local/bin/openssl", arguments: ["s_server",  "-cert", certificatePath, "-www",  "-debug", "-cipher", "ALL:NULL" ])
         
         // wait for server to be up
@@ -62,8 +60,8 @@ class TSLTests: XCTestCase {
         var configuration = TLSConfiguration(supportedVersions: supportedVersions)
         
         configuration.cipherSuites = [cipherSuite]
-        configuration.identity = PEMFileIdentity(pemFile: Bundle(for: type(of: self)).url(forResource: "mycert.pem", withExtension: nil)!.path)
-        let dhParametersPath = Bundle(for: type(of: self)).url(forResource: "dhparams.pem", withExtension: nil)!.path
+        configuration.identity = PEMFileIdentity(pemFile: path(forResource: "mycert.pem"))
+        let dhParametersPath = path(forResource: "dhparams.pem")
         configuration.dhParameters = DiffieHellmanParameters.fromPEMFile(dhParametersPath)
         configuration.ecdhParameters = ECDiffieHellmanParameters(namedCurve: .secp256r1)
         

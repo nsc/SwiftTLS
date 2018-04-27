@@ -11,6 +11,11 @@ import XCTest
 @testable import SwiftTLS
 
 class TLSVersionTests: XCTestCase {
+    static var allTests = [
+        ("test_receiveClientHello_withLowerUnknownVersion_abortsHandshake", test_receiveClientHello_withLowerUnknownVersion_abortsHandshake),
+        ("test_receiveServerHello_withUnknownVersion_abortsHandshake", test_receiveServerHello_withUnknownVersion_abortsHandshake),
+        ("test_receiveServerHello_withLowerVersionThanWeAdvertisedButHigherOrEqualToMinimumSupportedVersion_dropsToMinimumVersion", test_receiveServerHello_withLowerVersionThanWeAdvertisedButHigherOrEqualToMinimumSupportedVersion_dropsToMinimumVersion),
+    ]
 
     struct Alert: Error {}
     class Server : TLSServer

@@ -6,21 +6,13 @@
 //  Copyright (c) 2015 Nico Schmidt. All rights reserved.
 //
 
-import Cocoa
 import XCTest
 @testable import SwiftTLS
 
 class TLSClientKeyExchangeTests: XCTestCase {
-
-    override func setUp() {
-        super.setUp()
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-    }
-    
-    override func tearDown() {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
-        super.tearDown()
-    }
+    static var allTests = [
+        ("test_writeTo__givesDataFromWhichTheSameMessageCanBeConstructed", test_writeTo__givesDataFromWhichTheSameMessageCanBeConstructed),
+    ]
 
     func test_writeTo__givesDataFromWhichTheSameMessageCanBeConstructed()
     {

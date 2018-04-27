@@ -5,7 +5,6 @@
 //  Copyright (c) 2015 Nico Schmidt. All rights reserved.
 //
 
-import Cocoa
 import XCTest
 @testable import SwiftTLS
 
@@ -22,7 +21,13 @@ extension TLSConnection {
 }
 
 class TLSServerHelloTests: XCTestCase {
-    
+    static var allTests = [
+        ("test_writeTo__givesCorrectBinaryRepresentation", test_writeTo__givesCorrectBinaryRepresentation),
+        ("test_initWithBinaryInputStream_givesClientHello", test_initWithBinaryInputStream_givesClientHello),
+        ("test_initWithBinaryInputStream_hasCorrectRandom", test_initWithBinaryInputStream_hasCorrectRandom),
+        ("test_initWithBinaryInputStream_hasCorrectCipherSuites", test_initWithBinaryInputStream_hasCorrectCipherSuites),
+    ]
+
     func test_writeTo__givesCorrectBinaryRepresentation() {
         let random = Random()
         let clientHello = TLSServerHello(

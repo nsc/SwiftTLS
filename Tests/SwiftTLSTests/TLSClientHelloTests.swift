@@ -5,11 +5,17 @@
 //  Copyright (c) 2015 Nico Schmidt. All rights reserved.
 //
 
-import Cocoa
 import XCTest
 @testable import SwiftTLS
 
 class TLSClientHelloTests: XCTestCase {
+    static var allTests = [
+        ("test_writeTo__givesCorrectBinaryRepresentation", test_writeTo__givesCorrectBinaryRepresentation),
+        ("test_initWithBinaryInputStream_givesClientHello", test_initWithBinaryInputStream_givesClientHello),
+        ("test_initWithBinaryInputStream_hasCorrectRandom", test_initWithBinaryInputStream_hasCorrectRandom),
+        ("test_initWithBinaryInputStream_hasCorrectCipherSuites", test_initWithBinaryInputStream_hasCorrectCipherSuites),
+        ("test_init_withDataWrittenWithWriteTo_resultsInSameAsWeStartedWith", test_init_withDataWrittenWithWriteTo_resultsInSameAsWeStartedWith),
+    ]
 
     func test_writeTo__givesCorrectBinaryRepresentation() {
         let random = Random()

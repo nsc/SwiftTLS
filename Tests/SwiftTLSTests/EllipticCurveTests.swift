@@ -10,6 +10,20 @@ import XCTest
 @testable import SwiftTLS
 
 class EllipticCurveTests: XCTestCase {
+    static var allTests = [
+        ("test_sign_someData_verifies", test_sign_someData_verifies),
+        ("test_secp256r1_exists", test_secp256r1_exists),
+        ("test_secp256r1_isConsistent", test_secp256r1_isConsistent),
+        ("test_secp521r1_exists", test_secp521r1_exists),
+        ("test_secp521r1_isConsistent", test_secp521r1_isConsistent),
+        ("test_isOnCurve_G_isCalculatedCorrectly", test_isOnCurve_G_isCalculatedCorrectly),
+        ("test_doublePoint_G_isCalculatedCorrectly", test_doublePoint_G_isCalculatedCorrectly),
+        ("test_addPoints_GAnd4G_isCalculatedCorrectly", test_addPoints_GAnd4G_isCalculatedCorrectly),
+        ("test_multiplyPoint_Gtimes2_isCalculatedCorrectly", test_multiplyPoint_Gtimes2_isCalculatedCorrectly),
+        ("test_multiplyPoint_Gtimes4_isCalculatedCorrectly", test_multiplyPoint_Gtimes4_isCalculatedCorrectly),
+        ("test_multiplyPoint_withSomeNumber_yieldsPointOnCurve", test_multiplyPoint_withSomeNumber_yieldsPointOnCurve),
+        ("test_multiplyPoint_onWellKnownCurve_yieldsCorrectResults", test_multiplyPoint_onWellKnownCurve_yieldsCorrectResults),
+    ]
 
     func test_secp256r1_exists()
     {

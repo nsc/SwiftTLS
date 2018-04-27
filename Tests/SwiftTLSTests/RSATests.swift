@@ -10,10 +10,17 @@ import XCTest
 @testable import SwiftTLS
 
 class RSATests: XCTestCase {
+    static var allTests = [
+        ("test_RSA_PSS_sign_someData_verifies", test_RSA_PSS_sign_someData_verifies),
+        ("test_verify_signatureFromSelfSignedRSAPSSCertificate_verifies", test_verify_signatureFromSelfSignedRSAPSSCertificate_verifies),
+        ("test_verify_signatureFromSelfSignedRSACertificate_verifies", test_verify_signatureFromSelfSignedRSACertificate_verifies),
+        ("test_sign_someData_verifies", test_sign_someData_verifies),
+        ("test_decrypt_encryptedData_givesOriginalData", test_decrypt_encryptedData_givesOriginalData),
+    ]
     
     func test_sign_someData_verifies()
     {
-        let certificatePath = Bundle(for: type(of: self)).url(forResource: "mycert.pem", withExtension: nil)!.path
+        let certificatePath = path(forResource: "mycert.pem")
 
         guard var rsa = RSA.fromPEMFile(certificatePath) else {
             XCTFail()
@@ -38,7 +45,7 @@ class RSATests: XCTestCase {
 
     func test_decrypt_encryptedData_givesOriginalData()
     {
-        let certificatePath = Bundle(for: type(of: self)).url(forResource: "mycert.pem", withExtension: nil)!.path
+        let certificatePath = path(forResource: "mycert.pem")
         
         guard let rsa = RSA.fromPEMFile(certificatePath) else {
             XCTFail()
@@ -61,9 +68,8 @@ class RSATests: XCTestCase {
     }
 
     func test_verify_signatureFromSelfSignedRSAPSSCertificate_verifies() {
-        let url = Bundle(for: type(of: self)).url(forResource: "Self Signed RSA-PSS SHA-256.pem", withExtension: nil)
-//        let data = try! Data(contentsOf: url!)
-        guard let cert = X509.Certificate(PEMFile: url!.path) else { XCTFail(); return }
+        let certificatePath = path(forResource: "Self Signed RSA-PSS SHA-256.pem")
+        guard let cert = X509.Certificate(PEMFile: certificatePath) else { XCTFail(); return }
         
         let tbsData     = cert.tbsCertificate.DEREncodedCertificate!
         let publicKey   = cert.tbsCertificate.subjectPublicKeyInfo.subjectPublicKey
@@ -78,7 +84,7 @@ class RSATests: XCTestCase {
     
     func test_verify_signatureFromSelfSignedRSACertificate_verifies()
     {
-        let certificatePath = Bundle(for: type(of: self)).path(forResource: "Self Signed RSA SHA-256.cer", ofType: "")!
+        let certificatePath = path(forResource: "Self Signed RSA SHA-256.cer")
         let data = (try! Data(contentsOf: URL(fileURLWithPath: certificatePath))).UInt8Array()
         
         guard let cert = X509.Certificate(derData: data) else { XCTFail(); return }
@@ -96,7 +102,7 @@ class RSATests: XCTestCase {
     
     func test_RSA_PSS_sign_someData_verifies()
     {
-        let certificatePath = Bundle(for: type(of: self)).url(forResource: "mycert.pem", withExtension: nil)!.path
+        let certificatePath = path(forResource: "mycert.pem")
         
         guard var rsa = RSA.fromPEMFile(certificatePath) else {
             XCTFail()

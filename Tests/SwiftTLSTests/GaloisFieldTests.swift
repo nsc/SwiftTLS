@@ -10,6 +10,10 @@ import XCTest
 @testable import SwiftTLS
 
 class GaloisFieldTests: XCTestCase {
+    static var allTests = [
+        ("test_rightshift_works", test_rightshift_works),
+        ("test_leftshift_works", test_leftshift_works),
+    ]
 
     func test_rightshift_works()
     {

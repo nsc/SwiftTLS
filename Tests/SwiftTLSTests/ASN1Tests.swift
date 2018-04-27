@@ -6,24 +6,36 @@
 //  Copyright (c) 2015 Nico Schmidt. All rights reserved.
 //
 
-import Cocoa
 import XCTest
 @testable import SwiftTLS
 
 class ASN1Tests: XCTestCase {
-
-    override func setUp() {
-        super.setUp()
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-    }
+    static var allTests = [
+        ("test_read_DHParams", test_read_DHParams),
+        ("test_parseObject_withATrueBooleanEncoded_givesCorrectResult", test_parseObject_withATrueBooleanEncoded_givesCorrectResult),
+        ("test_parseObject_withAFalseBooleanEncoded_givesCorrectResult", test_parseObject_withAFalseBooleanEncoded_givesCorrectResult),
+        ("test_parseObject_withAnOneByteIntegerEncoded_givesCorrectResult", test_parseObject_withAnOneByteIntegerEncoded_givesCorrectResult),
+        ("test_parseObject_withAnOneByteBEREncodedEncoded_givesCorrectResult", test_parseObject_withAnOneByteBEREncodedEncoded_givesCorrectResult),
+        ("test_parseObject_withDEREncodedBitString1_givesCorrectResult", test_parseObject_withDEREncodedBitString1_givesCorrectResult),
+        ("test_parseObject_withDEREncodedBitString2_givesCorrectResult", test_parseObject_withDEREncodedBitString2_givesCorrectResult),
+        ("test_parseObject_withDEREncodedBitString3_givesCorrectResult", test_parseObject_withDEREncodedBitString3_givesCorrectResult),
+        ("test_parseObject_withBERConstructedEncodedBitString_givesCorrectResult", test_parseObject_withBERConstructedEncodedBitString_givesCorrectResult),
+        ("test_dataForObject_trueASN1Boolean_givesCorrectResult", test_dataForObject_trueASN1Boolean_givesCorrectResult),
+        ("test_dataForObject_falseASN1Boolean_givesCorrectResult", test_dataForObject_falseASN1Boolean_givesCorrectResult),
+        ("test_dataForObject_forSomeASN1Integers_givesCorrectResult", test_dataForObject_forSomeASN1Integers_givesCorrectResult),
+        ("test_dataForObject_ASN1Null_givesCorrectResult", test_dataForObject_ASN1Null_givesCorrectResult),
+        ("test_dataForObject_ASN1BitStringWithVariousContents_givesCorrectResult", test_dataForObject_ASN1BitStringWithVariousContents_givesCorrectResult),
+        ("test_dataForObject_ASN1OctetStringWithVariousContents_givesCorrectResult", test_dataForObject_ASN1OctetStringWithVariousContents_givesCorrectResult),
+        ("test_dataForObject_ASN1ObjectIdentifierWithVariousContentObjects_givesCorrectResult", test_dataForObject_ASN1ObjectIdentifierWithVariousContentObjects_givesCorrectResult),
+        ("test_dataForObject_ASN1UTF8StringWithVariousContentObjects_givesCorrectResult", test_dataForObject_ASN1UTF8StringWithVariousContentObjects_givesCorrectResult),
+        ("test_dataForObject_ASN1SequenceWithVariousContentObjects_givesCorrectResult", test_dataForObject_ASN1SequenceWithVariousContentObjects_givesCorrectResult),
+        ("test_dataForObject_ASN1SetWithVariousContentObjects_givesCorrectResult", test_dataForObject_ASN1SetWithVariousContentObjects_givesCorrectResult),
+        ("test_Certificate_fromDEREncodedECDSACertificate_canBeReadCorrectly", test_Certificate_fromDEREncodedECDSACertificate_canBeReadCorrectly),
+        ("test_Certificate_fromDEREncodedRSACertificate_canBeReadCorrectly", test_Certificate_fromDEREncodedRSACertificate_canBeReadCorrectly),
+    ]
     
-    override func tearDown() {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
-        super.tearDown()
-    }
-
     func test_read_DHParams () {
-        let dhParametersPath = Bundle(for: type(of: self)).url(forResource: "dhparams.pem", withExtension: nil)!.path
+        let dhParametersPath = path(forResource: "dhparams.pem")
         guard let object = ASN1Parser.objectFromPEMFile(dhParametersPath) else {
             XCTFail()
             return
@@ -315,7 +327,7 @@ class ASN1Tests: XCTestCase {
     
     func test_Certificate_fromDEREncodedECDSACertificate_canBeReadCorrectly()
     {
-        let certificatePath = Bundle(for: type(of: self)).path(forResource: "Self Signed ECDSA Certificate.cer", ofType: "")!
+        let certificatePath = path(forResource: "Self Signed ECDSA Certificate.cer")
         let data = (try! Data(contentsOf: URL(fileURLWithPath: certificatePath))).UInt8Array()
 
         guard X509.Certificate(derData: data) != nil else { XCTFail(); return }
@@ -323,7 +335,7 @@ class ASN1Tests: XCTestCase {
     
     func test_Certificate_fromDEREncodedRSACertificate_canBeReadCorrectly()
     {
-        let certificatePath = Bundle(for: type(of: self)).path(forResource: "Self Signed RSA Certificate.cer", ofType: "")!
+        let certificatePath = path(forResource: "Self Signed RSA Certificate.cer")
         let data = (try! Data(contentsOf: URL(fileURLWithPath: certificatePath))).UInt8Array()
         
         guard X509.Certificate(derData: data) != nil else { XCTFail(); return }

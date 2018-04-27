@@ -10,6 +10,11 @@ import XCTest
 @testable import SwiftTLS
 
 class SHA256Tests: XCTestCase {
+    static var allTests = [
+        ("test_sha256_withOneBlockMessage_givesCorrectDigest", test_sha256_withOneBlockMessage_givesCorrectDigest),
+        ("test_sha256_withMultiBlockMessage_givesCorrectDigest", test_sha256_withMultiBlockMessage_givesCorrectDigest),
+        ("test_sha256_withLongMessage_givesCorrectDigest", test_sha256_withLongMessage_givesCorrectDigest),
+    ]
 
     func test_sha256_withOneBlockMessage_givesCorrectDigest() {
         let sha = SHA256()

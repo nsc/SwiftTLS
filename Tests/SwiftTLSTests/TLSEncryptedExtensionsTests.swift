@@ -10,16 +10,9 @@ import XCTest
 @testable import SwiftTLS
 
 class TLSEncryptedExtensionsTests: XCTestCase {
-
-    override func setUp() {
-        super.setUp()
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-    }
-    
-    override func tearDown() {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
-        super.tearDown()
-    }
+    static var allTests = [
+        ("test_writeTo_withSomeExtensions_givesDataFromWhichTheSameMessageCanBeConstructed", test_writeTo_withSomeExtensions_givesDataFromWhichTheSameMessageCanBeConstructed),
+    ]
 
     func test_writeTo_withSomeExtensions_givesDataFromWhichTheSameMessageCanBeConstructed() {
         let encryptedExtensions = TLS1_3.TLSEncryptedExtensions(extensions: [])
@@ -28,10 +21,7 @@ class TLSEncryptedExtensionsTests: XCTestCase {
         var data: [UInt8] = []
         encryptedExtensions.writeTo(&data, context: context)
         
-        if let copy = TLS1_3.TLSEncryptedExtensions(inputStream: BinaryInputStream(data), context: context) {
-//            XCTAssert(encryptedExtensions.extensions == copy.extensions)
-        }
-        else {
+        if TLS1_3.TLSEncryptedExtensions(inputStream: BinaryInputStream(data), context: context) == nil {
             XCTFail()
         }
     }

@@ -11,6 +11,12 @@
 import XCTest
 
 class BlockCipherTests : XCTestCase {
+    static var allTests = [
+        ("test_GCM_encryption_works", test_GCM_encryption_works),
+        ("test_CBC_encryptionAndSuccessiveDecryption_works", test_CBC_encryptionAndSuccessiveDecryption_works),
+        ("test_GCM_decryption_works", test_GCM_decryption_works),
+    ]
+
     func test_CBC_encryptionAndSuccessiveDecryption_works()
     {
         let key = TLSRandomBytes(count: 16)

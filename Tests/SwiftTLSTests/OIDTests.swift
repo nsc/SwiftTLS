@@ -10,6 +10,9 @@ import XCTest
 @testable import SwiftTLS
 
 class OIDTests: XCTestCase {
+    static var allTests = [
+        ("test_identifier_withSomeTestVectors_givesCorrectResult", test_identifier_withSomeTestVectors_givesCorrectResult),
+    ]
 
     func test_identifier_withSomeTestVectors_givesCorrectResult()
     {

@@ -10,7 +10,12 @@ import XCTest
 @testable import SwiftTLS
 
 class SHA224Tests: XCTestCase {
-    
+    static var allTests = [
+        ("test_sha224_withOneBlockMessage_givesCorrectDigest", test_sha224_withOneBlockMessage_givesCorrectDigest),
+        ("test_sha224_withMultiBlockMessage_givesCorrectDigest", test_sha224_withMultiBlockMessage_givesCorrectDigest),
+        ("test_sha224_withLongMessage_givesCorrectDigest", test_sha224_withLongMessage_givesCorrectDigest),
+    ]
+
     func test_sha224_withOneBlockMessage_givesCorrectDigest() {
         let sha = SHA224()
         sha.update([UInt8]("abc".utf8))

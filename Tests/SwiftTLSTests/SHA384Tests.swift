@@ -11,7 +11,12 @@ import XCTest
 @testable import SwiftTLS
 
 class SHA384Tests: XCTestCase {
-    
+    static var allTests = [
+        ("test_sha384_withOneBlockMessage_givesCorrectDigest", test_sha384_withOneBlockMessage_givesCorrectDigest),
+        ("test_sha384_withMultiBlockMessage_givesCorrectDigest", test_sha384_withMultiBlockMessage_givesCorrectDigest),
+        ("test_sha384_withLongMessage_givesCorrectDigest", test_sha384_withLongMessage_givesCorrectDigest),
+    ]
+
     func test_sha384_withOneBlockMessage_givesCorrectDigest() {
         let sha = SHA384()
         sha.update([UInt8]("abc".utf8))

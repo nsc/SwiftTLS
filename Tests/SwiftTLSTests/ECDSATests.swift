@@ -10,10 +10,13 @@ import XCTest
 @testable import SwiftTLS
 
 class ECDSATests: XCTestCase {
+    static var allTests = [
+        ("test_verify_signatureFromSelfSignedECDSACertificate_verifies", test_verify_signatureFromSelfSignedECDSACertificate_verifies),
+    ]
 
     func test_verify_signatureFromSelfSignedECDSACertificate_verifies()
     {
-        let certificatePath = Bundle(for: type(of: self)).path(forResource: "Self Signed ECDSA Certificate.cer", ofType: "")!
+        let certificatePath = path(forResource: "Self Signed ECDSA Certificate.cer")
         let data = (try! Data(contentsOf: URL(fileURLWithPath: certificatePath))).UInt8Array()
         
         guard let cert = X509.Certificate(derData: data) else { XCTFail(); return }

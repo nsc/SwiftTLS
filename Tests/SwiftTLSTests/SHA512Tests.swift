@@ -10,6 +10,11 @@ import XCTest
 @testable import SwiftTLS
 
 class SHA512Tests: XCTestCase {
+    static var allTests = [
+        ("test_sha512_withOneBlockMessage_givesCorrectDigest", test_sha512_withOneBlockMessage_givesCorrectDigest),
+        ("test_sha512_withMultiBlockMessage_givesCorrectDigest", test_sha512_withMultiBlockMessage_givesCorrectDigest),
+        ("test_sha512_withLongMessage_givesCorrectDigest", test_sha512_withLongMessage_givesCorrectDigest),
+    ]
     
     func test_sha512_withOneBlockMessage_givesCorrectDigest() {
         let sha = SHA512()

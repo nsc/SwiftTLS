@@ -1,6 +1,6 @@
 module OpenSSL [system] {
-    header "../../../SwiftTLSTests/external/openssl/openssl/bn.h"
-    header "../../../SwiftTLSTests/external/openssl/openssl/rsa.h"
-    header "../../../SwiftTLSTests/external/openssl/openssl/opensslconf.h"
+    header "../../../Tests/macOS/external/openssl/openssl/bn.h"
+    header "../../../Tests/macOS/external/openssl/openssl/rsa.h"
+    header "../../../Tests/macOS/external/openssl/openssl/opensslconf.h"
     export *
 }

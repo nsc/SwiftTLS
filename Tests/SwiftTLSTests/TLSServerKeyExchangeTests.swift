@@ -10,6 +10,9 @@ import XCTest
 @testable import SwiftTLS
 
 class TLSServerKeyExchangeTests: XCTestCase {
+    static var allTests = [
+        ("test_handshakeMessageFromData_thatRepresentsAServerKeyExchange_actuallyCreatesAServerKeyExchange", test_handshakeMessageFromData_thatRepresentsAServerKeyExchange_actuallyCreatesAServerKeyExchange),
+    ]
 
     func test_handshakeMessageFromData_thatRepresentsAServerKeyExchange_actuallyCreatesAServerKeyExchange()
     {

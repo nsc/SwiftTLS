@@ -5,7 +5,6 @@
 //  Copyright (c) 2015 Nico Schmidt. All rights reserved.
 //
 
-import Cocoa
 import XCTest
 import OpenSSL
 
@@ -310,11 +309,7 @@ class BigIntTests: XCTestCase {
         let n = BigInt(hexString: hexString)!
         let nSquared = n * n
         
-        let s = BIGNUM_multiply(hexString, hexString)
-        
-        let nString = nSquared.hexString
-        
-        XCTAssert(nString.lowercased() == s.lowercased())
+        XCTAssert(nSquared.hexString.lowercased() == "14b66dc33f6acdcaa9aec1f2b88af3475ce7290")
     }
     
     func test_multiply_twoNumbers_givesCorrectResult()
@@ -407,15 +402,8 @@ class BigIntTests: XCTestCase {
 
     func test_mod_twoNumbers_givesCorrectResult()
     {
-//        for i in 0..<100
-//        {
-//            var u = randomBigInt()
-//            var v = randomBigInt()
-
         var u = BigInt(hexString: "85326D2CCF0482A8CE97268130C4D8442BE616FFA4141E74A040CD57F2310845E30828BE9EA51F0EC606A3213125FE6DBF09F4E29C3918B4FB49A2C5D80A2DA7FC8F41AB2836E4305B8DA998C8DA333994BA34ED47183E0A3DE83BCDF541F563E8D369E6C14F9D917800BE8AE5EC6BCE7BDF529A6D5C97EF5EC8587A9559199006929")!
         var v = BigInt(hexString: "1FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")!
-//            var u = BigInt([0x57, 0x36, 0xbe, 0xa7] as [UInt8])
-//            var v = BigInt([0xa4, 0xc3, 0xa7] as [UInt8])
         
             if u < v {
                 swap(&u, &v)
@@ -428,14 +416,12 @@ class BigIntTests: XCTestCase {
             let divHex = div.hexString
             
             if divHex.lowercased() != s.lowercased() {
-//                print("\(i):")
                 print("Wrong mod result for \(u) % \(v)")
                 print("    Should be       \(s)\n" +
                     "    but is actually \(divHex)")
             }
            
             XCTAssert(divHex.lowercased() == s.lowercased(), "Wrong division result for \(u) / \(v)")
-//        }
     }
 
     func test_mod_pow_withTwoRandomNumbers_givesCorrectResult()
@@ -445,20 +431,20 @@ class BigIntTests: XCTestCase {
             let u = randomBigInt()
             let mod = randomBigInt()
             let n = BigInt.Word(UInt64.random % 10000)
-            
+
             let s = BIGNUM_mod_pow(u.hexString, String(n, radix: 16), mod.hexString)
-            
+
             let result = modular_pow(u, BigInt(n), mod)
-            
+
             let divHex = result.hexString
-            
+
             if divHex.lowercased() != s.lowercased() {
                 print("\(i):")
                 print("Wrong mod_pow result for \(u) % \(n)")
                 print("    Should be       \(s)\n" +
                     "    but is actually \(divHex)")
             }
-            
+
             XCTAssert(divHex.lowercased() == s.lowercased(), "Wrong mod_pow result for \(u) ^ \(n) % \(mod)")
         }
     }
@@ -470,20 +456,20 @@ class BigIntTests: XCTestCase {
             let u = BigInt(3)
             let mod = randomBigInt()
             let n = randomBigInt()
-            
+
             let s = BIGNUM_mod_pow(u.hexString, n.hexString, mod.hexString)
-            
+
             let result = modular_pow(u, n, mod)
-            
+
             let divHex = result.hexString
-            
+
             if divHex.lowercased() != s.lowercased() {
                 print("\(i):")
                 print("Wrong mod_pow result for \(u) % \(n)")
                 print("    Should be       \(s)\n" +
                     "    but is actually \(divHex)")
             }
-            
+
             XCTAssert(divHex.lowercased() == s.lowercased(), "Wrong mod_pow result for \(u) ^ \(n) % \(mod)")
         }
     }

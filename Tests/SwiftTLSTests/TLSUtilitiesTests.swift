@@ -6,11 +6,15 @@
 //  Copyright (c) 2015 Nico Schmidt. All rights reserved.
 //
 
-import Cocoa
 import XCTest
 @testable import SwiftTLS
 
 class TLSUtilitiesTests: XCTestCase {
+    static var allTests = [
+        ("test_SHA1_withKnownValues_givesCorrectResult", test_SHA1_withKnownValues_givesCorrectResult),
+        ("test_P_SHA1_withKnownValues_givesCorrectResult", test_P_SHA1_withKnownValues_givesCorrectResult),
+        ("test_P_SHA256_withKnownValues_givesCorrectResult", test_P_SHA256_withKnownValues_givesCorrectResult),
+    ]
 
     func test_SHA1_withKnownValues_givesCorrectResult()
     {
