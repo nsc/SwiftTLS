@@ -383,6 +383,7 @@
 		036A7C131B07C26800AE46F8 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		037FC47F1D623B0D009049EC /* rfc5116.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = rfc5116.txt; sourceTree = "<group>"; };
 		037FC4911D623B8F009049EC /* rfc5289.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = rfc5289.txt; sourceTree = "<group>"; };
+		03805D1C209374550051ACB3 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = SOURCE_ROOT; };
 		038F68541C428F1000C66050 /* OIDTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = OIDTests.swift; sourceTree = "<group>"; };
 		03974A6F1AFE04D600248702 /* SocketTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SocketTests.swift; sourceTree = "<group>"; };
 		039ADDB81C2F39BC00EDF99B /* EllipticCurveTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EllipticCurveTests.swift; sourceTree = "<group>"; };
@@ -572,6 +573,7 @@
 		033AC3581AC473730004EEC1 /* SwiftTLS */ = {
 			isa = PBXGroup;
 			children = (
+				03805D1C209374550051ACB3 /* README.md */,
 				031BAED41C62849A00600133 /* RFCs */,
 				03E6B6D52088CAF00070EDFC /* Certificates */,
 				03E6B6DA2088CAF00070EDFC /* Crypto */,

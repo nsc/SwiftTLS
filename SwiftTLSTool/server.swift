@@ -65,7 +65,6 @@ func server(address: IPAddress, certificatePath: String, dhParametersPath : Stri
     var configuration = TLSConfiguration(supportedVersions: supportedVersions, identity: identity)
 
     configuration.cipherSuites = cipherSuites
-    //    configuration.identity = Identity(name: "Internet Widgits Pty Ltd")!
     if let dhParametersPath = dhParametersPath {
         configuration.dhParameters = DiffieHellmanParameters.fromPEMFile(dhParametersPath)
     }
