@@ -516,7 +516,7 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		031BAED41C62849A00600133 /* Documentation */ = {
+		031BAED41C62849A00600133 /* RFCs */ = {
 			isa = PBXGroup;
 			children = (
 				034DA90F1D0B6B3C0014C645 /* gcm-revised-spec.pdf */,
@@ -544,7 +544,7 @@
 				0320EB3D20753211007FAB4B /* rfc8017.txt */,
 				031BAEE41C62849A00600133 /* rsa-crt-leaks.pdf */,
 			);
-			path = Documentation;
+			path = RFCs;
 			sourceTree = SOURCE_ROOT;
 		};
 		033AC34D1AC473730004EEC1 = {
@@ -572,7 +572,7 @@
 		033AC3581AC473730004EEC1 /* SwiftTLS */ = {
 			isa = PBXGroup;
 			children = (
-				031BAED41C62849A00600133 /* Documentation */,
+				031BAED41C62849A00600133 /* RFCs */,
 				03E6B6D52088CAF00070EDFC /* Certificates */,
 				03E6B6DA2088CAF00070EDFC /* Crypto */,
 				03E6B6F02088CAF00070EDFC /* TLS */,
