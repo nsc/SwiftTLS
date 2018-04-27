@@ -102,7 +102,12 @@ func server(address: IPAddress, certificatePath: String, dhParametersPath : Stri
                         Your Request:
                         \(clientRequest)
                         """
-                        log("Client Request:\n\(clientRequest)")
+                        log("""
+                            TLS Version: \(clientSocket.negotiatedProtocolVersion!)
+                            Cipher: \(clientSocket.cipherSuite!)
+
+                            Client Request:\n\(clientRequest)
+                            """)
                         if clientRequest.hasPrefix("GET ") {
                             let httpHeader = parseHTTPHeader(clientRequest)
                             
