@@ -303,5 +303,9 @@ extension TLS1_2 {
             }
             
         }
+        
+        var connectionInfo: String {
+            return ""
+        }
     }
 }

@@ -32,7 +32,7 @@ func server(address: IPAddress, certificatePath: String, dhParametersPath : Stri
 {    
     log("Listening on port \(address.port)")
     
-    let supportedVersions: [TLSProtocolVersion] = [.v1_2]
+    let supportedVersions: [TLSProtocolVersion] = [.v1_3, .v1_2]
     
     var cipherSuites : [CipherSuite] = [
 //        .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
@@ -52,7 +52,7 @@ func server(address: IPAddress, certificatePath: String, dhParametersPath : Stri
     
     if supportedVersions.contains(.v1_3) {
         cipherSuites.append(contentsOf: [
-//            .TLS_AES_128_GCM_SHA256,
+            .TLS_AES_128_GCM_SHA256,
             .TLS_AES_256_GCM_SHA384
             ])
     }
@@ -96,18 +96,20 @@ func server(address: IPAddress, certificatePath: String, dhParametersPath : Stri
                         let data = try clientSocket.read(count: 4096)
                         let clientRequest = String.fromUTF8Bytes(data)!
                         let response = """
-                        TLS Version: \(clientSocket.negotiatedProtocolVersion!)
-                        Cipher: \(clientSocket.cipherSuite!)
-
+                        Date: \(Date())
+                        \(clientSocket.connectionInfo)
+                        
                         Your Request:
                         \(clientRequest)
                         """
+                        
                         log("""
-                            TLS Version: \(clientSocket.negotiatedProtocolVersion!)
-                            Cipher: \(clientSocket.cipherSuite!)
-
-                            Client Request:\n\(clientRequest)
+                            \(clientSocket.connectionInfo)
+                            
+                            Client Request:
+                            \(clientRequest)
                             """)
+                        
                         if clientRequest.hasPrefix("GET ") {
                             let httpHeader = parseHTTPHeader(clientRequest)
                             

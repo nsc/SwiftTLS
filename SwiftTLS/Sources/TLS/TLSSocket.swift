@@ -283,6 +283,14 @@ public class TLSSocket : SocketProtocol, TLSDataProvider
         }
     }
     
+    public var connectionInfo: String {
+        return """
+        TLS Version: \(self.negotiatedProtocolVersion!)
+        Cipher: \(self.cipherSuite!)
+        \(connection.info)
+        """
+    }
+    
     public var cipherSuite: CipherSuite? {
         return self.connection?.cipherSuite
     }

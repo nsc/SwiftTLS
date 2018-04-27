@@ -24,6 +24,10 @@ public class TLSConnection
         }
     }
     
+    var info: String {
+        return self.protocolHandler.connectionInfo
+    }
+    
     var serverNames: [String]?
     
     var cipherSuite: CipherSuite? {

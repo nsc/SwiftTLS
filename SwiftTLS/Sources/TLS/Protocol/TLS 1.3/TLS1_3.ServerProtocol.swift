@@ -33,6 +33,8 @@ extension TLS1_3 {
             return self.handshakeState as! ServerHandshakeState
         }
 
+        var currentTicket: Ticket?
+        
         init(server: TLSServer)
         {
             super.init(connection: server)
@@ -207,6 +209,7 @@ extension TLS1_3 {
                 }
                 
                 if let ticket = chosenTicket {
+                    currentTicket = ticket
                     log("Choose ticket \(ticket.identity)")
                 }
                 else {
@@ -396,6 +399,14 @@ extension TLS1_3 {
             }
 
             return nil
+        }
+        
+        var connectionInfo: String {
+            if let ticket = self.currentTicket {
+                return "Ticket:\n\(ticket)"
+            }
+            
+            return ""
         }
     }
 }

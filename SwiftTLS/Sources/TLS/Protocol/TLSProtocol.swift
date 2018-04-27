@@ -27,6 +27,8 @@ protocol TLSProtocol
     
     func sendCertificate() throws
     func sendFinished() throws
+    
+    var connectionInfo: String { get }
 }
 
 protocol TLSClientProtocol : TLSProtocol

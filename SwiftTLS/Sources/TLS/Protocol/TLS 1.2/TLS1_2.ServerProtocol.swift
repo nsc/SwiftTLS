@@ -282,7 +282,7 @@ extension TLS1_2 {
                 if let encryptedPreMasterSecret = clientKeyExchange.encryptedPreMasterSecret {
                     do {
                         preMasterSecret = try server.configuration.identity!.rsa!.decrypt(encryptedPreMasterSecret)
-                    } catch let error as RSA.Error {
+                    } catch _ as RSA.Error {
                         throw TLSError.alert(alert: .decryptError, alertLevel: .fatal)
                     }
                 }
@@ -296,6 +296,14 @@ extension TLS1_2 {
             }
             
             self.setPreMasterSecretAndCommitSecurityParameters(preMasterSecret)
+        }
+        
+        var connectionInfo: String {
+            if let session = server.currentSession {
+                return "Session ID: \(hex(session.sessionID.sessionID))"
+            }
+            
+            return ""
         }
     }
 }

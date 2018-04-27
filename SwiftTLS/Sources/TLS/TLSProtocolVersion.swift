@@ -59,7 +59,7 @@ public struct TLSProtocolVersion : RawRepresentable, CustomStringConvertible, Co
                 return "TLS v1.2"
 
             case TLSProtocolVersion.v1_3:
-                return "TLS v1.3"
+                return "TLS v1.3 draft-26"
 
             default:
                 return "Unknown TLS version \(_rawValue >> 8).\(_rawValue & 0xff)"

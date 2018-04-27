@@ -145,8 +145,6 @@ struct RSA
         else {
             return privateKeyRSA
         }
-        
-        return nil
     }
     
     init?(certificate: X509.Certificate)

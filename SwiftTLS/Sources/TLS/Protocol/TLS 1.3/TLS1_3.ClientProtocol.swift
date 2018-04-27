@@ -445,5 +445,9 @@ extension TLS1_3 {
             client.handshakeMessages.append(finished)
         }
         
+        var connectionInfo: String {
+            return ""
+        }
+
     }
 }
