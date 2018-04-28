@@ -1,15 +1,5 @@
-- generate correct alert messages
 - check padding
 - implement TLS 1.2 extension to choose hash function other than SHA256
-- support ECDSA certificates
-
-TLS 1.3:
-- validate ticket age, before using a ticket
-- mitigate 0-RTT replay
-- KeyUpdate
-- post handshake authentication
-- support external PSKs
-- exporters
 
 - improve BigInt multiply and pow performance
 
