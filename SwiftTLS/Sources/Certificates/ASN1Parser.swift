@@ -60,10 +60,10 @@ public func ==(lhs : ASN1Object, rhs : ASN1Object) -> Bool
     return lhs.isEqualTo(rhs)
 }
 
-class ASN1TaggedObject : ASN1Object
+public class ASN1TaggedObject : ASN1Object
 {
-    var tag : Int
-    var object : ASN1Object
+    public var tag : Int
+    public var object : ASN1Object
     init(tag: Int, object: ASN1Object)
     {
         self.tag = tag
@@ -81,9 +81,9 @@ class ASN1TaggedObject : ASN1Object
 }
 
 
-class ASN1Boolean : ASN1Object
+public class ASN1Boolean : ASN1Object
 {
-    var value : Bool
+    public var value : Bool
     init(value: Bool)
     {
         self.value = value
@@ -99,11 +99,11 @@ class ASN1Boolean : ASN1Object
     }
 }
 
-class ASN1Integer : ASN1Object
+public class ASN1Integer : ASN1Object
 {
-    var value : [UInt8]
+    public var value : [UInt8]
     
-    var intValue: Int? {
+    public var intValue: Int? {
         guard let v = UInt64(bigEndianBytes: value) else { return nil }
         
         return Int(v)
@@ -124,12 +124,12 @@ class ASN1Integer : ASN1Object
     }
 }
 
-class ASN1BitString : ASN1Object
+public class ASN1BitString : ASN1Object
 {
-    var unusedBits : Int
-    var value : [UInt8]
+    public var unusedBits : Int
+    public var value : [UInt8]
     
-    var bitValue : [UInt] {
+    public var bitValue : [UInt] {
         let size = MemoryLayout<UInt>.size
         var values : [UInt] = []
         
@@ -180,9 +180,9 @@ class ASN1BitString : ASN1Object
     }
 }
 
-class ASN1OctetString : ASN1Object
+public class ASN1OctetString : ASN1Object
 {
-    var value : [UInt8]
+    public var value : [UInt8]
     
     init(data : [UInt8])
     {
@@ -199,7 +199,7 @@ class ASN1OctetString : ASN1Object
     }
 }
 
-class ASN1Null : ASN1Object
+public class ASN1Null : ASN1Object
 {
     fileprivate override func isEqualTo(_ other : ASN1Object) -> Bool
     {
@@ -207,9 +207,9 @@ class ASN1Null : ASN1Object
     }
 }
 
-class ASN1ObjectIdentifier : ASN1Object
+public class ASN1ObjectIdentifier : ASN1Object
 {
-    var identifier : [Int]
+    public var identifier : [Int]
     var oid: OID? {
         return OID(id: identifier)
     }
@@ -234,9 +234,9 @@ class ASN1ObjectIdentifier : ASN1Object
     }
 }
 
-class ASN1Sequence : ASN1Object
+public class ASN1Sequence : ASN1Object
 {
-    var objects : [ASN1Object]
+    public var objects : [ASN1Object]
     
     init(objects : [ASN1Object])
     {
@@ -252,7 +252,7 @@ class ASN1Sequence : ASN1Object
         return self.objects == other.objects
     }
     
-    subscript(index: Int) -> ASN1Object? {
+    public subscript(index: Int) -> ASN1Object? {
         guard self.objects.count >= index else { return nil }
         
         let object = self.objects[index]
@@ -264,7 +264,7 @@ class ASN1Sequence : ASN1Object
 
 class ASN1Set : ASN1Object
 {
-    var objects : [ASN1Object]
+    public var objects : [ASN1Object]
     
     init(objects : [ASN1Object])
     {
@@ -293,9 +293,9 @@ public extension ASN1String {
     }
 }
 
-class ASN1UTF8String : ASN1Object, ASN1String
+public class ASN1UTF8String : ASN1Object, ASN1String
 {
-    var string : String
+    public var string : String
     init(string: String)
     {
         self.string = string
@@ -311,9 +311,9 @@ class ASN1UTF8String : ASN1Object, ASN1String
     }
 }
 
-class ASN1PrintableString : ASN1Object, ASN1String
+public class ASN1PrintableString : ASN1Object, ASN1String
 {
-    var string : String
+    public var string : String
     init(string: String)
     {
         self.string = string
@@ -329,9 +329,9 @@ class ASN1PrintableString : ASN1Object, ASN1String
     }
 }
 
-class ASN1T61String : ASN1Object, ASN1String
+public class ASN1T61String : ASN1Object, ASN1String
 {
-    var string : String
+    public var string : String
     init(string: String)
     {
         self.string = string

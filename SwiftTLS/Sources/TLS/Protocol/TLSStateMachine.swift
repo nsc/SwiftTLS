@@ -8,7 +8,7 @@
 
 import Foundation
 
-enum TLSState
+public enum TLSState
 {
     case idle
     case clientHelloSent
@@ -47,7 +47,7 @@ enum TLSState
     case helloRetryRequestReceived
 }
 
-protocol TLSConnectionStateMachine
+public protocol TLSConnectionStateMachine
 {
     var state : TLSState { get set }
 
@@ -63,12 +63,12 @@ protocol TLSConnectionStateMachine
     func shouldContinueHandshake(with message : TLSHandshakeMessage) -> Bool
 }
 
-extension TLSConnectionStateMachine
+public extension TLSConnectionStateMachine
 {
     func reset() {}
 }
 
-protocol TLSClientStateMachine : TLSConnectionStateMachine
+public protocol TLSClientStateMachine : TLSConnectionStateMachine
 {
     func clientDidSendMessage(_ message : TLSMessage) throws
     func clientDidSendHandshakeMessage(_ message : TLSHandshakeMessage) throws
@@ -80,7 +80,7 @@ protocol TLSClientStateMachine : TLSConnectionStateMachine
     func clientDidConnect() throws
 }
 
-extension TLSClientStateMachine
+public extension TLSClientStateMachine
 {
     func clientDidSendMessage(_ message : TLSMessage) throws {}
     func clientDidSendHandshakeMessage(_ message : TLSHandshakeMessage) throws {}

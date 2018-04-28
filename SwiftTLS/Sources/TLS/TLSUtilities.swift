@@ -168,13 +168,13 @@ enum ConnectionEnd {
     case server
 }
 
-enum CipherType {
+public enum CipherType {
     case block
     case stream
     case aead
 }
 
-enum BlockCipherMode {
+public enum BlockCipherMode {
     case cbc
     case gcm
 }
@@ -233,7 +233,7 @@ public enum MACAlgorithm {
     }
 }
 
-enum CipherAlgorithm
+public enum CipherAlgorithm
 {
     case null
     case aes128
@@ -261,14 +261,14 @@ enum CipherAlgorithm
     }
 }
 
-enum KeyExchangeAlgorithm
+public enum KeyExchangeAlgorithm
 {
     case rsa
     case dhe
     case ecdhe
 }
 
-enum CertificateType
+public enum CertificateType
 {
     case rsa
     case ecdsa

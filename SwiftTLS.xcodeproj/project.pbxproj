@@ -13,6 +13,7 @@
 		03091EF220850F730068C085 /* SHA384Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03091EF120850F730068C085 /* SHA384Tests.swift */; };
 		030FF6EB1DB0D45E00EB7F1F /* TLSVersionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 030FF6EA1DB0D45E00EB7F1F /* TLSVersionTests.swift */; };
 		031CD12C1C32B5CC0027F973 /* RSATests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 031CD12B1C32B5CC0027F973 /* RSATests.swift */; };
+		032CA87D2094B57F00ACFF06 /* probeCipherSuites.swift in Sources */ = {isa = PBXBuildFile; fileRef = 034818302076AC8700264933 /* probeCipherSuites.swift */; };
 		032D0EF51B9F56A1009C13F0 /* BigIntTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC37C1AC473980004EEC1 /* BigIntTests.swift */; };
 		032D0EF61B9F56A1009C13F0 /* TLSUtilitiesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 031868E71ADD873D00CB51E1 /* TLSUtilitiesTests.swift */; };
 		032D0EF71B9F56A1009C13F0 /* TLSTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033AC3781AC473980004EEC1 /* TLSTests.swift */; };
@@ -1221,6 +1222,7 @@
 				0348182D2076AC2C00264933 /* server.swift in Sources */,
 				03B4F7551BA2199B00753DD5 /* main.swift in Sources */,
 				0348182F2076AC4800264933 /* client.swift in Sources */,
+				032CA87D2094B57F00ACFF06 /* probeCipherSuites.swift in Sources */,
 				034818332076ACBF00264933 /* scan.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

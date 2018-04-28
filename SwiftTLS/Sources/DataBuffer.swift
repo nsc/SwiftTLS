@@ -38,7 +38,7 @@ extension Array: OutputStreamType where Element == UInt8
         streamable.writeTo(&self, context: context)
     }
     
-    mutating func write(_ data: [UInt8]) {
+    mutating public func write(_ data: [UInt8]) {
         self.append(contentsOf: data)
     }
 }

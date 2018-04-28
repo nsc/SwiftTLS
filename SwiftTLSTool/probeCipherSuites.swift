@@ -6,22 +6,17 @@
 //  Copyright © 2018 Nico Schmidt. All rights reserved.
 //
 
-/*
+
 import Foundation
 import SwiftTLS
 
-func probeCipherSuitesForHost(host : String, port : Int, protocolVersion: TLSProtocolVersion = .v1_2)
+func probeCipherSuitesForHost(host : String, port : UInt16, protocolVersion: TLSProtocolVersion = .v1_3)
 {
     class StateMachine : TLSClientStateMachine
     {
         internal var state: TLSState = .idle
         
-        weak var socket : TLSSocket!
         var cipherSuite : CipherSuite!
-        init(socket : TLSSocket)
-        {
-            self.socket = socket
-        }
         
         func shouldContinueHandshake(with message: TLSHandshakeMessage) -> Bool
         {
@@ -42,20 +37,28 @@ func probeCipherSuitesForHost(host : String, port : Int, protocolVersion: TLSPro
     
     guard let address = IPAddress.addressWithString(host, port: port) else { print("Error: No such host \(host)"); return }
     
-    for cipherSuite in CipherSuite.allValues {
-        let socket = TLSClientSocket(supportedVersions: [protocolVersion])
-        let stateMachine = StateMachine(socket: socket)
-        socket.connection.stateMachine = stateMachine
+    let cipherSuites = CipherSuite.allValues.filter({
+        // TLS 1.3 cipher suites are currently only in the range 0x1300...0x1305
+        if protocolVersion == .v1_3 {
+            return ($0.rawValue & 0xff00) == 0x1300
+        }
         
-        socket.connection.configuration.cipherSuites = [cipherSuite]
+        return ($0.rawValue & 0xff00) != 0x1300
+    })
+    
+    for cipherSuite in cipherSuites {
+        let stateMachine = StateMachine()
+        let client = TLSClient(configuration: TLSConfiguration(supportedVersions: [protocolVersion]), stateMachine: stateMachine)
+        
+        client.configuration.cipherSuites = [cipherSuite]
         
         do {
             stateMachine.cipherSuite = cipherSuite
-            try socket.connect(address)
+            try client.connect(address)
         } catch let error as SocketError {
             switch error {
             case .closed:
-                socket.close()
+                client.close()
                 
             default:
                 print("Error: \(error)")
@@ -66,4 +69,4 @@ func probeCipherSuitesForHost(host : String, port : Int, protocolVersion: TLSPro
         }
     }
 }
-*/
+

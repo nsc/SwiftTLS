@@ -246,8 +246,8 @@ case "probeCiphers":
     }
     
     var host : String? = nil
-    var port : Int = 443
-    var protocolVersion = TLSProtocolVersion.v1_2
+    var port : UInt16 = 443
+    var protocolVersion = TLSProtocolVersion.v1_3
     
     do {
         var argumentIndex : Int = 2
@@ -281,7 +281,10 @@ case "probeCiphers":
                     
                 case "1.2":
                     protocolVersion = .v1_2
-                    
+
+                case "1.3":
+                    protocolVersion = .v1_3
+
                 default:
                     throw MyError.Error("\(argument) is not a valid TLS version")
                 }
@@ -294,7 +297,7 @@ case "probeCiphers":
                         throw MyError.Error("\(components[1]) is not a valid port number")
                     }
                     
-                    port = p
+                    port = UInt16(p)
                 }
                 else {
                     host = argument
@@ -312,7 +315,7 @@ case "probeCiphers":
         exit(1)
     }
     
-//    probeCipherSuitesForHost(host: hostName, port: port, protocolVersion: protocolVersion)
+    probeCipherSuitesForHost(host: hostName, port: port, protocolVersion: protocolVersion)
     
 case "pem":
     guard arguments.count > 2 else {
@@ -352,7 +355,6 @@ case "asn1parse":
     break
 
 case "p12":
-    /*
     guard arguments.count > 2 else {
         print("Error: Missing arguments for subcommand \"\(command)\"")
         exit(1)
@@ -364,7 +366,7 @@ case "p12":
         let object = ASN1Parser(data: data).parseObject()
     {
         if let sequence = object as? ASN1Sequence,
-            let subSequence = sequence.objects[1] as? ASN1Sequence,
+            let subSequence = sequence[1] as? ASN1Sequence,
             let oid = subSequence.objects.first as? ASN1ObjectIdentifier, OID(id: oid.identifier) == .pkcs7_data,
             let taggedObject = subSequence.objects[1] as? ASN1TaggedObject,
             let octetString = taggedObject.object as? ASN1OctetString
@@ -377,12 +379,11 @@ case "p12":
     else {
         print("Error: Could not parse \"\(file)\"")
     }
-    */
     
     break
     
 case "scan":
-    //scan()
+//    scan()
     break
     
 default:

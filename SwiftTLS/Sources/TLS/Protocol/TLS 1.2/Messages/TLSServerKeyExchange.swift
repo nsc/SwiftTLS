@@ -64,7 +64,7 @@ public struct DiffieHellmanParameters
 
 extension DiffieHellmanParameters : Streamable
 {
-    func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?)
+    public func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?)
     {
         let dh_p  = self.p.asBigEndianData()
         let dh_g  = self.g.asBigEndianData()
@@ -170,7 +170,7 @@ public struct ECDiffieHellmanParameters
 
 extension ECDiffieHellmanParameters : Streamable
 {
-    func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?)
+    public func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?)
     {
         switch self.curveType
         {

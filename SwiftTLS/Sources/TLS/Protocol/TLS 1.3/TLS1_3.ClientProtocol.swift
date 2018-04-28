@@ -21,7 +21,7 @@ extension TLS1_3 {
     
     class ClientProtocol : BaseProtocol, TLSClientProtocol {
         weak var client: TLSClient! {
-            return self.connection as! TLSClient
+            return (self.connection as! TLSClient)
         }
         
         var clientContext: TLSClientContext {

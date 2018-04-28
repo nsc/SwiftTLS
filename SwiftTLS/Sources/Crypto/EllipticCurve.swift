@@ -66,13 +66,13 @@ public enum NamedGroup : UInt16 {
             return nil
         }
         
-        log("Named curve: 0x\(String(format: "%x", rawNamedCurve))")
         self.init(rawValue: rawNamedCurve)
+        log("Curve: \(self)")
     }
 }
 
 extension NamedGroup : Streamable {
-    func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?) {
+    public func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?) {
         target.write(self.rawValue)
     }
 }

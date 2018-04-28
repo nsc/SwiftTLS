@@ -12,7 +12,7 @@ extension TLS1_2 {
     class ServerProtocol : BaseProtocol, TLSServerProtocol
     {
         weak var server: TLSServer! {
-            return self.connection as! TLSServer
+            return (self.connection as! TLSServer)
         }
         
         init(server: TLSServer)

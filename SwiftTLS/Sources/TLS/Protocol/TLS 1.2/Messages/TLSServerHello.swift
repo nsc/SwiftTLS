@@ -7,12 +7,12 @@
 
 import Foundation
 
-class TLSServerHello : TLSHandshakeMessage
+public class TLSServerHello : TLSHandshakeMessage
 {
     var legacyVersion : TLSProtocolVersion
     var random : Random
     var legacySessionID : TLSSessionID?
-    var cipherSuite : CipherSuite
+    public private(set) var cipherSuite : CipherSuite
     var legacyCompressionMethod : CompressionMethod?
     
     var extensions : [TLSExtension] = []
@@ -50,7 +50,7 @@ class TLSServerHello : TLSHandshakeMessage
         super.init(type: .handshake(.serverHello))
     }
     
-    required init?(inputStream : InputStreamType, context: TLSConnection)
+    required public init?(inputStream : InputStreamType, context: TLSConnection)
     {
         guard
             let (type, bodyLength) = TLSHandshakeMessage.readHeader(inputStream), type == TLSHandshakeType.serverHello,
@@ -96,7 +96,7 @@ class TLSServerHello : TLSHandshakeMessage
         super.init(type: .handshake(.serverHello))
     }
     
-    override func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?)
+    override public func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?)
     {
         var data = [UInt8]()
         

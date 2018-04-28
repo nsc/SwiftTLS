@@ -386,7 +386,7 @@ public struct X509
 }
 
 extension X509.Certificate : Streamable {
-    func writeTo<Target>(_ target: inout Target, context: TLSConnection?) where Target : OutputStreamType {
+    public func writeTo<Target>(_ target: inout Target, context: TLSConnection?) where Target : OutputStreamType {
         let certificateData = self.data
         target.writeUInt24(certificateData.count)
         target.write(certificateData)

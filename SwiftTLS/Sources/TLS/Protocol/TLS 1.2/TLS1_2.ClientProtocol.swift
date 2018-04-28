@@ -12,7 +12,7 @@ extension TLS1_2 {
     class ClientProtocol : BaseProtocol, TLSClientProtocol
     {
         weak var client: TLSClient! {
-            return self.connection as! TLSClient
+            return (self.connection as! TLSClient)
         }
         
         var serverKey: Signing?

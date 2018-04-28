@@ -28,6 +28,8 @@ tls server --port 4433 --certificate /path/to/mycert.pem --dhParameters /path/to
 
 A test server is running at [swifttls.org](https://swifttls.org).
 
+A good starting point to see how you set up a TLS connection in code is server.swift and client.swift.
+
 ## Disclaimer
 Up until now this project has mainly been an effort for me to learn how TLS works, but I'd love to get your feedback and contributions to improve it.
 

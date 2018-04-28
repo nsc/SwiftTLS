@@ -8,25 +8,25 @@
 
 import Foundation
 
-struct CipherSuiteDescriptor {
-    var cipherSuite : CipherSuite
+public struct CipherSuiteDescriptor {
+    public let cipherSuite : CipherSuite
     
     // TLS 1.3 no longer specifies the key exchange method in the cipher suite,
     // so this is optional (and actually nil for TLS 1.3 cipher suites)
-    var keyExchangeAlgorithm : KeyExchangeAlgorithm?
+    public let keyExchangeAlgorithm : KeyExchangeAlgorithm?
 
     // TLS 1.3 no longer specifies the certificate type in the cipher suite
-    var certificateType : CertificateType?
+    public let certificateType : CertificateType?
     
-    var bulkCipherAlgorithm : CipherAlgorithm
-    var cipherType : CipherType
-    var blockCipherMode : BlockCipherMode?
-    var fixedIVLength : Int
-    var recordIVLength : Int
-    var authTagSize : Int = 0 // only for AEAD
-    var hashAlgorithm: HashAlgorithm
+    public let bulkCipherAlgorithm : CipherAlgorithm
+    public let cipherType : CipherType
+    public let blockCipherMode : BlockCipherMode?
+    public let fixedIVLength : Int
+    public let recordIVLength : Int
+    public let authTagSize : Int // only for AEAD
+    public let hashAlgorithm: HashAlgorithm
     
-    var supportedProtocolVersions: [TLSProtocolVersion]
+    public let supportedProtocolVersions: [TLSProtocolVersion]
     
     init(cipherSuite: CipherSuite,
          keyExchangeAlgorithm: KeyExchangeAlgorithm? = nil,
@@ -47,18 +47,10 @@ struct CipherSuiteDescriptor {
         self.bulkCipherAlgorithm = bulkCipherAlgorithm
         self.cipherType = cipherType
         self.blockCipherMode = blockCipherMode
-        self.fixedIVLength = fixedIVLength
-        self.recordIVLength = recordIVLength
+        self.fixedIVLength = fixedIVLength != 0 ? fixedIVLength : bulkCipherAlgorithm.blockSize
+        self.recordIVLength = recordIVLength != 0 ? recordIVLength : bulkCipherAlgorithm.blockSize
         self.authTagSize = authTagSize
         
-        if fixedIVLength == 0 {
-            self.fixedIVLength = bulkCipherAlgorithm.blockSize
-        }
-
-        if recordIVLength == 0 {
-            self.recordIVLength = bulkCipherAlgorithm.blockSize
-        }
-
         self.hashAlgorithm = hashFunction
         self.supportedProtocolVersions = supportedProtocolVersions
     }

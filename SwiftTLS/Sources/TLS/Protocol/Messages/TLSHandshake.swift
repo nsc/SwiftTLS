@@ -7,7 +7,7 @@
 
 import Foundation
 
-class TLSHandshakeMessage : TLSMessage
+public class TLSHandshakeMessage : TLSMessage
 {
     var handshakeType : TLSHandshakeType {
         get {
@@ -108,7 +108,7 @@ class TLSHandshakeMessage : TLSMessage
         return nil
     }
     
-    override func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?)
+    override public func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?)
     {
         self.writeHeader(type: self.handshakeType, bodyLength: 0, target: &target)
     }

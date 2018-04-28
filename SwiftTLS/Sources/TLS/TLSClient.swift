@@ -16,7 +16,7 @@ public class TLSClient : TLSConnection
         }
     }
 
-    public init(configuration: TLSConfiguration, context: TLSContext? = nil)
+    public init(configuration: TLSConfiguration, context: TLSContext? = nil, stateMachine: TLSClientStateMachine? = nil)
     {
         super.init(configuration: configuration, context: context, socket: TCPSocket())
 
@@ -29,7 +29,7 @@ public class TLSClient : TLSConnection
             protocolVersion = .v1_2
         }
         
-        setupClient(with: protocolVersion!)
+        setupClient(with: protocolVersion!, stateMachine: stateMachine)
     }
     
     func startConnection(withEarlyData earlyData: [UInt8]? = nil) throws
@@ -90,19 +90,19 @@ public class TLSClient : TLSConnection
         try self.clientProtocolHandler.sendClientHello()
     }
     
-    func setupClient(with version: TLSProtocolVersion)
+    func setupClient(with version: TLSProtocolVersion, stateMachine: TLSClientStateMachine? = nil)
     {
         let state = self.stateMachine?.state
         
         switch version {
         case TLSProtocolVersion.v1_2:
             self.protocolHandler    = TLS1_2.ClientProtocol(client: self)
-            self.stateMachine       = TLS1_2.ClientStateMachine(client: self)
+            self.stateMachine       = stateMachine ?? TLS1_2.ClientStateMachine(client: self)
             self.recordLayer        = TLS1_2.RecordLayer(connection: self, dataProvider: self.recordLayer?.dataProvider)
 
         case TLSProtocolVersion.v1_3:
             self.protocolHandler    = TLS1_3.ClientProtocol(client: self)
-            self.stateMachine       = TLS1_3.ClientStateMachine(client: self)
+            self.stateMachine       = stateMachine ?? TLS1_3.ClientStateMachine(client: self)
             self.recordLayer        = TLS1_3.RecordLayer(connection: self, dataProvider: self.recordLayer?.dataProvider)
 
         default:

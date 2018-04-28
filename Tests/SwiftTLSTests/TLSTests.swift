@@ -85,7 +85,7 @@ class TLSTests: XCTestCase {
         
         var clientContext: TLSClientContext? = nil
 
-        var numberOfTries = 3
+        let numberOfTries = 3
 
         var serverSideClientSocket: SocketProtocol? = nil
         let serverQueue = DispatchQueue(label: "server queue", attributes: [])

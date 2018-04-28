@@ -8,23 +8,23 @@
 
 import Foundation
 
-protocol OutputStreamType
+public protocol OutputStreamType
 {
     mutating func write(_ data : [UInt8])
 }
 
-protocol InputStreamType
+public protocol InputStreamType
 {
     var bytesRead: Int {get set}
     func read(count : Int) -> [UInt8]?
 }
 
-protocol Streamable
+public protocol Streamable
 {
     func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?)
 }
 
-extension OutputStreamType
+public extension OutputStreamType
 {
     private mutating func write(_ data : [UInt16]) {
         for a in data {

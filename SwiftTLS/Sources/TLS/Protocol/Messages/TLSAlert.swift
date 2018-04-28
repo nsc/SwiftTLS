@@ -52,7 +52,7 @@ public enum TLSAlert : UInt8
 
 }
 
-class TLSAlertMessage : TLSMessage
+public class TLSAlertMessage : TLSMessage
 {
     let alertLevel : TLSAlertLevel
     let alert : TLSAlert
@@ -65,7 +65,7 @@ class TLSAlertMessage : TLSMessage
         super.init(type: .alert(alertLevel, alert))
     }
 
-    required init?(inputStream: InputStreamType, context: TLSConnection)
+    public required init?(inputStream: InputStreamType, context: TLSConnection)
     {
         guard let level : UInt8 = inputStream.read(),
             let alertLevel = TLSAlertLevel(rawValue: level),
@@ -87,7 +87,7 @@ class TLSAlertMessage : TLSMessage
         super.init(type: .alert(self.alertLevel, self.alert))
     }
 
-    override func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?)
+    override public func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?)
     {
         let data = [alertLevel.rawValue, alert.rawValue]
         target.write(data)

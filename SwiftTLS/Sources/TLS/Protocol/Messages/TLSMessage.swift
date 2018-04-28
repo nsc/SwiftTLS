@@ -47,7 +47,7 @@ enum TLSChangeCipherSpecType : UInt8
     case changeCipherSpec = 1
 }
 
-class TLSMessage : Streamable
+public class TLSMessage : Streamable
 {
     let type : TLSMessageType
 
@@ -78,11 +78,11 @@ class TLSMessage : Streamable
         self.type = type
     }
     
-    required init?(inputStream: InputStreamType, context: TLSConnection) {
+    required public init?(inputStream: InputStreamType, context: TLSConnection) {
         return nil
     }
     
-    func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?)
+    public func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?)
     {
     }
     

@@ -22,7 +22,7 @@ extension TLS1_3 {
     class ServerProtocol : BaseProtocol, TLSServerProtocol
     {
         weak var server: TLSServer! {
-            return self.connection as! TLSServer
+            return (self.connection as! TLSServer)
         }
 
         var serverContext: TLSServerContext {
