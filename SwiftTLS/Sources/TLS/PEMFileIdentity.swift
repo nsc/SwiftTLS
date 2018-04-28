@@ -10,9 +10,8 @@ import Foundation
 
 public class PEMFileIdentity
 {
-    var certificateChain: [X509.Certificate]
-    var rsa: RSA?
-    var signer: Signing {
+    public var certificateChain: [X509.Certificate]
+    public var signer: Signing {
         return _signing
     }
     
@@ -20,8 +19,11 @@ public class PEMFileIdentity
     
     public init?(certificateFile: String, privateKeyFile: String)
     {
-        self.rsa = RSA.fromPEMFile(privateKeyFile)
-        _signing = self.rsa!
+        guard let rsa = RSA.fromPEMFile(privateKeyFile) else {
+            return nil
+        }
+        
+        _signing = rsa
         
         certificateChain = []
         for (section, object) in ASN1Parser.sectionsFromPEMFile(certificateFile) {

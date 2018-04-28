@@ -33,6 +33,17 @@ public protocol SocketProtocol
     func close()
 }
 
+extension SocketProtocol
+{
+    func readData(count: Int) throws -> [UInt8] {
+        return try self.read(count: count)
+    }
+    
+    func writeData(_ data: [UInt8]) throws {
+        try self.write(data)
+    }
+}
+
 public protocol ClientSocketProtocol : SocketProtocol
 {
     func connect(_ address : IPAddress) throws
@@ -90,35 +101,6 @@ class Socket : SocketProtocol
         self.close()
     }
 
-    func connect(_ address : IPAddress) throws
-    {
-        try self._connect(address)
-    }
-    
-    func _connect(_ address : IPAddress) throws
-    {
-        if (socketDescriptor == nil) {
-            socketDescriptor = createSocket(address.unsafeSockAddrPointer.pointee.sa_family)
-            if (socketDescriptor == nil) {
-                throw SocketError.posixError(errno: errno)
-            }
-        }
-        
-        let socket = socketDescriptor!
-        
-        let addr = address.unsafeSockAddrPointer
-        #if os(Linux)
-        let status = Glibc.connect(socket, addr, address.sockAddrLength)
-        #else
-        let status = Darwin.connect(socket, addr, address.sockAddrLength)
-        #endif
-        
-        if status < 0
-        {
-            throw SocketError.posixError(errno: errno)
-        }
-    }
-    
     func sendTo(_ address : IPAddress?, data : [UInt8]) throws
     {
         if let socket = self.socketDescriptor {
@@ -239,6 +221,38 @@ class Socket : SocketProtocol
         #else
         return Darwin.write(socket, buffer, count)
         #endif
+    }
+}
+
+extension Socket : ClientSocketProtocol
+{
+    func connect(_ address : IPAddress) throws
+    {
+        try self._connect(address)
+    }
+    
+    func _connect(_ address : IPAddress) throws
+    {
+        if (socketDescriptor == nil) {
+            socketDescriptor = createSocket(address.unsafeSockAddrPointer.pointee.sa_family)
+            if (socketDescriptor == nil) {
+                throw SocketError.posixError(errno: errno)
+            }
+        }
+        
+        let socket = socketDescriptor!
+        
+        let addr = address.unsafeSockAddrPointer
+        #if os(Linux)
+        let status = Glibc.connect(socket, addr, address.sockAddrLength)
+        #else
+        let status = Darwin.connect(socket, addr, address.sockAddrLength)
+        #endif
+        
+        if status < 0
+        {
+            throw SocketError.posixError(errno: errno)
+        }
     }
 }
 

@@ -11,6 +11,8 @@ import Foundation
 enum TLS1_3 {}
 
 extension TLS1_3 {
+    static let tls1_3_prefix                        = [UInt8]("tls13 ".utf8)
+    
     static let externalPSKBinderSecretLabel         = [UInt8]("ext binder".utf8)
     static let resumptionPSKBinderSecretLabel       = [UInt8]("res binder".utf8)
     static let clientEarlyTrafficSecretLabel        = [UInt8]("c e traffic".utf8)

@@ -68,20 +68,4 @@ class TLSUtilitiesTests: XCTestCase {
 
     
     
-    func notest_PRF_withKnownValues_givesCorrectResult()
-    {
-        class DataProvider : TLSDataProvider
-        {
-            func writeData(_ data : [UInt8]) throws {}
-            func readData(count : Int) throws -> [UInt8] { return [] }
-        }
-        
-        let dataProvider = DataProvider()
-        let connection = TLSConnection(configuration: TLSConfiguration(supportedVersions: [.v1_0]), dataProvider: dataProvider)
-        let client = TLS1_2.BaseProtocol(connection: connection)
-        let output = client.PRF(secret: [UInt8]("secret".utf8), label: [UInt8]("label".utf8), seed: [UInt8]("seed".utf8), outputLength: 20)
-        let expectedResult : [UInt8] = [0xb5, 0xba, 0xf4, 0x72, 0x2b, 0x91, 0x85, 0x1a, 0x88, 0x16, 0xd2, 0x2e, 0xbd, 0x8c, 0x1d, 0x8c, 0xc2, 0xe9, 0x4d, 0x55]
-
-        XCTAssertEqual(output, expectedResult)
-    }
 }

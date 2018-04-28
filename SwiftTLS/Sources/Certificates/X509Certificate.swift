@@ -8,7 +8,7 @@
 
 import Foundation
 
-struct X509
+public struct X509
 {
     enum CertificateVersion : Int
     {
@@ -17,7 +17,7 @@ struct X509
         case v3 = 2
     }
     
-    enum SignatureAlgorithm {
+    public enum SignatureAlgorithm {
         case rsaEncryption
         case rsa_pkcs1(hash: HashAlgorithm)
         case ecdsa(hash: HashAlgorithm)
@@ -292,7 +292,7 @@ struct X509
         }
     }
     
-    struct Certificate
+    public struct Certificate
     {
         var tbsCertificate      : TBSCertificate
         var signatureAlgorithm  : AlgorithmIdentifier

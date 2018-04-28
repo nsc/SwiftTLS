@@ -8,13 +8,48 @@
 
 public struct TLSConfiguration
 {
+    public init(supportedVersions: [TLSProtocolVersion] = [.v1_3, .v1_2], identity: Identity? = nil)
+    {
+        self.supportedVersions = supportedVersions
+        
+        self.hashAlgorithm = .sha256
+
+        self.cipherSuites = TLSConfiguration.cipherSuites(for: supportedVersions)
+
+        self.ecdhParameters = ECDiffieHellmanParameters(namedCurve: .secp256r1)
+
+        guard let identity = identity else {
+            return
+        }
+        
+        guard identity.certificateChain.last != nil else {
+            fatalError("Identity contains no certificates")
+        }
+        
+        self.identity = identity
+        self.ecdhParameters = ECDiffieHellmanParameters(namedCurve: .secp256r1)
+    }
+
     public var cipherSuites: [CipherSuite]
 
     public var dhParameters: DiffieHellmanParameters?
     public var ecdhParameters: ECDiffieHellmanParameters?
     
     var hashAlgorithm: HashAlgorithm
-    var signatureAlgorithm: SignatureAlgorithm
+    
+    var signatureAlgorithm: SignatureAlgorithm? {
+        guard let certificate = identity?.certificateChain.last else {
+            return nil
+        }
+                
+        switch certificate.signatureAlgorithm.algorithm {
+        case .rsa_pkcs1(hash: _), .rsaEncryption, .rsassa_pss(hash: _, saltLength: _):
+            return .rsa
+            
+        case .ecdsa(hash: _), .ecPublicKey(curveName: _, hash: _):
+            return .ecdsa
+        }
+    }
     
     var identity: Identity?
     
@@ -32,20 +67,6 @@ public struct TLSConfiguration
     
     var earlyData: EarlyDataSupport = .notSupported
     
-    public init(supportedVersions: [TLSProtocolVersion], identity: PEMFileIdentity? = nil)
-    {
-        self.init(supportedVersions: supportedVersions, identity: identity as Identity?)
-    }
-    
-    init(supportedVersions: [TLSProtocolVersion], identity: Identity? = nil)
-    {
-        self.supportedVersions = supportedVersions
-
-        self.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256]
-        self.hashAlgorithm = .sha256
-        self.signatureAlgorithm = .rsa
-        self.identity = identity
-    }
     
     var minimumSupportedVersion: TLSProtocolVersion {
         var version = supportedVersions.first!
@@ -80,5 +101,24 @@ public struct TLSConfiguration
     func createClientContext() -> TLSClientContext {
         return TLSClientContext()
     }
-
+    
+    private static func cipherSuites(for supportedVersions: [TLSProtocolVersion]) -> [CipherSuite] {
+        var cipherSuites : [CipherSuite] = []
+        if supportedVersions.contains(.v1_2) {
+            cipherSuites.append(contentsOf: [
+                .TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+                .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+                ])
+        }
+        
+        if supportedVersions.contains(.v1_3) {
+            cipherSuites.append(contentsOf: [
+                .TLS_AES_128_GCM_SHA256,
+                .TLS_AES_256_GCM_SHA384
+                ])
+        }
+        
+        return cipherSuites
+    }
 }
+

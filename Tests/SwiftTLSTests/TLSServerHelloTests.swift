@@ -10,13 +10,14 @@ import XCTest
 
 extension TLSConnection {
     convenience init() {
-        class EmptyDataProvider : TLSDataProvider
+        class EmptyDataProvider : SocketProtocol, TLSDataProvider
         {
-            func writeData(_ data : [UInt8]) throws{}
-            func readData(count : Int) throws -> [UInt8] { return []}
+            func read(count: Int) throws -> [UInt8] { return [] }
+            func write(_ data: [UInt8]) throws {}
+            func close() {}
         }
         
-        self.init(configuration: TLSConfiguration(supportedVersions: [.v1_0]), dataProvider: EmptyDataProvider())
+        self.init(configuration: TLSConfiguration(supportedVersions: [.v1_2]), socket: EmptyDataProvider())
     }
 }
 

@@ -8,17 +8,17 @@
 
 import Foundation
 
-class TLSClient : TLSConnection
+public class TLSClient : TLSConnection
 {
     internal var clientProtocolHandler: TLSClientProtocol! {
         get {
-            return self.protocolHandler as! TLSClientProtocol
+            return (self.protocolHandler as! TLSClientProtocol)
         }
     }
-        
-    override init(configuration: TLSConfiguration, context: TLSContext? = nil, dataProvider : TLSDataProvider? = nil)
+
+    public init(configuration: TLSConfiguration, context: TLSContext? = nil)
     {
-        super.init(configuration: configuration, context: context, dataProvider: dataProvider)
+        super.init(configuration: configuration, context: context, socket: TCPSocket())
 
         if !(context is TLSClientContext) {
             self.context = configuration.createClientContext()
@@ -32,17 +32,11 @@ class TLSClient : TLSConnection
         setupClient(with: protocolVersion!)
     }
     
-    func startConnection(withEarlyData earlyData: Data? = nil) throws
+    func startConnection(withEarlyData earlyData: [UInt8]? = nil) throws
     {
         reset()
         
-        if let data = earlyData {
-            var buffer = [UInt8](repeating: 0, count: data.count)
-            buffer.withUnsafeMutableBufferPointer {
-                _ = data.copyBytes(to: $0)
-            }
-            self.earlyData = buffer
-        }
+        self.earlyData = earlyData
         
         do {
             try self.sendClientHello()
@@ -118,5 +112,53 @@ class TLSClient : TLSConnection
         if let state = state {
             self.stateMachine!.state = state
         }
+    }
+}
+
+extension TLSClient : ClientSocketProtocol
+{
+    var clientSocket: ClientSocketProtocol {
+        return (self.socket as! ClientSocketProtocol)
+    }
+    
+    public func connect(_ address: IPAddress, withEarlyData earlyData: Data) throws
+    {
+        try self.clientSocket.connect(address)
+        try self.startConnection(withEarlyData: [UInt8](earlyData))
+    }
+    
+    // Connect with early data. If the early data could actually be sent, returns true, fals otherwise
+    public func connect(hostname: String, port: UInt16 = 443, withEarlyData earlyData: Data) throws -> Bool
+    {
+        self.earlyData = [UInt8](earlyData)
+        
+        try connect(hostname: hostname, port: port)
+        
+        return self.earlyDataWasSent
+    }
+    
+    public func connect(hostname: String, port: UInt16 = 443) throws
+    {
+        if let address = IPAddress.addressWithString(hostname, port: port) {
+            var hostNameAndPort = hostname
+            if port != 443 {
+                hostNameAndPort = "\(hostname):\(port)"
+            }
+            self.serverNames = [hostNameAndPort]
+            
+            try connect(address)
+        }
+        else {
+            throw TLSError.error("Error: Could not resolve host \(hostname)")
+        }
+        
+    }
+    
+    // TODO: add connect method that takes a domain name rather than an IP
+    // so we can check the server certificate against that name
+    public func connect(_ address: IPAddress) throws
+    {
+        try self.clientSocket.connect(address)
+        try self.startConnection(withEarlyData: self.earlyData)
     }
 }

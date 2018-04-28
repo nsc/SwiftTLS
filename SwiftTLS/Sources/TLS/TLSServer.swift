@@ -8,20 +8,26 @@
 
 import Foundation
 
-class TLSServer : TLSConnection
+public class TLSServer : TLSConnection
 {
     internal var serverProtocolHandler: TLSServerProtocol! {
         get {
-            return self.protocolHandler as! TLSServerProtocol
+            return (self.protocolHandler as! TLSServerProtocol)
         }
     }
 
     var clientKeyShare: KeyShareEntry? = nil
-    var earlyDataResponseHandler: TLSServerSocket.EarlyDataResponseHandler? = nil
+    var earlyDataResponseHandler: TLSServer.EarlyDataResponseHandler? = nil
     
-    override init(configuration: TLSConfiguration, context: TLSContext? = nil, dataProvider : TLSDataProvider? = nil)
+    public convenience init(identity: Identity)
     {
-        super.init(configuration: configuration, context: context, dataProvider: dataProvider)
+        let configuration = TLSConfiguration(identity: identity)
+        self.init(configuration: configuration)
+    }
+    
+    public init(configuration: TLSConfiguration, context: TLSContext? = nil)
+    {
+        super.init(configuration: configuration, context: context, socket: TCPSocket())
         
         if !(context is TLSServerContext) {
             self.context = configuration.createServerContext()
@@ -30,7 +36,7 @@ class TLSServer : TLSConnection
         setupServer(with: configuration)
     }
     
-    func acceptConnection() throws
+    func _acceptConnection() throws
     {
         reset()
         
@@ -104,9 +110,86 @@ class TLSServer : TLSConnection
 
         if let identity = configuration.identity {
             // we are currently only supporting RSA certificates
-            if let rsa = identity.rsa {
-                self.signer = rsa
-            }
+            self.signer = identity.signer
         }
     }
+}
+
+extension TLSServer : ServerSocketProtocol
+{
+    private var serverSocket: ServerSocketProtocol {
+        return (self.socket as! ServerSocketProtocol)
+    }
+    
+    public func listen(on address: IPAddress) throws {
+        try self.serverSocket.listen(on: address)
+    }
+    
+    public func acceptConnection() throws -> SocketProtocol {
+        return try acceptConnection(withEarlyDataResponseHandler: nil)
+    }
+    
+    public typealias EarlyDataResponseHandler = ((_ earlyData: Data) -> (Data?))
+    
+    /// Accept a connection
+    ///
+    /// - Parameter earlyDataResponseHandler: if the client sends early data and the server is configured
+    ///                                       to accept it, the earlyDataResponseHandler is called with the early data
+    ///                                       and it can return a response that is send with the first flight
+    ///
+    /// - Returns: the socket rerpresenting the client that has connected
+    /// - Throws: Mainly TLSError I think :) (Make this more rigorous)
+    public func acceptConnection(withEarlyDataResponseHandler earlyDataResponseHandler: EarlyDataResponseHandler?) throws -> SocketProtocol
+    {
+        let clientSocket = try self.serverSocket.acceptConnection() as! TCPSocket
+        
+        let clientTLSSocket = TLSServer(configuration: self.configuration, context: self.context)
+        clientTLSSocket.socket = clientSocket
+        clientTLSSocket.signer = self.signer
+        clientTLSSocket.configuration = self.configuration
+        clientTLSSocket.recordLayer.dataProvider = clientSocket
+        clientTLSSocket.context = self.context
+        
+        clientTLSSocket.earlyDataResponseHandler = earlyDataResponseHandler
+        
+        try clientTLSSocket._acceptConnection()
+        
+        return clientTLSSocket
+    }
+    
+    public enum AcceptConnectionResult
+    {
+        case error(Error)
+        case client(TLSConnection)
+    }
+    
+    public func acceptConnection(withEarlyDataResponseHandler earlyDataResponseHandler: EarlyDataResponseHandler?, completionHandler: @escaping (AcceptConnectionResult) -> ()) throws
+    {
+        let clientSocket = try self.serverSocket.acceptConnection() as! TCPSocket
+        
+        let queue = DispatchQueue.global()
+        
+        queue.async {
+            
+            let clientTLSSocket = TLSServer(configuration: self.configuration, context: self.context)
+            clientTLSSocket.socket = clientSocket
+            clientTLSSocket.signer = self.signer
+            clientTLSSocket.configuration = self.configuration
+            clientTLSSocket.recordLayer.dataProvider = clientSocket
+            clientTLSSocket.context = self.context
+            
+            clientTLSSocket.earlyDataResponseHandler = earlyDataResponseHandler
+            
+            do {
+                try clientTLSSocket._acceptConnection()
+            } catch let error {
+                completionHandler(.error(error))
+            }
+            
+            completionHandler(.client(clientTLSSocket))
+            
+            Thread.current.removeThreadNumber()
+        }
+    }
+
 }

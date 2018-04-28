@@ -115,7 +115,7 @@ import Foundation
 //    ]
 //]
 
-enum OID : String
+public enum OID : String
 {
     
     case ecPublicKey                                = "1.2.840.10045.2.1"

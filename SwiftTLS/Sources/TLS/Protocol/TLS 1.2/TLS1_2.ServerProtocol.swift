@@ -281,7 +281,8 @@ extension TLS1_2 {
                 // RSA
                 if let encryptedPreMasterSecret = clientKeyExchange.encryptedPreMasterSecret {
                     do {
-                        preMasterSecret = try server.configuration.identity!.rsa!.decrypt(encryptedPreMasterSecret)
+                        let rsa = server.configuration.identity!.signer as! RSA
+                        preMasterSecret = try rsa.decrypt(encryptedPreMasterSecret)
                     } catch _ as RSA.Error {
                         throw TLSError.alert(alert: .decryptError, alertLevel: .fatal)
                     }

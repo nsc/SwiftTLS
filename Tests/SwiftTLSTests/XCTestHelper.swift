@@ -11,7 +11,7 @@ import XCTest
 extension XCTestCase {
     func path(forResource name: String) -> String {
         if let value = ProcessInfo.processInfo.environment["XPC_SERVICE_NAME"],
-            value.hasSuffix("Xcode") {
+            value.contains("com.apple.dt.Xcode") {
             
             return Bundle(for: type(of: self)).path(forResource: name, ofType: nil)!
         }
@@ -20,8 +20,9 @@ extension XCTestCase {
     }
     
     #if os(macOS)
-    func printAllTests() {
-        print("static var allTests = [")
+    func allTestMethodNames() -> [String] {
+        var methodNames: [String] = []
+        
         let c = type(of: self)
         var numberOfMethods: UInt32 = 0
         let methods = UnsafeBufferPointer<Method>(start: class_copyMethodList(c, &numberOfMethods), count: Int(numberOfMethods))
@@ -29,9 +30,19 @@ extension XCTestCase {
             let s = method_getName(method)
             let name = NSStringFromSelector(s)
             
-            if name.hasPrefix("test") {
-                print("(\"\(name)\", \(name)),")
+            // If the method starts with "test" and has return type void ('v' == 0x76)
+            if name.hasPrefix("test") && method_copyReturnType(method).pointee == Int8(0x76) {
+                methodNames.append(name)
             }
+        }
+        
+        return methodNames
+    }
+    
+    func printAllTests() {
+        print("static var allTests = [")
+        for methodName in allTestMethodNames() {
+            print("(\"\(methodName)\", \(methodName)),")
         }
         print("]")
     }

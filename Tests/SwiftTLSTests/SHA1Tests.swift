@@ -17,7 +17,7 @@ class SHA1Tests: XCTestCase {
     ]
 
     func test_sha1_withOneBlockMessage_givesCorrectDigest() {
-        var sha1 = SHA1()
+        let sha1 = SHA1()
         sha1.update([UInt8]("abc".utf8))
         let digest = sha1.finalize()
         

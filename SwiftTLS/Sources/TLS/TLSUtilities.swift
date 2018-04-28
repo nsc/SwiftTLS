@@ -12,7 +12,7 @@ public enum CompressionMethod : UInt8 {
     case null = 0
 }
 
-enum HashAlgorithm : UInt8 {
+public enum HashAlgorithm : UInt8 {
     case none   = 0
     case md5    = 1
     case sha1   = 2
@@ -154,7 +154,6 @@ public enum TLSError : Error
     case alert(alert : TLSAlert, alertLevel : TLSAlertLevel)
 }
 
-
 protocol TLSDataProvider : class
 {
     func writeData(_ data : [UInt8]) throws
@@ -181,7 +180,7 @@ enum BlockCipherMode {
 }
 
 typealias HMACFunction = (_ secret : [UInt8], _ data : [UInt8]) -> [UInt8]
-enum MACAlgorithm {
+public enum MACAlgorithm {
     //    case null
     case hmac_md5
     case hmac_sha1
@@ -701,4 +700,54 @@ public func TLSRandomBytes(count: Int) -> [UInt8]
     #endif
 
     return randomBytes
+}
+
+class Random : Streamable, Equatable
+{
+    static let NumberOfRandomBytes = 28
+    var gmtUnixTime : UInt32
+    var randomBytes : [UInt8]
+    
+    var bytes: [UInt8] {
+        return self.gmtUnixTime.bigEndianBytes + randomBytes
+    }
+    
+    init()
+    {
+        randomBytes = TLSRandomBytes(count: 28)
+        
+        gmtUnixTime = UInt32(Date().timeIntervalSinceReferenceDate)
+    }
+    
+    init?(_ bytes: [UInt8])
+    {
+        guard bytes.count == 32 else {
+            return nil
+        }
+        
+        self.gmtUnixTime = UInt32(bigEndianBytes: bytes[0..<4])!
+        self.randomBytes = [UInt8](bytes[4..<32])
+    }
+    
+    required init?(inputStream : InputStreamType)
+    {
+        if  let time : UInt32 = inputStream.read(),
+            let bytes : [UInt8] = inputStream.read(count: Random.NumberOfRandomBytes)
+        {
+            self.gmtUnixTime = time
+            self.randomBytes = bytes
+        }
+        else {
+            return nil
+        }
+    }
+    
+    func writeTo<Target : OutputStreamType>(_ target: inout Target, context: TLSConnection?) {
+        target.write(gmtUnixTime)
+        target.write(randomBytes)
+    }
+    
+    static func == (lhs: Random, rhs: Random) -> Bool {
+        return lhs.gmtUnixTime == rhs.gmtUnixTime && lhs.randomBytes == rhs.randomBytes
+    }
 }

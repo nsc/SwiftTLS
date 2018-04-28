@@ -8,9 +8,8 @@
 
 import Foundation
 
-protocol Identity
+public protocol Identity
 {
     var certificateChain: [X509.Certificate] { get }
     var signer: Signing { get }
-    var rsa: RSA? { get }
 }

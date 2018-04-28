@@ -7,11 +7,37 @@
 
 import Foundation
 
-let tls1_3_prefix = [UInt8]("tls13 ".utf8)
+extension Socket : TLSDataProvider {}
 
 public class TLSConnection
 {
-    internal var protocolHandler: TLSProtocol!
+    init(configuration: TLSConfiguration, context: TLSContext? = nil, socket: SocketProtocol)
+    {
+        self.socket = socket
+        self.configuration = configuration
+        
+        self.context = context
+        
+        self.negotiatedProtocolVersion = configuration.supportedVersions.first!
+        self.handshakeMessages = []
+        self.keyExchange = .rsa
+        self.isReusingSession = false
+        
+        switch self.negotiatedProtocolVersion! {
+        case TLSProtocolVersion.v1_0, TLSProtocolVersion.v1_1, TLSProtocolVersion.v1_2:
+            self.recordLayer = TLS1_2.RecordLayer(connection: self, dataProvider: (socket as! TLSDataProvider))
+            
+        case TLSProtocolVersion.v1_3:
+            self.recordLayer = TLS1_3.RecordLayer(connection: self, dataProvider: (socket as! TLSDataProvider))
+            
+        default:
+            fatalError("No such version \(self.negotiatedProtocolVersion!)")
+            break
+        }
+    }
+    
+    var socket: SocketProtocol
+    var protocolHandler: TLSProtocol!
 
     public var configuration: TLSConfiguration
     public var context: TLSContext!
@@ -24,13 +50,17 @@ public class TLSConnection
         }
     }
     
-    var info: String {
-        return self.protocolHandler.connectionInfo
+    public var connectionInfo: String {
+        return """
+        TLS Version: \(self.negotiatedProtocolVersion!)
+        Cipher: \(self.cipherSuite!)
+        \(self.protocolHandler.connectionInfo)
+        """
     }
     
     var serverNames: [String]?
     
-    var cipherSuite: CipherSuite? {
+    public var cipherSuite: CipherSuite? {
         didSet {
             if  let cipherSuite = cipherSuite,
                 let cipherSuiteDescription = TLSCipherSuiteDescriptorForCipherSuite(cipherSuite) {
@@ -39,6 +69,7 @@ public class TLSConnection
             }
         }
     }
+    
     var stateMachine: TLSConnectionStateMachine?
     
     var serverCertificates: [X509.Certificate]?
@@ -111,32 +142,6 @@ public class TLSConnection
     
     private var connectionEstablishedCompletionBlock : ((_ error : TLSError?) -> ())?
 
-    init(configuration: TLSConfiguration, context: TLSContext? = nil, dataProvider : TLSDataProvider? = nil)
-    {
-        self.configuration = configuration
-        
-        self.context = context
-        
-        self.negotiatedProtocolVersion = configuration.supportedVersions.first!
-        self.handshakeMessages = []
-        self.keyExchange = .rsa
-        self.isReusingSession = false
-        
-        if let dataProvider = dataProvider {
-            switch self.negotiatedProtocolVersion! {
-            case TLSProtocolVersion.v1_0, TLSProtocolVersion.v1_1, TLSProtocolVersion.v1_2:
-                self.recordLayer = TLS1_2.RecordLayer(connection: self, dataProvider: dataProvider)
-            
-            case TLSProtocolVersion.v1_3:
-                self.recordLayer = TLS1_3.RecordLayer(connection: self, dataProvider: dataProvider)
-            
-            default:
-                fatalError("No such version \(self.negotiatedProtocolVersion!)")
-                break
-            }
-        }
-    }
-    
     func reset() {
         self.currentSession = nil
         self.pendingSessionID = nil
@@ -283,7 +288,7 @@ public class TLSConnection
     internal func sign(_ data : [UInt8]) throws -> [UInt8]
     {
         guard let signer = self.signer else {
-            fatalError("Unsupported signature algorithm \(self.configuration.signatureAlgorithm)")
+            fatalError("Unsupported signature algorithm \(String(describing: self.configuration.signatureAlgorithm))")
         }
         
         return try signer.sign(data: data)
@@ -323,23 +328,59 @@ public class TLSConnection
         
         return nil
     }
+}
+
+extension TLSConnection : SocketProtocol {
+    public func close()
+    {
+        do {
+            try self.sendAlert(.closeNotify, alertLevel: .warning)
+        }
+        catch
+        {
+        }
+        
+        // When the send is done, close the underlying socket
+        // We might want to have an option to wait for the peer to send *its* closeNotify if it wants to
+        self.socket.close()
+    }
     
-//    func deriveSharedSecret() throws -> [UInt8] {
-//        switch self.keyExchange {
-//        case .dhe(let diffieHellmanKeyExchange):
-//            // Diffie-Hellman
-//            let publicKey = diffieHellmanKeyExchange.calculatePublicKey()
-//            let sharedSecret = diffieHellmanKeyExchange.calculateSharedSecret()!
-//            
-//            return sharedSecret.asBigEndianData()
-//            
-//        case .ecdhe(let ecdhKeyExchange):
-//            let Q = ecdhKeyExchange.calculatePublicKey()
-//            let sharedSecret = ecdhKeyExchange.calculateSharedSecret()!
-//            
-//            return sharedSecret.asBigEndianData()
-//            
-//        case .rsa: break
-//        }
-//    }
+    public func read(count: Int) throws -> [UInt8]
+    {
+        let message = try self.readTLSMessage()
+        switch message.type
+        {
+        case .applicationData:
+            let applicationData = (message as! TLSApplicationData).applicationData
+            
+            if applicationData.count == 0 {
+                return try self.read(count: count)
+            }
+            else {
+                return applicationData
+            }
+            
+        case .alert(let level, let alert):
+            log("Alert: \(level) \(alert)")
+            return []
+            
+        default:
+            throw TLSError.error("Error: unhandled message \(message)")
+        }
+    }
+    
+    func readData(count: Int) throws -> [UInt8]
+    {
+        return try self.socket.read(count: count)
+    }
+    
+    func writeData(_ data: [UInt8]) throws
+    {
+        try self.socket.write(data)
+    }
+    
+    public func write(_ data: [UInt8]) throws
+    {
+        try self.sendApplicationData(data)
+    }
 }

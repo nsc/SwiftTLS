@@ -18,3 +18,12 @@ extension Data {
         return array
     }
 }
+
+extension Array where Element == UInt8 {
+    init(_ data: Data) {
+        self.init(repeating: 0, count: data.count)
+        self.withUnsafeMutableBufferPointer {
+            _ = data.copyBytes(to: $0)
+        }
+    }
+}

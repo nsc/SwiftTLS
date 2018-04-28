@@ -15,7 +15,3 @@ TLS 1.3:
 
 TLS 1.2:
 - fix session reuse
-
-Linux:
-- set up swift package
-- implement symmetric crypto (AES, SHA-1, SHA-2)

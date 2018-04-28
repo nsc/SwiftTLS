@@ -31,17 +31,17 @@ class TLSTests: XCTestCase {
 //        configuration.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
 //        configuration.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256]
 //        configuration.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256]
-        let socket = TLSClientSocket(configuration: configuration)
+        let client = TLSClient(configuration: configuration)
 
 //        let (host, port) = ("127.0.0.1", 4433)
         
         do {
 //            try socket.connect(IPAddress.addressWithString(host, port: port)!)
-            try socket.connect(hostname: "localhost", port: 4433)
-            try socket.write([UInt8]("GET / HTTP/1.1\r\nHost: example.com\r\n\r\n".utf8))
-            let data = try socket.read(count: 100)
+            try client.connect(hostname: "localhost", port: 4433)
+            try client.write([UInt8]("GET / HTTP/1.1\r\nHost: example.com\r\n\r\n".utf8))
+            let data = try client.read(count: 100)
             print("\(String(describing: String.fromUTF8Bytes(data)))")
-            socket.close()
+            client.close()
         }
         catch let error as SocketError {
             print("Error: \(error)")
@@ -55,7 +55,7 @@ class TLSTests: XCTestCase {
         opensslServer.terminate()
     }
     
-    func createServer(with cipherSuite: CipherSuite, port: Int, supportedVersions: [TLSProtocolVersion]) -> TLSServerSocket
+    func createServer(with cipherSuite: CipherSuite, port: Int, supportedVersions: [TLSProtocolVersion]) -> TLSServer
     {
         var configuration = TLSConfiguration(supportedVersions: supportedVersions)
         
@@ -65,7 +65,7 @@ class TLSTests: XCTestCase {
         configuration.dhParameters = DiffieHellmanParameters.fromPEMFile(dhParametersPath)
         configuration.ecdhParameters = ECDiffieHellmanParameters(namedCurve: .secp256r1)
         
-        return TLSServerSocket(configuration: configuration)
+        return TLSServer(configuration: configuration)
     }
     
     func test_clientServerWithCipherSuite(_ cipherSuite : CipherSuite, serverSupportsEarlyData: Bool = true, clientSupportsEarlyData: Bool = true)
@@ -76,7 +76,7 @@ class TLSTests: XCTestCase {
         clientConfiguration.earlyData = .supported(maximumEarlyDataSize: 4096)
      
         let server = createServer(with: cipherSuite, port: 12345, supportedVersions: supportedVersions)
-        server.connection.configuration.earlyData = .supported(maximumEarlyDataSize: 4096)
+        server.configuration.earlyData = .supported(maximumEarlyDataSize: 4096)
         
         let expectation = self.expectation(description: "accept connection successfully")
         
@@ -121,7 +121,7 @@ class TLSTests: XCTestCase {
             
             var numberOfSuccesses = 0
             for _ in 0..<3 {
-                let client = TLSClientSocket(configuration: clientConfiguration, context: clientContext)
+                let client = TLSClient(configuration: clientConfiguration, context: clientContext)
                 if clientContext == nil {
                     clientContext = client.context as? TLSClientContext
                 }

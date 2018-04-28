@@ -6,7 +6,7 @@
 //  Copyright © 2015 Nico Schmidt. All rights reserved.
 //
 
-protocol Signing
+public protocol Signing
 {
     var algorithm: X509.SignatureAlgorithm { get }
 

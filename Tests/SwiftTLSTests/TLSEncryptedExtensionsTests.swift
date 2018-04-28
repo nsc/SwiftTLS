@@ -17,7 +17,7 @@ class TLSEncryptedExtensionsTests: XCTestCase {
     func test_writeTo_withSomeExtensions_givesDataFromWhichTheSameMessageCanBeConstructed() {
         let encryptedExtensions = TLS1_3.TLSEncryptedExtensions(extensions: [])
         
-        let context = TLSConnection(configuration: TLSConfiguration(supportedVersions: [.v1_3]))
+        let context = TLSServer(configuration: TLSConfiguration(supportedVersions: [.v1_3]))
         var data: [UInt8] = []
         encryptedExtensions.writeTo(&data, context: context)
         

@@ -32,45 +32,18 @@ func server(address: IPAddress, certificatePath: String, dhParametersPath : Stri
 {    
     log("Listening on port \(address.port)")
     
-    let supportedVersions: [TLSProtocolVersion] = [.v1_3, .v1_2]
-    
-    var cipherSuites : [CipherSuite] = [
-//        .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-        .TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-        //        .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-        .TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-    ]
-    
-    if supportedVersions.contains(.v1_2) {
-        cipherSuites.append(contentsOf: [
-            .TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-//            .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-//            .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-            .TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-            ])
-    }
-    
-    if supportedVersions.contains(.v1_3) {
-        cipherSuites.append(contentsOf: [
-            .TLS_AES_128_GCM_SHA256,
-            .TLS_AES_256_GCM_SHA384
-            ])
-    }
-    
-    if let cipherSuite = cipherSuite {
-        cipherSuites.insert(cipherSuite, at: 0)
-    }
-    
     let identity = PEMFileIdentity(pemFile: certificatePath)
-    var configuration = TLSConfiguration(supportedVersions: supportedVersions, identity: identity)
+    var configuration = TLSConfiguration(identity: identity)
 
-    configuration.cipherSuites = cipherSuites
+    if let cipherSuite = cipherSuite {
+        configuration.cipherSuites = [cipherSuite]
+    }
+    
     if let dhParametersPath = dhParametersPath {
         configuration.dhParameters = DiffieHellmanParameters.fromPEMFile(dhParametersPath)
     }
-    configuration.ecdhParameters = ECDiffieHellmanParameters(namedCurve: .secp256r1)
     
-    let server = TLSServerSocket(configuration: configuration)
+    let server = TLSServer(configuration: configuration)
     
     do {
         try server.listen(on: address)
@@ -81,10 +54,10 @@ func server(address: IPAddress, certificatePath: String, dhParametersPath : Stri
     while true {
         do {
             try server.acceptConnection(withEarlyDataResponseHandler: nil) { result in
-                var clientSocket: TLSSocket
+                var client: TLSConnection
                 switch result {
-                case .client(let socket):
-                    clientSocket = socket
+                case .client(let connection):
+                    client = connection
                     
                 case.error(let error):
                     log("Error accepting connection: \(error)")
@@ -93,18 +66,18 @@ func server(address: IPAddress, certificatePath: String, dhParametersPath : Stri
 
                 while true {
                     do {
-                        let data = try clientSocket.read(count: 4096)
+                        let data = try client.read(count: 4096)
                         let clientRequest = String.fromUTF8Bytes(data)!
                         let response = """
                         Date: \(Date())
-                        \(clientSocket.connectionInfo)
+                        \(client.connectionInfo)
                         
                         Your Request:
                         \(clientRequest)
                         """
                         
                         log("""
-                            \(clientSocket.connectionInfo)
+                            \(client.connectionInfo)
                             
                             Client Request:
                             \(clientRequest)
@@ -118,16 +91,13 @@ func server(address: IPAddress, certificatePath: String, dhParametersPath : Stri
                             let contentLength = response.utf8.count
                             let header = "HTTP/1.0 200 OK\r\nConnection: Close\r\nContent-Length: \(contentLength)\r\n\r\n"
                             let body = "\(response)"
-                            try clientSocket.write(header + body)
+                            try client.write(header + body)
                             
                             if clientWantsMeToCloseTheConnection {
-                                clientSocket.close()
+                                client.close()
                                 break
                             }
                         }
-                        //                try clientSocket.write(body)
-                        
-                        //            clientSocket.close()
                     } catch(let error) {
                         if let tlserror = error as? TLSError {
                             switch tlserror {
