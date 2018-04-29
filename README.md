@@ -22,9 +22,13 @@ TLS 1.3
 
 ## Things to try
 
-tls client --connect swifttls.org
+    swift run -c release tls client --connect swifttls.org
 
-tls server --port 4433 --certificate /path/to/mycert.pem --dhParameters /path/to/mydhparams.pem
+    swift run -c release tls server --port 4433 --certificate /path/to/mycert.pem --dhParameters /path/to/mydhparams.pem
+
+BigInt performance highly depends on the build configuration, i.e. debug builds are an order of magnitude slower than release builds. So if you want to run the tests it is best to also use the release configuration like this:
+
+    swift test -c release -Xswiftc -enable-testing
 
 A test server is running at [swifttls.org](https://swifttls.org).
 
