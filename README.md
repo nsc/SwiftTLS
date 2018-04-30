@@ -34,6 +34,7 @@ A test server is running at [swifttls.org](https://swifttls.org).
 
 A good starting point to see how you set up a TLS connection in code is [server.swift](SwiftTLSTool/server.swift) and [client.swift](SwiftTLSTool/client.swift).
 
+For a rough overview of the overall architecture see [SwiftTLS Design](Documentation/SwiftTLS%20Design.pdf)
 ## Disclaimer
 Up until now this project has mainly been an effort for me to learn how TLS works, but I'd love to get your feedback and contributions to improve it.
 

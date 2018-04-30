@@ -202,6 +202,7 @@
 		03E6B7E62088CAF00070EDFC /* TLSRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03E6B7362088CAF00070EDFC /* TLSRecord.swift */; };
 		03E6B7E92088E5BC0070EDFC /* SwiftTLS.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03FA949F1B9E1A0500F08FB8 /* SwiftTLS.framework */; };
 		03EAE79F20945E21004AB137 /* Streamable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAE79E20945E21004AB137 /* Streamable.swift */; };
+		03ED353C209714B500F1889B /* SwiftTLS Design.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 03ED353B209714B500F1889B /* SwiftTLS Design.pdf */; };
 		03FA94A91B9E1A0500F08FB8 /* SwiftTLS.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03FA949F1B9E1A0500F08FB8 /* SwiftTLS.framework */; };
 /* End PBXBuildFile section */
 
@@ -497,6 +498,7 @@
 		03E6B7352088CAF00070EDFC /* TLSProtocolVersion.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSProtocolVersion.swift; sourceTree = "<group>"; };
 		03E6B7362088CAF00070EDFC /* TLSRecord.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSRecord.swift; sourceTree = "<group>"; };
 		03EAE79E20945E21004AB137 /* Streamable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Streamable.swift; sourceTree = "<group>"; };
+		03ED353B209714B500F1889B /* SwiftTLS Design.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; name = "SwiftTLS Design.pdf"; path = "Documentation/SwiftTLS Design.pdf"; sourceTree = SOURCE_ROOT; };
 		03FA949F1B9E1A0500F08FB8 /* SwiftTLS.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SwiftTLS.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		03FA94A81B9E1A0500F08FB8 /* SwiftTLSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SwiftTLSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -584,6 +586,7 @@
 		033AC3581AC473730004EEC1 /* SwiftTLS */ = {
 			isa = PBXGroup;
 			children = (
+				03ED353F209714D900F1889B /* Documentation */,
 				03805D1C209374550051ACB3 /* README.md */,
 				031BAED41C62849A00600133 /* RFCs */,
 				03E6B6D52088CAF00070EDFC /* Certificates */,
@@ -1074,6 +1077,15 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		03ED353F209714D900F1889B /* Documentation */ = {
+			isa = PBXGroup;
+			children = (
+				03ED353B209714B500F1889B /* SwiftTLS Design.pdf */,
+			);
+			name = Documentation;
+			path = ../../Documentation;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
@@ -1190,6 +1202,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				03ED353C209714B500F1889B /* SwiftTLS Design.pdf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

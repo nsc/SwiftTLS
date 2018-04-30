@@ -30,7 +30,7 @@ extension TLS1_2 {
             self.state = .idle
         }
         
-        func transitionTo(state: TLSState) throws {
+        func transition(to state: TLSState) throws {
             if !checkServerStateTransition(state) {
                 throw TLSError.error("Server: Illegal state transition \(self.state) -> \(state)")
             }
@@ -54,7 +54,7 @@ extension TLS1_2 {
             switch message.handshakeType
             {
             case .serverHello:
-                try self.transitionTo(state: .serverHelloSent)
+                try self.transition(to: .serverHelloSent)
                 
                 if self.server!.isReusingSession {
                     try self.protocolHandler!.sendChangeCipherSpec()
@@ -64,7 +64,7 @@ extension TLS1_2 {
                 }
                 
             case .certificate:
-                try self.transitionTo(state: .certificateSent)
+                try self.transition(to: .certificateSent)
                 
                 if self.server!.cipherSuite!.needsServerKeyExchange() {
                     try self.protocolHandler!.sendServerKeyExchange()
@@ -74,14 +74,14 @@ extension TLS1_2 {
                 }
                 
             case .serverKeyExchange:
-                try self.transitionTo(state: .serverKeyExchangeSent)
+                try self.transition(to: .serverKeyExchangeSent)
                 try self.protocolHandler!.sendServerHelloDone()
                 
             case .serverHelloDone:
-                try self.transitionTo(state: .serverHelloDoneSent)
+                try self.transition(to: .serverHelloDoneSent)
                 
             case .finished:
-                try self.transitionTo(state: .finishedSent)
+                try self.transition(to: .finishedSent)
                 
             default:
                 log("Unsupported handshake message \(message.handshakeType)")
@@ -91,14 +91,14 @@ extension TLS1_2 {
         func didSendChangeCipherSpec() throws
         {
             log("did send change cipher spec")
-            try self.transitionTo(state: .changeCipherSpecSent)
+            try self.transition(to: .changeCipherSpecSent)
             try self.protocolHandler!.sendFinished()
         }
         
         func didReceiveChangeCipherSpec() throws
         {
             log("did receive change cipher spec")
-            try self.transitionTo(state: .changeCipherSpecReceived)
+            try self.transition(to: .changeCipherSpecReceived)
         }
         
         func serverDidReceiveHandshakeMessage(_ message : TLSHandshakeMessage) throws
@@ -110,15 +110,15 @@ extension TLS1_2 {
             switch (handshakeType)
             {
             case .clientHello:
-                try self.transitionTo(state: .clientHelloReceived)
+                try self.transition(to: .clientHelloReceived)
                 let clientHello = message as! TLSClientHello
                 try self.protocolHandler!.sendServerHello(for: clientHello)
                 
             case .clientKeyExchange:
-                try self.transitionTo(state: .clientKeyExchangeReceived)
+                try self.transition(to: .clientKeyExchangeReceived)
                 
             case .finished:
-                try self.transitionTo(state: .finishedReceived)
+                try self.transition(to: .finishedReceived)
                 
                 if !self.server!.isReusingSession {
                     try self.protocolHandler!.sendChangeCipherSpec()
@@ -134,7 +134,7 @@ extension TLS1_2 {
         }
         
         func serverDidConnect() throws {
-            try transitionTo(state: .connected)
+            try transition(to: .connected)
         }
         
         func checkServerStateTransition(_ state : TLSState) -> Bool

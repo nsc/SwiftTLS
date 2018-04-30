@@ -30,7 +30,7 @@ extension TLS1_3 {
             self.state = .idle
         }
         
-        func transitionTo(state: TLSState) throws {
+        func transition(to state: TLSState) throws {
             if !checkClientStateTransition(state) {
                 throw TLSError.error("Client: Illegal state transition \(self.state) -> \(state)")
             }
@@ -54,16 +54,16 @@ extension TLS1_3 {
             switch message.handshakeType
             {
             case .clientHello:
-                try self.transitionTo(state: .clientHelloSent)
+                try self.transition(to: .clientHelloSent)
                 
             case .certificate:
-                try self.transitionTo(state: .certificateSent)
+                try self.transition(to: .certificateSent)
                 
             case .finished:
-                try self.transitionTo(state: .finishedSent)
+                try self.transition(to: .finishedSent)
                 
             case .endOfEarlyData:
-                try self.transitionTo(state: .endOfEarlyDataSent)
+                try self.transition(to: .endOfEarlyDataSent)
 
             default:
                 log("Unsupported handshake message \(message.handshakeType)")
@@ -79,25 +79,25 @@ extension TLS1_3 {
             switch (handshakeType)
             {
             case .serverHello:
-                try self.transitionTo(state: .serverHelloReceived)
+                try self.transition(to: .serverHelloReceived)
 
             case .helloRetryRequest:
-                try self.transitionTo(state: .helloRetryRequestReceived)
+                try self.transition(to: .helloRetryRequestReceived)
                 try self.protocolHandler!.sendClientHello()
 
             case .certificate:
-                try self.transitionTo(state: .certificateReceived)
+                try self.transition(to: .certificateReceived)
                 
             case .certificateVerify:
-                try self.transitionTo(state: .certificateVerifyReceived)
+                try self.transition(to: .certificateVerifyReceived)
                 
             case .finished:
-                try self.transitionTo(state: .finishedReceived)
+                try self.transition(to: .finishedReceived)
                 // FIXME: Handle Certifcate and CertificateVerify if requested
                 try self.protocolHandler!.sendFinished()
 
             case .encryptedExtensions:
-                try self.transitionTo(state: .encryptedExtensionsReceived)
+                try self.transition(to: .encryptedExtensionsReceived)
 
             case .newSessionTicket:
                 let newSessionTicket = message as! TLSNewSessionTicket
@@ -106,7 +106,7 @@ extension TLS1_3 {
                 log("    Nonce    = \(hex(newSessionTicket.ticketNonce))")
                 log("    lifeTime = \(newSessionTicket.ticketLifetime)")
                 log("    ageAdd   = \(newSessionTicket.ticketAgeAdd)")
-                try self.transitionTo(state: .newSessionTicketReceived)
+                try self.transition(to: .newSessionTicketReceived)
 
             default:
                 log("Unsupported handshake message \(handshakeType.rawValue)")
@@ -125,7 +125,7 @@ extension TLS1_3 {
                     client.earlyDataWasSent = false
                 }
             }
-            try transitionTo(state: .connected)
+            try transition(to: .connected)
         }
         
         func checkClientStateTransition(_ state : TLSState) -> Bool
