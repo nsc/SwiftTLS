@@ -28,13 +28,19 @@ func parseHTTPHeader(_ string: String) -> [String:String] {
     return header
 }
 
-func server(address: IPAddress, certificatePath: String, dhParametersPath : String? = nil, cipherSuite: CipherSuite? = nil)
+func server(address: IPAddress, certificatePath: String, dhParametersPath : String? = nil, cipherSuite: CipherSuite? = nil, supportedVersions: [TLSProtocolVersion]? = nil)
 {    
     log("Listening on port \(address.port)")
     
     let identity = PEMFileIdentity(pemFile: certificatePath)
-    var configuration = TLSConfiguration(identity: identity)
-
+    var configuration: TLSConfiguration
+    if let supportedVersions = supportedVersions {
+        configuration = TLSConfiguration(supportedVersions: supportedVersions, identity: identity)
+    }
+    else {
+        configuration = TLSConfiguration(identity: identity)
+    }
+    
     if let cipherSuite = cipherSuite {
         configuration.cipherSuites = [cipherSuite]
     }

@@ -234,7 +234,12 @@ case "server":
         case .server:
             if let address = address {
                 address.port = port
-                server(address: address, certificatePath: certificatePath!, dhParametersPath: dhParameters, cipherSuite: cipherSuite)
+                var supportedVersions: [TLSProtocolVersion]? = nil
+                if let version = protocolVersion {
+                    supportedVersions = [version]
+                }
+                
+                server(address: address, certificatePath: certificatePath!, dhParametersPath: dhParameters, cipherSuite: cipherSuite, supportedVersions: supportedVersions)
             }
         }
     }
