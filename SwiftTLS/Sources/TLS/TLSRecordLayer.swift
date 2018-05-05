@@ -54,6 +54,11 @@ class TLSBaseRecordLayer : TLSRecordLayer
         try self.dataProvider?.writeData(recordData)
     }
     
+    func readRecordBody(count: Int) throws -> [UInt8]
+    {
+        return try self.dataProvider!.readData(count: count)
+    }
+    
     func readMessage() throws -> TLSMessage
     {
         if let bufferedMessages = self.bufferedMessages {
@@ -72,7 +77,7 @@ class TLSBaseRecordLayer : TLSRecordLayer
             throw TLSError.error("Probe failed with malformed header \(header)")
         }
         
-        let body = try self.dataProvider!.readData(count: bodyLength)
+        let body = try self.readRecordBody(count: bodyLength)
         
         var (contentTypeFromRecord, messageBody) = try self.data(forContentType: contentType, recordData: body)
         

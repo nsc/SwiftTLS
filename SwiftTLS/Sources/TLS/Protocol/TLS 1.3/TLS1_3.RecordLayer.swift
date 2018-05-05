@@ -115,8 +115,15 @@ extension TLS1_3 {
             }
         }
         
-        override func recordData(forContentType contentType: ContentType, data: [UInt8]) throws -> [UInt8]
-        {
+        override func readRecordBody(count: Int) throws -> [UInt8] {
+            guard count > 0 && count <= (1 << 14) + 256 else {
+                try connection!.abortHandshake(with: .recordOverflow)
+            }
+            
+            return try super.readRecordBody(count: count)
+        }
+        
+        override func recordData(forContentType contentType: ContentType, data: [UInt8]) throws -> [UInt8] {
             if let encryptionParameters = self.writeEncryptionParameters {
                 
                 let paddingLength = 12
@@ -169,6 +176,13 @@ extension TLS1_3 {
         
             let cipherSuiteDescriptor = encryptionParameters.cipherSuiteDecriptor
 
+            log("recordData.count = \(recordData.count) / auth tag size = \(cipherSuiteDescriptor.authTagSize)")
+            guard recordData.count >= cipherSuiteDescriptor.authTagSize else {
+                // FIXME: I haven't found anything in the RFC about how to handle this case. What is the correct alert to send here?
+                try connection!.abortHandshake(with: .unexpectedMessage)
+            }
+            
+            // FIXME: The server has crashed in the next line with an invalid index
             let cipherText = [UInt8](recordData[0..<(recordData.count - cipherSuiteDescriptor.authTagSize)])
             let authTag    = [UInt8](recordData[(recordData.count - cipherSuiteDescriptor.authTagSize)..<recordData.count])
             

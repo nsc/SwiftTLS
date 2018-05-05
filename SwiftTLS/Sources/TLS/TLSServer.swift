@@ -170,7 +170,10 @@ extension TLSServer : ServerSocketProtocol
         let queue = DispatchQueue.global()
         
         queue.async {
-            
+            if let address = clientSocket.peerName {
+                log("Connection from \(address)")
+            }
+
             let clientTLSSocket = TLSServer(configuration: self.configuration, context: self.context)
             clientTLSSocket.socket = clientSocket
             clientTLSSocket.signer = self.signer

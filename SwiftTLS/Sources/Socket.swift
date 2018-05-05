@@ -298,10 +298,6 @@ extension Socket : ServerSocketProtocol
         #else
         let clientSocket = Darwin.accept(socket, nil, nil)
         #endif
-
-        if let address = IPAddress.peerName(with: clientSocket) {
-            log("Connection from \(address)")
-        }
         
         if clientSocket == Int32(-1) {
             throw SocketError.posixError(errno: errno)

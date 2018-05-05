@@ -163,7 +163,7 @@ extension TLS1_3 {
                 }
             }
             
-            // Check that the combination of offered extensions for key share and PSKs is sane
+            // FIXME: Check that the combination of offered extensions for key share and PSKs is sane
             if let offeredPSKs = clientOfferedPSKs {
                 guard let pskKeyExchangeModes = clientPSKKeyExchangeModes else {
                     try server.abortHandshake()

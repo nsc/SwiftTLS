@@ -58,12 +58,15 @@ class Log
 {
     private var enabled: Bool = true
     private let formatter = LoggingDateFormatter()
+    private let logFile: FileHandle = FileHandle(fileDescriptor: 1)
     
     func log(_ message: @autoclosure () -> String, file: StaticString, line: UInt, time: Date) {
         if enabled {
             let threadNumber = Thread.current.number
 
-            print("\(formatter.string(from: time)) (~\(threadNumber)): \(message())")
+            let line = "\(formatter.string(from: time)) (~\(threadNumber)): \(message())\n"
+            let utf8 = Data(line.utf8)
+            logFile.write(utf8)
         }
     }
 }
