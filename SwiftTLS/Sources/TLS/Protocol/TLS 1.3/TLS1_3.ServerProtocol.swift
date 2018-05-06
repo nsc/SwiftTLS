@@ -116,7 +116,7 @@ extension TLS1_3 {
                 try server.abortHandshake()
             }
             
-            if negotiatedProtocolVersion < .v1_3 {
+            if negotiatedProtocolVersion < .v1_3_draft26 {
                 if let supportdVersions = clientHello.extensions.filter({$0 is TLSSupportedVersionsExtension}).first as? TLSSupportedVersionsExtension {
                     log("Client is only supporting \(supportdVersions.supportedVersions)")
                 }

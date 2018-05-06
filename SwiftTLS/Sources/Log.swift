@@ -53,20 +53,23 @@ extension Thread {
     }
 }
 
-let threadNumberKey = DispatchSpecificKey<Int>()
 class Log
 {
     private var enabled: Bool = true
     private let formatter = LoggingDateFormatter()
     private let logFile: FileHandle = FileHandle(fileDescriptor: 1)
+    private let logQueue = DispatchQueue(label: "org.swifttls.logging")
     
     func log(_ message: @autoclosure () -> String, file: StaticString, line: UInt, time: Date) {
         if enabled {
             let threadNumber = Thread.current.number
 
-            let line = "\(formatter.string(from: time)) (~\(threadNumber)): \(message())\n"
-            let utf8 = Data(line.utf8)
-            logFile.write(utf8)
+            logQueue.sync {
+                let line = "\(formatter.string(from: time)) (~\(threadNumber)): \(message())\n"
+                let utf8 = Data(line.utf8)
+
+                logFile.write(utf8)
+            }
         }
     }
 }

@@ -42,24 +42,31 @@ public struct TLSProtocolVersion : RawRepresentable, CustomStringConvertible, Co
     // FIXME: As long as the TLS 1.3 RFC has draft status, we are using a draft version
     // number as of section 4.2.1.1.
 //    public static let v1_3 = TLSProtocolVersion(rawValue: 0x7f17)! // draft-23
-    public static let v1_3 = TLSProtocolVersion(rawValue: 0x7f1a)! // draft-26
-//    public static let v1_3 = TLSProtocolVersion(rawValue: 0x0304)!
+    public static let v1_3_draft26 = TLSProtocolVersion(rawValue: 0x7f1a)! // draft-26
+    public static let v1_3_draft28 = TLSProtocolVersion(rawValue: 0x7f1c)! // draft-28
+    public static let v1_3 = TLSProtocolVersion(rawValue: 0x0304)!
     
     public var description: String {
         get {
-            switch self {
+            switch self.rawValue {
                 
-            case TLSProtocolVersion.v1_0:
+            case TLSProtocolVersion.v1_0.rawValue:
                 return "TLS v1.0"
                 
-            case TLSProtocolVersion.v1_1:
+            case TLSProtocolVersion.v1_1.rawValue:
                 return "TLS v1.1"
                 
-            case TLSProtocolVersion.v1_2:
+            case TLSProtocolVersion.v1_2.rawValue:
                 return "TLS v1.2"
 
-            case TLSProtocolVersion.v1_3:
+            case TLSProtocolVersion.v1_3_draft26.rawValue:
                 return "TLS v1.3 draft-26"
+
+            case TLSProtocolVersion.v1_3_draft28.rawValue:
+                return "TLS v1.3 draft-28"
+
+            case TLSProtocolVersion.v1_3.rawValue:
+                return "TLS v1.3"
 
             default:
                 return "Unknown TLS version \(_rawValue >> 8).\(_rawValue & 0xff)"
@@ -82,11 +89,22 @@ public struct TLSProtocolVersion : RawRepresentable, CustomStringConvertible, Co
 
 public func == (lhs : TLSProtocolVersion, rhs : TLSProtocolVersion) -> Bool
 {
+    // FIXME: As long as we are still supporting drafts, make them equivalent
+    let equivalentVersions = [TLSProtocolVersion.v1_3_draft26.rawValue, TLSProtocolVersion.v1_3_draft28.rawValue, TLSProtocolVersion.v1_3.rawValue]
+    if equivalentVersions.contains(lhs.rawValue) && equivalentVersions.contains(rhs.rawValue){
+        return true
+    }
+    
     return lhs.rawValue == rhs.rawValue
+    
 }
 
 public func < (lhs : TLSProtocolVersion, rhs : TLSProtocolVersion) -> Bool
 {
+    if lhs == rhs {
+        return false
+    }
+    
     return lhs.rawValue < rhs.rawValue
 }
 
