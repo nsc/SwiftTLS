@@ -95,7 +95,7 @@ func server(address: IPAddress, certificatePath: String, dhParametersPath : Stri
                             let clientWantsMeToCloseTheConnection = (httpHeader["Connection"]?.lowercased() == "close")
                             
                             let contentLength = response.utf8.count
-                            let header = "HTTP/1.0 200 OK\r\nConnection: Close\r\nContent-Length: \(contentLength)\r\n\r\n"
+                            let header = "HTTP/1.0 200 OK\r\nServer: SwiftTLS\r\nConnection: Close\r\nContent-Length: \(contentLength)\r\n\r\n"
                             let body = "\(response)"
                             try client.write(header + body)
                             
