@@ -217,7 +217,7 @@ class TLSServerKeyExchange : TLSHandshakeMessage
     init(keyExchangeParameters: KeyExchangeParameters, context: TLSServer) throws
     {
         guard let server = context.protocolHandler as? TLS1_2.ServerProtocol else {
-            fatalError("Can't construct TLSServerKeyExchange with a \(context.protocolHandler)")
+            fatalError("Can't construct TLSServerKeyExchange with a \(String(describing: context.protocolHandler))")
         }
         
         self.parameters = keyExchangeParameters

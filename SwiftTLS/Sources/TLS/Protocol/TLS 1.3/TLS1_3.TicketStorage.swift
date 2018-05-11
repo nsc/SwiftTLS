@@ -9,6 +9,9 @@
 import Foundation
 
 extension TLS1_3 {
+    // The maximum amount we allow the clients view of a tickets age to be off in milliseconds
+    static let maximumAcceptableTicketAgeOffset: UInt32 = 10_000
+    
     class Ticket
     {
         var serverNames: [String]
@@ -20,6 +23,8 @@ extension TLS1_3 {
         var preSharedKey: [UInt8]!
         var hashAlgorithm: HashAlgorithm
         var cipherSuite: CipherSuite
+        
+        var creationDate: Date
         
         init(serverNames: [String],
              identity: [UInt8],
@@ -36,6 +41,14 @@ extension TLS1_3 {
             self.ageAdd = ageAdd
             self.cipherSuite = cipherSuite
             self.hashAlgorithm = hashAlgorithm
+            
+            self.creationDate = Date()
+        }
+        
+        func isValid(at time: Date) -> Bool {
+            let age = -creationDate.timeIntervalSince(time)
+            
+            return age <= Double(self.lifeTime)
         }
         
         internal func derivePreSharedKey(for connection: TLSConnection, sessionResumptionSecret: [UInt8]) {
@@ -61,8 +74,11 @@ extension TLS1_3 {
         }
         
         func remove(_ ticket: Ticket) {
+            let now = Date()
+
             for serverName in ticket.serverNames {
-                var tickets = self.tickets[serverName, default: []]
+                // Filter for valid tickets in order we clean up our cache whenever we remove a ticket
+                var tickets = self.tickets[serverName, default: []].filter({$0.isValid(at: now)})
                 if let index = tickets.index(where: {$0.identity == ticket.identity}) {
                     tickets.remove(at: index)
                 }
@@ -75,6 +91,14 @@ extension TLS1_3 {
         
         subscript(serverName serverName: String) -> [Ticket] {
             return self.tickets[serverName] ?? []
+        }
+        
+        func removeInvalidTickets() {
+            let now = Date()
+            for serverName in tickets.keys {
+                let tickets = self.tickets[serverName, default: []].filter({$0.isValid(at: now)})
+                self.tickets[serverName] = tickets
+            }
         }
     }
 }

@@ -50,7 +50,7 @@ extension TLS1_3 {
         internal weak var connection: TLSConnection!
         
         var recordLayer: RecordLayer! {
-            return self.connection.recordLayer as! RecordLayer
+            return (self.connection.recordLayer as! RecordLayer)
         }
         
         var handshakeState: HandshakeState = HandshakeState()
@@ -132,12 +132,12 @@ extension TLS1_3 {
             return binder
         }
         
-        func ticketsForCurrentConnection() -> [Ticket] {
+        func ticketsForCurrentConnection(at currentTime: Date) -> [Ticket] {
             guard let serverNames = connection.serverNames, serverNames.count > 0 else {
                 return []
             }
             
-            return self.context.ticketStorage[serverName: serverNames.first!]
+            return self.context.ticketStorage[serverName: serverNames.first!].filter({$0.isValid(at: currentTime)})
         }
         
         // TLS 1.3 uses HKDF to derive its key material

@@ -116,7 +116,7 @@ extension TLS1_3 {
                 try server.abortHandshake()
             }
             
-            if negotiatedProtocolVersion < .v1_3_draft26 {
+            guard negotiatedProtocolVersion >= .v1_3_draft26 else {
                 if let supportdVersions = clientHello.extensions.filter({$0 is TLSSupportedVersionsExtension}).first as? TLSSupportedVersionsExtension {
                     log("Client is only supporting \(supportdVersions.supportedVersions)")
                 }
@@ -177,14 +177,21 @@ extension TLS1_3 {
                 let clientHelloData = clientHello.messageData(with: self.connection)
                 let truncatedClientHelloData = [UInt8](clientHelloData.dropLast(bindersSize))
                 
-                var selectedIdentity: UInt16? = nil
                 var chosenTicket: Ticket? = nil
                 for i in 0..<offeredPSKs.identities.count {
                     let identity = offeredPSKs.identities[i]
                     
-                    if let ticket = self.ticketsForCurrentConnection().filter({$0.identity == identity.identity}).first {
-                        let ticketAge = ticket.lifeTime
-                        let identityAge = identity.obfuscatedTicketAge.subtractingReportingOverflow(ticket.ageAdd).0
+                    if let ticket = self.ticketsForCurrentConnection(at: Date()).filter({$0.identity == identity.identity}).first {
+                        let ticketAge = UInt32(Date().timeIntervalSince(ticket.creationDate) * 1000)
+                        let identityAge = identity.obfuscatedTicketAge &- ticket.ageAdd
+                        
+                        log("Server ticket age: \(ticketAge)")
+                        log("Client ticket age: \(identityAge)")
+                        
+                        // Reject ticket if the clients view of the ticket age is too far off
+                        guard identityAge < ticketAge + maximumAcceptableTicketAgeOffset else {
+                            continue
+                        }
                         
                         self.handshakeState.preSharedKey = ticket.preSharedKey
                         deriveEarlySecret()

@@ -161,10 +161,9 @@ class Socket : SocketProtocol
     
     internal func _read(count : Int) throws -> [UInt8]
     {
-        guard let socket = self.socketDescriptor
-            else {
-                // FIXME: Introduce some sane error here
-                throw SocketError.closed
+        guard let socket = self.socketDescriptor else {
+            // FIXME: Introduce some sane error here
+            throw SocketError.closed
         }
         var dataRead = [UInt8]()
         
@@ -350,6 +349,11 @@ class TCPSocket : Socket
 //        sigaction(SIGPIPE, &action, nil)
         
         setsockopt(fd, Int32(IPPROTO_TCP), Int32(TCP_NODELAY), &yes, socklen_t(MemoryLayout<Int32>.size))
+        if protocolFamily == PF_INET6 {
+            var no : Int32 = 0
+            let result = setsockopt(fd, Int32(IPPROTO_IPV6), Int32(IPV6_V6ONLY), &no, socklen_t(MemoryLayout<Int32>.size))
+            print(result)
+        }
         
         return fd
     }

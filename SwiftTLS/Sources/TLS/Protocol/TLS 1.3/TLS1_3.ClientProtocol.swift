@@ -108,8 +108,9 @@ extension TLS1_3 {
             clientHello.extensions.append(TLSSignatureAlgorithmsExtension(signatureAlgorithms: [.rsa_pkcs1_sha256, .rsa_pss_sha256]))
             clientHello.extensions.append(TLSKeyShareExtension(keyShare: .clientHello(clientShares: keyShareEntries)))
 
+            let now = Date()
             var isSendingEarlyData = false
-            let tickets = self.ticketsForCurrentConnection()
+            let tickets = self.ticketsForCurrentConnection(at: now)
             if tickets.count > 0 {
                 self.pskKeyExchangeModesAnnouncedToServer = [.psk_dhe]
                 clientHello.extensions.append(TLSPSKKeyExchangeModesExtension(keyExchangeModes: self.pskKeyExchangeModesAnnouncedToServer))
@@ -129,23 +130,23 @@ extension TLS1_3 {
                         self.client.cipherSuite = ticket.cipherSuite
                     }
                 }
+
+                // The PSK Extension needs to be the last extension
+                if let preSharedKeyExtension = self.preSharedKeyExtension(for: clientHello, tickets: tickets) {
+                    switch preSharedKeyExtension.preSharedKey {
+                    case .clientHello(let offeredPsks):
+                        self.offeredPsks = offeredPsks
+                        clientHello.extensions.append(preSharedKeyExtension)
+                        
+                        self.ticketsAnnouncedToServer = tickets
+                        
+                    default:
+                        fatalError("PreSharedKeyExtension must be clientHello")
+                    }
+                }
             }
             else {
                 log("Client: No tickets for current connection")
-            }
-            
-            // The PSK Extension needs to be the last extension
-            if let preSharedKeyExtension = self.preSharedKeyExtension(for: clientHello) {
-                switch preSharedKeyExtension.preSharedKey {
-                case .clientHello(let offeredPsks):
-                    self.offeredPsks = offeredPsks
-                    clientHello.extensions.append(preSharedKeyExtension)
-                    
-                    self.ticketsAnnouncedToServer = tickets
-                    
-                default:
-                    fatalError("PreSharedKeyExtension must be clientHello")
-                }
             }
 
             try client.sendHandshakeMessage(clientHello)
@@ -166,9 +167,8 @@ extension TLS1_3 {
         }
         
         func preSharedKeyExtension(for clientHello: TLSClientHello,
+                                   tickets: [Ticket],
                                    withFakeBinders fakeBinders: Bool = false) -> TLSPreSharedKeyExtension? {
-            
-            let tickets = self.ticketsForCurrentConnection()
             
             guard tickets.count > 0 else {
                 return nil
@@ -180,15 +180,20 @@ extension TLS1_3 {
             let binderKey = deriveBinderKey()
 
             for ticket in tickets {
+                let ticketAge = -ticket.creationDate.timeIntervalSince(Date())
+                guard ticketAge > 0 && ticketAge < Double(ticket.lifeTime) else {
+                    continue
+                }
+                
                 identities.append(PSKIdentity(identity: ticket.identity,
-                                              obfuscatedTicketAge: ticket.lifeTime.unsafeAdding(ticket.ageAdd)))
+                                              obfuscatedTicketAge: ((UInt32(ticketAge) &* 1000) &+ ticket.ageAdd)))
                 
                 var binder: [UInt8]
                 if fakeBinders {
                     binder = [UInt8](repeating: 0, count: ticket.hashAlgorithm.hashLength)
                 }
                 else {
-                    let truncatedClientHelloData = self.truncatedClientHelloDataForPSKBinders(for: clientHello)
+                    let truncatedClientHelloData = self.truncatedClientHelloDataForPSKBinders(for: clientHello, tickets: tickets)
                     let truncatedTranscriptData = self.connection.handshakeMessageData + truncatedClientHelloData
                     
                     binder = binderValueWithHashAlgorithm(ticket.hashAlgorithm, binderKey: binderKey, truncatedTranscriptData: truncatedTranscriptData)
@@ -200,8 +205,8 @@ extension TLS1_3 {
             return TLSPreSharedKeyExtension(preSharedKey: .clientHello(OfferedPSKs(identities: identities, binders: binders)))
         }
         
-        func truncatedClientHelloDataForPSKBinders(for clientHello: TLSClientHello) -> [UInt8] {
-            guard let preSharedKeyExtension = self.preSharedKeyExtension(for: clientHello, withFakeBinders: true) else {
+        func truncatedClientHelloDataForPSKBinders(for clientHello: TLSClientHello, tickets: [Ticket]) -> [UInt8] {
+            guard let preSharedKeyExtension = self.preSharedKeyExtension(for: clientHello, tickets: tickets, withFakeBinders: true) else {
                 fatalError("No pre-shared keys to put into extension")
             }
             
