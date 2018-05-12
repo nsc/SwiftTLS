@@ -356,13 +356,7 @@ extension TLS1_3 {
             // Activate the application traffic secret after Client Finished
             self.recordLayer.changeReadKeys(withTrafficSecret: self.handshakeState.clientTrafficSecret!)
         }
-        
-        func handleCertificate(_ certificate: TLSCertificateMessage) {
-        }
-        
-        func handleMessage(_ message: TLSMessage) throws {
-        }
-        
+                
         func selectVersion(for clientHello: TLSClientHello) -> TLSProtocolVersion? {
             var supportedVersions: [TLSProtocolVersion]? = nil
             if let supportedVersionsExtension = clientHello.extensions.first(where: { $0 is TLSSupportedVersionsExtension }) as? TLSSupportedVersionsExtension {

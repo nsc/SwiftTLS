@@ -70,13 +70,48 @@ public enum TLSSignatureScheme : UInt16 {
             case (.ansip521r1, .sha512):
                 self = .ecdsa_secp521r1_sha512
                 
+            case (.ecdsa_secp256r1, .sha256):
+                self = .ecdsa_secp256r1_sha256
+                
             default:
+                log("Unsupported signature scheme \(curveName), \(hashAlgorithm)")
                 return nil
             }
         default:
             return nil
         }
-        
+    }
+    
+    var signatureAlgorithm: X509.SignatureAlgorithm? {
+        switch self {
+        case .ecdsa_secp256r1_sha256:
+            return .ecPublicKey(curveName: secp256r1.name.oid, hash: .sha256)
+
+        case .ecdsa_secp521r1_sha512:
+            return .ecPublicKey(curveName: secp521r1.name.oid, hash: .sha512)
+            
+        case .rsa_pss_sha256:
+            return .rsassa_pss(hash: .sha256, saltLength: HashAlgorithm.sha256.hashLength)
+
+        case .rsa_pss_sha384:
+            return .rsassa_pss(hash: .sha384, saltLength: HashAlgorithm.sha384.hashLength)
+
+        case .rsa_pss_sha512:
+            return .rsassa_pss(hash: .sha512, saltLength: HashAlgorithm.sha512.hashLength)
+
+        case .rsa_pkcs1_sha256:
+            return .rsa_pkcs1(hash: .sha256)
+
+        case .rsa_pkcs1_sha384:
+            return .rsa_pkcs1(hash: .sha384)
+
+        case .rsa_pkcs1_sha512:
+            return .rsa_pkcs1(hash: .sha512)
+            
+        default:
+            log("Unsupported signature algorithm \(self)")
+            return nil
+        }
     }
     
     var hashAlgorithm: HashAlgorithm? {

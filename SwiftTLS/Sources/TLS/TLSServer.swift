@@ -55,8 +55,12 @@ public class TLSServer : TLSConnection
         self.handshakeMessages = []
     }
     
-    override func handleHandshakeMessage(_ message : TLSHandshakeMessage) throws
+    override func handleHandshakeMessage(_ message : TLSHandshakeMessage) throws -> Bool
     {
+        guard try !super.handleHandshakeMessage(message) else {
+            return true
+        }
+        
         let handshakeType = message.handshakeType
         
         switch (handshakeType)
@@ -67,16 +71,18 @@ public class TLSServer : TLSConnection
             
         case .clientKeyExchange:
             try self.protocolHandler.handleMessage(message)
-            
+
         case .finished:
             let finished = message as! TLSFinished
             try self.protocolHandler.handleFinished(finished)
             
         default:
-            throw TLSError.error("Unsupported handshake message \(handshakeType.rawValue)")
+            try self.protocolHandler.handleMessage(message)
         }
         
         try self.stateMachine?.didReceiveHandshakeMessage(message)
+        
+        return true
     }
 
     func setupServer(with configuration: TLSConfiguration, version: TLSProtocolVersion? = nil)

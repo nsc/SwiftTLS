@@ -410,7 +410,11 @@ extension TLS1_3 {
             self.recordLayer.changeWriteKeys(withTrafficSecret: self.handshakeState.clientTrafficSecret!)
         }
 
-        func handleHandshakeMessage(_ handshakeMessage: TLSHandshakeMessage) throws {
+        override func handleHandshakeMessage(_ handshakeMessage: TLSHandshakeMessage) throws -> Bool {
+            guard try !super.handleHandshakeMessage(handshakeMessage) else {
+                return true
+            }
+            
             switch handshakeMessage.handshakeType
             {
             case .encryptedExtensions:
@@ -420,23 +424,10 @@ extension TLS1_3 {
                 try self.handleNewSessionTicket(handshakeMessage as! TLSNewSessionTicket)
                 
             default:
-                break
+                return false
             }
-        }
-        
-        func handleMessage(_ message: TLSMessage) throws {
-            switch message.type
-            {
-            case .handshake(_):
-                try self.handleHandshakeMessage(message as! TLSHandshakeMessage)
-                
-            default:
-                break
-            }
-        }
-        
-        func handleCertificate(_ certificate: TLSCertificateMessage) {
             
+            return true
         }
         
         func handleFinished(_ finished: TLSFinished) throws {

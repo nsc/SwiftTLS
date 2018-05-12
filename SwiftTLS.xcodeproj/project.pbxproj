@@ -95,6 +95,7 @@
 		035406C01C651C5200C48E5D /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 035406BE1C651C5200C48E5D /* Utilities.swift */; };
 		0355C0DA20825A71007B19A2 /* SHA256Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0355C0D920825A71007B19A2 /* SHA256Tests.swift */; };
 		03591FB81C679FDC005A97EC /* ECDSATests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03591FB71C679FDC005A97EC /* ECDSATests.swift */; };
+		036656FC20A83ED700D8BF03 /* ECDSA Identity.pem in Resources */ = {isa = PBXBuildFile; fileRef = 036656FB20A83ED700D8BF03 /* ECDSA Identity.pem */; };
 		038F68551C428F1000C66050 /* OIDTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 038F68541C428F1000C66050 /* OIDTests.swift */; };
 		039ADDB91C2F39BC00EDF99B /* EllipticCurveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 039ADDB81C2F39BC00EDF99B /* EllipticCurveTests.swift */; };
 		03A63D011C6FA0A10018A21E /* BlockCipherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03A63D001C6FA0A10018A21E /* BlockCipherTests.swift */; };
@@ -380,6 +381,7 @@
 		0355C0D920825A71007B19A2 /* SHA256Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SHA256Tests.swift; sourceTree = "<group>"; };
 		03591FB71C679FDC005A97EC /* ECDSATests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ECDSATests.swift; sourceTree = "<group>"; };
 		03657D061B07BDEF00293CE3 /* tls */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = tls; sourceTree = BUILT_PRODUCTS_DIR; };
+		036656FB20A83ED700D8BF03 /* ECDSA Identity.pem */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "ECDSA Identity.pem"; sourceTree = "<group>"; };
 		03686BF41D270AE400CF88E2 /* rfc3447.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = rfc3447.txt; sourceTree = "<group>"; };
 		036A7C131B07C26800AE46F8 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		037FC47F1D623B0D009049EC /* rfc5116.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = rfc5116.txt; sourceTree = "<group>"; };
@@ -877,6 +879,7 @@
 		03E570092093A16200037D3E /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				036656FB20A83ED700D8BF03 /* ECDSA Identity.pem */,
 				03E5700A2093A16200037D3E /* mycert.p12 */,
 				03E5700B2093A16200037D3E /* certificate.cer */,
 				03E5700C2093A16200037D3E /* mycert2.pem */,
@@ -1217,6 +1220,7 @@
 				03E5701E2093A16200037D3E /* mycert.der in Resources */,
 				03E5701F2093A16200037D3E /* mycert.pem in Resources */,
 				03E570162093A16200037D3E /* mycert.p12 in Resources */,
+				036656FC20A83ED700D8BF03 /* ECDSA Identity.pem in Resources */,
 				03E570212093A16200037D3E /* Self Signed RSA SHA-256.cer in Resources */,
 				03E570182093A16200037D3E /* mycert2.pem in Resources */,
 				03E5701B2093A16200037D3E /* Self Signed ECDSA Certificate.cer in Resources */,

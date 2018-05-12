@@ -19,11 +19,15 @@ public class PEMFileIdentity
     
     public init?(certificateFile: String, privateKeyFile: String)
     {
-        guard let rsa = RSA.fromPEMFile(privateKeyFile) else {
+        if let rsa = RSA.fromPEMFile(privateKeyFile) {
+            _signing = rsa
+        }
+        else if let ecdsa = ECDSA.fromPEMFile(privateKeyFile) {
+            _signing = ecdsa
+        }
+        else {
             return nil
         }
-        
-        _signing = rsa
         
         certificateChain = []
         for (section, object) in ASN1Parser.sectionsFromPEMFile(certificateFile) {

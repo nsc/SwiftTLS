@@ -223,7 +223,7 @@ extension TLS1_2 {
         
         func handleCertificate(_ certificate: TLSCertificateMessage) {
             let certificates = certificate.certificates
-            client.serverCertificates = certificates
+            client.peerCertificates = certificates
             self.serverKey = certificates.first!.publicKeySigner
         }
         
@@ -289,14 +289,14 @@ extension TLS1_2 {
             }
             
             // verify signature
-            if let certificate = client.serverCertificates?.first {
-                if let rsa = certificate.publicKeySigner {
+            if let certificate = client.peerCertificates?.first {
+                if let signer = certificate.publicKeySigner {
                     let signedData = serverKeyExchange.signedParameters
                     var data = self.securityParameters.clientRandom!
                     data += self.securityParameters.serverRandom!
                     data += serverKeyExchange.parametersData
                     
-                    if try !rsa.verify(signature: signedData.signature, data: data) {
+                    if try !signer.verify(signature: signedData.signature, data: data) {
                         throw TLSError.error("Signature error on server key exchange")
                     }
                 }

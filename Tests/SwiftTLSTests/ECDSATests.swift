@@ -12,7 +12,9 @@ import XCTest
 class ECDSATests: XCTestCase {
     static var allTests = [
         ("test_verify_signatureFromSelfSignedECDSACertificate_verifies", test_verify_signatureFromSelfSignedECDSACertificate_verifies),
-    ]
+        ("test_fromPEMFile_withSelfSignedECDSAIdentity_givesPrivateKey", test_fromPEMFile_withSelfSignedECDSAIdentity_givesPrivateKey),
+        ("test_verify_signaturefromECDSAPEMFile_verifies", test_verify_signaturefromECDSAPEMFile_verifies),
+        ]
 
     func test_verify_signatureFromSelfSignedECDSACertificate_verifies()
     {
@@ -30,4 +32,63 @@ class ECDSATests: XCTestCase {
         XCTAssertTrue(verified)
     }
 
+    func test_fromPEMFile_withSelfSignedECDSAIdentity_givesPrivateKey() {
+        let certificatePath = path(forResource: "ECDSA Identity.pem")
+        let ecdsa = ECDSA.fromPEMFile(certificatePath)
+
+        XCTAssert(ecdsa != nil)
+    }
+
+    func test_verify_signaturefromECDSAPEMFile_verifies() {
+        let pemFile = path(forResource: "ECDSA Identity.pem")
+        guard let ecdsa = ECDSA.fromPEMFile(pemFile) else {
+            XCTFail()
+            return
+        }
+        
+        guard let certificate = X509.Certificate(PEMFile: pemFile) else {
+            XCTFail()
+            return
+        }
+
+        let tbsData = certificate.tbsCertificate.DEREncodedCertificate!
+        let verified = ecdsa.verify(signature: certificate.signatureValue.bits, data: ecdsa.hashAlgorithm.hashFunction(tbsData))
+
+        XCTAssertTrue(verified)
+    }
+
+    func test_sign_whenSigningSelfSignedECDSACertificate_verifies() {
+        let pemFile = path(forResource: "ECDSA Identity.pem")
+        guard let ecdsa = ECDSA.fromPEMFile(pemFile) else {
+            XCTFail()
+            return
+        }
+
+        guard let certificate = X509.Certificate(PEMFile: pemFile) else {
+            XCTFail()
+            return
+        }
+        
+        guard let tbsData = certificate.tbsCertificate.DEREncodedCertificate else {
+            XCTFail()
+            return
+        }
+        
+        let signatureAlgorithm = certificate.signatureAlgorithm.algorithm
+        let hashAlgorithm: HashAlgorithm
+        switch signatureAlgorithm
+        {
+        case .ecdsa(hash: let hash):
+            hashAlgorithm = hash
+            
+        default:
+            XCTFail()
+            return
+        }
+        
+        let hashedData = hashAlgorithm.hashFunction(tbsData)
+        let signature: [UInt8] = try! ecdsa.sign(data: hashedData)
+        
+        XCTAssert(ecdsa.verify(signature: signature, data: hashedData))
+    }
 }

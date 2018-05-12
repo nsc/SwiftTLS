@@ -14,7 +14,7 @@ struct ECDSA : Signing
         return .ecPublicKey(curveName: self.curve.name.oid, hash: hashAlgorithm)
     }
     
-    let curve : EllipticCurve
+    var curve : EllipticCurve
     
     var privateKey : BigInt?
     var publicKey : EllipticCurvePoint
@@ -40,7 +40,11 @@ struct ECDSA : Signing
         case (.ansip521r1, .sha256):
             self.curve = EllipticCurve.named(.secp521r1)!
             self.hashAlgorithm = hashAlgorithm
-            
+
+        case (.ecdsa_secp256r1, .sha256):
+            self.curve = EllipticCurve.named(.secp256r1)!
+            self.hashAlgorithm = hashAlgorithm
+
         default:
             log("Unknown curve \(curveName)")
             return nil
@@ -79,7 +83,17 @@ struct ECDSA : Signing
     }
     
     func sign(data: [UInt8]) throws -> [UInt8] {
-        fatalError("Signature generation not implemented in ECDSA")
+        let (r, s) = sign(data: data)
+        
+        let point = ASN1Sequence(objects: [
+            ASN1Integer(value: r.asBigEndianData()),
+            ASN1Integer(value: s.asBigEndianData())
+            ])
+        
+        let writer = ASN1Writer()
+        let signatureData = writer.dataFromObject(point)
+        
+        return signatureData
     }
     
     func verify(signature: [UInt8], data: [UInt8]) -> Bool
@@ -108,6 +122,111 @@ struct ECDSA : Signing
         let verification = P.x % n
                 
         return (r == verification)
+    }
+}
+
+extension ECDSA {
+    public static func fromPEMFile(_ file : String) -> ECDSA?
+    {
+        var certificate: X509.Certificate? = nil
+        var privateKeyECDSA: BigInt? = nil
+        var publicKey: EllipticCurvePoint? = nil
+        var curve: EllipticCurve? = nil
+        var namedCurveFromECParameters: OID? = nil
+        var namedCurveFromPrivateKeyInfo: OID? = nil
+        
+        for (section, object) in ASN1Parser.sectionsFromPEMFile(file)
+        {
+            switch section
+            {
+            case "EC PARAMETERS":
+                if let oid = object as? ASN1ObjectIdentifier,
+                    let identifier = oid.oid {
+                    namedCurveFromECParameters = identifier
+                    switch identifier {
+                    case .ecdsa_secp256r1:
+                        curve = secp256r1
+                    default:
+                        log("Unsupported curve \(identifier)")
+                    }
+                }
+                else {
+                    log("Unsupported curve \(object)")
+                }
+                break
+                
+            case "EC PRIVATE KEY":
+                //  ECPrivateKey ::= SEQUENCE {
+                //      version INTEGER { ecPrivkeyVer1(1) } (ecPrivkeyVer1),
+                //      privateKey OCTET STRING,
+                //      parameters [0] ECDomainParameters {{ SECGCurveNames }} OPTIONAL,
+                //      publicKey [1] BIT STRING OPTIONAL
+                //  }
+                guard let sequence = object as? ASN1Sequence else {
+                    break
+                }
+                
+                let objects     = sequence.objects
+                guard objects.count >= 2 else {
+                    break
+                }
+                
+                guard let version = (objects[0] as? ASN1Integer)?.intValue, version == 1 else {
+                    break
+                }
+                
+                guard let privateKeyOctetString = (objects[1] as? ASN1OctetString) else {
+                    break
+                }
+                
+                privateKeyECDSA = BigInt(bigEndianParts: privateKeyOctetString.value)
+                
+                if objects.count > 2 {
+                    if  let taggedObject = (objects[2] as? ASN1TaggedObject), taggedObject.tag == 0,
+                        let namedCurveOID = (taggedObject.object as? ASN1ObjectIdentifier)?.oid {
+                        namedCurveFromPrivateKeyInfo = namedCurveOID
+                    }
+                    else {
+                        log("Unsupported ECDomainParameter \(objects[2])")
+                        break
+                    }
+                }
+                
+                if objects.count > 3 {
+                    if  let taggedObject = (objects[3] as? ASN1TaggedObject), taggedObject.tag == 1,
+                        let ecPublicKeyBitString = taggedObject.object as? ASN1BitString, let ecPublicKey = EllipticCurvePoint(data: ecPublicKeyBitString.value) {
+                        publicKey = ecPublicKey
+                    }
+                }
+                
+            case "CERTIFICATE":
+                if let sequence = object as? ASN1Sequence {
+                    certificate = X509.Certificate(asn1Sequence: sequence)
+                }
+                break
+                
+            default:
+                break
+            }
+        }
+        
+        if  let namedCurveFromECParameters = namedCurveFromECParameters,
+            let namedCurveFromPrivateKeyInfo = namedCurveFromPrivateKeyInfo {
+            
+            if namedCurveFromECParameters != namedCurveFromPrivateKeyInfo {
+                log("Curve OID from EC PARAMETERS does not match the one from EC PRIVATE KEY")
+                return nil
+            }
+        }
+        
+        var ecdsa: ECDSA? = nil
+        if  let privateKey = privateKeyECDSA,
+            let curve = curve,
+            let publicKey = publicKey {
+                ecdsa = ECDSA(curve: curve, publicKey: publicKey, privateKey: privateKey)
+        }
+
+        return ecdsa
     }
 }
 

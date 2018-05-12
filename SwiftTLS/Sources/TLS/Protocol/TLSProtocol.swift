@@ -21,6 +21,7 @@ protocol TLSProtocol
     // - ServerKeyExchange
     // - ChangeCipherSpec
     // - EncryptedExtensions
+    // - CertificateVerify
     // - HelloRetryRequest
     // - NewSessionTicket
     func handleMessage(_ message : TLSMessage) throws

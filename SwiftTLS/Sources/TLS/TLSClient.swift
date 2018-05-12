@@ -54,8 +54,12 @@ public class TLSClient : TLSConnection
         self.handshakeMessages = []
     }
     
-    override func handleHandshakeMessage(_ message : TLSHandshakeMessage) throws
+    override func handleHandshakeMessage(_ message : TLSHandshakeMessage) throws -> Bool
     {
+        guard try !super.handleHandshakeMessage(message) else {
+            return true
+        }
+
         let handshakeType = message.handshakeType
         
         switch (handshakeType)
@@ -76,6 +80,8 @@ public class TLSClient : TLSConnection
         }
         
         try self.stateMachine?.didReceiveHandshakeMessage(message)
+        
+        return true
     }
 
     func sendClientHello() throws

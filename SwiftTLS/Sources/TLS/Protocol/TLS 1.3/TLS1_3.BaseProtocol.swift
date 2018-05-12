@@ -96,6 +96,10 @@ extension TLS1_3 {
                 rsa.signatureAlgorithm = .rsassa_pss(hash: .sha256, saltLength: hashAlgorithm.hashLength)
                 signer = rsa
             }
+            else if var ecdsa = signer as? ECDSA {
+                ecdsa.hashAlgorithm = .sha256
+                signer = ecdsa
+            }
             
             let signature = try signer.sign(data: proofData)
             let certificateVerify = TLSCertificateVerify(algorithm: TLSSignatureScheme(signatureAlgorithm: signer.algorithm)!, signature: signature)
@@ -103,6 +107,68 @@ extension TLS1_3 {
             try self.connection.sendHandshakeMessage(certificateVerify)
         }
         
+        func handleCertificate(_ certificate: TLSCertificateMessage) {
+            self.connection.peerCertificates = certificate.certificates
+        }
+
+        func handleCertificateVerify(_ certificateVerify: TLSCertificateVerify) throws {
+            guard let certificate = self.connection.peerCertificates?.first,
+                var signer = certificate.publicKeySigner,
+                let signatureAlgorithm = certificateVerify.algorithm.signatureAlgorithm,
+                let hashAlgorithm = signatureAlgorithm.hashAlgorithm
+            else {
+                try self.connection.abortHandshake()
+            }
+
+            if var rsa = signer as? RSA {
+                rsa.signatureAlgorithm = signatureAlgorithm
+                signer = rsa
+            }
+            else if var ecdsa = signer as? ECDSA {
+                ecdsa.hashAlgorithm = hashAlgorithm
+                signer = ecdsa
+            }
+            
+            let peerIsClient = !connection.isClient
+            var proofData = [UInt8](repeating: 0x20, count: 64)
+            proofData += peerIsClient ? clientCertificateVerifyContext : serverCertificateVerifyContext
+            proofData += [0]
+            proofData += self.transcriptHash
+
+            let signature = certificateVerify.signature
+            
+            guard let verified = try? signer.verify(signature: signature, data: proofData),
+                verified
+            else {
+                try self.connection.abortHandshake(with: .decryptError)
+            }
+            
+            self.connection.handshakeMessages.append(certificateVerify)
+        }
+
+        func handleHandshakeMessage(_ handshakeMessage: TLSHandshakeMessage) throws -> Bool {
+            switch handshakeMessage.handshakeType {
+            case .certificateVerify:
+                try self.handleCertificateVerify(handshakeMessage as! TLSCertificateVerify)
+            
+            default:
+                return false
+            }
+            
+            return true
+        }
+        
+        func handleMessage(_ message: TLSMessage) throws {
+            switch message.type
+            {
+            case .handshake(_):
+                _ = try self.handleHandshakeMessage(message as! TLSHandshakeMessage)
+                
+            default:
+                break
+            }
+        }
+
         var transcriptHash: [UInt8] {
             return connection.transcriptHash
         }

@@ -72,7 +72,7 @@ public class TLSConnection
     
     var stateMachine: TLSConnectionStateMachine?
     
-    var serverCertificates: [X509.Certificate]?
+    var peerCertificates: [X509.Certificate]?
     
     var handshakeMessages: [TLSHandshakeMessage]
     
@@ -261,8 +261,23 @@ public class TLSConnection
         }
     }
 
-    func handleHandshakeMessage(_ message : TLSHandshakeMessage) throws
+    func handleHandshakeMessage(_ message : TLSHandshakeMessage) throws -> Bool
     {
+        let handshakeType = message.handshakeType
+        
+        switch (handshakeType)
+        {
+        case .certificate:
+            let certificateMessage = message as! TLSCertificateMessage
+            self.protocolHandler.handleCertificate(certificateMessage)
+
+        default:
+            return false
+        }
+
+        try self.stateMachine?.didReceiveHandshakeMessage(message)
+
+        return true
     }
     
 
@@ -272,13 +287,17 @@ public class TLSConnection
 
         self.didReceiveHandshakeMessage(message)
         
-        if handshakeType != .finished && handshakeType != .newSessionTicket {
-            // don't add the incoming Finished message to handshakeMessages.
+        switch handshakeType {
+        case .finished, .newSessionTicket, .certificateVerify:
+            // don't add the incoming message to handshakeMessages.
             // We need to verify it's data against the handshake messages before it.
+            break
+            
+        default:
             self.handshakeMessages.append(message)
         }
         
-        try self.handleHandshakeMessage(message)
+        _ = try self.handleHandshakeMessage(message)
         
         if handshakeType != .finished && handshakeType != .newSessionTicket {
             try self.receiveNextTLSMessage()
