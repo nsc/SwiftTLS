@@ -32,7 +32,8 @@ extension TLS1_2 {
         
         func transition(to state: TLSState) throws {
             if !checkServerStateTransition(state) {
-                throw TLSError.error("Server: Illegal state transition \(self.state) -> \(state)")
+                log("Server: Illegal state transition \(self.state) -> \(state)")
+                throw TLSError.alert(alert: .unexpectedMessage, alertLevel: .fatal)
             }
             
             self.state = state

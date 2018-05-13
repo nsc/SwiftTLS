@@ -77,7 +77,7 @@ public class TLSHandshakeMessage : TLSMessage
             message = TLS1_3.TLSEndOfEarlyData(inputStream: inputStream, context: context)
 
         default:
-            fatalError("Unsupported handshake message \(handshakeType)")
+            log("Error: Unsupported handshake message \(handshakeType)")
         }
         
         if let message = message {

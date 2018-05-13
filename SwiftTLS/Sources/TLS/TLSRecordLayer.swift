@@ -109,7 +109,11 @@ class TLSBaseRecordLayer : TLSRecordLayer
                 messages.append(message)
             }
             else {
-                throw TLSError.error("Could not create TLSMessage")
+                if contentTypeFromRecord == .handshake {
+                    throw TLSError.alert(alert: .handshakeFailure, alertLevel: .fatal)
+                }
+                
+                throw TLSError.alert(alert: .unexpectedMessage, alertLevel: .fatal)
             }
         }
         

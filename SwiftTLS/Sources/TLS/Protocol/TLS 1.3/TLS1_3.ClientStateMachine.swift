@@ -32,7 +32,8 @@ extension TLS1_3 {
         
         func transition(to state: TLSState) throws {
             if !checkClientStateTransition(state) {
-                throw TLSError.error("Client: Illegal state transition \(self.state) -> \(state)")
+                log("Client: Illegal state transition \(self.state) -> \(state)")
+                throw TLSError.alert(alert: .unexpectedMessage, alertLevel: .fatal)
             }
             
             self.state = state
