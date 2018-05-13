@@ -73,7 +73,15 @@ func server(address: IPAddress, certificatePath: String, dhParametersPath : Stri
                 while true {
                     do {
                         let data = try client.read(count: 4096)
-                        let clientRequest = String.fromUTF8Bytes(data)!
+                        let utf8Data = String.fromUTF8Bytes(data)
+                        let clientRequest: String
+                        if let utf8Data = utf8Data {
+                            clientRequest = utf8Data
+                        }
+                        else {
+                            clientRequest = data.reduce("", { $0 + String(format: "%02x ", $1)})
+                        }
+                    
                         let response = """
                         Date: \(Date())
                         \(client.connectionInfo)
