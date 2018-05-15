@@ -290,11 +290,18 @@ extension TLS1_2 {
             
             // verify signature
             if let certificate = client.peerCertificates?.first {
-                if let signer = certificate.publicKeySigner {
+                if var signer = certificate.publicKeySigner {
                     let signedData = serverKeyExchange.signedParameters
                     var data = self.securityParameters.clientRandom!
                     data += self.securityParameters.serverRandom!
                     data += serverKeyExchange.parametersData
+                    
+                    if  let algorithm = signedData.signatureAlgorithm,
+                        let hashAlgorithm = signedData.hashAlgorithm,
+                        let signatureAlgorithm = X509.SignatureAlgorithm(signatureAlgorithm: algorithm, hashAlgorithm: hashAlgorithm) {
+                        
+                        signer.algorithm = signatureAlgorithm
+                    }
                     
                     if try !signer.verify(signature: signedData.signature, data: data) {
                         throw TLSError.error("Signature error on server key exchange")

@@ -91,14 +91,19 @@ extension TLS1_3 {
             proofData += [0]
             proofData += self.transcriptHash
             
-            if var rsa = signer as? RSA {
+            if signer is RSA {
                 let hashAlgorithm: HashAlgorithm = .sha256
-                rsa.signatureAlgorithm = .rsassa_pss(hash: .sha256, saltLength: hashAlgorithm.hashLength)
-                signer = rsa
+                signer.algorithm = .rsassa_pss(hash: hashAlgorithm, saltLength: hashAlgorithm.hashLength)
             }
-            else if var ecdsa = signer as? ECDSA {
-                ecdsa.hashAlgorithm = .sha256
-                signer = ecdsa
+            else if signer is ECDSA {
+                let algorithm = signer.algorithm
+                switch algorithm {
+                case .ecPublicKey(let curveName, _):
+                    signer.algorithm = .ecPublicKey(curveName: curveName, hash: .sha256)
+                
+                default:
+                    fatalError("Unsupported signature algotihm \(algorithm)")
+                }
             }
             
             let signature = try signer.sign(data: proofData)
@@ -114,20 +119,12 @@ extension TLS1_3 {
         func handleCertificateVerify(_ certificateVerify: TLSCertificateVerify) throws {
             guard let certificate = self.connection.peerCertificates?.first,
                 var signer = certificate.publicKeySigner,
-                let signatureAlgorithm = certificateVerify.algorithm.signatureAlgorithm,
-                let hashAlgorithm = signatureAlgorithm.hashAlgorithm
+                let signatureAlgorithm = certificateVerify.algorithm.signatureAlgorithm
             else {
                 try self.connection.abortHandshake()
             }
 
-            if var rsa = signer as? RSA {
-                rsa.signatureAlgorithm = signatureAlgorithm
-                signer = rsa
-            }
-            else if var ecdsa = signer as? ECDSA {
-                ecdsa.hashAlgorithm = hashAlgorithm
-                signer = ecdsa
-            }
+            signer.algorithm = signatureAlgorithm
             
             let peerIsClient = !connection.isClient
             var proofData = [UInt8](repeating: 0x20, count: 64)

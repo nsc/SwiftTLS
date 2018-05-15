@@ -46,6 +46,19 @@ public enum NamedGroup : UInt16 {
         }
     }
     
+    init?(oid: OID)
+    {
+        switch oid {
+        case .ecdsa_secp256r1:
+            self = .secp256r1
+            
+        case .ansip521r1:
+            self = .secp521r1
+            
+        default:
+            return nil
+        }
+    }
     var oid: OID {
         switch self
         {

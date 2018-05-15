@@ -35,7 +35,7 @@ struct RSA
     let dQ : BigInt?
     let qInv : BigInt?
     
-    var signatureAlgorithm: X509.SignatureAlgorithm?
+    var algorithm: X509.SignatureAlgorithm
     
     static func fromPEMFile(_ file : String) -> RSA?
     {
@@ -151,7 +151,7 @@ struct RSA
     {
         self.init(publicKey: certificate.tbsCertificate.subjectPublicKeyInfo.subjectPublicKey.bits)
         
-        self.signatureAlgorithm = certificate.tbsCertificate.signature.algorithm
+        self.algorithm = certificate.tbsCertificate.signature.algorithm
     }
     
     private init(n : BigInt, e : BigInt, d : BigInt, p : BigInt, q : BigInt, dP : BigInt, dQ : BigInt, qInv : BigInt, signatureAlgorithm: X509.SignatureAlgorithm? = nil)
@@ -164,7 +164,7 @@ struct RSA
         self.dP = dP
         self.dQ = dQ
         self.qInv = qInv
-        self.signatureAlgorithm = signatureAlgorithm
+        self.algorithm = signatureAlgorithm ?? .rsa_pkcs1(hash: .sha256)
     }
 
     init(n: BigInt, publicExponent: BigInt, privateExponent: BigInt? = nil)
@@ -177,6 +177,7 @@ struct RSA
         self.dP = nil
         self.dQ = nil
         self.qInv = nil
+        self.algorithm = .rsa_pkcs1(hash: .sha256)
     }
     
     init?(publicKey: [UInt8])
@@ -206,6 +207,7 @@ struct RSA
         self.dP = nil
         self.dQ = nil
         self.qInv = nil
+        self.algorithm = .rsa_pkcs1(hash: .sha256)
     }
     
     var nOctetLength: Int {
@@ -331,11 +333,7 @@ extension RSA : Signing
 {
     func sign(data: [UInt8]) throws -> [UInt8]
     {
-        guard let signatureAlgorithm = self.signatureAlgorithm else {
-            throw Error.error(message: "Can't sign data without a signature algorithm specified.")
-        }
-        
-        switch signatureAlgorithm {
+        switch self.algorithm {
             
         case .rsa_pkcs1(_):
             return try rsassa_pkcs1_v1_5_sign(m: data)
@@ -344,17 +342,13 @@ extension RSA : Signing
             return try rsassa_pss_sign(message: data)
             
         default:
-            fatalError("Invalid signature scheme \(signatureAlgorithm)")
+            fatalError("Invalid signature scheme \(self.algorithm)")
         }
     }
     
     func verify(signature : [UInt8], data : [UInt8]) throws -> Bool
     {
-        guard let signatureAlgorithm = self.signatureAlgorithm else {
-            throw Error.error(message: "Can't verify signature without a signature algorithm specified.")
-        }
-
-        switch signatureAlgorithm {
+        switch self.algorithm {
             
         case .rsa_pkcs1(_):
             return try rsassa_pkcs1_v1_5_verify(m: data, s: signature)
@@ -363,16 +357,8 @@ extension RSA : Signing
             return try rsassa_pss_verify(message: data, signature: signature)
             
         default:
-            fatalError("Invalid signature scheme \(signatureAlgorithm)")
+            fatalError("Invalid signature scheme \(self.algorithm)")
         }
-    }
-    
-    var algorithm: X509.SignatureAlgorithm {
-        guard let signatureAlgorithm = self.signatureAlgorithm else {
-            fatalError("Can't sign or verify without a signature algorithm")
-        }
-        
-        return signatureAlgorithm
     }
 }
 

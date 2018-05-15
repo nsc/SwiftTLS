@@ -10,22 +10,22 @@ import Foundation
 
 struct ECDSA : Signing
 {
-    var algorithm: X509.SignatureAlgorithm {
-        return .ecPublicKey(curveName: self.curve.name.oid, hash: hashAlgorithm)
-    }
+    var algorithm: X509.SignatureAlgorithm
     
     var curve : EllipticCurve
     
     var privateKey : BigInt?
     var publicKey : EllipticCurvePoint
-    var hashAlgorithm: HashAlgorithm
+    var hashAlgorithm: HashAlgorithm {
+        return self.algorithm.hashAlgorithm
+    }
     
     init(curve: EllipticCurve, publicKey: EllipticCurvePoint, privateKey: BigInt? = nil)
     {
         self.curve = curve
         self.publicKey = publicKey
         self.privateKey = privateKey
-        self.hashAlgorithm = .sha256
+        self.algorithm = .ecPublicKey(curveName: self.curve.name.oid, hash: .sha256)
     }
     
     init?(publicKeyInfo : X509.SubjectPublicKeyInfo)
@@ -33,22 +33,17 @@ struct ECDSA : Signing
         assert(publicKeyInfo.subjectPublicKey.bits.count * 8 == publicKeyInfo.subjectPublicKey.numberOfBits)
 
         let algorithmIdentifier = publicKeyInfo.algorithm
-        guard case .ecPublicKey(let curveName, let hashAlgorithm) = algorithmIdentifier.algorithm else { return nil }
-     
-        switch (curveName, hashAlgorithm)
-        {
-        case (.ansip521r1, .sha256):
-            self.curve = EllipticCurve.named(.secp521r1)!
-            self.hashAlgorithm = hashAlgorithm
-
-        case (.ecdsa_secp256r1, .sha256):
-            self.curve = EllipticCurve.named(.secp256r1)!
-            self.hashAlgorithm = hashAlgorithm
-
-        default:
+        guard case .ecPublicKey(let curveName, _) = algorithmIdentifier.algorithm else { return nil }
+        
+        guard let namedGroup = NamedGroup(oid: curveName) else { return nil }
+        
+        guard let curve = EllipticCurve.named(namedGroup) else {
             log("Unknown curve \(curveName)")
             return nil
         }
+        
+        self.curve = curve
+        self.algorithm = algorithmIdentifier.algorithm
 
         guard let publicKey = EllipticCurvePoint(data: publicKeyInfo.subjectPublicKey.bits) else { return nil }
         self.publicKey = publicKey

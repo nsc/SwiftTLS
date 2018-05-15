@@ -10,11 +10,7 @@ import Foundation
 
 extension RSA {
     private var saltLength: Int {
-        guard let signatureAlgorithm = self.signatureAlgorithm else {
-            fatalError("signature algorithm not specified")
-        }
-        
-        guard case .rsassa_pss(_, let saltLength) = signatureAlgorithm else {
+        guard case .rsassa_pss(_, let saltLength) = self.algorithm else {
             fatalError("Invalid signature algorithm for RSA PSS")
         }
         
@@ -46,7 +42,7 @@ extension RSA {
     }
     
     func mgf1(mgfSeed: [UInt8], maskLen: Int) throws -> [UInt8] {
-        let hashAlgorithm = self.signatureAlgorithm!.hashAlgorithm!
+        let hashAlgorithm = self.algorithm.hashAlgorithm
         let hLen = hashAlgorithm.hashLength
         let hashFunction = hashAlgorithm.hashFunction
         
@@ -68,7 +64,7 @@ extension RSA {
                          saltLength sLen: Int) throws -> [UInt8]
     {
         let emLen = (emBits + 7)/8
-        let hashAlgorithm = signatureAlgorithm!.hashAlgorithm!
+        let hashAlgorithm = self.algorithm.hashAlgorithm
         let hLen = hashAlgorithm.hashLength
         if emLen < hLen + sLen + 2 {
             throw Error.encodingError
@@ -101,7 +97,7 @@ extension RSA {
                          saltLength sLen: Int) -> Bool
     {
         let emLen = (emBits + 7)/8
-        let hashAlgorithm = signatureAlgorithm!.hashAlgorithm!
+        let hashAlgorithm = self.algorithm.hashAlgorithm
         let hLen = hashAlgorithm.hashLength
         if emLen < hLen + sLen + 2 {
             return false

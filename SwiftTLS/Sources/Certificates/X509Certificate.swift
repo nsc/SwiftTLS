@@ -24,7 +24,7 @@ public struct X509
         case rsassa_pss(hash: HashAlgorithm, saltLength: Int)
         case ecPublicKey(curveName: OID, hash: HashAlgorithm)
         
-        var hashAlgorithm: HashAlgorithm? {
+        var hashAlgorithm: HashAlgorithm {
             switch self {
             case .rsa_pkcs1(let hashAlgorithm):
                 return hashAlgorithm
@@ -38,6 +38,20 @@ public struct X509
             case .ecPublicKey(_, let hashAlgorithm):
                 return hashAlgorithm
 
+            case .rsaEncryption:
+                return .sha256
+            }
+        }
+        
+        init?(signatureAlgorithm: SwiftTLS.SignatureAlgorithm, hashAlgorithm: HashAlgorithm)
+        {
+            switch signatureAlgorithm {
+            case .rsa:
+                self = .rsa_pkcs1(hash: hashAlgorithm)
+                
+            case .ecdsa:
+                self = .ecdsa(hash: hashAlgorithm)
+                
             default:
                 return nil
             }

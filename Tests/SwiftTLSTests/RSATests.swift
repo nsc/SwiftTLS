@@ -28,7 +28,7 @@ class RSATests: XCTestCase {
         }
         
         let signatureAlgorithm = X509.SignatureAlgorithm.rsa_pkcs1(hash: .sha1)
-        rsa.signatureAlgorithm = signatureAlgorithm
+        rsa.algorithm = signatureAlgorithm
         
         let data = [1,2,3,4,5,6,7,8] as [UInt8]
         
@@ -37,7 +37,7 @@ class RSATests: XCTestCase {
         print(signature)
         
         var rsa2 = RSA(n: rsa.n, publicExponent: rsa.e)
-        rsa2.signatureAlgorithm = signatureAlgorithm
+        rsa2.algorithm = signatureAlgorithm
         let verified = try! rsa2.verify(signature: signature, data: data)
         
         XCTAssert(verified)
@@ -110,7 +110,7 @@ class RSATests: XCTestCase {
         }
         
         let signatureAlgorithm = X509.SignatureAlgorithm.rsassa_pss(hash: .sha256, saltLength: 64)
-        rsa.signatureAlgorithm = signatureAlgorithm
+        rsa.algorithm = signatureAlgorithm
 
         let data = [1,2,3,4,5,6,7,8] as [UInt8]
         
@@ -119,7 +119,7 @@ class RSATests: XCTestCase {
         print(signature)
         
         var rsa2 = RSA(n: rsa.n, publicExponent: rsa.e)
-        rsa2.signatureAlgorithm = signatureAlgorithm
+        rsa2.algorithm = signatureAlgorithm
 
         let verified = try! rsa2.rsassa_pss_verify(message: data, signature: signature)
         

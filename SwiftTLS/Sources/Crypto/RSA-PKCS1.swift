@@ -19,7 +19,7 @@ enum RSA_PKCS1PaddingType : UInt8
 extension RSA {
     func emsa_pkcs1_v1_5_encode(message m: [UInt8], encodedMessageLength emLen: Int) throws -> [UInt8] {
         
-        let hashAlgorithm = signatureAlgorithm!.hashAlgorithm!
+        let hashAlgorithm = self.algorithm.hashAlgorithm
         let hash = self.hash(m, hashAlgorithm: hashAlgorithm)
         
         let writer = ASN1Writer()
