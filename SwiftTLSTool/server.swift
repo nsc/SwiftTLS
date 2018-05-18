@@ -49,6 +49,8 @@ func server(address: IPAddress, certificatePath: String, dhParametersPath : Stri
         configuration.dhParameters = DiffieHellmanParameters.fromPEMFile(dhParametersPath)
     }
     
+    configuration.supportedGroups = [.secp256r1, .secp384r1, .secp521r1]
+    
     let server = TLSServer(configuration: configuration)
     
     do {

@@ -139,7 +139,7 @@ extension ECDSA {
                     let identifier = oid.oid {
                     namedCurveFromECParameters = identifier
                     switch identifier {
-                    case .ecdsa_secp256r1:
+                    case .prime256v1:
                         curve = secp256r1
                     default:
                         log("Unsupported curve \(identifier)")

@@ -58,7 +58,7 @@ public struct TLSConfiguration
     var supportsSessionResumption = true
     
     // TLS 1.3
-    var supportedGroups: [NamedGroup] = [.secp256r1]
+    public var supportedGroups: [NamedGroup] = [.secp256r1]
     
     enum EarlyDataSupport {
         case notSupported

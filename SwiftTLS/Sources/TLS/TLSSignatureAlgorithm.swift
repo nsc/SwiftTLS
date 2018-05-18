@@ -69,8 +69,11 @@ public enum TLSSignatureScheme : UInt16 {
             switch (curveName, hashAlgorithm) {
             case (.ansip521r1, .sha512):
                 self = .ecdsa_secp521r1_sha512
-                
-            case (.ecdsa_secp256r1, .sha256):
+
+            case (.ansip384r1, .sha384):
+                self = .ecdsa_secp384r1_sha384
+
+            case (.prime256v1, .sha256):
                 self = .ecdsa_secp256r1_sha256
                 
             default:

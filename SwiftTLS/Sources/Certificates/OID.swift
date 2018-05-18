@@ -120,7 +120,7 @@ public enum OID : String
     
     case ecPublicKey                                = "1.2.840.10045.2.1"
     case ecdsaWithSHA256                            = "1.2.840.10045.4.3.2"
-    case ecdsa_secp256r1                            = "1.2.840.10045.3.1.7"
+    case prime256v1                                 = "1.2.840.10045.3.1.7"
     
     case rsaEncryption                              = "1.2.840.113549.1.1.1"
     case sha1WithRSAEncryption                      = "1.2.840.113549.1.1.5"
@@ -142,6 +142,7 @@ public enum OID : String
 
     case sha1                                       = "1.3.14.3.2.26"
 
+    case ansip384r1                                 = "1.3.132.0.34"
     case ansip521r1                                 = "1.3.132.0.35"
     case commonName                                 = "2.5.4.3"
     case surName                                    = "2.5.4.4"

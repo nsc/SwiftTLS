@@ -49,7 +49,7 @@ public enum NamedGroup : UInt16 {
     init?(oid: OID)
     {
         switch oid {
-        case .ecdsa_secp256r1:
+        case .prime256v1:
             self = .secp256r1
             
         case .ansip521r1:
@@ -63,7 +63,7 @@ public enum NamedGroup : UInt16 {
         switch self
         {
         case .secp256r1:
-            return .ecdsa_secp256r1
+            return .prime256v1
 
         case .secp521r1:
             return .ansip521r1
@@ -277,6 +277,18 @@ let secp256r1 = EllipticCurve(
     n: BigInt(hexString: "FFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551")!
     )
 
+let secp384r1 = EllipticCurve(
+    name: .secp384r1,
+    p: BigInt(hexString: "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFF0000000000000000FFFFFFFF")!,
+    a: BigInt(hexString: "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFF0000000000000000FFFFFFFC")!,
+    b: BigInt(hexString: "B3312FA7E23EE7E4988E056BE3F82D19181D9C6EFE8141120314088F5013875AC656398D8A2ED19D2A85C8EDD3EC2AEF")!,
+    G: EllipticCurvePoint(
+        x: BigInt(hexString: "AA87CA22BE8B05378EB1C71EF320AD746E1D3B628BA79B9859F741E082542A385502F25DBF55296C3A545E3872760AB7")!,
+        y: BigInt(hexString: "3617DE4A96262C6F5D9E98BF9292DC29F8F41DBD289A147CE9DA3113B5F0B8C00A60B1CE1D7E819D7A431D7C90EA0E5F")!
+    ),
+    n: BigInt(hexString: "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC7634D81F4372DDF581A0DB248B0A77AECEC196ACCC52973")!
+)
+
 let secp521r1 = EllipticCurve(
     name: .secp521r1,
     p: BigInt(hexString: "01FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")!,
@@ -298,8 +310,8 @@ extension EllipticCurve {
         case .secp256r1:
             return secp256r1
             
-//        case .secp384r1:
-//            break
+        case .secp384r1:
+            return secp384r1
             
         case .secp521r1:
             return secp521r1
