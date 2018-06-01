@@ -1,4 +1,5 @@
 .DS_Store
 xcuserdata
+xcbaselines
 *.xccheckout
 .build
