@@ -205,6 +205,7 @@
 		03EAE79F20945E21004AB137 /* Streamable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAE79E20945E21004AB137 /* Streamable.swift */; };
 		03ED353C209714B500F1889B /* SwiftTLS Design.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 03ED353B209714B500F1889B /* SwiftTLS Design.pdf */; };
 		03FA94A91B9E1A0500F08FB8 /* SwiftTLS.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03FA949F1B9E1A0500F08FB8 /* SwiftTLS.framework */; };
+		48AC5D0320FF42AE00AE4B77 /* Secp256r1MultiplicationPerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48AC5D0220FF42AE00AE4B77 /* Secp256r1MultiplicationPerformanceTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -503,6 +504,7 @@
 		03ED353B209714B500F1889B /* SwiftTLS Design.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; name = "SwiftTLS Design.pdf"; path = "Documentation/SwiftTLS Design.pdf"; sourceTree = SOURCE_ROOT; };
 		03FA949F1B9E1A0500F08FB8 /* SwiftTLS.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SwiftTLS.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		03FA94A81B9E1A0500F08FB8 /* SwiftTLSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SwiftTLSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		48AC5D0220FF42AE00AE4B77 /* Secp256r1MultiplicationPerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secp256r1MultiplicationPerformanceTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -608,6 +610,7 @@
 		033AC36B1AC473730004EEC1 /* SwiftTLSTests */ = {
 			isa = PBXGroup;
 			children = (
+				48AC5D0120FF428600AE4B77 /* PerformanceTests */,
 				03E570092093A16200037D3E /* Resources */,
 				033B63C01B2348060019F3FA /* external */,
 				03E6A9C42083CC9B0006D2D6 /* AESTests.swift */,
@@ -1089,6 +1092,14 @@
 			path = ../../Documentation;
 			sourceTree = "<group>";
 		};
+		48AC5D0120FF428600AE4B77 /* PerformanceTests */ = {
+			isa = PBXGroup;
+			children = (
+				48AC5D0220FF42AE00AE4B77 /* Secp256r1MultiplicationPerformanceTests.swift */,
+			);
+			path = PerformanceTests;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
@@ -1383,6 +1394,7 @@
 				032D0F021B9F5B38009C13F0 /* bf_enc.c in Sources */,
 				03A63D011C6FA0A10018A21E /* BlockCipherTests.swift in Sources */,
 				032D0F151B9F5B4C009C13F0 /* bn_rand.c in Sources */,
+				48AC5D0320FF42AE00AE4B77 /* Secp256r1MultiplicationPerformanceTests.swift in Sources */,
 				032D0F391B9F5B9E009C13F0 /* rsa_null.c in Sources */,
 				034833781C35498400D58547 /* TLSServerKeyExchangeTests.swift in Sources */,
 				032D0F2B1B9F5B6E009C13F0 /* err_prn.c in Sources */,
