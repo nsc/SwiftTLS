@@ -15,6 +15,11 @@ extension EllipticCurvePoint: Equatable {}
 
 class Secp256r1MultiplicationPerformanceTests: XCTestCase {
 
+    static var allTests = [
+        ("test30HighMultiplications", test30HighMultiplications),
+        ("test1000LowMultiplications", test1000LowMultiplications),
+        ]
+
     // Using `Release` optimization flags and NOT using `Debug Executable` when running tests yields the following results:
     // On Macbook Pro 2016, 2.9 GHZ, 16 GB 2133 MHZ Ram:
     // Using `measure` closure: Takes real time ~2 minutes, measured time ~14 seconds
@@ -73,6 +78,8 @@ class Secp256r1MultiplicationPerformanceTests: XCTestCase {
         let twoCharsFromCalculated = calculated.map { point -> String in
             print(point.x.asHexString())
             return lastTwoCharsOfX(point) }
+
+        // Perform some kind of sanity check checking the last chars of the hex representation of the X value.
         for i in 0..<count {
             XCTAssertEqual(twoCharsFromCalculated[i], lastTwoCharsInHexRepresentationOfXValueOfPoints[i])
         }
