@@ -206,6 +206,7 @@
 		03ED353C209714B500F1889B /* SwiftTLS Design.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 03ED353B209714B500F1889B /* SwiftTLS Design.pdf */; };
 		03FA94A91B9E1A0500F08FB8 /* SwiftTLS.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03FA949F1B9E1A0500F08FB8 /* SwiftTLS.framework */; };
 		48AC5D0320FF42AE00AE4B77 /* Secp256r1MultiplicationPerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48AC5D0220FF42AE00AE4B77 /* Secp256r1MultiplicationPerformanceTests.swift */; };
+		48AC5DB9210098DB00AE4B77 /* XCTestManifests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48AC5DB82100989A00AE4B77 /* XCTestManifests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -262,14 +263,14 @@
 		031BAEE41C62849A00600133 /* rsa-crt-leaks.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = "rsa-crt-leaks.pdf"; sourceTree = "<group>"; };
 		031CD12B1C32B5CC0027F973 /* RSATests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RSATests.swift; sourceTree = "<group>"; };
 		0320EB3D20753211007FAB4B /* rfc8017.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = rfc8017.txt; sourceTree = "<group>"; };
-		032F96121D0C209900377DDA /* BigIntPerformanceTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = BigIntPerformanceTests.swift; path = ../macOS/BigIntPerformanceTests.swift; sourceTree = "<group>"; };
+		032F96121D0C209900377DDA /* BigIntPerformanceTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BigIntPerformanceTests.swift; sourceTree = "<group>"; };
 		033482FC1C9585AA00625D92 /* GaloisFieldTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GaloisFieldTests.swift; sourceTree = "<group>"; };
 		033AC36D1AC473730004EEC1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		033AC3781AC473980004EEC1 /* TLSTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSTests.swift; sourceTree = "<group>"; };
 		033AC3791AC473980004EEC1 /* TLSRecordTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSRecordTests.swift; sourceTree = "<group>"; };
 		033AC37A1AC473980004EEC1 /* TLSClientHelloTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSClientHelloTests.swift; sourceTree = "<group>"; };
 		033AC37B1AC473980004EEC1 /* TLSServerHelloTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLSServerHelloTests.swift; sourceTree = "<group>"; };
-		033AC37C1AC473980004EEC1 /* BigIntTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = BigIntTests.swift; path = ../macOS/BigIntTests.swift; sourceTree = "<group>"; };
+		033AC37C1AC473980004EEC1 /* BigIntTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BigIntTests.swift; sourceTree = "<group>"; };
 		033B63C31B2348190019F3FA /* bf_ecb.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = bf_ecb.c; sourceTree = "<group>"; };
 		033B63C41B2348190019F3FA /* bf_enc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = bf_enc.c; sourceTree = "<group>"; };
 		033B63C51B2348190019F3FA /* bf_locl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = bf_locl.h; sourceTree = "<group>"; };
@@ -505,6 +506,7 @@
 		03FA949F1B9E1A0500F08FB8 /* SwiftTLS.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SwiftTLS.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		03FA94A81B9E1A0500F08FB8 /* SwiftTLSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SwiftTLSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		48AC5D0220FF42AE00AE4B77 /* Secp256r1MultiplicationPerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secp256r1MultiplicationPerformanceTests.swift; sourceTree = "<group>"; };
+		48AC5DB82100989A00AE4B77 /* XCTestManifests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XCTestManifests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -610,36 +612,10 @@
 		033AC36B1AC473730004EEC1 /* SwiftTLSTests */ = {
 			isa = PBXGroup;
 			children = (
-				48AC5D0120FF428600AE4B77 /* PerformanceTests */,
+				48AC5DB72100986200AE4B77 /* Helpers */,
+				48AC5DB62100985800AE4B77 /* Tests */,
 				03E570092093A16200037D3E /* Resources */,
 				033B63C01B2348060019F3FA /* external */,
-				03E6A9C42083CC9B0006D2D6 /* AESTests.swift */,
-				03BF8C8D1B11CF6E00332087 /* ASN1Tests.swift */,
-				033AC37C1AC473980004EEC1 /* BigIntTests.swift */,
-				032F96121D0C209900377DDA /* BigIntPerformanceTests.swift */,
-				03A63D001C6FA0A10018A21E /* BlockCipherTests.swift */,
-				033482FC1C9585AA00625D92 /* GaloisFieldTests.swift */,
-				031868E71ADD873D00CB51E1 /* TLSUtilitiesTests.swift */,
-				033AC3781AC473980004EEC1 /* TLSTests.swift */,
-				033AC3791AC473980004EEC1 /* TLSRecordTests.swift */,
-				033AC37A1AC473980004EEC1 /* TLSClientHelloTests.swift */,
-				033AC37B1AC473980004EEC1 /* TLSServerHelloTests.swift */,
-				034833771C35498400D58547 /* TLSServerKeyExchangeTests.swift */,
-				03DDB64B1AC60DE5000B5726 /* TLSCertificateMessageTests.swift */,
-				03DDB64D1AC61468000B5726 /* TLSClientKeyExchangeTests.swift */,
-				03507155207212F5008DFF57 /* TLSEncryptedExtensionsTests.swift */,
-				030FF6EA1DB0D45E00EB7F1F /* TLSVersionTests.swift */,
-				03974A6F1AFE04D600248702 /* SocketTests.swift */,
-				039ADDB81C2F39BC00EDF99B /* EllipticCurveTests.swift */,
-				031CD12B1C32B5CC0027F973 /* RSATests.swift */,
-				03591FB71C679FDC005A97EC /* ECDSATests.swift */,
-				038F68541C428F1000C66050 /* OIDTests.swift */,
-				03091EE82084F5DB0068C085 /* SHA1Tests.swift */,
-				03091EEA2084FE590068C085 /* SHA224Tests.swift */,
-				0355C0D920825A71007B19A2 /* SHA256Tests.swift */,
-				03091EF120850F730068C085 /* SHA384Tests.swift */,
-				03091EEF20850B7F0068C085 /* SHA512Tests.swift */,
-				03E5700720939FED00037D3E /* XCTestHelper.swift */,
 				033AC36C1AC473730004EEC1 /* Supporting Files */,
 			);
 			name = SwiftTLSTests;
@@ -649,6 +625,7 @@
 		033AC36C1AC473730004EEC1 /* Supporting Files */ = {
 			isa = PBXGroup;
 			children = (
+				48AC5DB82100989A00AE4B77 /* XCTestManifests.swift */,
 				033AC36D1AC473730004EEC1 /* Info.plist */,
 			);
 			name = "Supporting Files";
@@ -1100,6 +1077,48 @@
 			path = PerformanceTests;
 			sourceTree = "<group>";
 		};
+		48AC5DB62100985800AE4B77 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				03E6A9C42083CC9B0006D2D6 /* AESTests.swift */,
+				03BF8C8D1B11CF6E00332087 /* ASN1Tests.swift */,
+				033AC37C1AC473980004EEC1 /* BigIntTests.swift */,
+				032F96121D0C209900377DDA /* BigIntPerformanceTests.swift */,
+				03A63D001C6FA0A10018A21E /* BlockCipherTests.swift */,
+				033482FC1C9585AA00625D92 /* GaloisFieldTests.swift */,
+				031868E71ADD873D00CB51E1 /* TLSUtilitiesTests.swift */,
+				033AC3781AC473980004EEC1 /* TLSTests.swift */,
+				033AC3791AC473980004EEC1 /* TLSRecordTests.swift */,
+				033AC37A1AC473980004EEC1 /* TLSClientHelloTests.swift */,
+				033AC37B1AC473980004EEC1 /* TLSServerHelloTests.swift */,
+				034833771C35498400D58547 /* TLSServerKeyExchangeTests.swift */,
+				03DDB64B1AC60DE5000B5726 /* TLSCertificateMessageTests.swift */,
+				03DDB64D1AC61468000B5726 /* TLSClientKeyExchangeTests.swift */,
+				03507155207212F5008DFF57 /* TLSEncryptedExtensionsTests.swift */,
+				030FF6EA1DB0D45E00EB7F1F /* TLSVersionTests.swift */,
+				03974A6F1AFE04D600248702 /* SocketTests.swift */,
+				039ADDB81C2F39BC00EDF99B /* EllipticCurveTests.swift */,
+				031CD12B1C32B5CC0027F973 /* RSATests.swift */,
+				03591FB71C679FDC005A97EC /* ECDSATests.swift */,
+				038F68541C428F1000C66050 /* OIDTests.swift */,
+				03091EE82084F5DB0068C085 /* SHA1Tests.swift */,
+				03091EEA2084FE590068C085 /* SHA224Tests.swift */,
+				0355C0D920825A71007B19A2 /* SHA256Tests.swift */,
+				03091EF120850F730068C085 /* SHA384Tests.swift */,
+				03091EEF20850B7F0068C085 /* SHA512Tests.swift */,
+				48AC5D0120FF428600AE4B77 /* PerformanceTests */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+		48AC5DB72100986200AE4B77 /* Helpers */ = {
+			isa = PBXGroup;
+			children = (
+				03E5700720939FED00037D3E /* XCTestHelper.swift */,
+			);
+			path = Helpers;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
@@ -1357,6 +1376,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				032D0F2D1B9F5B74009C13F0 /* lhash.c in Sources */,
+				48AC5DB9210098DB00AE4B77 /* XCTestManifests.swift in Sources */,
 				032D0F011B9F5B38009C13F0 /* bf_ecb.c in Sources */,
 				03091EE92084F5DB0068C085 /* SHA1Tests.swift in Sources */,
 				032D0F221B9F5B5E009C13F0 /* dh_lib.c in Sources */,

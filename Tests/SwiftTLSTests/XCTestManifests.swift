@@ -3,6 +3,10 @@ import XCTest
 #if !os(macOS)
 public func allTests() -> [XCTestCaseEntry] {
     return [
+        // Performance Tests
+        testCase(Secp256r1MultiplicationPerformanceTests.allTests),
+
+        // Correctness Tests
         testCase(AESTests.allTests),
         testCase(ASN1Tests.allTests),
         testCase(BlockCipherTests.allTests),
