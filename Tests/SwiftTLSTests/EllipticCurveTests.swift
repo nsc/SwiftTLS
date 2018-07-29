@@ -175,4 +175,19 @@ class EllipticCurveTests: XCTestCase {
         
         XCTAssert(verified)
     }
+    
+    func test_multiplyPoint_performance() {
+        guard let curve = EllipticCurve.named(.secp256r1) else {
+            XCTFail()
+            return
+        }
+
+        let d = BigInt(hexString: "E0F50AC968EE5F59A272102FD9FE5AD66962475D7A31A4F840F3FADC314FD208")!
+//        let d = BigInt(hexString: "8000000000000000000000000000000000000000000000000000000000000000")!
+//        let d = BigInt(hexString: "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")!
+
+        self.measure {
+            _ = curve.multiplyPoint(curve.G, d)
+        }
+    }
 }

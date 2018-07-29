@@ -12,24 +12,29 @@ func division<T : BinaryInteger>(_ a : T, _ b : T) -> (T, T)
     return (a / b, a % b)
 }
 
-public func modular_pow<T : BinaryInteger>(_ base : T, _ exponent : T, _ mod : T) -> T
+public func modular_pow(_ base : BigInt, _ exponent : BigInt, _ mod : BigInt) -> BigInt
 {
-    let numBits = exponent.bitWidth
-    
-    // Check for leading zero bits to avoid a couple iterations of (r * r) % mod
-    var result = T(1)
-    var r = base % mod
-    for i in 0..<numBits
-    {
-        if (exponent.isBitSet(i)) {
-            result = (result * r) % mod
-        }
-        
-        r = (r * r) % mod
-    }
-    
-    return result
+    return BarrettReduction(modulus: mod).modular_pow(base, exponent)
 }
+
+//public func modular_pow<T : BinaryInteger>(_ base : T, _ exponent : T, _ mod : T) -> T
+//{
+//    let numBits = exponent.bitWidth
+//
+//    // Check for leading zero bits to avoid a couple iterations of (r * r) % mod
+//    var result = T(1)
+//    var r = base % mod
+//    for i in 0..<numBits
+//    {
+//        if (exponent.isBitSet(i)) {
+//            result = (result * r) % mod
+//        }
+//
+//        r = (r * r) % mod
+//    }
+//
+//    return result
+//}
 
 func gcd<T : BinaryInteger>(_ x : T, _ y : T) -> T
 {
@@ -70,34 +75,25 @@ func extended_euclid<T : BinaryInteger>(z : T, a : T) -> T
     return y2 % a
 }
 
+//public func modular_inverse(_ x : BigInt, _ y : BigInt, mod : BigInt) -> BigInt
+//{
+//    return BarrettReduction(modulus: mod).modular_inverse(x, y)
+//}
+//
 public func modular_inverse<T : BinaryInteger>(_ x : T, _ y : T, mod : T) -> T
 {
     let x = x > 0 ? x : x + mod
     let y = y > 0 ? y : y + mod
 
     let inverse = extended_euclid(z: y, a: mod)
-    
+
     var result = (inverse * x) % mod
-    
+
     let zero : T = 0
     if result < zero {
         result = result + mod
     }
-    
-//    let lhs = ((y + mod) * result) % mod
-//    let rhs = (x + mod) % mod
-//    
-//    if rhs != lhs {
-//        print("modular_inverse yields wrong result for:")
-//        print("\(x) \(y) \(mod)")
-//        print("x = \(x)")
-//        print("y = \(y)")
-//        print("mod = \(mod)")
-//        print("result = \(result)")
-//    }
-//    
-//    precondition(lhs == rhs)
-    
+
     return result
 }
 

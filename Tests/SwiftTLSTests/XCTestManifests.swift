@@ -5,8 +5,10 @@ public func allTests() -> [XCTestCaseEntry] {
     return [
         testCase(AESTests.allTests),
         testCase(ASN1Tests.allTests),
+        testCase(BigIntBitOperationTests.allTests),
         testCase(BlockCipherTests.allTests),
         testCase(GaloisFieldTests.allTests),
+        testCase(MontgomeryTests.allTests),
         testCase(TLSUtilitiesTests.allTests),
         testCase(TLSTests.allTests),
         testCase(TLSRecordTests.allTests),
