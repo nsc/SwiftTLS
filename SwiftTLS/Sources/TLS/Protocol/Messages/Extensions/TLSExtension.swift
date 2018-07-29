@@ -62,101 +62,102 @@ func TLSReadExtensions(from inputStream: InputStreamType, length: Int, messageTy
     
     while extensionBytesLeft > 0 {
         
-        if let rawExtensionType : UInt16 = buffer.read(), let extensionData : [UInt8] = buffer.read16() {
+        guard let rawExtensionType : UInt16 = buffer.read(), let extensionData : [UInt8] = buffer.read16() else {
+            break
+        }
+        
+        extensionBytesLeft -= 2 + 2 + extensionData.count
+        
+        if let extensionType = TLSExtensionType(rawValue: rawExtensionType) {
             
-            extensionBytesLeft -= 2 + 2 + extensionData.count
-            
-            if let extensionType = TLSExtensionType(rawValue: rawExtensionType) {
-                
-                switch (extensionType)
-                {
-                case .serverName:
-                    if extensionData.count == 0 {
-                        extensions.append(TLSServerNameExtension(serverNames: []))
-                        break
-                    }
-                    
-                    guard let serverName = TLSServerNameExtension(inputStream: BinaryInputStream(extensionData), messageType: messageType) else {
-                        fatalError("Could not read server name extension")
-                    }
-                    
-                    extensions.append(serverName)
-                    
-                case .supportedGroups:
-                    guard let ellipticCurves = TLSSupportedGroupsExtension(inputStream: BinaryInputStream(extensionData), messageType: messageType) else {
-                        
-                        fatalError("Could not read supported groups extension")
-                    }
-                    
-                    extensions.append(ellipticCurves)
-                    
-                case .ecPointFormats:
-                    guard let pointFormats = TLSEllipticCurvePointFormatsExtension(inputStream: BinaryInputStream(extensionData), messageType: messageType) else {
-                        
-                        fatalError("Could not read EC point formats extension")
-                    }
-                    
-                    extensions.append(pointFormats)
-                    
-                case .keyShare:
-                    guard let keyShare = TLSKeyShareExtension(inputStream: BinaryInputStream(extensionData), messageType: messageType) else {
-                        
-                        fatalError("Could not read key share extension")
-                    }
-                    
-                    extensions.append(keyShare)
-                    
-                case .preSharedKey:
-                    guard let preSharedKey = TLSPreSharedKeyExtension(inputStream: BinaryInputStream(extensionData), messageType: messageType) else {
-                        
-                        fatalError("Could not read pre shared key extension")
-                    }
-                    
-                    extensions.append(preSharedKey)
-
-                case .earlyData:
-                    guard let earlyData = TLSEarlyDataIndication(inputStream: BinaryInputStream(extensionData), messageType: messageType) else {
-                        
-                        fatalError("Could not read early data extension")
-                    }
-                    
-                    extensions.append(earlyData)
-
-                case .pskKeyExchangeModes:
-                    guard let pskKeyExchangeModes = TLSPSKKeyExchangeModesExtension(inputStream: BinaryInputStream(extensionData), messageType: messageType) else {
-                        
-                        fatalError("Could not read PSK key exchange modes extension")
-                    }
-                    
-                    extensions.append(pskKeyExchangeModes)
-
-                case .supportedVersions:
-                    guard let supportedVersions = TLSSupportedVersionsExtension(inputStream: BinaryInputStream(extensionData), messageType: messageType) else {
-                        
-                        fatalError("Could not read supported versions extension")
-                    }
-                    
-                    extensions.append(supportedVersions)
-                    
-                case .secureRenegotiationInfo:
-                    guard let secureRenogotiationInfo = TLSSecureRenegotiationInfoExtension(inputStream: BinaryInputStream(extensionData), messageType: messageType) else {
-                        
-                        fatalError("Could not read secure renegotiation info extension")
-                    }
-                    
-                    extensions.append(secureRenogotiationInfo)
-                    
-                case .signatureAlgorithms:
+            switch (extensionType)
+            {
+            case .serverName:
+                if extensionData.count == 0 {
+                    extensions.append(TLSServerNameExtension(serverNames: []))
                     break
-                    
-                default:
-                    log("Unsupported extension type \(rawExtensionType)")
-                    
                 }
+                
+                guard let serverName = TLSServerNameExtension(inputStream: BinaryInputStream(extensionData), messageType: messageType) else {
+                    fatalError("Could not read server name extension")
+                }
+                
+                extensions.append(serverName)
+                
+            case .supportedGroups:
+                guard let ellipticCurves = TLSSupportedGroupsExtension(inputStream: BinaryInputStream(extensionData), messageType: messageType) else {
+                    
+                    fatalError("Could not read supported groups extension")
+                }
+                
+                extensions.append(ellipticCurves)
+                
+            case .ecPointFormats:
+                guard let pointFormats = TLSEllipticCurvePointFormatsExtension(inputStream: BinaryInputStream(extensionData), messageType: messageType) else {
+                    
+                    fatalError("Could not read EC point formats extension")
+                }
+                
+                extensions.append(pointFormats)
+                
+            case .keyShare:
+                guard let keyShare = TLSKeyShareExtension(inputStream: BinaryInputStream(extensionData), messageType: messageType) else {
+                    
+                    fatalError("Could not read key share extension")
+                }
+                
+                extensions.append(keyShare)
+                
+            case .preSharedKey:
+                guard let preSharedKey = TLSPreSharedKeyExtension(inputStream: BinaryInputStream(extensionData), messageType: messageType) else {
+                    
+                    fatalError("Could not read pre shared key extension")
+                }
+                
+                extensions.append(preSharedKey)
+                
+            case .earlyData:
+                guard let earlyData = TLSEarlyDataIndication(inputStream: BinaryInputStream(extensionData), messageType: messageType) else {
+                    
+                    fatalError("Could not read early data extension")
+                }
+                
+                extensions.append(earlyData)
+                
+            case .pskKeyExchangeModes:
+                guard let pskKeyExchangeModes = TLSPSKKeyExchangeModesExtension(inputStream: BinaryInputStream(extensionData), messageType: messageType) else {
+                    
+                    fatalError("Could not read PSK key exchange modes extension")
+                }
+                
+                extensions.append(pskKeyExchangeModes)
+                
+            case .supportedVersions:
+                guard let supportedVersions = TLSSupportedVersionsExtension(inputStream: BinaryInputStream(extensionData), messageType: messageType) else {
+                    
+                    fatalError("Could not read supported versions extension")
+                }
+                
+                extensions.append(supportedVersions)
+                
+            case .secureRenegotiationInfo:
+                guard let secureRenogotiationInfo = TLSSecureRenegotiationInfoExtension(inputStream: BinaryInputStream(extensionData), messageType: messageType) else {
+                    
+                    fatalError("Could not read secure renegotiation info extension")
+                }
+                
+                extensions.append(secureRenogotiationInfo)
+                
+            case .signatureAlgorithms:
+                break
+                
+            default:
+                log("Unsupported extension type \(rawExtensionType)")
+                
             }
-            else {
-                log("Unknown extension type \(rawExtensionType)")
-            }
+        }
+        else {
+            log("Unknown extension type \(rawExtensionType)")
         }
     }
     

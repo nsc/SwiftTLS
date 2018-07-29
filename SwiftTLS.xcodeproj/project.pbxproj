@@ -96,6 +96,7 @@
 		0355C0DA20825A71007B19A2 /* SHA256Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0355C0D920825A71007B19A2 /* SHA256Tests.swift */; };
 		03591FB81C679FDC005A97EC /* ECDSATests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03591FB71C679FDC005A97EC /* ECDSATests.swift */; };
 		036656FC20A83ED700D8BF03 /* ECDSA Identity.pem in Resources */ = {isa = PBXBuildFile; fileRef = 036656FB20A83ED700D8BF03 /* ECDSA Identity.pem */; };
+		037EEF3A210DED06007C44B3 /* TLSReadExtensionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 037EEF39210DED06007C44B3 /* TLSReadExtensionsTests.swift */; };
 		038F68551C428F1000C66050 /* OIDTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 038F68541C428F1000C66050 /* OIDTests.swift */; };
 		039ADDB91C2F39BC00EDF99B /* EllipticCurveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 039ADDB81C2F39BC00EDF99B /* EllipticCurveTests.swift */; };
 		03A63D011C6FA0A10018A21E /* BlockCipherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03A63D001C6FA0A10018A21E /* BlockCipherTests.swift */; };
@@ -384,6 +385,7 @@
 		036656FB20A83ED700D8BF03 /* ECDSA Identity.pem */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "ECDSA Identity.pem"; sourceTree = "<group>"; };
 		03686BF41D270AE400CF88E2 /* rfc3447.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = rfc3447.txt; sourceTree = "<group>"; };
 		036A7C131B07C26800AE46F8 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		037EEF39210DED06007C44B3 /* TLSReadExtensionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TLSReadExtensionsTests.swift; sourceTree = "<group>"; };
 		037FC47F1D623B0D009049EC /* rfc5116.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = rfc5116.txt; sourceTree = "<group>"; };
 		037FC4911D623B8F009049EC /* rfc5289.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = rfc5289.txt; sourceTree = "<group>"; };
 		03805D1C209374550051ACB3 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = SOURCE_ROOT; };
@@ -618,6 +620,7 @@
 				033482FC1C9585AA00625D92 /* GaloisFieldTests.swift */,
 				031868E71ADD873D00CB51E1 /* TLSUtilitiesTests.swift */,
 				033AC3781AC473980004EEC1 /* TLSTests.swift */,
+				037EEF39210DED06007C44B3 /* TLSReadExtensionsTests.swift */,
 				033AC3791AC473980004EEC1 /* TLSRecordTests.swift */,
 				033AC37A1AC473980004EEC1 /* TLSClientHelloTests.swift */,
 				033AC37B1AC473980004EEC1 /* TLSServerHelloTests.swift */,
@@ -1362,6 +1365,7 @@
 				032D0F051B9F5B3F009C13F0 /* bss_file.c in Sources */,
 				0355C0DA20825A71007B19A2 /* SHA256Tests.swift in Sources */,
 				032D0F0E1B9F5B4C009C13F0 /* bn_gcd.c in Sources */,
+				037EEF3A210DED06007C44B3 /* TLSReadExtensionsTests.swift in Sources */,
 				03E6B6D02088BB2C0070EDFC /* AESTests.swift in Sources */,
 				032D0F2F1B9F5B81009C13F0 /* rc2_cbc.c in Sources */,
 				032D0F3B1B9F5B9E009C13F0 /* rsa_ssl.c in Sources */,
@@ -1621,7 +1625,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.savoysoftware.SwiftTLS;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
-				SWIFT_INCLUDE_PATHS = "${SRCROOT}/SwiftTLS/modulemaps/SwiftHelper ${SRCROOT}/SwiftTLS/modulemaps/CommonCrypto ${SRCROOT}/SwiftTLS/modulemaps/OpenSSL";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 4.0;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -1651,7 +1654,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.savoysoftware.SwiftTLS;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
-				SWIFT_INCLUDE_PATHS = "${SRCROOT}/SwiftTLS/modulemaps/SwiftHelper ${SRCROOT}/SwiftTLS/modulemaps/CommonCrypto ${SRCROOT}/SwiftTLS/modulemaps/OpenSSL";
 				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
 				SWIFT_VERSION = 4.0;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -1671,6 +1673,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.savoysoftware.SwiftTLSTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_INCLUDE_PATHS = "${SRCROOT}/SwiftTLS/modulemaps/OpenSSL";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 4.0;
 			};
@@ -1686,6 +1689,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.savoysoftware.SwiftTLSTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_INCLUDE_PATHS = "${SRCROOT}/SwiftTLS/modulemaps/OpenSSL";
 				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
 				SWIFT_VERSION = 4.0;
 			};

@@ -16,6 +16,7 @@ public func allTests() -> [XCTestCaseEntry] {
         testCase(TLSCertificateMessageTests.allTests),
         testCase(TLSClientKeyExchangeTests.allTests),
         testCase(TLSEncryptedExtensionsTests.allTests),
+        testCase(TLSReadExtensionsTests.allTests),
         testCase(TLSVersionTests.allTests),
         testCase(SocketTests.allTests),
         testCase(EllipticCurveTests.allTests),
