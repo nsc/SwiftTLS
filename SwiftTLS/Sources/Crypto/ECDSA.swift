@@ -53,24 +53,26 @@ struct ECDSA : Signing
     {
         assert(self.privateKey != nil)
         
+        let n = curve.n
+        let reducer = Montgomery(modulus: n)
+        
         var s : BigInt = BigInt(0)
         var r : BigInt
         repeat {
             let G = curve.G
-            let n = curve.n
             let z = BigInt(bigEndianParts: data)
             let d = self.privateKey!
             
             let k = BigInt.random(n)
             let P = curve.multiplyPoint(G, k)
-            r = P.x % n
+            r = reducer.reduce(P.x)
             
             if r.isZero {
                 continue
             }
             
-            let kInverse = modular_inverse(1, k, mod: n)
-            s = (kInverse * (z + r * d)) % n
+            let kInverse = reducer.modular_inverse(1, k)
+            s = reducer.reduce(kInverse * reducer.reduce(z + r * d))
 
         } while s.isZero
         
@@ -109,12 +111,14 @@ struct ECDSA : Signing
         let (r, s) = signature
         let H = self.publicKey
         
-        let sInverse = modular_inverse(BigInt(1), s, mod:n)
-        let u1 = (sInverse * z) % n
-        let u2 = (sInverse * r) % n
-        let P = curve.addPoints(curve.multiplyPoint(G, u1), curve.multiplyPoint(H, u2))
+        let reducer = Montgomery(modulus: n)
         
-        let verification = P.x % n
+        let sInverse = reducer.modular_inverse(BigInt(1), s, constantTime: false)
+        let u1 = reducer.reduce(sInverse * z)
+        let u2 = reducer.reduce(sInverse * r)
+        let P = curve.addPoints(curve.multiplyPoint(G, u1, constantTime: false), curve.multiplyPoint(H, u2, constantTime: false), constantTime: false)
+        
+        let verification = reducer.reduce(P.x)
                 
         return (r == verification)
     }

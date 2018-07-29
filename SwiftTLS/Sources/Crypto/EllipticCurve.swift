@@ -145,6 +145,85 @@ func !=(a: EllipticCurvePoint, b: EllipticCurvePoint) -> Bool
     return !(a == b)
 }
 
+public protocol ModularReduction {
+    var modulus: BigInt { get }
+    init(modulus: BigInt)
+    func reduce(_ x: BigInt) -> BigInt
+    func modular_pow(_ base: BigInt, _ exponent: BigInt, constantTime: Bool) -> BigInt
+    func modular_inverse(_ x : BigInt, _ y : BigInt, constantTime: Bool) -> BigInt
+}
+
+extension ModularReduction {
+    public func modular_pow(_ base : BigInt, _ exponent : BigInt, constantTime: Bool = true) -> BigInt
+    {
+        let numBits = exponent.bitWidth
+        
+        var result = BigInt(1)
+        var r = self.reduce(base)
+        for i in 0..<numBits
+        {
+            let bit = BigInt(exponent.bit(at: i))
+            let tmp = (constantTime || !bit.isZero) ? self.reduce(result * r) : result
+            
+            // Avoid branch in order to mitigate the risk of timing attacks
+            result = bit * tmp + (BigInt(1) - bit) * result
+            
+            r = self.reduce(r * r)
+        }
+        
+        return result
+    }
+    
+    private func non_constantTime_modular_inverse(_ x : BigInt, _ y : BigInt) -> BigInt
+    {
+        let x = x > 0 ? x : x + modulus
+        let y = y > 0 ? y : y + modulus
+
+        let inverse = extended_euclid(z: y, a: modulus)
+
+        var result = self.reduce(inverse * x)
+
+        let zero : BigInt = 0
+        if result < zero {
+            result = result + modulus
+        }
+
+        return result
+    }
+
+    public func modular_inverse(_ x : BigInt, _ y : BigInt, constantTime: Bool = true) -> BigInt
+    {
+        if !constantTime {
+            return non_constantTime_modular_inverse(x, y)
+        }
+        
+        let x = x > 0 ? x : x + modulus
+        let y = y > 0 ? y : y + modulus
+
+        let inverse = self.modular_pow(y, modulus - BigInt(2), constantTime: constantTime)
+
+        var result = self.reduce(inverse * x)
+
+        let zero : BigInt = 0
+        if result < zero {
+            result = result + modulus
+        }
+
+        return result
+    }
+}
+
+struct DefaultModularReduction : ModularReduction {
+    let modulus: BigInt
+    init(modulus: BigInt) {
+        self.modulus = modulus
+    }
+
+    func reduce(_ x: BigInt) -> BigInt {
+        return x % modulus
+    }
+}
+
 // y^2 = (x^3 + a*x + b) % p
 // where (4a^3 + 27b^2) % p ≢ 0
 struct EllipticCurve
@@ -156,6 +235,28 @@ struct EllipticCurve
     let G : EllipticCurvePoint
     let n : BigInt
     
+    var reducer: ModularReduction
+    
+    init(name: NamedGroup,
+         p : BigInt,
+         a : BigInt,
+         b : BigInt,
+         G : EllipticCurvePoint,
+         n : BigInt)
+    {
+        self.name = name
+        self.p = p
+        self.a = a
+        self.b = b
+        self.G = G
+        self.n = n
+
+        self.reducer = Montgomery(modulus: self.p)
+
+//        self.reducer = BarrettReduction(modulus: self.p)
+//        self.reducer = DefaultModularReduction(modulus: self.p)
+    }
+
     fileprivate func isOnCurve(_ point : EllipticCurvePoint) -> Bool
     {
         let x = point.x
@@ -167,14 +268,14 @@ struct EllipticCurve
         return rhs == lhs
     }
     
-    func addPoints(_ p1 : EllipticCurvePoint, _ p2 : EllipticCurvePoint) -> EllipticCurvePoint
+    func addPoints(_ p1 : EllipticCurvePoint, _ p2 : EllipticCurvePoint, constantTime: Bool = true) -> EllipticCurvePoint
     {
         assert(p1 != p2)
         
-        let lambda = modular_inverse(p2.y - p1.y, p2.x - p1.x, mod: self.p)
+        let lambda = self.reducer.modular_inverse(p2.y - p1.y, p2.x - p1.x, constantTime: constantTime)
         
-        var x = (lambda * lambda - p1.x - p2.x) % self.p
-        var y = (lambda * (p1.x - x) - p1.y) % self.p
+        var x = reducer.reduce(lambda * lambda - p1.x - p2.x)
+        var y = reducer.reduce(lambda * (p1.x - x) - p1.y)
         
         if x < BigInt(0) {
             x = x + self.p
@@ -190,12 +291,12 @@ struct EllipticCurve
         return EllipticCurvePoint(x: x, y: y)
     }
     
-    func doublePoint(_ p : EllipticCurvePoint) -> EllipticCurvePoint
+    func doublePoint(_ p : EllipticCurvePoint, constantTime: Bool = true) -> EllipticCurvePoint
     {
-        let lambda = modular_inverse(3 * (p.x * p.x) + self.a, 2 * p.y, mod: self.p)
+        let lambda = self.reducer.modular_inverse(3 * (p.x * p.x) + self.a, 2 * p.y, constantTime: constantTime)
 
-        var x = (lambda * lambda - 2 * p.x) % self.p
-        var y = (lambda * (p.x - x) - p.y) % self.p
+        var x = reducer.reduce(lambda * lambda - 2 * p.x)
+        var y = reducer.reduce(lambda * (p.x - x) - p.y)
         
         if x < BigInt(0) {
             x = x + self.p
@@ -211,29 +312,36 @@ struct EllipticCurve
         return EllipticCurvePoint(x: x, y: y)
     }
     
-    func multiplyPoint(_ point : EllipticCurvePoint, _ d : BigInt) -> EllipticCurvePoint
+    func multiplyPoint(_ point : EllipticCurvePoint, _ d : BigInt, constantTime: Bool = true) -> EllipticCurvePoint
     {
         var point = point
         
-        var result : EllipticCurvePoint? = nil
+        var result = EllipticCurvePoint(x: 0, y: 0)
         
+        var firstBit = true
         for i in 0 ..< d.bitWidth
         {
-            if d.isBitSet(i) {
-                if result != nil {
-                    result = self.addPoints(result!, point)
-                }
-                else {
-                    result = point
-                }
+            let bit = BigInt(d.bit(at: i))
+            let notBit = BigInt(1) - bit
+
+            let tmp: EllipticCurvePoint
+            if firstBit && bit == 1 {
+                tmp = point
+                firstBit = false
             }
+            else {
+                tmp = (constantTime || !bit.isZero) ? self.addPoints(result, point) : result
+            }
+            
+            result = EllipticCurvePoint(x: bit * tmp.x + notBit * result.x,
+                                        y: bit * tmp.y + notBit * result.y)
 
             point = self.doublePoint(point)
             
             assert(point.isOnCurve(self))
         }
         
-        return result!
+        return result
     }
     
     func createKeyPair() -> (d : BigInt, Q : EllipticCurvePoint)

@@ -37,6 +37,8 @@ struct RSA
     
     var algorithm: X509.SignatureAlgorithm
     
+    let reducer: ModularReduction
+    
     static func fromPEMFile(_ file : String) -> RSA?
     {
         var certificate: X509.Certificate? = nil
@@ -165,6 +167,8 @@ struct RSA
         self.dQ = dQ
         self.qInv = qInv
         self.algorithm = signatureAlgorithm ?? .rsa_pkcs1(hash: .sha256)
+        
+        self.reducer = Montgomery(modulus: self.n)
     }
 
     init(n: BigInt, publicExponent: BigInt, privateExponent: BigInt? = nil)
@@ -178,6 +182,8 @@ struct RSA
         self.dQ = nil
         self.qInv = nil
         self.algorithm = .rsa_pkcs1(hash: .sha256)
+        
+        self.reducer = Montgomery(modulus: self.n)
     }
     
     init?(publicKey: [UInt8])
@@ -208,6 +214,8 @@ struct RSA
         self.dQ = nil
         self.qInv = nil
         self.algorithm = .rsa_pkcs1(hash: .sha256)
+        
+        self.reducer = Montgomery(modulus: self.n)
     }
     
     var nOctetLength: Int {
@@ -227,7 +235,7 @@ struct RSA
         }
         
         // FIXME: Use second form (CRT) when applicable
-        let s = modular_pow(m, d, n)
+        let s = reducer.modular_pow(m, d)
         
         return s
     }
@@ -237,7 +245,7 @@ struct RSA
             throw Error.signatureRepresentativeOutOfRange
         }
         
-        let m = modular_pow(s, e, n)
+        let m = reducer.modular_pow(s, e, constantTime: false)
         
         return m
     }
@@ -247,7 +255,7 @@ struct RSA
             throw Error.messageRepresentativeOutOfRange
         }
         
-        let c = modular_pow(m, e, n)
+        let c = reducer.modular_pow(m, e)
         
         return c
     }
@@ -262,7 +270,7 @@ struct RSA
         }
         
         // FIXME: Use second form (CRT) when applicable
-        let m = modular_pow(c, d, n)
+        let m = reducer.modular_pow(c, d)
         
         return m
     }

@@ -27,15 +27,16 @@ public struct BigInt
                 
                 return
             }
-            
-            let shift = Word((MemoryLayout<Word>.size * 8) - 1)
-            let highestBitMask : Word = 1 << shift
-            
-            if highestBitMask & newValue.last! != 0 {
-                let temp = BigInt(newValue)
-                _words = temp.twosComplement
-                sign = true
-            }
+
+            _words = newValue
+//            let shift = Word((MemoryLayout<Word>.size * 8) - 1)
+//            let highestBitMask : Word = 1 << shift
+//
+//            if highestBitMask & newValue.last! != 0 {
+//                let temp = BigInt(newValue)
+//                _words = temp.twosComplement
+//                sign = true
+//            }
         }
     }
     
@@ -217,6 +218,25 @@ extension BigInt
         self.init([T](parts), negative: negative)
     }
 
+    mutating func mask(upToHighestBit: Int)
+    {
+        var numWords = upToHighestBit >> Word.bitWidth.trailingZeroBitCount
+        let numBits = upToHighestBit - numWords << Word.bitWidth.trailingZeroBitCount
+
+        if numBits != 0 {
+            numWords += 1
+        }
+        
+        guard numWords <= self.words.count else { return }
+        
+        self.words.removeLast(self.words.count - numWords)
+        if numBits != 0 {
+            self.words[numWords - 1] &= (1 << numBits) - 1
+        }
+        
+        self.normalize()
+    }
+    
     mutating func normalize()
     {
         while _words.last != nil && _words.last! == 0 {
@@ -244,18 +264,6 @@ extension BigInt
         get {
             return _words.count == 0 || (_words.count == 1 && _words[0] == 0)
         }
-    }
-    
-    func isBitSet(_ bitNumber : Int) -> Bool {
-        let wordSize    = MemoryLayout<Word>.size * 8
-        let wordNumber  = bitNumber / wordSize
-        let bit         = bitNumber % wordSize
-        
-        guard wordNumber < self._words.count else {
-            return false
-        }
-        
-        return (UInt64(self._words[wordNumber]) & (UInt64(1) << UInt64(bit))) != 0
     }
 }
 
@@ -559,7 +567,7 @@ extension BigInt : Numeric
 
 }
 
-private prefix func -(v : BigInt) -> BigInt {
+public prefix func -(v : BigInt) -> BigInt {
     var v = v
     v.sign = !v.sign
     return v
@@ -693,12 +701,89 @@ extension BigInt : BinaryInteger
         
     }
 
+    static let maximumShift = 1 << 20
     public static func <<=<RHS>(lhs: inout BigInt, rhs: RHS) where RHS : BinaryInteger {
-        
+        guard rhs > 0 else {
+            if rhs == 0 {
+                return
+            }
+
+            lhs >>= rhs.magnitude
+            return
+        }
+
+        if rhs > maximumShift {
+            fatalError("BigInt doesn't support left shift larger than \(maximumShift)")
+        }
+
+        let shift = Int(rhs)
+
+        let wordBitWidth = Word.bitWidth
+        let wordShift = shift >> wordBitWidth.trailingZeroBitCount
+        let bitShift = shift - (wordShift << wordBitWidth.trailingZeroBitCount)
+
+        var words = Words(repeating: 0, count: wordShift)
+        words.append(contentsOf: lhs.words)
+        if bitShift == 0 {
+            lhs.words = words
+        }
+        else {
+            words.append(0)
+            let count = words.count
+            for i in (0..<count).reversed() {
+                let lowerIndex = i - 1
+                let upperIndex = i
+                let lowerPart = lowerIndex >= 0 ? words[lowerIndex] >> (wordBitWidth - bitShift) : 0
+                let upperPart = upperIndex >= 0 ? words[upperIndex] &<< bitShift : 0
+                words[i] = upperPart ^ lowerPart
+            }
+
+            lhs.words = words
+            lhs.normalize()
+        }
     }
     
     public static func >>=<RHS>(lhs: inout BigInt, rhs: RHS) where RHS : BinaryInteger {
+        guard rhs > 0 else {
+            if rhs == 0 {
+                return
+            }
+            lhs <<= rhs.magnitude
+            return
+        }
         
+        if rhs > lhs.bitWidth {
+            lhs = lhs.sign ? -1 : 0
+            return
+        }
+        
+        let shift = Int(rhs)
+
+        let wordBitWidth = Word.bitWidth
+        let wordShift = shift >> wordBitWidth.trailingZeroBitCount
+        let bitShift = shift - (wordShift << wordBitWidth.trailingZeroBitCount)
+        
+        var words = lhs.words
+        if bitShift == 0 {
+            let count = words.count
+            for i in 0..<count {
+                let index = i + wordShift
+                words[i] = index < count ? words[index] : 0
+            }
+        }
+        else {
+            let count = words.count
+            for i in 0..<count {
+                let lowerIndex = i + wordShift
+                let upperIndex = i + wordShift + 1
+                let lowerPart = lowerIndex < count ? words[lowerIndex] >> bitShift : 0
+                let upperPart = upperIndex < count ? words[upperIndex] &<< (wordBitWidth - bitShift) : 0
+                words[i] = upperPart ^ lowerPart
+            }
+        }
+
+        lhs.words = words
+        lhs.normalize()
     }
     
     public static prefix func ~(x: BigInt) -> BigInt {
@@ -963,11 +1048,14 @@ extension BigInt : BinaryInteger
             
         }
         
-        let q =  BigInt(result._words, negative: u.sign != v.sign)
+        var q =  BigInt(result._words, negative: u.sign != v.sign)
         
         let uSlice = u._words[0..<n]
-        let remainder = BigInt(uSlice, negative: uSign) / d
+        var remainder = BigInt(uSlice, negative: uSign) / d
 
+        q.normalize()
+        remainder.normalize()
+        
         return (q, remainder)
     }
     

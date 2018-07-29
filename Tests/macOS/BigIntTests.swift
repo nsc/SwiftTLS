@@ -517,7 +517,8 @@ class BigIntTests: XCTestCase {
             let y = BigInt(hexString: testVector.y)!
             let a = BigInt(hexString: testVector.mod)!
             
-            let result = modular_inverse(x, y, mod: a)
+            let reduction = BarrettReduction(modulus: a)
+            let result = reduction.modular_inverse(x, y)
             
             XCTAssert(result == BigInt(hexString: testVector.result)!)
         }
@@ -541,6 +542,18 @@ class BigIntTests: XCTestCase {
         {
             XCTAssert(n.isBitSet(bitNumber) == isSet, "isBitSet gives wrong result for \(n) where bit \(bitNumber) \(isSet ? should : shouldNot) be set.")
         }
+    }
+    
+    func test_barrettReduction__givesSameResultAsMod() {
+        let x       = BigInt(hexString: "ABE240AB8ED091C56723DE")!
+        let modulus = BigInt(hexString: "F6E7182efab8749FECE901AE")!
+        
+        let barrett = BarrettReduction(modulus: modulus)
+        
+        let r1 = x % modulus
+        let r2 = barrett.reduce(x)
+        
+        XCTAssert(r1 == r2)
     }
 }
 
