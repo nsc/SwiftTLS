@@ -263,7 +263,7 @@ extension TLS1_3 {
             }
             
             let extensions: [TLSExtension] = [
-                TLSSupportedVersionsExtension(supportedVersions: [.v1_3]),
+                TLSSupportedVersionsExtension(supportedVersions: [server!.negotiatedProtocolVersion!]),
                 TLSKeyShareExtension(keyShare: .helloRetryRequest(selectedGroup: commonGroups[0]))
             ]
             

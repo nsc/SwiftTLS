@@ -7,13 +7,23 @@
 //
 
 public enum NamedGroup : UInt16 {
-    case secp256r1 = 23
-    case secp384r1 = 24
-    case secp521r1 = 25
+    case secp256r1 = 0x17
+    case secp384r1 = 0x18
+    case secp521r1 = 0x19
+    
+    case x25519    = 0x1d
+    case x448      = 0x1e
+    
+    /* Finite Field Groups (DHE) */
+    case ffdhe2048 = 0x0100
+    case ffdhe3072 = 0x0101
+    case ffdhe4096 = 0x0102
+    case ffdhe6144 = 0x0103
+    case ffdhe8192 = 0x0104
     
     case arbitrary_explicit_prime_curves = 0xFF01
     case arbitrary_explicit_char2_curves = 0xFF02
-    
+
     var bitLength : Int {
         get {
             switch self {
