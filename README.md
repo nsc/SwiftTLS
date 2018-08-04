@@ -1,6 +1,6 @@
 # SwiftTLS
 
-SwiftTLS is a Swift-only implementation of TLS 1.3 (draft 26) and 1.2 that hopes to avoid common classes of vulnerabilities that have traditionally plagued C-based implementations like buffer overflows or generally arbitrary memory accesses. It is written entirely in Swift and has no external dependencies, i.e. all public key crypto, symmetric crypto and hash functions are included.
+SwiftTLS is a Swift-only implementation of TLS 1.3 (draft 28) and 1.2 that hopes to avoid common classes of vulnerabilities that have traditionally plagued C-based implementations like buffer overflows or generally arbitrary memory accesses. It is written entirely in Swift and has no external dependencies, i.e. all public key crypto, symmetric crypto and hash functions are included.
 
 SwiftTLS is licensed under the MIT License.
 
