@@ -22,6 +22,10 @@ class TLSHelloRetryRequest : TLSServerHello
         self.extensions = extensions
     }
 
+    override var type : TLSMessageType {
+        return .handshake(handshakeType)
+    }
+    
     override var handshakeType: TLSHandshakeType {
         return .helloRetryRequest
     }

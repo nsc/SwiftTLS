@@ -15,28 +15,25 @@ public enum TLSState
     case clientHelloReceived
     case serverHelloSent
     case serverHelloReceived
-    case serverKeyExchangeSent
-    case serverKeyExchangeReceived
-    case serverHelloDoneSent
-    case serverHelloDoneReceived
     case certificateSent
     case certificateReceived
     case certificateRequestSent
     case certificateRequestReceived
     case certificateVerifySent
     case certificateVerifyReceived
-    case clientKeyExchangeSent
-    case clientKeyExchangeReceived
     case changeCipherSpecSent
     case changeCipherSpecReceived
-    case endOfEarlyDataSent
-    case endOfEarlyDataReceived
     case finishedSent
     case finishedReceived
     case connected
     case closeSent
     case closeReceived
     case error
+    
+    case alertSent
+    case alertReceived
+    case applicationDataSent
+    case applicationDataReceived
     
     // TLS 1.3
     case encryptedExtensionsSent
@@ -45,12 +42,110 @@ public enum TLSState
     case newSessionTicketReceived
     case helloRetryRequestSent
     case helloRetryRequestReceived
+    case endOfEarlyDataSent
+    case endOfEarlyDataReceived
+    case keyUpdateSent
+    case keyUpdateReceived
+    
+    // TLS 1.2
+    case helloRequestSent
+    case helloRequestReceived
+    case serverKeyExchangeSent
+    case serverKeyExchangeReceived
+    case serverHelloDoneSent
+    case serverHelloDoneReceived
+    case clientKeyExchangeSent
+    case clientKeyExchangeReceived
+    case certificateURLSent
+    case certificateURLReceived
+    case certificateStatusSent
+    case certificateStatusReceived
 }
 
-public protocol TLSConnectionStateMachine
+extension TLSMessageType {
+    var sentReceivedStates: (TLSState, TLSState) {
+        switch self {
+        case .handshake(let handshakeType):
+            switch handshakeType {
+            case .clientHello:
+                return (.clientHelloSent, .clientHelloReceived)
+                
+            case .serverHello:
+                return (.serverHelloSent, .serverHelloReceived)
+                
+            case .certificate:
+                return (.certificateSent, .certificateReceived)
+                
+            case .certificateRequest:
+                return (.certificateRequestSent, .certificateRequestReceived)
+                
+            case .certificateVerify:
+                return (.certificateVerifySent, .certificateVerifyReceived)
+                
+            case .finished:
+                return (.finishedSent, .finishedReceived)
+                
+            case .serverKeyExchange:
+                return (.serverKeyExchangeSent, .serverKeyExchangeReceived)
+                
+            case .serverHelloDone:
+                return (.serverHelloDoneSent, .serverHelloDoneReceived)
+                
+            case .clientKeyExchange:
+                return (.clientKeyExchangeSent, .clientKeyExchangeReceived)
+                
+            case .helloRequest:
+                return (.helloRequestSent, .helloRequestReceived)
+                
+            case .certificateURL:
+                return (.certificateURLSent, .certificateURLReceived)
+                
+            case .certificateStatus:
+                return (.certificateStatusSent, .certificateStatusReceived)
+
+            case .newSessionTicket:
+                return (.newSessionTicketSent, .newSessionTicketReceived)
+
+            case .endOfEarlyData:
+                return (.endOfEarlyDataSent, .endOfEarlyDataReceived)
+                
+            case .helloRetryRequest:
+                return (.helloRetryRequestSent, .helloRetryRequestReceived)
+                
+            case .encryptedExtensions:
+                return (.encryptedExtensionsSent, .encryptedExtensionsReceived)
+                
+            case .keyUpdate:
+                return (.keyUpdateSent, .keyUpdateReceived)
+                
+            default:
+                fatalError("Unknown message \(self)")
+            }
+        
+        case .changeCipherSpec:
+            return (.changeCipherSpecSent, .changeCipherSpecReceived)
+
+        case .alert(_, _):
+            return (.alertSent, .alertReceived)
+            
+        case .applicationData:
+            return (.applicationDataSent, .applicationDataReceived)
+        }
+    }
+    
+    var sentState: TLSState {
+        return sentReceivedStates.0
+    }
+
+    var receivedState: TLSState {
+        return sentReceivedStates.1
+    }
+}
+    
+public protocol TLSConnectionStateMachine : class
 {
     var state : TLSState { get set }
-
+    
     func reset()
     
     func didSendMessage(_ message : TLSMessage) throws
@@ -61,16 +156,20 @@ public protocol TLSConnectionStateMachine
     func didReceiveAlert(_ alert : TLSAlertMessage)
     func didConnect() throws
     func shouldContinueHandshake(with message : TLSHandshakeMessage) -> Bool
+    
+    func transition(to state: TLSState) throws
+    func actOnCurrentState() throws
 }
 
 public extension TLSConnectionStateMachine
 {
     func reset() {}
+    func transition(to state: TLSState) throws {}
+    func actOnCurrentState() throws {}
 }
 
 public protocol TLSClientStateMachine : TLSConnectionStateMachine
 {
-    func clientDidSendMessage(_ message : TLSMessage) throws
     func clientDidSendHandshakeMessage(_ message : TLSHandshakeMessage) throws
     func clientDidSendChangeCipherSpec() throws
     func clientDidReceiveChangeCipherSpec() throws
@@ -78,15 +177,14 @@ public protocol TLSClientStateMachine : TLSConnectionStateMachine
     func clientShouldContinueHandshake(with message : TLSHandshakeMessage) -> Bool
     func clientDidReceiveAlert(_ alert : TLSAlertMessage)
     func clientDidConnect() throws
+
+    func checkClientStateTransition(_ state : TLSState) -> Bool
 }
 
 public extension TLSClientStateMachine
 {
-    func clientDidSendMessage(_ message : TLSMessage) throws {}
-    func clientDidSendHandshakeMessage(_ message : TLSHandshakeMessage) throws {}
     func clientDidSendChangeCipherSpec() throws {}
     func clientDidReceiveChangeCipherSpec() throws {}
-    func clientDidReceiveHandshakeMessage(_ message : TLSHandshakeMessage) throws {}
     func clientShouldContinueHandshake(with message : TLSHandshakeMessage) -> Bool
     {
         return true
@@ -95,7 +193,7 @@ public extension TLSClientStateMachine
     func clientDidConnect() throws {}
     
     func didSendMessage(_ message : TLSMessage) throws {
-        try self.clientDidSendMessage(message)
+        log("Client: did send message \(TLSMessageNameForType(message.type))")
     }
     
     func didSendHandshakeMessage(_ message : TLSHandshakeMessage) throws {
@@ -106,6 +204,20 @@ public extension TLSClientStateMachine
         try self.clientDidReceiveHandshakeMessage(message)
     }
     
+    func clientDidSendHandshakeMessage(_ message : TLSHandshakeMessage) throws
+    {
+        try self.didSendMessage(message)
+        try self.transition(to: message.type.sentState)
+        try self.actOnCurrentState()
+    }
+    
+    func clientDidReceiveHandshakeMessage(_ message : TLSHandshakeMessage) throws
+    {
+        log("Client: did receive message \(TLSHandshakeMessageNameForType(message.handshakeType))")
+        try self.transition(to: message.type.receivedState)
+        try self.actOnCurrentState()
+    }
+
     func didSendChangeCipherSpec() throws {
         try self.clientDidSendChangeCipherSpec()
     }
@@ -125,11 +237,21 @@ public extension TLSClientStateMachine
     func shouldContinueHandshake(with message : TLSHandshakeMessage) -> Bool {
         return self.clientShouldContinueHandshake(with: message)
     }
+    
+    func transition(to state: TLSState) throws {
+        if !checkClientStateTransition(state) {
+            log("Client: Illegal state transition \(self.state) -> \(state)")
+            throw TLSError.alert(alert: .unexpectedMessage, alertLevel: .fatal)
+        }
+        
+        self.state = state
+    }
+    
+    func checkClientStateTransition(_ state : TLSState) -> Bool { return true}
 }
 
 protocol TLSServerStateMachine : TLSConnectionStateMachine
 {
-    func serverDidSendMessage(_ message : TLSMessage) throws
     func serverDidSendHandshakeMessage(_ message : TLSHandshakeMessage) throws
     func serverDidSendChangeCipherSpec() throws
     func serverDidReceiveChangeCipherSpec() throws
@@ -137,15 +259,14 @@ protocol TLSServerStateMachine : TLSConnectionStateMachine
     func serverShouldContinueHandshake(with message : TLSHandshakeMessage) -> Bool
     func serverDidReceiveAlert(_ alert : TLSAlertMessage)
     func serverDidConnect() throws
+    
+    func checkServerStateTransition(_ state : TLSState) -> Bool
 }
 
 extension TLSServerStateMachine
 {
-    func serverDidSendMessage(_ message : TLSMessage) throws {}
-    func serverDidSendHandshakeMessage(_ message : TLSHandshakeMessage) throws {}
     func serverDidSendChangeCipherSpec() throws {}
     func serverDidReceiveChangeCipherSpec() throws {}
-    func serverDidReceiveHandshakeMessage(_ message : TLSHandshakeMessage) throws {}
     func serverShouldContinueHandshake(with message : TLSHandshakeMessage) -> Bool
     {
         return true
@@ -154,7 +275,7 @@ extension TLSServerStateMachine
     func serverDidConnect() throws {}
     
     func didSendMessage(_ message : TLSMessage) throws {
-        try self.serverDidSendMessage(message)
+        log("Server: did send message \(TLSMessageNameForType(message.type))")
     }
     
     func didSendHandshakeMessage(_ message : TLSHandshakeMessage) throws {
@@ -165,6 +286,20 @@ extension TLSServerStateMachine
         try self.serverDidReceiveHandshakeMessage(message)
     }
     
+    func serverDidSendHandshakeMessage(_ message : TLSHandshakeMessage) throws
+    {
+        try self.didSendMessage(message)
+        try self.transition(to: message.type.sentState)
+        try self.actOnCurrentState()
+    }
+    
+    func serverDidReceiveHandshakeMessage(_ message : TLSHandshakeMessage) throws
+    {
+        log("Server: did receive message \(TLSHandshakeMessageNameForType(message.handshakeType))")
+        try self.transition(to: message.type.receivedState)
+        try self.actOnCurrentState()
+    }
+
     func didSendChangeCipherSpec() throws {
         try self.serverDidReceiveChangeCipherSpec()
     }
@@ -184,5 +319,16 @@ extension TLSServerStateMachine
     func shouldContinueHandshake(with message : TLSHandshakeMessage) -> Bool {
         return self.serverShouldContinueHandshake(with: message)
     }
+    
+    func transition(to state: TLSState) throws {
+        if !checkServerStateTransition(state) {
+            log("Server: Illegal state transition \(self.state) -> \(state)")
+            throw TLSError.alert(alert: .unexpectedMessage, alertLevel: .fatal)
+        }
+        
+        self.state = state
+    }
+    
+    func checkServerStateTransition(_ state : TLSState) -> Bool { return true }
 }
 

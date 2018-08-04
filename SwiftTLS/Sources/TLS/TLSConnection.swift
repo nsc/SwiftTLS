@@ -70,6 +70,8 @@ public class TLSConnection
         }
     }
     
+    var currentMessage: TLSMessage?
+    
     var stateMachine: TLSConnectionStateMachine?
     
     var peerCertificates: [X509.Certificate]?
@@ -186,7 +188,8 @@ public class TLSConnection
     func sendMessage(_ message : TLSMessage) throws
     {
         try self.recordLayer.sendMessage(message)
-        
+        self.currentMessage = message
+
         switch message.contentType
         {
         case .handshake:
@@ -317,6 +320,8 @@ public class TLSConnection
     {
         let message = try self.recordLayer.readMessage()
 
+        self.currentMessage = message
+        
         try self._didReceiveMessage(message)
     }
 
@@ -329,6 +334,8 @@ public class TLSConnection
                 return message
             }
             
+            self.currentMessage = message
+
             try self._didReceiveMessage(message)
         }
     }
@@ -350,6 +357,10 @@ public class TLSConnection
 }
 
 extension TLSConnection : SocketProtocol {
+    public var isReadyToRead: Bool {
+        return self.socket.isReadyToRead
+    }
+    
     public func close()
     {
         do {

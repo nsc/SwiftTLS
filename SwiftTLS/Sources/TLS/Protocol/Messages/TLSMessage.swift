@@ -49,7 +49,10 @@ enum TLSChangeCipherSpecType : UInt8
 
 public class TLSMessage : Streamable
 {
-    let type : TLSMessageType
+    private var _type: TLSMessageType
+    var type : TLSMessageType {
+        return _type
+    }
 
     var contentType : ContentType {
         get {
@@ -75,7 +78,7 @@ public class TLSMessage : Streamable
     
     init(type : TLSMessageType)
     {
-        self.type = type
+        self._type = type
     }
     
     required public init?(inputStream: InputStreamType, context: TLSConnection) {

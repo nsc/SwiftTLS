@@ -15,7 +15,7 @@ extension TLS1_2 {
         var protocolHandler: TLS1_2.ServerProtocol? {
             return server?.protocolHandler as? TLS1_2.ServerProtocol
         }
-        
+                
         var state : TLSState = .idle {
             willSet {
                 if !checkServerStateTransition(newValue) {
@@ -30,33 +30,22 @@ extension TLS1_2 {
             self.state = .idle
         }
         
-        func transition(to state: TLSState) throws {
-            if !checkServerStateTransition(state) {
-                log("Server: Illegal state transition \(self.state) -> \(state)")
-                throw TLSError.alert(alert: .unexpectedMessage, alertLevel: .fatal)
-            }
-            
-            self.state = state
-        }
-        
         func reset() {
             self.state = .idle
         }
         
-        func didSendMessage(_ message : TLSMessage)
+        func actOnCurrentState() throws
         {
-            log("Server: did send message \(TLSMessageNameForType(message.type))")
-        }
-        
-        func serverDidSendHandshakeMessage(_ message : TLSHandshakeMessage) throws
-        {
-            self.didSendMessage(message)
-            
-            switch message.handshakeType
+            switch self.state
             {
-            case .serverHello:
-                try self.transition(to: .serverHelloSent)
+            case .clientHelloReceived:
+                guard let clientHello = server?.clientHello else {
+                    fatalError("clientHello not available")
+                }
                 
+                try self.protocolHandler!.sendServerHello(for: clientHello)
+
+            case .serverHelloSent:
                 if self.server!.isReusingSession {
                     try self.protocolHandler!.sendChangeCipherSpec()
                 }
@@ -64,9 +53,7 @@ extension TLS1_2 {
                     try self.protocolHandler!.sendCertificate()
                 }
                 
-            case .certificate:
-                try self.transition(to: .certificateSent)
-                
+            case .certificateSent:
                 if self.server!.cipherSuite!.needsServerKeyExchange() {
                     try self.protocolHandler!.sendServerKeyExchange()
                 }
@@ -74,18 +61,16 @@ extension TLS1_2 {
                     try self.protocolHandler!.sendServerHelloDone()
                 }
                 
-            case .serverKeyExchange:
-                try self.transition(to: .serverKeyExchangeSent)
+            case .serverKeyExchangeSent:
                 try self.protocolHandler!.sendServerHelloDone()
                 
-            case .serverHelloDone:
-                try self.transition(to: .serverHelloDoneSent)
-                
-            case .finished:
-                try self.transition(to: .finishedSent)
-                
+            case .finishedReceived:
+                if !self.server!.isReusingSession {
+                    try self.protocolHandler!.sendChangeCipherSpec()
+                }
+
             default:
-                log("Unsupported handshake message \(message.handshakeType)")
+                break
             }
         }
         
@@ -100,34 +85,6 @@ extension TLS1_2 {
         {
             log("did receive change cipher spec")
             try self.transition(to: .changeCipherSpecReceived)
-        }
-        
-        func serverDidReceiveHandshakeMessage(_ message : TLSHandshakeMessage) throws
-        {
-            log("Server: did receive message \(TLSHandshakeMessageNameForType(message.handshakeType))")
-            
-            let handshakeType = message.handshakeType
-            
-            switch (handshakeType)
-            {
-            case .clientHello:
-                try self.transition(to: .clientHelloReceived)
-                let clientHello = message as! TLSClientHello
-                try self.protocolHandler!.sendServerHello(for: clientHello)
-                
-            case .clientKeyExchange:
-                try self.transition(to: .clientKeyExchangeReceived)
-                
-            case .finished:
-                try self.transition(to: .finishedReceived)
-                
-                if !self.server!.isReusingSession {
-                    try self.protocolHandler!.sendChangeCipherSpec()
-                }
-                
-            default:
-                log("Unsupported handshake \(handshakeType.rawValue)")
-            }
         }
         
         func serverDidReceiveAlert(_ alert: TLSAlertMessage) {

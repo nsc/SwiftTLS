@@ -23,49 +23,37 @@ extension TLS1_3 {
                 }
             }
         }
-        
+                
         init(server : TLSServer)
         {
             self.server = server
             self.state = .idle
         }
         
-        func transition(to state: TLSState) throws {
-            if !checkServerStateTransition(state) {
-                log("Server: Illegal state transition \(self.state) -> \(state)")
-                throw TLSError.alert(alert: .unexpectedMessage, alertLevel: .fatal)
-            }
-            
-            self.state = state
-        }
-        
         func reset() {
             self.state = .idle
         }
         
-        func didSendMessage(_ message : TLSMessage)
+        func actOnCurrentState() throws
         {
-            log("Server: did send message \(TLSMessageNameForType(message.type))")
-        }
-        
-        func serverDidSendHandshakeMessage(_ message : TLSHandshakeMessage) throws
-        {
-            self.didSendMessage(message)
-            
-            switch message.handshakeType
+            switch self.state
             {
-            case .helloRetryRequest:
-                try self.transition(to: .helloRetryRequestSent)
-                break
+            case .clientHelloReceived:
+                guard let clientHello = server?.clientHello else {
+                    fatalError("clientHello not available")
+                }
                 
-            case .serverHello:
-                try self.transition(to: .serverHelloSent)
+                if self.server!.cipherSuite == nil {
+                    try self.protocolHandler!.sendHelloRetryRequest(for: clientHello)
+                }
+                else {
+                    try self.protocolHandler!.sendServerHello(for: clientHello)
+                }
                 
+            case .serverHelloSent:
                 try self.protocolHandler!.sendEncryptedExtensions()
                 
-            case .encryptedExtensions:
-                try self.transition(to: .encryptedExtensionsSent)
-                
+            case .encryptedExtensionsSent:
                 if self.protocolHandler!.isUsingPreSharedKey {
                     try self.protocolHandler!.sendFinished()
                 }
@@ -73,55 +61,19 @@ extension TLS1_3 {
                     try self.protocolHandler!.sendCertificate()
                 }
                 
-            case .certificate:
-                try self.transition(to: .certificateSent)
-            
+            case .certificateSent:
                 try self.protocolHandler!.sendCertificateVerify()
                 
-            case .certificateVerify:
-                try self.transition(to: .certificateVerifySent)
-
+            case .certificateVerifySent:
                 try self.protocolHandler!.sendFinished()
                 
-            case .finished:
-                try self.transition(to: .finishedSent)
-
-            case .newSessionTicket:
-                try self.transition(to: .newSessionTicketSent)
-
-            default:
-                log("Unsupported handshake message \(message.handshakeType)")
-            }
-        }
-        
-        func serverDidReceiveHandshakeMessage(_ message : TLSHandshakeMessage) throws
-        {
-            log("Server: did receive message \(TLSHandshakeMessageNameForType(message.handshakeType))")
-            
-            let handshakeType = message.handshakeType
-            
-            switch (handshakeType)
-            {
-            case .clientHello:
-                try self.transition(to: .clientHelloReceived)
-                
-                if self.server!.cipherSuite == nil {
-                    try self.protocolHandler!.sendHelloRetryRequest(for: message as! TLSClientHello)
-                }
-                else {
-                    let clientHello = message as! TLSClientHello
-                    try self.protocolHandler!.sendServerHello(for: clientHello)
-                }
-                
-            case .finished:
-                try self.transition(to: .finishedReceived)
-                
+            case .finishedReceived:
                 if self.server!.configuration.supportsSessionResumption && !(self.server!.serverNames?.isEmpty ?? true)  {
                     try self.protocolHandler!.sendNewSessionTicket()
                 }
-                                
+
             default:
-                log("Unsupported handshake message \(handshakeType.rawValue)")
+                break
             }
         }
         

@@ -16,6 +16,8 @@ public class TLSServer : TLSConnection
         }
     }
 
+    var clientHello: TLSClientHello? = nil
+    
     var clientKeyShare: KeyShareEntry? = nil
     var earlyDataResponseHandler: TLSServer.EarlyDataResponseHandler? = nil
     
@@ -67,6 +69,7 @@ public class TLSServer : TLSConnection
         {
         case .clientHello:
             let clientHello = (message as! TLSClientHello)
+            self.clientHello = clientHello
             try self.serverProtocolHandler.handleClientHello(clientHello)
             
         case .clientKeyExchange:

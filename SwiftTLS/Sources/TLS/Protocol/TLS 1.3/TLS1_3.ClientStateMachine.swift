@@ -30,90 +30,37 @@ extension TLS1_3 {
             self.state = .idle
         }
         
-        func transition(to state: TLSState) throws {
-            if !checkClientStateTransition(state) {
-                log("Client: Illegal state transition \(self.state) -> \(state)")
-                throw TLSError.alert(alert: .unexpectedMessage, alertLevel: .fatal)
-            }
-            
-            self.state = state
-        }
-        
         func reset() {
             self.state = .idle
         }
         
-        func didSendMessage(_ message : TLSMessage)
+        func actOnCurrentState() throws
         {
-            log("Client: did send message \(TLSMessageNameForType(message.type))")
-        }
-        
-        func clientDidSendHandshakeMessage(_ message : TLSHandshakeMessage) throws
-        {
-            self.didSendMessage(message)
-            
-            switch message.handshakeType
+            switch self.state
             {
-            case .clientHello:
-                try self.transition(to: .clientHelloSent)
-                
-            case .certificate:
-                try self.transition(to: .certificateSent)
-                
-            case .finished:
-                try self.transition(to: .finishedSent)
-                
-            case .endOfEarlyData:
-                try self.transition(to: .endOfEarlyDataSent)
-
-            default:
-                log("Unsupported handshake message \(message.handshakeType)")
-            }
-        }
-        
-        func clientDidReceiveHandshakeMessage(_ message : TLSHandshakeMessage) throws
-        {
-            log("Client: did receive message \(TLSHandshakeMessageNameForType(message.handshakeType))")
-            
-            let handshakeType = message.handshakeType
-            
-            switch (handshakeType)
-            {
-            case .serverHello:
-                try self.transition(to: .serverHelloReceived)
-
-            case .helloRetryRequest:
-                try self.transition(to: .helloRetryRequestReceived)
+            case .helloRetryRequestReceived:
                 try self.protocolHandler!.sendClientHello()
-
-            case .certificate:
-                try self.transition(to: .certificateReceived)
                 
-            case .certificateVerify:
-                try self.transition(to: .certificateVerifyReceived)
-                
-            case .finished:
-                try self.transition(to: .finishedReceived)
+            case .finishedReceived:
                 // FIXME: Handle Certifcate and CertificateVerify if requested
                 try self.protocolHandler!.sendFinished()
-
-            case .encryptedExtensions:
-                try self.transition(to: .encryptedExtensionsReceived)
-
-            case .newSessionTicket:
-                let newSessionTicket = message as! TLSNewSessionTicket
+                
+            case .newSessionTicketReceived:
+                guard let newSessionTicket = client?.currentMessage as? TLSNewSessionTicket else {
+                    fatalError("Invalid current message \(client?.currentMessage)")
+                }
+                
                 log("New Session Ticket received:")
                 log("    ticket   = \(hex(newSessionTicket.ticket))")
                 log("    Nonce    = \(hex(newSessionTicket.ticketNonce))")
                 log("    lifeTime = \(newSessionTicket.ticketLifetime)")
                 log("    ageAdd   = \(newSessionTicket.ticketAgeAdd)")
-                try self.transition(to: .newSessionTicketReceived)
-
+                
             default:
-                log("Unsupported handshake message \(handshakeType.rawValue)")
+                break
             }
         }
-        
+
         func clientDidReceiveAlert(_ alert: TLSAlertMessage) {
             log("Client: did receive message \(alert.alertLevel) \(alert.alert)")
         }

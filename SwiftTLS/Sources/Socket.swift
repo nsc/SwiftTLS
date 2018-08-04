@@ -28,6 +28,7 @@ public enum SocketError : CustomStringConvertible, Error {
 
 public protocol SocketProtocol
 {
+    var isReadyToRead: Bool { get }
     func read(count : Int) throws -> [UInt8]
     func write(_ data : [UInt8]) throws
     func close()
@@ -101,6 +102,18 @@ class Socket : SocketProtocol
         self.close()
     }
 
+    var isReadyToRead: Bool {
+        var p = pollfd(fd: socketDescriptor!, events: Int16(POLLIN), revents: 0)
+        let result = poll(&p, 1, 0)
+        switch result {
+        case 1:
+            return (p.revents & Int16(POLLIN)) != 0
+            
+        default:
+            return false
+        }
+    }
+    
     func sendTo(_ address : IPAddress?, data : [UInt8]) throws
     {
         if let socket = self.socketDescriptor {

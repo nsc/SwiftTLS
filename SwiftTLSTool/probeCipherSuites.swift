@@ -14,8 +14,8 @@ func probeCipherSuitesForHost(host : String, port : UInt16, protocolVersion: TLS
 {
     class StateMachine : TLSClientStateMachine
     {
-        internal var state: TLSState = .idle
-        
+        var state: TLSState = .idle
+
         var cipherSuite : CipherSuite!
         
         func shouldContinueHandshake(with message: TLSHandshakeMessage) -> Bool
