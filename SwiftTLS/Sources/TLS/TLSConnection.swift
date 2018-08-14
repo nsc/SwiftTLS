@@ -85,7 +85,7 @@ public class TLSConnection
                 version == .v1_3 {
                 
                 // Check for special construct when a HelloRetryRequest is included
-                // see section "The Transcript Hash" in RFC TLS 1.3
+                // see section 4.4.1 "The Transcript Hash" in RFC 8446
                 if message is TLSServerHello && (message as! TLSServerHello).isHelloRetryRequest {
                     let hashLength = self.hashAlgorithm.hashLength
                     let hashValue = self.hashAlgorithm.hashFunction(handshakeData)
@@ -318,7 +318,7 @@ public class TLSConnection
     
     func receiveNextTLSMessage() throws
     {
-        let message = try self.recordLayer.readMessage()
+        guard let message = try self.recordLayer.readMessage() else { return }
 
         self.currentMessage = message
         
@@ -328,7 +328,7 @@ public class TLSConnection
     func readTLSMessage() throws -> TLSMessage
     {
         while true {
-            let message = try self.recordLayer.readMessage()
+            guard let message = try self.recordLayer.readMessage() else { continue }
             
             if message.contentType == .applicationData {
                 return message

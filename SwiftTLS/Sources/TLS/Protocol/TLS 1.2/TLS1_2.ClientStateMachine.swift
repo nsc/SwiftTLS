@@ -49,6 +49,12 @@ extension TLS1_2 {
                 if self.client!.isReusingSession {
                     try self.protocolHandler!.sendChangeCipherSpec()
                 }
+                else {
+                    try clientDidConnect()
+                }
+                
+            case .finishedSent where self.client!.isReusingSession:
+                try clientDidConnect()
                 
             default:
                 break

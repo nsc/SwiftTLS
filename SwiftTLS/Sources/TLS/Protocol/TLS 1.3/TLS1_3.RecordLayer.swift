@@ -35,7 +35,7 @@ extension TLS1_3 {
             }
             
             var currentIV: [UInt8] {
-                // XOR the IV with the sequence number as of RFC???? section 5.3 Per-Record Nonce
+                // XOR the IV with the sequence number as of RFC 8446 section 5.3 Per-Record Nonce
                 let sequenceNumberSize = MemoryLayout<SequenceNumberType>.size
                 let ivLeftPart  = [UInt8](self.iv[0 ..< self.iv.count - sequenceNumberSize])
                 let ivRightPart = [UInt8](self.iv[self.iv.count - sequenceNumberSize ..< self.iv.count])
@@ -68,7 +68,7 @@ extension TLS1_3 {
             let ivSize = cipherSuiteDescriptor.fixedIVLength
             let keySize = cipherSuiteDescriptor.bulkCipherAlgorithm.keySize
             
-            // calculate traffic keys and IVs as of RFC???? Section 7.3 Traffic Key Calculation
+            // calculate traffic keys and IVs as of RFC 8446 Section 7.3 Traffic Key Calculation
             let key = protocolHandler.HKDF_Expand_Label(secret: trafficSecret, label: keyLabel,  hashValue: [], outputLength: keySize)
             let iv  = protocolHandler.HKDF_Expand_Label(secret: trafficSecret, label: ivLabel, hashValue: [], outputLength: ivSize)
             
@@ -237,11 +237,11 @@ extension TLS1_3 {
             return self.decryptor.update(data: data, authData: authData, key: key, IV: IV)
         }
     
-        override func readMessage() throws -> TLSMessage
+        override func readMessage() throws -> TLSMessage?
         {
             // When we are a server still in the handshake phase and we have rejected early data, we need to try to decrypt incoming packets
             // with our handshake keys until we can actually decrypt it.
-            // Since early data is encrypted with early data keys, this will fail for until the the client sends its Finished.
+            // Since early data is encrypted with early data keys, this will fail until the client sends its Finished message.
             guard let serverProtocolHandler = ((self.connection as? TLSServer)?.serverProtocolHandler as? ServerProtocol),
                 serverProtocolHandler.server.stateMachine!.state != .connected,
                 case .rejected = serverProtocolHandler.serverHandshakeState.serverEarlyDataState
@@ -249,7 +249,7 @@ extension TLS1_3 {
                 return try super.readMessage()
             }
             
-            let message: TLSMessage
+            let message: TLSMessage?
             do {
                 message = try super.readMessage()
             } catch TLSError.alert(let alert, _) where alert == .badRecordMAC {

@@ -43,7 +43,9 @@ public class TLSServer : TLSConnection
         reset()
         
         do {
-            try self.receiveNextTLSMessage()
+            while stateMachine?.state != .connected {
+                try self.receiveNextTLSMessage()
+            }
         } catch TLSError.alert(alert: let alert, alertLevel: let alertLevel) {
             if alertLevel == .fatal {
                 try abortHandshake(with: alert)
@@ -51,8 +53,6 @@ public class TLSServer : TLSConnection
             
             throw TLSError.alert(alert: alert, alertLevel: alertLevel)
         }
-        
-        try self.didConnect()
         
         self.handshakeMessages = []
     }

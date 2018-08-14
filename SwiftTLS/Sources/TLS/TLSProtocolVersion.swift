@@ -39,9 +39,9 @@ public struct TLSProtocolVersion : RawRepresentable, CustomStringConvertible, Co
     public static let v1_0 = TLSProtocolVersion(rawValue: 0x0301)!
     public static let v1_1 = TLSProtocolVersion(rawValue: 0x0302)!
     public static let v1_2 = TLSProtocolVersion(rawValue: 0x0303)!
-    // FIXME: As long as the TLS 1.3 RFC has draft status, we are using a draft version
-    // number as of section 4.2.1.1.
-//    public static let v1_3 = TLSProtocolVersion(rawValue: 0x7f17)! // draft-23
+    
+    // For compatibility we are supporting the draft versions 26 and 28 for now.
+    // Both of which are identical to the final version in RFC 8446
     public static let v1_3_draft26 = TLSProtocolVersion(rawValue: 0x7f1a)! // draft-26
     public static let v1_3_draft28 = TLSProtocolVersion(rawValue: 0x7f1c)! // draft-28
     public static let v1_3 = TLSProtocolVersion(rawValue: 0x0304)!

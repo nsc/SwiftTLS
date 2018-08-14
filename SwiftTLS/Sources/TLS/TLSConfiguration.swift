@@ -57,6 +57,8 @@ public struct TLSConfiguration
     
     var supportsSessionResumption = true
     
+    var maximumRecordSize: Int? = nil
+    
     // TLS 1.3
     public var supportedGroups: [NamedGroup] = [.secp256r1]
     

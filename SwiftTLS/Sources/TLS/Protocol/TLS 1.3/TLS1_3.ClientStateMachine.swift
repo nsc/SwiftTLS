@@ -45,9 +45,12 @@ extension TLS1_3 {
                 // FIXME: Handle Certifcate and CertificateVerify if requested
                 try self.protocolHandler!.sendFinished()
                 
+            case .finishedSent:
+                try clientDidConnect()
+                
             case .newSessionTicketReceived:
                 guard let newSessionTicket = client?.currentMessage as? TLSNewSessionTicket else {
-                    fatalError("Invalid current message \(client?.currentMessage)")
+                    fatalError("Invalid current message \(String(describing: client?.currentMessage))")
                 }
                 
                 log("New Session Ticket received:")

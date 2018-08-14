@@ -22,11 +22,21 @@ public class TLSHandshakeMessage : TLSMessage
         }
     }
     
-    class func handshakeMessageFromData(_ data : [UInt8], context: TLSConnection) -> (TLSHandshakeMessage?, excessData: [UInt8]?) {
+    enum Result {
+        case message(TLSHandshakeMessage, excessData: [UInt8]) // the message and excess data
+        case notEnoughData
+        case error
+    }
+    
+    class func handshakeMessageFromData(_ data : [UInt8], context: TLSConnection) -> Result {
         guard let (handshakeType, bodyLength) = readHeader(BinaryInputStream(data)) else {
-            return (nil, nil)
+            return .notEnoughData
         }
-            
+        
+        guard data.count >= bodyLength + 4 else {
+            return .notEnoughData
+        }
+        
         var message : TLSHandshakeMessage? = nil
         // The header is 4 bytes long. One byte for the type and 3 bytes for the length
         let bodyData = [UInt8](data[0 ..< bodyLength + 4])
@@ -82,10 +92,10 @@ public class TLSHandshakeMessage : TLSMessage
         
         if let message = message {
             message.rawMessageData = bodyData
-            return (message, excessData)
+            return .message(message, excessData: excessData)
         }
         
-        return (nil, nil)
+        return .error
     }
     
     internal func writeHeader<Target : OutputStreamType>(type : TLSHandshakeType, bodyLength: Int, target: inout Target)

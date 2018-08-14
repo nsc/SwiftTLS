@@ -15,6 +15,7 @@ class TLSTests: XCTestCase {
         ("test_acceptConnection_whenClientConnectsWithServerSupportingEarlyDataButClientNot_works", test_acceptConnection_whenClientConnectsWithServerSupportingEarlyDataButClientNot_works),
         ("test_acceptConnection_whenClientConnectsWithBothClientAndServerSupportingEarlyData_works", test_acceptConnection_whenClientConnectsWithBothClientAndServerSupportingEarlyData_works),
         ("test_acceptConnection_whenClientConnects_works", test_acceptConnection_whenClientConnects_works),
+        ("test_acceptConnection_whenClientConnectsWithFragmentedRecords_works", test_acceptConnection_whenClientConnectsWithFragmentedRecords_works),
     ]
 
     func notest_connectTLS() {
@@ -68,16 +69,18 @@ class TLSTests: XCTestCase {
         return TLSServer(configuration: configuration)
     }
     
-    func test_clientServerWithCipherSuite(_ cipherSuite : CipherSuite, serverSupportsEarlyData: Bool = true, clientSupportsEarlyData: Bool = true)
+    func test_clientServerWithCipherSuite(_ cipherSuite : CipherSuite, serverSupportsEarlyData: Bool = true, clientSupportsEarlyData: Bool = true, maximumRecordSize: Int? = nil)
     {
         let supportedVersions: [TLSProtocolVersion] = [.v1_3]
         var clientConfiguration = TLSConfiguration(supportedVersions: supportedVersions)
         clientConfiguration.cipherSuites = [cipherSuite]
         clientConfiguration.earlyData = .supported(maximumEarlyDataSize: 4096)
-     
+        clientConfiguration.maximumRecordSize = maximumRecordSize
+        
         let server = createServer(with: cipherSuite, port: 12345, supportedVersions: supportedVersions)
         server.configuration.earlyData = .supported(maximumEarlyDataSize: 4096)
-        
+        server.configuration.maximumRecordSize = maximumRecordSize
+
         let expectation = self.expectation(description: "accept connection successfully")
         
         let address = IPv4Address.localAddress()
@@ -196,6 +199,13 @@ class TLSTests: XCTestCase {
         for cipherSuite in cipherSuites {
             test_clientServerWithCipherSuite(cipherSuite)
         }
+    }
+
+    func test_acceptConnection_whenClientConnectsWithFragmentedRecords_works()
+    {
+        let cipherSuite: CipherSuite = .TLS_AES_128_GCM_SHA256
+        
+        test_clientServerWithCipherSuite(cipherSuite, serverSupportsEarlyData: false, clientSupportsEarlyData: false, maximumRecordSize: 100)
     }
 
 //    func notest_renegotiate()

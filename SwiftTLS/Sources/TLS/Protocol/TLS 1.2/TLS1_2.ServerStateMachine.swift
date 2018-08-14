@@ -64,9 +64,15 @@ extension TLS1_2 {
             case .serverKeyExchangeSent:
                 try self.protocolHandler!.sendServerHelloDone()
                 
+            case .finishedSent where !self.server!.isReusingSession:
+                try serverDidConnect()
+                
             case .finishedReceived:
                 if !self.server!.isReusingSession {
                     try self.protocolHandler!.sendChangeCipherSpec()
+                }
+                else {
+                    try serverDidConnect()
                 }
 
             default:

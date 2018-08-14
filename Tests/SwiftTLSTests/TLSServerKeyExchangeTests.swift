@@ -25,8 +25,15 @@ class TLSServerKeyExchangeTests: XCTestCase {
         context.configuration.hashAlgorithm = .sha1
         context.cipherSuite = .TLS_DHE_RSA_WITH_AES_256_CBC_SHA
         
+        var message: TLSMessage?
         let packetWithoutRecordHeader = [UInt8](rawPacket[5 ..< rawPacket.count])
-        let (message, _) = TLSHandshakeMessage.handshakeMessageFromData(packetWithoutRecordHeader, context: context)
+        switch TLSHandshakeMessage.handshakeMessageFromData(packetWithoutRecordHeader, context: context) {
+        case .message(let m, _):
+            message = m
+            
+        default:
+            XCTFail()
+        }
       
         guard message as? TLSServerKeyExchange != nil else {
             XCTFail()

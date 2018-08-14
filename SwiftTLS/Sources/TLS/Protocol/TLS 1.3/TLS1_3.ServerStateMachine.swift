@@ -71,6 +71,7 @@ extension TLS1_3 {
                 if self.server!.configuration.supportsSessionResumption && !(self.server!.serverNames?.isEmpty ?? true)  {
                     try self.protocolHandler!.sendNewSessionTicket()
                 }
+                try serverDidConnect()
 
             default:
                 break
