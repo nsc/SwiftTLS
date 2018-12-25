@@ -42,14 +42,14 @@ public struct BigIntContext
 
         if self.nextBuffer == nil || self.nextBuffer!.count < capacity {
             let memory = Buffer.allocate(capacity: BigIntContext.memoryCapacity)
-            memory.initialize(repeating: 0)
+//            memory.initialize(repeating: 0)
             self.memory.append(memory)
             self.nextBuffer = memory
         }
 
         if self.nextBuffer!.count >= capacity {
             let buffer = Buffer(start: self.nextBuffer!.baseAddress, count: capacity)
-            buffer.initialize(repeating: 0)
+//            buffer.initialize(repeating: 0)
             
             self.nextBuffer = Buffer(start: self.nextBuffer!.baseAddress! + capacity, count: self.nextBuffer!.count - capacity)
             
@@ -965,7 +965,7 @@ public struct BigInt
 
     private static func division(_ u : BigInt, _ v : BigInt) -> (BigInt, BigInt)
     {
-       return BigInt.withContextReturningBigInt { _ in
+//       return BigInt.withContextReturningBigInt { _ in
             var u = u
             var v = v
             
@@ -1093,7 +1093,7 @@ public struct BigInt
             let remainder = BigInt(storage: u.storage[0..<n], sign: uSign) / d
             
             return (q, remainder)
-        }
+//        }
     }
 }
 
@@ -1228,7 +1228,7 @@ extension BigInt : Numeric {
     }
     
     public static func *(a: BigInt, b: BigInt) -> BigInt {
-        return BigInt.withContextReturningBigInt { _ in
+//        return BigInt.withContextReturningBigInt { _ in
             var a = a
             var b = b
             
@@ -1237,7 +1237,7 @@ extension BigInt : Numeric {
             let resultCount = aCount + bCount
             
             var result = BigIntStorage(capacity: resultCount)
-//            result.initialize(repeating: 0)
+            result.initialize(repeating: 0)
         
             for i in 0 ..< aCount {
                 
@@ -1283,7 +1283,7 @@ extension BigInt : Numeric {
             }
             
             return BigInt(storage: result, sign: (a.sign != b.sign))
-        }
+//        }
     }
 
     public static func -= (lhs: inout BigInt, rhs: BigInt) {

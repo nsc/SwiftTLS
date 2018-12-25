@@ -105,19 +105,17 @@ class ECDSATests: XCTestCase {
     }
     
     func test_sign_withSecp256r1_verifies() {
-        BigInt.withContext { _ in
-            let curve = EllipticCurve.named(.secp256r1)!
-            let (privateKey, publicKey) = curve.createKeyPair()
-            let ecdsa = ECDSA(curve: curve, publicKey: publicKey, privateKey: privateKey)
-            
-            let data: [UInt8] = [UInt8]("123456789a123456789a123456789a12".utf8)
-            var signature: [UInt8] = []
-            self.measure {
-                signature = try! ecdsa.sign(data: data)
-            }
-            
-            XCTAssert(ecdsa.verify(signature: signature, data: data))
+        let curve = EllipticCurve.named(.secp256r1)!
+        let (privateKey, publicKey) = curve.createKeyPair()
+        let ecdsa = ECDSA(curve: curve, publicKey: publicKey, privateKey: privateKey)
+        
+        let data: [UInt8] = [UInt8]("123456789a123456789a123456789a12".utf8)
+        var signature: [UInt8] = []
+        self.measure {
+            signature = try! ecdsa.sign(data: data)
         }
+        
+        XCTAssert(ecdsa.verify(signature: signature, data: data))
     }
 
 }
