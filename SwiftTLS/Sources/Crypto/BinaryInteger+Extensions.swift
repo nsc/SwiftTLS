@@ -14,9 +14,13 @@ extension BinaryInteger {
         let wordSize    = MemoryLayout<Words.Element>.size * 8
         let wordNumber  = bitNumber / wordSize
         let bit         = bitNumber % wordSize
-        
-        guard let words = self.words as? Array<Words.Element> else {
-            fatalError("isBitSet is not implemented for anything but arrays")
+
+//        guard let words = self.words as? Array<Words.Element> else {
+//            fatalError("isBitSet is not implemented for anything but mutable buffer pointers")
+//        }
+
+        guard let words = self.words as? BigIntStorage else {
+            fatalError("isBitSet is not implemented for anything but BigIntSotrage")
         }
         
         guard wordNumber < words.count else {
@@ -45,8 +49,8 @@ extension BinaryInteger {
         let wordNumber  = position / wordSize
         let bit         = position % wordSize
         
-        guard let words = self.words as? Array<Words.Element> else {
-            fatalError("bit(at:) is not implemented for anything but arrays")
+        guard let words = self.words as? BigIntStorage else {
+            fatalError("bit(at:) is not implemented for anything but BigIntSotrage")
         }
         
         guard wordNumber < words.count else {
@@ -59,8 +63,8 @@ extension BinaryInteger {
     var highestBit: Int {
         let wordSize    = MemoryLayout<Words.Element>.size * 8
 
-        guard let words = self.words as? Array<Words.Element> else {
-            fatalError("highestBit is not implemented for anything but arrays")
+        guard let words = self.words as? BigIntStorage else {
+            fatalError("highestBit is not implemented for anything but BigIntSotrage")
         }
 
         guard let firstWord = words.last else {

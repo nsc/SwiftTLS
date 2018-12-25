@@ -2,275 +2,1104 @@
 //  BigInt.swift
 //  SwiftTLS
 //
-//  Created by Nico Schmidt on 24.09.17.
-//  Copyright © 2017 Nico Schmidt. All rights reserved.
+//  Created by Nico Schmidt on 17.09.18.
+//  Copyright © 2018 Nico Schmidt. All rights reserved.
 //
 
 import Foundation
 
-public struct BigInt
+public struct BigIntContext
 {
-    public typealias Word = UInt
-    public typealias Words = [Word]
-    public var words: Words {
-        get {
-            guard sign else {
-                return _words
+    typealias Word = BigInt.Word
+    typealias Buffer = UnsafeMutableBufferPointer<Word>
+
+    var refCount: Int = 0
+
+    // The buffer stack holds the nextBuffer and memory pointers at the last BigIntContext.open
+    // When the context is closed, i.e. close() is called, they are used to reset the context to
+    // the state when open() was called.
+    private var bufferStack: [(Buffer, Buffer)] = []
+
+    var memory: [Buffer] = []
+    var nextBuffer: Buffer? {
+        didSet {
+            
+        }
+    }
+    static let memoryCapacity = 16384
+    
+    lazy var scratchSpace = Buffer.allocate(capacity: 1024)
+    
+    mutating func allocate(capacity: Int) -> Buffer {
+        //        let n = buffers.count
+        //        for i in 0..<n {
+        //            let b = buffers[n - i - 1]
+        //            if b.count >= capacity {
+        //                buffers.remove(at: n - i - 1)
+        //                return b
+        //            }
+        //        }
+
+        if self.nextBuffer == nil || self.nextBuffer!.count < capacity {
+            let memory = Buffer.allocate(capacity: BigIntContext.memoryCapacity)
+            memory.initialize(repeating: 0)
+            self.memory.append(memory)
+            self.nextBuffer = memory
+        }
+
+        if self.nextBuffer!.count >= capacity {
+            let buffer = Buffer(start: self.nextBuffer!.baseAddress, count: capacity)
+            buffer.initialize(repeating: 0)
+            
+            self.nextBuffer = Buffer(start: self.nextBuffer!.baseAddress! + capacity, count: self.nextBuffer!.count - capacity)
+            
+            let memoryCount = UInt(bitPattern: self.nextBuffer!.baseAddress!) - UInt(bitPattern: self.memory.last!.baseAddress!)
+            if maxMemory < memoryCount {
+                maxMemory = memoryCount
             }
             
-            return self.twosComplement
+            return buffer
         }
-        set {
-            guard !newValue.isEmpty else {
-                _words = []
-                sign = false
-                
-                return
-            }
+        
+        return Buffer.allocate(capacity: capacity + 1)
+    }
+    
+    mutating func deallocate() {
+        for chunk in memory {
+            chunk.deallocate()
+        }
+        scratchSpace.deallocate()
+    }
+    
+    static let contextKey: pthread_key_t = {
+        var key = pthread_key_t()
+        pthread_key_create(&key, { (ptr) in
+            let contextPointer: UnsafeMutableRawPointer
+            #if os(Linux)
+            contextPointer = ptr!
+            #else
+            contextPointer = ptr
+            #endif
+            
+            let context = contextPointer.bindMemory(to: BigIntContext.self, capacity: 1)
+            context.pointee.deallocate()
+            
+            contextPointer.deallocate()
+        })
+        
+        return key
+    }()
+    
+    static func getContext() -> UnsafeMutablePointer<BigIntContext>? {
+        if let ptr = pthread_getspecific(contextKey) {
+            let context = ptr.bindMemory(to: BigIntContext.self, capacity: 1)
+            return context
+        }
+        
+        var ctx = BigIntContext()
+        ctx.open()
+        return setContext(ctx)!
+    }
 
-            _words = newValue
-//            let shift = Word((MemoryLayout<Word>.size * 8) - 1)
-//            let highestBitMask : Word = 1 << shift
-//
-//            if highestBitMask & newValue.last! != 0 {
-//                let temp = BigInt(newValue)
-//                _words = temp.twosComplement
-//                sign = true
-//            }
+    static func newContext() -> UnsafeMutablePointer<BigIntContext> {
+        guard let context = getContext() else {
+            var ctx = BigIntContext()
+            ctx.open()
+            return setContext(ctx)!
+        }
+        
+        return context
+    }
+
+    static func setContext(_ context: BigIntContext?) -> UnsafeMutablePointer<BigIntContext>? {
+        guard let context = context else {
+            if let ptr = pthread_getspecific(contextKey) {
+                let oldContext = ptr.bindMemory(to: BigIntContext.self, capacity: 1)
+                oldContext.pointee.deallocate()
+
+                ptr.deallocate()
+                
+                pthread_setspecific(contextKey, nil)
+            }
+            
+            return nil
+        }
+
+        let contextPointer: UnsafeMutablePointer<BigIntContext>
+        if let ptr = pthread_getspecific(contextKey) {
+            contextPointer = ptr.bindMemory(to: BigIntContext.self, capacity: 1)
+            contextPointer.pointee.deallocate()
+            contextPointer.pointee = context
+        }
+        else {
+            contextPointer = UnsafeMutablePointer<BigIntContext>.allocate(capacity: 1)
+            contextPointer.initialize(to: context)
+            pthread_setspecific(contextKey, contextPointer)
+        }
+        
+        return contextPointer
+    }
+    
+    var maxMemory: UInt = 0
+    mutating func open() {
+        self.refCount += 1
+        // Force self.memory and self.nextBuffer to be initialized
+        _ = allocate(capacity: 0)
+        
+        bufferStack.append((self.nextBuffer!, self.memory.last!))
+    }
+
+    mutating func close()  {
+        self.refCount -= 1
+        rewindBufferStack()
+        
+        if self.refCount == 0 {
+//            print("max memory: \(maxMemory)")
+
+            _ = BigIntContext.setContext(nil)
+        }
+    }
+
+    mutating func close(withResult result: BigInt) -> BigInt {
+//        return result
+        self.refCount -= 1
+        let count = result.storage.count
+        if scratchSpace.count < count {
+            scratchSpace.deallocate()
+            scratchSpace = Buffer.allocate(capacity: count * 2)
+        }
+
+        let storageBuffer = Buffer(start: scratchSpace.baseAddress, count: result.storage.count)
+        _ = storageBuffer.initialize(from: result.storage)
+        var storage = BigIntStorage(storage: .externallyManaged(storageBuffer))
+        rewindBufferStack()
+        
+        if self.refCount == 0 {
+            let result = BigInt.externalBigInt(from: result)
+//            print("max memory: \(maxMemory)")
+
+            _ = BigIntContext.setContext(nil)
+
+            return result
+        }
+        else {
+//            print("max memory: \(maxMemory)")
+            return BigInt(storage: storage.copy(), sign: result.sign)
+        }
+    }
+
+    mutating func close(withResult result: (BigInt, BigInt)) -> (BigInt, BigInt) {
+//        return result
+        
+        self.refCount -= 1
+        let count = result.0.storage.count + result.1.storage.count
+        if scratchSpace.count < count {
+            scratchSpace.deallocate()
+            scratchSpace = Buffer.allocate(capacity: count * 2)
+        }
+
+        let storage1Buffer = Buffer(start: scratchSpace.baseAddress, count: result.0.storage.count)
+        _ = storage1Buffer.initialize(from: result.0.storage)
+        var storage1 = BigIntStorage(storage: .externallyManaged(storage1Buffer))
+        let storage2Buffer = Buffer(start: scratchSpace.baseAddress! + result.0.storage.count, count: result.1.storage.count)
+        _ = storage2Buffer.initialize(from: result.1.storage)
+        var storage2 = BigIntStorage(storage: .externallyManaged(storage2Buffer))
+        rewindBufferStack()
+        
+        if self.refCount == 0 {
+            let result = (BigInt.externalBigInt(from: result.0), BigInt.externalBigInt(from: result.1))
+//            print("max memory: \(maxMemory)")
+
+            _ = BigIntContext.setContext(nil)
+
+            return result
+        }
+        else {
+//            print("max memory: \(maxMemory)")
+
+            return (
+                BigInt(storage: storage1.copy(), sign: result.0.sign),
+                BigInt(storage: storage2.copy(), sign: result.1.sign)
+            )
         }
     }
     
-    fileprivate var _words: Words = []
-    public var sign: Bool = false
-    
-    public static var isSigned: Bool {
-        return true
-    }
-    
-    var twosComplement: Words {
-        get {
-            let count = _words.count
-            var v = [Word]()
-            v.reserveCapacity(count)
-            
-            var carry : Word = 1
-            for i in 0 ..< count {
-                var sum : Word = carry
-                var overflow : Bool
-                carry = 0
-                
-                if i < _words.count {
-                    (sum, overflow) = sum.addingReportingOverflow(~_words[i])
-                    
-                    if overflow {
-                        carry = 1
-                    }
-                }
-                
-                v.append(sum)
+    mutating func rewindBufferStack() {
+        let (nextBuffer, nextMemory) = bufferStack.last!
+        self.nextBuffer = nextBuffer
+        _ = bufferStack.popLast()
+        for i in (0..<self.memory.count).reversed() {
+            guard self.memory[i].baseAddress != nextMemory.baseAddress else {
+                break
             }
             
-            return v
-
+            if let memory = self.memory.popLast() {
+                memory.deallocate()
+            }
         }
     }
 }
 
-extension BigInt
-{
-    init?(hexString : String)
+extension BigInt {
+    static func externalBigInt(from bigInt: BigInt) -> BigInt {
+        switch bigInt.storage.storage {
+        case .externallyManaged(let buffer):
+            var array = [Word]()
+            array.append(contentsOf: buffer[0..<bigInt.storage.count])
+            var bigIntStorage = BigIntStorage(externalWithCapacity: bigInt.storage.count)
+            bigIntStorage.storage = BigIntStorage.Storage.internallyManaged(array)
+            bigIntStorage.count = bigInt.storage.count
+            return BigInt(storage: bigIntStorage, sign: bigInt.sign)
+            
+        case .internallyManaged(_): return bigInt
+        }
+    }
+
+    public static func withContext<Result>(_ context: UnsafeMutablePointer<BigIntContext>? = nil, _ block: (_ context: UnsafeMutablePointer<BigIntContext>) -> Result) -> Result {
+        let context = context ?? BigIntContext.newContext()
+        
+        context.pointee.open()
+        let result = block(context)
+        context.pointee.close()
+        
+        return result
+    }
+
+    public static func withContext<Result>(_ context: UnsafeMutablePointer<BigIntContext>? = nil, _ block: (_ context: UnsafeMutablePointer<BigIntContext>) throws -> Result) throws -> Result {
+        let context = context ?? BigIntContext.newContext()
+        
+        context.pointee.open()
+        let result = try block(context)
+        context.pointee.close()
+        
+        return result
+    }
+
+    public static func withContextReturningBigInt(_ context: UnsafeMutablePointer<BigIntContext>? = nil, _ block: (_ context: UnsafeMutablePointer<BigIntContext>) -> BigInt) -> BigInt {
+        let context = context ?? BigIntContext.newContext()
+        
+        context.pointee.open()
+        let result = block(context)
+        return context.pointee.close(withResult: result)
+    }
+
+    public static func withContextReturningBigInt(_ context: UnsafeMutablePointer<BigIntContext>? = nil, _ block: (_ context: UnsafeMutablePointer<BigIntContext>) throws -> BigInt) throws -> BigInt {
+        let context = context ?? BigIntContext.newContext()
+        
+        context.pointee.open()
+        let result = try block(context)
+        return context.pointee.close(withResult: result)
+    }
+
+    public static func withContextReturningBigInt(_ context: UnsafeMutablePointer<BigIntContext>? = nil, _ block: (_ context: UnsafeMutablePointer<BigIntContext>) -> (BigInt, BigInt)) -> (BigInt, BigInt) {
+        let context = context ?? BigIntContext.newContext()
+        
+        context.pointee.open()
+        let result = block(context)
+        return context.pointee.close(withResult: result)
+    }
+
+}
+
+public struct BigIntStorage {
+    public typealias Word = BigInt.Word
+    typealias Buffer = UnsafeMutableBufferPointer<Word>
+    
+//    fileprivate var pointer: Buffer {
+//        mutating get {
+//            return storage
+//        }
+//        set {
+//            let destination = pointer.baseAddress
+//            let source = newValue.baseAddress
+//            memcpy(destination, source, newValue.count * MemoryLayout<Word>.size)
+//            count = newValue.count
+//        }
+//    }
+    
+    public var hashValue: Int {
+        return storage[0].hashValue
+    }
+    
+    public var count: Int = 0
+    
+    public var first: Word? {
+        guard self.count > 0 else {
+            return nil
+        }
+        
+        return self[0]
+    }
+    
+    public var last: Word? {
+        guard self.count > 0 else {
+            return nil
+        }
+        
+        return self[count - 1]
+    }
+    
+    enum Storage : Sequence {
+        case internallyManaged([Word])
+        case externallyManaged(Buffer)
+        
+        subscript (_ i: Int) -> Word {
+            get {
+                switch self {
+                case .externallyManaged(let buffer): return buffer[i]
+                case .internallyManaged(let array): return array[i]
+                }
+            }
+            set {
+                switch self {
+                case .externallyManaged(let buffer): buffer[i] = newValue
+                case .internallyManaged(var array):
+                    array[i] = newValue
+                    self = .internallyManaged(array)
+                }
+            }
+        }
+        
+        var count: Int {
+            switch self {
+            case .externallyManaged(let buffer): return buffer.count
+            case .internallyManaged(let array): return array.count
+            }
+        }
+        
+        typealias Element = BigIntStorage.Word
+        
+        struct Iterator : IteratorProtocol {
+            private var index = 0
+            private var storage: Storage
+            init(_ storage: Storage) {
+                self.storage = storage
+            }
+            
+            mutating func next() -> Element? {
+                guard index < storage.count else {
+                    return nil
+                }
+                
+                let v = storage[index]
+                index += 1
+                
+                return v
+            }
+        }
+        
+        func makeIterator() -> Storage.Iterator {
+            return Iterator(self)
+        }
+    }
+    
+    var storage: Storage
+    
+    fileprivate init(storage: Storage)
     {
-        var bytes = [UInt8]()
-        var bytesLeft = hexString.utf8.count
-        var byte : UInt8 = 0
-        for c in hexString.utf8
-        {
-            var a : UInt8
-            switch (c)
-            {
-            case 0x30...0x39: // '0'...'9'
-                a = c - 0x30
+        self.storage = storage
+        self.count = self.storage.count
+    }
+    
+    init(capacity: Int, context: UnsafeMutablePointer<BigIntContext>? = nil)
+    {
+        if let context = context ?? BigIntContext.getContext() {
+            storage = .externallyManaged(context.pointee.allocate(capacity: capacity))
+        }
+        else {
+            storage = .internallyManaged([Word](repeating: 0, count: capacity))
+        }
+        count = capacity
+    }
+    
+    init(externalWithCapacity capacity: Int)
+    {
+        storage = .internallyManaged([Word](repeating: 0, count: capacity))
+        count = capacity
+    }
+    
+    func deallocate() {
+    }
+    
+    mutating func initialize(repeating: Word, count: Int? = nil) {
+        let count = count ?? storage.count
+        switch storage {
+        case .externallyManaged(let buffer):
+            for i in 0..<count {
+                buffer[i] = repeating
+            }
+        case .internallyManaged(var array):
+            for i in 0..<count {
+                array[i] = repeating
+            }
+            storage = .internallyManaged(array)
+        }
+    }
+
+    mutating func initialize<S>(from source: S, count: Int? = nil) where S : Sequence, S.Element == Word {
+        let count = count ?? storage.count
+        switch storage {
+        case .externallyManaged(let buffer):
+            var sourceIterator = source.makeIterator()
+            for i in 0..<count {
+                if let v = sourceIterator.next() {
+                    buffer[i] = v
+                }
+            }
+        case .internallyManaged(var array):
+            var sourceIterator = source.makeIterator()
+            for i in 0..<count {
+                if let v = sourceIterator.next() {
+                    array[i] = v
+                }
+            }
+            storage = .internallyManaged(array)
+        }
+    }
+
+    func padded(count: Int, context: UnsafeMutablePointer<BigIntContext>? = nil) -> BigIntStorage {
+        return BigIntStorage(storage: storage, count: self.count + count, normalized: false, context: context)
+    }
+    
+    mutating func copy(padding: Int = 0, context: UnsafeMutablePointer<BigIntContext>? = nil) -> BigIntStorage {
+        var storage = BigIntStorage(capacity: count + padding, context: context)
+        storage.initialize(from: self)
+        for i in 0..<padding {
+            storage[count + i] = 0
+        }
+        storage.count = count + padding
+        
+        return storage
+    }
+    
+    fileprivate init(storage: Storage, count: Int? = nil, normalized: Bool = true, context: UnsafeMutablePointer<BigIntContext>? = nil) {
+        let count = count ?? storage.count
+        
+        if let context = context ?? BigIntContext.getContext() {
+            self.storage = .externallyManaged(context.pointee.allocate(capacity: count))
+        } else {
+            self.storage = .internallyManaged([Word](repeating: 0, count: count))
+        }
+        
+        switch (self.storage, storage) {
+        case (.externallyManaged(let destination), .externallyManaged(let source)):
+            memcpy(destination.baseAddress!, source.baseAddress!, source.count * MemoryLayout<Word>.size)
+            
+        default:
+            self.initialize(from: storage)
+        }
+        
+        self.count = count
+
+        guard normalized else {
+            for i in 0..<(count - storage.count) {
+                self.storage[storage.count + i] = 0
+            }
+            return
+        }
+
+        normalize()
+    }
+    
+    mutating func normalize() {
+        var countOfNonZeroWords = count
+        for i in 0..<count {
+            if self.storage[count - i - 1] != 0 {
+                break
+            }
+            
+            countOfNonZeroWords -= 1
+        }
+        
+        self.count = countOfNonZeroWords
+    }
+    
+//    fileprivate static func allocateStorage(capacity: Int) -> Buffer {
+//        return BigIntStorage.allocate(capacity: capacity)
+//    }
+    
+    public subscript (_ i: Int) -> Word {
+        get {
+            var a = self
+            return a.storage[i]
+        }
+        set {
+            storage[i] = newValue
+        }
+    }
+    
+    // Return a BigIntStorage for the range given. The resulting object does not take ownership of the memory.
+    // It is only safe as long as the original BigIntStorage is still around retaining the memory.
+    fileprivate subscript (_ range: ClosedRange<Int>) -> BigIntStorage {
+        get {
+            switch storage {
+            case .externallyManaged(let buffer):
+                return BigIntStorage(storage: .externallyManaged(UnsafeMutableBufferPointer<Word>(rebasing: buffer[range])))
                 
-            case 0x41...0x46: // 'A'...'F'
-                a = c - 0x41 + 0x0a
+            case .internallyManaged(let array):
+                return BigIntStorage(storage: .internallyManaged([Word](array[range])))
+            }
+        }
+    }
+
+    // Return a BigIntStorage for the range given. The resulting object does not take ownership of the memory.
+    // It is only safe as long as the original BigIntStorage is still around retaining the memory.
+    internal subscript (_ range: Range<Int>) -> BigIntStorage {
+        get {
+            switch storage {
+            case .externallyManaged(let buffer):
+                return BigIntStorage(storage: .externallyManaged(UnsafeMutableBufferPointer<Word>(rebasing: buffer[range])))
                 
-            case 0x61...0x66: // 'a'...'f'
-                a = c - 0x61 + 0x0a
-                
-            default:
+            case .internallyManaged(let array):
+                return BigIntStorage(storage: .internallyManaged([Word](array[range])))
+            }
+        }
+    }
+    
+    fileprivate func map(_ transform : (Word) -> Word) -> BigIntStorage {
+        var storage = BigIntStorage(capacity: count)
+        for i in 0..<count {
+            storage[i] = transform(self[i])
+        }
+        
+        return storage
+    }
+    
+    static func ==(_ lhs: BigIntStorage, _ rhs: BigIntStorage) -> Bool {
+        guard lhs.count == rhs.count else {
+            return false
+        }
+        
+        switch (lhs.storage, rhs.storage) {
+        case (.externallyManaged(let a), .externallyManaged(let b)):
+            return memcmp(UnsafeRawPointer(a.baseAddress!), UnsafeRawPointer(b.baseAddress!), lhs.count * MemoryLayout<Word>.size) == 0
+        case (.internallyManaged(let a), .internallyManaged(let b)):
+            return a[0..<lhs.count] == b[0..<rhs.count]
+        default:
+            fatalError()
+        }
+    }
+}
+
+extension BigIntStorage : Sequence
+{
+    public typealias Element = BigIntStorage.Word
+    
+    public struct Iterator : IteratorProtocol {
+        private var index = 0
+        private var storage: BigIntStorage
+        init(_ storage: BigIntStorage) {
+            self.storage = storage
+        }
+        
+        public mutating func next() -> Element? {
+            guard index < storage.count else {
                 return nil
             }
             
-            byte = byte << 4 + a
+            let v = storage[index]
+            index += 1
             
-            if bytesLeft & 0x1 == 1 {
-                bytes.append(byte)
-            }
-            
-            bytesLeft -= 1
+            return v
         }
-        
-        self.init(bytes.reversed())
-        self.normalize()
     }
     
-    init(bigEndianParts: [UInt8]) {
-        self.init(bigEndianParts.reversed())
+    public func makeIterator() -> BigIntStorage.Iterator {
+        return Iterator(self)
     }
-    
-    init(_ a : Int) {
-        self.init([UInt(abs(a))], negative: a < 0)
-    }
-    
-    init(_ a : UInt, negative: Bool = false) {
-        self.init([a], negative: negative)
-    }
+}
 
-    init<T : UnsignedInteger>(_ a : T) {
-        self.init([a])
+extension BigIntStorage : Collection {
+    public func index(after i: Int) -> Int {
+        return i + 1
     }
     
-    init(count: Int)
-    {
-        self._words = [Word](repeating: 0, count: count)
+    public var startIndex: Int {
+        return 0
     }
+    
+    public var endIndex: Int {
+        return count
+    }
+}
 
-    /// parts are given in little endian order
-    init<T : UnsignedInteger>(_ parts : [T], negative: Bool = false, normalized: Bool = true)
+extension BigIntStorage : MutableCollection {
+}
+
+public struct BigInt
+{
+    public typealias Word = UInt
+    fileprivate var storage: BigIntStorage
+    let sign: Bool
+    
+    init(storage: BigIntStorage, sign: Bool = false, normalized: Bool = true)
     {
-        let numberInPrimitiveType = MemoryLayout<Word>.size/MemoryLayout<T>.size
-        
-        if numberInPrimitiveType == 1 {
-            self._words = parts.map({Word($0)})
-            self.sign = negative
+        self.storage = storage
+        self.sign = sign
+
+        guard normalized else {
+            return
+        }
+
+        self.storage.normalize()
+    }
+    
+    init(_ v: Int)
+    {
+        guard v != 0 else {
+            self.storage = BigIntStorage(capacity: 0)
+            self.sign = false
+            
             return
         }
         
-        if numberInPrimitiveType > 0 {
+        self.storage = BigIntStorage(capacity: 1)
+        self.storage[0] = Word(v.magnitude)
+        self.storage.count = 1
+        self.sign = v < 0
+    }
+    
+    init(_ v: UInt, sign: Bool = false)
+    {
+        guard v != 0 else {
+            self.storage = BigIntStorage(capacity: 0)
+            self.sign = false
             
-            var number = [Word](repeating: 0, count: parts.count / numberInPrimitiveType + ((parts.count % MemoryLayout<Word>.size == 0) ? 0 : 1))
+            return
+        }
+
+        self.storage = BigIntStorage(capacity: 1)
+        self.storage[0] = Word(v.magnitude)
+        self.storage.count = 1
+        self.sign = sign
+    }
+    
+    init(bigEndianParts: [UInt8])
+    {
+        let littleEndian = bigEndianParts.reversed()
+        self.init(littleEndian)
+    }
+    
+    func asBigEndianData() -> [UInt8] {
+        var result = [UInt8](repeating: 0, count: self.storage.count * MemoryLayout<Word>.size)
+        try! BigInt.convert(from: self.storage, to: &result, count: self.storage.count)
+        
+        return result.reversed()
+    }
+    
+    /// parts are given in little endian order
+    init<Source: Collection>(_ number : Source, negative: Bool = false, normalized: Bool = true) where Source.Element : UnsignedInteger
+    {
+        let targetCount = (number.count * MemoryLayout<Source.Element>.size + MemoryLayout<Word>.size - 1) / MemoryLayout<Word>.size
+        var target = BigIntStorage(capacity: targetCount)
+        try! BigInt.convert(from: number, to: &target)
+        
+        self.init(storage: target)
+    }
+    
+    func padded(count: Int) -> BigInt {
+        return BigInt(storage: self.storage.padded(count: count), normalized: false)
+    }
+    
+    var isZero: Bool {
+        get {
+            return storage.count == 0 || (storage.count == 1 && storage[0] == 0)
+        }
+    }
+    
+    func isBitSet(_ bitNumber : Int) -> Bool {
+        let wordSize    = MemoryLayout<Word>.size * 8
+        let wordNumber  = bitNumber / wordSize
+        let bit         = bitNumber % wordSize
+        
+        guard wordNumber < self.storage.count else {
+            return false
+        }
+        
+        return (UInt64(self.storage[wordNumber]) & (UInt64(1) << UInt64(bit))) != 0
+    }
+    
+    func masked(upToHighestBit highestBit: Int) -> BigInt
+    {
+        var numWords = highestBit >> Word.bitWidth.trailingZeroBitCount
+        let numBits = highestBit - numWords << Word.bitWidth.trailingZeroBitCount
+        
+        if numBits != 0 {
+            numWords += 1
+        }
+        
+        guard numWords <= self.storage.count else { return self }
+        
+        var result = BigIntStorage(capacity: numWords)
+        result.initialize(from: self.storage, count: numWords)
+        if numBits != 0 {
+            result[numWords - 1] &= (1 << numBits) - 1
+        }
+
+        result.normalize()
+        
+        return BigInt(storage: result)
+    }
+    
+
+    static func random(_ max : BigInt) -> BigInt
+    {
+        let num = max.storage.count
+        var storage = BigIntStorage(capacity: num)
+        switch storage.storage {
+        case .externallyManaged(let buffer):
+                TLSFillWithRandomBytes(UnsafeMutableRawBufferPointer(buffer))
+        case .internallyManaged(var array):
+            array.withUnsafeMutableBufferPointer { (buffer) in
+                TLSFillWithRandomBytes(UnsafeMutableRawBufferPointer(buffer))
+            }
+            storage.storage = .internallyManaged(array)
+        }
+        
+        var n = BigInt(storage: storage)
+
+        n = n % max
+
+        return n
+    }
+
+    enum ConversionError : Error {
+        case sizeMismatch
+    }
+    /// parts are given in little endian order
+    static func convert<Source: Collection, Target: MutableCollection>(from source: Source, to target: inout Target, count: Int? = nil) throws where Source.Element : UnsignedInteger, Target.Element : UnsignedInteger
+    {
+        let sourceCount = count ?? source.count
+        let numberInTarget = MemoryLayout<Target.Element>.size/MemoryLayout<Source.Element>.size
+        
+        switch numberInTarget {
+        case 1:
+            guard sourceCount == target.count else {
+                throw ConversionError.sizeMismatch
+            }
+            
+            var sourceIterator = source.makeIterator()
+            var index = target.startIndex
+
+            while true {
+                guard let v = sourceIterator.next() else { break }
+                    
+                target[index] = Target.Element(v)
+                index = target.index(after: index)
+            }
+            
+            return
+        
+        case 1...:
+            let expectedTargetSize = sourceCount / numberInTarget + ((sourceCount % MemoryLayout<Target.Element>.size == 0) ? 0 : 1)
+            guard target.count == expectedTargetSize else {
+                throw ConversionError.sizeMismatch
+            }
+
             var index = 0
-            var numberIndex = 0
-            var n : UInt = 0
-            var shift = UInt(0)
+            var n: Target.Element = 0
+            var shift = UInt64(0)
             
-            for a in parts
-            {
-                n = n + UInt(a) << shift
-                shift = shift + UInt(MemoryLayout<T>.size * 8)
+            var sourceIterator = source.makeIterator()
+            var targetIndex = target.startIndex
+            
+            for _ in 0..<sourceCount {
+                guard let a = sourceIterator.next() else { break }
                 
-                if (index + 1) % numberInPrimitiveType == 0
+                n = n + Target.Element(a) << shift
+                shift = shift + UInt64(MemoryLayout<Source.Element>.size * 8)
+                
+                if (index + 1) % numberInTarget == 0
                 {
-                    number[numberIndex] = Word(n)
+                    target[targetIndex] = n
                     index = 0
                     n = 0
                     shift = 0
-                    numberIndex += 1
+                    targetIndex = target.index(after: targetIndex)
                 }
                 else {
                     index += 1
                 }
             }
             
-            if n != 0 {
-                number[numberIndex] = Word(n)
+            if targetIndex < target.endIndex {
+                target[targetIndex] = n
             }
             
-            if normalized {
-                while number.last != nil && number.last! == 0 {
-                    number.removeLast()
-                }
-            }
+            return
 
-            self._words = number
-        }
-        else {
-            // T is a larger type than Word
-            let n = MemoryLayout<T>.size/MemoryLayout<Word>.size
-            var number = [Word]()
+        default:
+            // T is a larger type than Target
+            let n = MemoryLayout<Source.Element>.size/MemoryLayout<Target.Element>.size
+            guard target.count == n * sourceCount else {
+                throw ConversionError.sizeMismatch
+            }
             
-            for a in parts
-            {
-                let shift : UInt = UInt(8 * MemoryLayout<Word>.size)
-                var mask : UInt = (0xffffffffffffffff >> UInt(64 - shift))
+            var sourceIterator = source.makeIterator()
+            var targetIndex = target.startIndex
+            
+            for _ in 0..<sourceCount {
+                guard let a = sourceIterator.next() else { break }
+
+                let shift = UInt64(8 * MemoryLayout<Target.Element>.size)
+                var mask : UInt64 = (0xffffffffffffffff >> UInt64(64 - shift))
                 for i in 0 ..< n
                 {
-                    let part = Word((UInt(a) & mask) >> (UInt(i) * shift))
-                    number.append(part)
+                    let part = Target.Element((UInt64(a) & mask) >> (UInt64(i) * shift))
+                    target[targetIndex] = part
                     mask = mask << shift
+                    
+                    targetIndex = target.index(after: targetIndex)
                 }
             }
+        }
+    }
+
+    // short division
+    public static func /(u : BigInt, v : Int) -> BigInt
+    {
+        let sign = v < 0
+        
+        let unsignedV = Word(abs(v))
+        
+        let result = u / unsignedV
+        
+        return sign ? -result : result
+    }
+    
+    public static func /(u : BigInt, v : Word) -> BigInt
+    {
+        var u = u
+        var r = Word(0)
+        var q: Word
+        let n = u.storage.count
+        let vv = Word(v)
+        
+        var result = BigIntStorage(capacity: n)
+        for i in (0 ..< n).reversed() {
+            (q, r) = vv.dividingFullWidth((r, u.storage[i]))
             
-            if normalized {
-                while number.last != nil && number.last! == 0 {
-                    number.removeLast()
-                }
+            result[i] = q
+        }
+        
+        return BigInt(storage: result, sign: u.sign)
+    }
+
+    private static func short_division(_ u : BigInt, _ v : BigInt.Word) -> (BigInt, BigInt.Word)
+    {
+        var u = u
+        var r = BigInt.Word(0)
+        let n = u.storage.count
+        let vv = BigInt.Word(v)
+        
+        var q: BigInt.Word
+        var result = BigIntStorage(capacity: n)
+        for i in (0 ..< n).reversed() {
+            (q, r) = vv.dividingFullWidth((r, u.storage[i]))
+            
+            result[i] = q
+        }
+        
+        return (BigInt(storage: result, sign: u.sign != (v < 0)), r)
+    }
+    
+    public static func /(u: BigInt, v: BigInt) -> BigInt {
+        var u = u
+        var v = v
+        
+        // This is an implementation of Algorithm D in
+        // "The Art of Computer Programming" by Donald E. Knuth, Volume 2, Seminumerical Algorithms, 3rd edition, p. 272
+        if v.isZero {
+            // handle error
+            return BigInt(0)
+        }
+        
+        let n = v.storage.count
+        let m = u.storage.count - v.storage.count
+        
+        if m < 0 {
+            return BigInt(0)
+        }
+        
+        if n == 1 && m == 0 {
+            return BigInt(u.storage[0] / v.storage[0])
+        }
+        else if n == 1 {
+            let divisor = Word(v.storage[0])
+            
+            let result = u / divisor
+            
+            return v.sign ? -result : result
+        }
+        
+        return division(u, v).0
+    }
+    
+    public static func /=(lhs: inout BigInt, rhs: BigInt) {
+        lhs = lhs / rhs
+    }
+    
+    public static func %(lhs: BigInt, rhs: BigInt) -> BigInt {
+        return division(lhs, rhs).1
+    }
+    
+    public static func %=(lhs: inout BigInt, rhs: BigInt) {
+        lhs = division(lhs, rhs).1
+    }
+    
+    public static func &=(lhs: inout BigInt, rhs: BigInt) {
+        fatalError()
+    }
+    
+    public static func |=(lhs: inout BigInt, rhs: BigInt) {
+        fatalError()
+    }
+    
+    public static func ^=(lhs: inout BigInt, rhs: BigInt) {
+        fatalError()
+    }
+    
+    public func quotientAndRemainder(dividingBy rhs: BigInt) -> (quotient: BigInt, remainder: BigInt) {
+        return BigInt.division(self, rhs)
+    }
+
+    private static func division(_ u : BigInt, _ v : BigInt) -> (BigInt, BigInt)
+    {
+       return BigInt.withContextReturningBigInt { _ in
+            var u = u
+            var v = v
+            
+            // This is an implementation of Algorithm D in
+            // "The Art of Computer Programming" by Donald E. Knuth, Volume 2, Seminumerical Algorithms, 3rd edition, p. 272
+            if v.isZero {
+                // handle error
+                return (BigInt(0), BigInt(0))
             }
             
-            self._words = number
-        }
-        
-        self.sign = negative
-    }
-
-    init<T : UnsignedInteger>(_ parts : ArraySlice<T>, negative: Bool = false)
-    {
-        self.init([T](parts), negative: negative)
-    }
-
-    mutating func mask(upToHighestBit: Int)
-    {
-        var numWords = upToHighestBit >> Word.bitWidth.trailingZeroBitCount
-        let numBits = upToHighestBit - numWords << Word.bitWidth.trailingZeroBitCount
-
-        if numBits != 0 {
-            numWords += 1
-        }
-        
-        guard numWords <= self.words.count else { return }
-        
-        self.words.removeLast(self.words.count - numWords)
-        if numBits != 0 {
-            self.words[numWords - 1] &= (1 << numBits) - 1
-        }
-        
-        self.normalize()
-    }
-    
-    mutating func normalize()
-    {
-        while _words.last != nil && _words.last! == 0 {
-            _words.removeLast()
-        }
-    }
-
-    func asBigEndianData() -> [UInt8] {
-        return BigInt.convert(self.words, normalized: false).reversed()
-    }
-    
-    static func random(_ max : BigInt) -> BigInt
-    {
-        let num = max._words.count
-        var n = BigInt(bigEndianParts: TLSRandomBytes(count: num * MemoryLayout<Word>.size))
+            if u.isZero {
+                return (BigInt(0), BigInt(0))
+            }
+            
+            let n = v.storage.count
+            let m = u.storage.count - v.storage.count
+            
+            if m < 0 {
+                return (BigInt(0), u)
+            }
+            
+            if n == 1 && m == 0 {
+                let remainder = BigInt(u.storage[0] % v.storage[0], sign: u.sign)
                 
-        n.normalize()
-        
-        n = n % max
-        
-        return n
-    }
-
-    var isZero: Bool {
-        get {
-            return _words.count == 0 || (_words.count == 1 && _words[0] == 0)
+                return (BigInt(u.storage[0] / v.storage[0]), remainder)
+            }
+            else if n == 1 {
+                let divisor = v.storage[0]
+                
+                let (quotient, remainder) = short_division(u, divisor)
+                
+                return (quotient, BigInt(remainder))
+            }
+            
+            let uSign = u.sign
+            
+            var result = BigIntStorage(capacity: m + 1)
+            
+            // normalize, so that v[0] >= base/2 (i.e. 2^31 in our case)
+            let shift = BigInt.Word((MemoryLayout<Word>.size * 8) - 1)
+            let highestBitMask : BigInt.Word = 1 << shift
+            var hi = v.storage[n - 1]
+            var d = BigInt.Word(1)
+            while (Word(hi) & Word(highestBitMask)) == 0
+            {
+                hi = hi << 1
+                d  = d  << 1
+            }
+            
+            if d != 1 {
+                u = u * BigInt(d)
+                v = v * BigInt(d)
+            }
+            
+            if u.storage.count < m + n + 1 {
+                u = u.padded(count: 1)
+            }
+            
+            for j in (0 ..< m+1).reversed()
+            {
+                // D3. Calculate q
+                let (hi, lo) = (u.storage[j + n], u.storage[j + n - 1])
+                let dividend: (BigInt.Word, BigInt.Word)
+                
+                let denominator = v.storage[n - 1]
+                // If the high word is greater or equal to the denominator we would overflow dividingFullWidth.
+                // So in order to avoid that we are just dividing the high word, and rememember that the result
+                // needs to be shifted. Since we made sure the highest bit is set in v before this can at most
+                // result in a q of 1 (or so I convinced myself).
+                let dividendIsShifted = hi >= denominator
+                if !dividendIsShifted {
+                    dividend = (hi, lo)
+                } else {
+                    dividend = (0, hi)
+                }
+                
+                var (q, r) = denominator.dividingFullWidth(dividend)
+                
+                if q != 0 {
+                    var numIterationsThroughLoop = 0
+                    while true {
+                        let qTimesV = q.multipliedFullWidth(by: v.storage[n - 2])
+                        guard qTimesV.0 > r ||
+                            qTimesV.0 == r && qTimesV.1 > u.storage[j + n - 2]
+                            else {
+                                break
+                        }
+                        
+                        q = q - 1
+                        if q == 0 && dividendIsShifted {
+                            q = BigInt.Word.max
+                        }
+                        let overflow: Bool
+                        (r, overflow) = r.addingReportingOverflow(denominator)
+                        
+                        if overflow {
+                            break
+                        }
+                        
+                        numIterationsThroughLoop += 1
+                        
+                        assert(numIterationsThroughLoop <= 2)
+                    }
+                    
+                    
+                    // D4. Multiply and subtract
+                    var temp = BigInt(storage: u.storage[j...j+n]) - v * BigInt(q)
+                    
+                    // D6. handle negative case
+                    if temp.sign {
+                        temp = temp + v
+                        q = q - 1
+                    }
+                    
+                    let count = temp.storage.count
+                    for i in 0 ..< n {
+                        u.storage[j + i] = i < count ? temp.storage[i] : 0
+                    }
+                }
+                
+                result[j] = Word(q)
+            }
+            
+            let q = BigInt(storage: result, sign: u.sign != v.sign)
+            let remainder = BigInt(storage: u.storage[0..<n], sign: uSign) / d
+            
+            return (q, remainder)
         }
     }
 }
 
-extension BigInt : ExpressibleByIntegerLiteral
-{
+extension BigInt : ExpressibleByIntegerLiteral {
     public typealias IntegerLiteralType = Int
-
+    
     public init(integerLiteral value: Int)
     {
         precondition(value >= 0)
@@ -279,172 +1108,68 @@ extension BigInt : ExpressibleByIntegerLiteral
     }
 }
 
-extension BigInt : Equatable
-{
-    public static func ==(lhs: BigInt, rhs: BigInt) -> Bool {
-        return (lhs.words == rhs.words && lhs.sign == rhs.sign) ||
-               (lhs.isZero && rhs.isZero)
-    }
-}
-
-extension BigInt : Comparable
-{
-    public static func <(lhs: BigInt, rhs: BigInt) -> Bool {
-        if lhs.sign != rhs.sign {
-            return lhs.sign
-        }
-        
-        if lhs.sign {
-            return -lhs > -rhs
-        }
-        
-        if lhs._words.count != rhs._words.count {
-            return lhs._words.count < rhs._words.count
-        }
-        
-        if lhs._words.count > 0 {
-            for i in (0 ..< lhs._words.count).reversed()
-            {
-                if lhs._words[i] == rhs._words[i] {
-                    continue
-                }
-                
-                return lhs._words[i] < rhs._words[i]
-            }
-            
-            return false
-        }
-        
-        assert(lhs._words.count == 0 && rhs._words.count == 0)
-        
-        return false
-    }
-    
-    public static func >(lhs: BigInt, rhs: BigInt) -> Bool {
-
-        if lhs.sign != rhs.sign {
-            return rhs.sign
-        }
-        
-        if lhs.sign {
-            return -lhs < -rhs
-        }
-        
-        if lhs._words.count != rhs._words.count {
-            if lhs.isZero && rhs.isZero {
-                return false
-            }
-            
-            return lhs._words.count > rhs._words.count
-        }
-        
-        if lhs._words.count > 0 {
-            for i in (0 ..< lhs._words.count).reversed()
-            {
-                if lhs._words[i] == rhs._words[i] {
-                    continue
-                }
-                
-                return lhs._words[i] > rhs._words[i]
-            }
-            
-            return false
-        }
-        
-        assert(lhs._words.count == 0 && rhs._words.count == 0)
-        
-        return false
-    }
-}
-
-extension Array: Hashable where Element: Hashable {
-    public var hashValue: Int {
-        return self.reduce(0, { $0 ^ $1.hashValue})
-    }
-}
-
 extension BigInt : Hashable
 {
     public var hashValue: Int {
-        return _words.hashValue
+        return storage.hashValue
     }
 }
 
-extension BigInt : Numeric
-{
-    public init?<T>(exactly source: T) where T : BinaryInteger {
-        fatalError()
-    }
-    
+extension BigInt : Numeric {
     public typealias Magnitude = BigInt
     
-    public var magnitude: BigInt {
-        return BigInt()
-    }
-    
-    init(capacity: Int) {
-        _words = [Word]()
-        _words.reserveCapacity(capacity)
-    }
-
-    public static func +(a: BigInt, b: BigInt) -> BigInt {
+    public static func +(_ lhs: BigInt, _ rhs: BigInt) -> BigInt {
+        var lhs = lhs
+        var rhs = rhs
         
-        if a.sign != b.sign {
-            if a.sign {
-                return b - (-a)
+        if lhs.sign != rhs.sign {
+            if lhs.sign {
+                return rhs - (-lhs)
             }
             else {
-                return a - (-b)
+                return lhs - (-rhs)
             }
         }
         
-        let count = max(a._words.count, b._words.count)
-        var v = BigInt(capacity: count)
-        v.sign = a.sign
-
+        let count = max(lhs.storage.count, rhs.storage.count)
+        // allocate storage for count + 1 words, because there might be an overflow
+        var v = BigIntStorage(capacity: count + 1)
+        
         var carry : Word = 0
         for i in 0 ..< count {
             var sum : Word = carry
             var overflow : Bool
             carry = 0
             
-            if i < a._words.count {
-                (sum, overflow) = sum.addingReportingOverflow(a._words[i])
+            if i < lhs.storage.count {
+                (sum, overflow) = sum.addingReportingOverflow(lhs.storage[i])
                 
                 if overflow {
                     carry = 1
                 }
             }
             
-            if i < b._words.count {
-                (sum, overflow) = sum.addingReportingOverflow(b._words[i])
+            if i < rhs.storage.count {
+                (sum, overflow) = sum.addingReportingOverflow(rhs.storage[i])
                 
                 if overflow {
                     carry = 1
                 }
             }
             
-            v._words.append(sum)
+            v[i] = sum
         }
         
-        if carry != 0 {
-            v._words.append(carry)
-        }
+        v[count] = carry
         
-        return v
+        v.count = carry != 0 ? count + 1 : count
+        
+        return BigInt(storage: v, sign: lhs.sign)
     }
-    
-    public static func +=(lhs: inout BigInt, rhs: BigInt) {
-        fatalError()
-    }
-    
     
     public static func -(a: BigInt, b: BigInt) -> BigInt {
         var a = a
         var b = b
-        
-        a.normalize()
-        b.normalize()
         
         if a.sign != b.sign {
             if a.sign {
@@ -460,121 +1185,176 @@ extension BigInt : Numeric
         }
         
         assert(!a.sign && !b.sign)
-
+        
         if a < b {
             return -(b - a)
         }
         
-        let count = max(a._words.count, b._words.count)
-        var v = BigInt(count: count)
+        let count = max(a.storage.count, b.storage.count)
+        var v = BigIntStorage(capacity: count)
         
-        var carry = BigInt.Word(0)
+        var carry : Word = 0
         for i in 0 ..< count {
-            var difference : BigInt.Word = carry
+            var difference : Word = carry
             var overflow : Bool
             carry = 0
             
-            if i < a._words.count {
-                (difference, overflow) = a._words[i].subtractingReportingOverflow(difference)
+            if i < a.storage.count {
+                (difference, overflow) = a.storage[i].subtractingReportingOverflow(difference)
                 
                 if overflow {
                     carry = 1
                 }
             }
             
-            if i < b._words.count {
-                (difference, overflow) = difference.subtractingReportingOverflow(b._words[i])
+            if i < b.storage.count {
+                (difference, overflow) = difference.subtractingReportingOverflow(b.storage[i])
                 
                 if overflow {
                     carry = 1
                 }
             }
             
-            v._words[i] = difference
+            v[i] = difference
         }
         
         assert(carry == 0)
         
-        v.normalize()
-        
-        return v
+        return BigInt(storage: v, sign: false)
     }
     
-    public static func -=(lhs: inout BigInt, rhs: BigInt) {
-        fatalError()
+    public static prefix func -(_ v: BigInt) -> BigInt {
+        return BigInt(storage: v.storage, sign: !v.sign)
     }
     
     public static func *(a: BigInt, b: BigInt) -> BigInt {
-        let aCount = a._words.count;
-        let bCount = b._words.count;
-        let resultCount = aCount + bCount
-        
-        var result = BigInt(count: resultCount)
-        
-        for i in 0 ..< aCount {
+        return BigInt.withContextReturningBigInt { _ in
+            var a = a
+            var b = b
             
-            var overflow    : Bool
+            let aCount = a.storage.count;
+            let bCount = b.storage.count;
+            let resultCount = aCount + bCount
             
-            for j in 0 ..< bCount {
+            var result = BigIntStorage(capacity: resultCount)
+//            result.initialize(repeating: 0)
+        
+            for i in 0 ..< aCount {
                 
-                let (_hi, _lo) = a._words[i].multipliedFullWidth(by: b._words[j])
+                var overflow    : Bool
                 
-                var hi = UInt64(_hi)
-                var lo = UInt64(_lo)
-                
-                if lo == 0 && hi == 0 {
-                    continue
-                }
-                
-                if MemoryLayout<BigInt.Word>.size < MemoryLayout<UInt64>.size {
-                    let shift : UInt64 = UInt64(8 * MemoryLayout<BigInt.Word>.size)
-                    let mask : UInt64 = (0xffffffffffffffff >> UInt64(64 - shift))
-                    hi = (lo & (mask << shift)) >> shift
-                    lo = lo & mask
-                }
-                
-                (result._words[i + j], overflow) = result._words[i + j].addingReportingOverflow(BigInt.Word(lo))
-                
-                if overflow {
-                    hi += 1
-                }
-                
-                var temp = hi
-                var index = i + j + 1
-                while true {
-                    (result._words[index], overflow) = result._words[index].addingReportingOverflow(BigInt.Word(temp))
-                    if overflow {
-                        temp = 1
-                        index += 1
+                for j in 0 ..< bCount {
+                    
+                    let (_hi, _lo) = a.storage[i].multipliedFullWidth(by: b.storage[j])
+                    
+                    var hi = UInt64(_hi)
+                    var lo = UInt64(_lo)
+                    
+                    if lo == 0 && hi == 0 {
+                        continue
                     }
-                    else {
-                        break
+                    
+                    if MemoryLayout<BigInt.Word>.size < MemoryLayout<UInt64>.size {
+                        let shift : UInt64 = UInt64(8 * MemoryLayout<BigInt.Word>.size)
+                        let mask : UInt64 = (0xffffffffffffffff >> UInt64(64 - shift))
+                        hi = (lo & (mask << shift)) >> shift
+                        lo = lo & mask
+                    }
+                    
+                    (result[i + j], overflow) = result[i + j].addingReportingOverflow(BigInt.Word(lo))
+                    
+                    if overflow {
+                        hi += 1
+                    }
+                    
+                    var temp = hi
+                    var index = i + j + 1
+                    while true {
+                        (result[index], overflow) = result[index].addingReportingOverflow(BigInt.Word(temp))
+                        if overflow {
+                            temp = 1
+                            index += 1
+                        }
+                        else {
+                            break
+                        }
                     }
                 }
             }
+            
+            return BigInt(storage: result, sign: (a.sign != b.sign))
         }
-        
-        result.normalize()
-        
-        result.sign = (a.sign != b.sign)
+    }
 
-        return result
+    public static func -= (lhs: inout BigInt, rhs: BigInt) {
+        lhs = lhs - rhs
     }
     
-    public static func *=(lhs: inout BigInt, rhs: BigInt) {
+    public static func += (lhs: inout BigInt, rhs: BigInt) {
+        lhs = lhs + rhs
+    }
+    
+    public init?<T>(exactly source: T) where T : BinaryInteger {
         fatalError()
     }
-
+    
+    public var magnitude: BigInt {
+        return BigInt(storage: storage, sign: false)
+    }
+    
+    public static func *= (lhs: inout BigInt, rhs: BigInt) {
+        lhs = lhs * rhs
+    }
+    
 }
 
-public prefix func -(v : BigInt) -> BigInt {
-    var v = v
-    v.sign = !v.sign
-    return v
-}
+extension BigInt : BinaryInteger {
+    public static var isSigned: Bool {
+        return true
+    }
+    
+    public var words: BigIntStorage {
+        get {
+            guard sign else {
+                return storage
+            }
+            
+            return self.twosComplement
+        }
+        set {
+            fatalError()
+        }
 
-extension BigInt : BinaryInteger
-{
+    }
+    
+    var twosComplement: BigIntStorage {
+        get {
+            var result = BigIntStorage(capacity: storage.count)
+            let count = storage.count
+            
+            var carry : Word = 1
+            for i in 0 ..< count {
+                var sum : Word = carry
+                var overflow : Bool
+                carry = 0
+                
+                if i < storage.count {
+                    (sum, overflow) = sum.addingReportingOverflow(~storage[i])
+                    
+                    if overflow {
+                        carry = 1
+                    }
+                }
+                
+                result[i] = sum
+            }
+            
+            return result
+        }
+    }
+    
+    public typealias Words = BigIntStorage
+
     /// Creates an integer from the given floating-point value, if it can be
     /// represented exactly.
     ///
@@ -590,7 +1370,7 @@ extension BigInt : BinaryInteger
     ///
     /// - Parameter source: A floating-point value to convert to an integer.
     public init?<T>(exactly source: T) where T : BinaryFloatingPoint {
-        
+        fatalError()
     }
     
     /// Creates an integer from the given floating-point value, rounding toward
@@ -614,7 +1394,7 @@ extension BigInt : BinaryInteger
     ///   `source` must be representable in this type after rounding toward
     ///   zero.
     public init<T>(_ source: T) where T : BinaryFloatingPoint {
-        
+        fatalError()
     }
     
     
@@ -634,7 +1414,27 @@ extension BigInt : BinaryInteger
     /// - Parameter source: An integer to convert. `source` must be representable
     ///   in this type.
     public init<T>(_ source: T) where T : BinaryInteger {
-        self._words = source.words.map {UInt($0)}
+        var iterator = source.words.makeIterator()
+
+        guard let v = iterator.next() else {
+            fatalError()
+        }
+        
+        // We are currently supporting only BinaryIntegers with one element
+        guard iterator.next() == nil else {
+            fatalError()
+        }
+        
+        guard v != 0 else {
+            self.storage = BigIntStorage(capacity: 0)
+            self.sign = false
+            
+            return
+        }
+        
+        self.storage = BigIntStorage(capacity: 1)
+        self.storage[0] = Word(v.magnitude)
+        self.sign = source.signum() == -1
     }
     
     /// Creates a new instance from the bit pattern of the given instance by
@@ -698,48 +1498,53 @@ extension BigInt : BinaryInteger
     ///
     /// - Parameter source: An integer to convert to this type.
     public init<T>(clamping source: T) where T : BinaryInteger {
-        
+        fatalError()
     }
-
+    
     static let maximumShift = 1 << 20
     public static func <<=<RHS>(lhs: inout BigInt, rhs: RHS) where RHS : BinaryInteger {
         guard rhs > 0 else {
             if rhs == 0 {
                 return
             }
-
+            
             lhs >>= rhs.magnitude
             return
         }
-
+        
         if rhs > maximumShift {
             fatalError("BigInt doesn't support left shift larger than \(maximumShift)")
         }
-
+        
         let shift = Int(rhs)
-
+        
         let wordBitWidth = Word.bitWidth
         let wordShift = shift >> wordBitWidth.trailingZeroBitCount
         let bitShift = shift - (wordShift << wordBitWidth.trailingZeroBitCount)
-
-        var words = Words(repeating: 0, count: wordShift)
-        words.append(contentsOf: lhs.words)
+        
+        let wordCount = wordShift + lhs.storage.count + (bitShift == 0 ? 0 : 1)
+        var storage = BigIntStorage(capacity: wordCount)
+        storage.initialize(repeating: 0, count: wordShift)
+        for i in 0..<lhs.storage.count {
+            storage[wordShift + i] = lhs.storage[i]
+        }
         if bitShift == 0 {
-            lhs.words = words
+            storage.normalize()
+            lhs = BigInt(storage: storage)
         }
         else {
-            words.append(0)
-            let count = words.count
+            storage[wordCount - 1] = 0
+            let count = wordCount
             for i in (0..<count).reversed() {
                 let lowerIndex = i - 1
                 let upperIndex = i
-                let lowerPart = lowerIndex >= 0 ? words[lowerIndex] >> (wordBitWidth - bitShift) : 0
-                let upperPart = upperIndex >= 0 ? words[upperIndex] &<< bitShift : 0
-                words[i] = upperPart ^ lowerPart
+                let lowerPart = lowerIndex >= 0 ? storage[lowerIndex] >> (wordBitWidth - bitShift) : 0
+                let upperPart = upperIndex >= 0 ? storage[upperIndex] &<< bitShift : 0
+                storage[i] = upperPart ^ lowerPart
             }
-
-            lhs.words = words
-            lhs.normalize()
+            
+            storage.normalize()
+            lhs = BigInt(storage: storage)
         }
     }
     
@@ -758,387 +1563,282 @@ extension BigInt : BinaryInteger
         }
         
         let shift = Int(rhs)
-
+        
         let wordBitWidth = Word.bitWidth
         let wordShift = shift >> wordBitWidth.trailingZeroBitCount
         let bitShift = shift - (wordShift << wordBitWidth.trailingZeroBitCount)
         
-        var words = lhs.words
+        let lhsWordCount = lhs.storage.count
+        let wordCount = lhs.storage.count - wordShift
+        var storage = BigIntStorage(capacity: wordCount)
         if bitShift == 0 {
-            let count = words.count
-            for i in 0..<count {
+            for i in 0..<wordCount {
                 let index = i + wordShift
-                words[i] = index < count ? words[index] : 0
+                storage[i] = lhs.storage[index]
             }
         }
         else {
-            let count = words.count
-            for i in 0..<count {
+            for i in 0..<wordCount {
                 let lowerIndex = i + wordShift
                 let upperIndex = i + wordShift + 1
-                let lowerPart = lowerIndex < count ? words[lowerIndex] >> bitShift : 0
-                let upperPart = upperIndex < count ? words[upperIndex] &<< (wordBitWidth - bitShift) : 0
-                words[i] = upperPart ^ lowerPart
+                let lowerPart = lowerIndex < lhsWordCount ? lhs.storage[lowerIndex] >> bitShift : 0
+                let upperPart = upperIndex < lhsWordCount ? lhs.storage[upperIndex] &<< (wordBitWidth - bitShift) : 0
+                storage[i] = upperPart ^ lowerPart
             }
         }
-
-        lhs.words = words
-        lhs.normalize()
+        
+        storage.normalize()
+        lhs = BigInt(storage: storage)
     }
-    
+
     public static prefix func ~(x: BigInt) -> BigInt {
-        return BigInt(x._words.map {~$0})
+        return BigInt(storage: x.storage.map {~$0})
     }
     
     public var bitWidth: Int {
-        return _words.count * MemoryLayout<Word>.size * 8
+        return storage.count * MemoryLayout<Word>.size * 8
     }
     
     public var trailingZeroBitCount: Int {
-        return 0
+        fatalError()
     }
-    
-    // short division
-    public static func /(u : BigInt, v : Int) -> BigInt
-    {
-        let sign = v < 0
-        
-        let unsignedV = Word(abs(v))
-        
-        var result = u / unsignedV
-        result.sign = sign
-        
-        return result
-    }
-    
-    public static func /(u : BigInt, v : UInt) -> BigInt
-    {
-        var r = Word(0)
-        var q: Word
-        let n = u._words.count
-        let vv = Word(v)
-        
-        var result = BigInt(count: n)
-        for i in (0 ..< n).reversed() {
-            (q, r) = vv.dividingFullWidth((r, u._words[i]))
-            
-            result._words[i] = q
-        }
-        
-        result.normalize()
-        
-        result.sign = u.sign
-        
-        return result
-    }
+}
 
-    public static func /(u: BigInt, v: BigInt) -> BigInt {
-        // This is an implementation of Algorithm D in
-        // "The Art of Computer Programming" by Donald E. Knuth, Volume 2, Seminumerical Algorithms, 3rd edition, p. 272
-        if v.isZero {
-            // handle error
-            return BigInt(0)
+extension BigInt : Equatable {
+    public static func == (lhs: BigInt, rhs: BigInt) -> Bool {
+        guard lhs.storage.count == rhs.storage.count else {
+            return false
         }
         
-        let n = v._words.count
-        let m = u._words.count - v._words.count
-        
-        if m < 0 {
-            return BigInt(0)
+        return lhs.sign == rhs.sign && lhs.storage == rhs.storage
+    }
+}
+
+extension BigInt : Comparable
+{
+    public static func <(lhs: BigInt, rhs: BigInt) -> Bool {
+        if lhs.sign != rhs.sign {
+            return lhs.sign
         }
         
-        if n == 1 && m == 0 {
-            return BigInt(u._words[0] / v._words[0])
+        if lhs.sign {
+            return -lhs > -rhs
         }
-        else if n == 1 {
-            let divisor = UInt(v._words[0])
-            
-            var result = u / divisor
-            
-            if v.sign {
-                result.sign = !result.sign
+        
+        if lhs.storage.count != rhs.storage.count {
+            return lhs.storage.count < rhs.storage.count
+        }
+        
+        var lhs = lhs
+        var rhs = rhs
+
+        if lhs.storage.count > 0 {
+            for i in (0 ..< lhs.storage.count).reversed()
+            {
+                if lhs.storage[i] == rhs.storage[i] {
+                    continue
+                }
+                
+                return lhs.storage[i] < rhs.storage[i]
             }
             
-            return result
+            return false
         }
         
-        return division(u, v).0
-    }
-    
-    public static func /=(lhs: inout BigInt, rhs: BigInt) {
+        assert(lhs.storage.count == 0 && rhs.storage.count == 0)
         
+        return false
     }
     
-    public static func %(lhs: BigInt, rhs: BigInt) -> BigInt {
-        return division(lhs, rhs).1
+    public static func >(lhs: BigInt, rhs: BigInt) -> Bool {
+        
+        if lhs.sign != rhs.sign {
+            return rhs.sign
+        }
+        
+        if lhs.sign {
+            return -lhs < -rhs
+        }
+        
+        var lhs = lhs
+        var rhs = rhs
+
+        if lhs.storage.count != rhs.storage.count {
+            if lhs.isZero && rhs.isZero {
+                return false
+            }
+            
+            return lhs.storage.count > rhs.storage.count
+        }
+        
+        if lhs.storage.count > 0 {
+            for i in (0 ..< lhs.storage.count).reversed()
+            {
+                if lhs.storage[i] == rhs.storage[i] {
+                    continue
+                }
+                
+                return lhs.storage[i] > rhs.storage[i]
+            }
+            
+            return false
+        }
+        
+        assert(lhs.storage.count == 0 && rhs.storage.count == 0)
+        
+        return false
     }
-    
-    public static func %=(lhs: inout BigInt, rhs: BigInt) {
-        lhs = division(lhs, rhs).1
+}
+
+extension BigInt {
+    init?(hexString : String)
+    {
+        var bytes = [UInt8]()
+        var bytesLeft = hexString.utf8.count
+        var byte : UInt8 = 0
+        for c in hexString.utf8
+        {
+            var a : UInt8
+            switch (c)
+            {
+            case 0x30...0x39: // '0'...'9'
+                a = c - 0x30
+                
+            case 0x41...0x46: // 'A'...'F'
+                a = c - 0x41 + 0x0a
+                
+            case 0x61...0x66: // 'a'...'f'
+                a = c - 0x61 + 0x0a
+                
+            default:
+                return nil
+            }
+            
+            byte = byte << 4 + a
+            
+            if bytesLeft & 0x1 == 1 {
+                bytes.append(byte)
+            }
+            
+            bytesLeft -= 1
+        }
+        
+        let padding = MemoryLayout<Word>.size - bytes.count % MemoryLayout<Word>.size
+        bytes = [UInt8](repeating: 0, count: padding) + bytes
+        bytes = bytes.reversed()
+        var storage = BigIntStorage(capacity: bytes.count / MemoryLayout<Word>.size)
+        bytes.withUnsafeMutableBytes { bytes in
+            let ptr = UnsafeMutableRawBufferPointer(bytes)
+            let uintbuffer = ptr.bindMemory(to: UInt.self)
+            storage.initialize(from: uintbuffer)
+            ptr.bindMemory(to: UInt8.self)
+        }
+        
+        self.init(storage: storage, sign: false)
     }
-    
-    public static func &=(lhs: inout BigInt, rhs: BigInt) {
-        fatalError()
+
+    var hexString: String {
+        return "\(self)"
     }
-    
-    public static func |=(lhs: inout BigInt, rhs: BigInt) {
-        fatalError()
-    }
-    
-    public static func ^=(lhs: inout BigInt, rhs: BigInt) {
-        fatalError()
-    }
-    
-    public func quotientAndRemainder(dividingBy rhs: BigInt) -> (quotient: BigInt, remainder: BigInt) {
-        return (BigInt(), BigInt())
-    }
-    
+}
+
+extension BigInt : CustomStringConvertible {
     public var description: String {
         return "\(self)"
     }
-    
-    private static func short_division(_ u : BigInt, _ v : BigInt.Word) -> (BigInt, BigInt.Word)
-    {
-        var r = BigInt.Word(0)
-        let n = u._words.count
-        let vv = BigInt.Word(v)
-        
-        var q: BigInt.Word
-        var result = BigInt(count: n)
-        for i in (0 ..< n).reversed() {
-            (q, r) = vv.dividingFullWidth((r, u._words[i]))
-            
-            result._words[i] = q
-        }
-        
-        result.normalize()
-        
-        if u.sign != (v < 0) {
-            result.sign = true
-        }
-
-        return (result, r)
-    }
-
-    private static func division(_ u : BigInt, _ v : BigInt) -> (BigInt, BigInt)
-    {
-        // This is an implementation of Algorithm D in
-        // "The Art of Computer Programming" by Donald E. Knuth, Volume 2, Seminumerical Algorithms, 3rd edition, p. 272
-        if v.isZero {
-            // handle error
-            return (BigInt(0), BigInt(0))
-        }
-        
-        if u.isZero {
-            return (BigInt(0), BigInt(0))
-        }
-        
-        let n = v._words.count
-        let m = u._words.count - v._words.count
-        
-        if m < 0 {
-            return (BigInt(0), u)
-        }
-        
-        if n == 1 && m == 0 {
-            let remainder = BigInt(u._words[0] % v._words[0], negative: u.sign)
-            
-            return (BigInt(u._words[0] / v._words[0]), remainder)
-        }
-        else if n == 1 {
-            let divisor = v._words[0]
-            
-            let (quotient, remainder) = short_division(u, divisor)
-            
-            return (quotient, BigInt(remainder))
-        }
-     
-        let uSign = u.sign
-
-        var u = BigInt(u._words)
-        var v = BigInt(v._words)
-        
-        var result = BigInt(count: m + 1)
-        
-        // normalize, so that v[0] >= base/2 (i.e. 2^31 in our case)
-        let shift = BigInt.Word((MemoryLayout<Word>.size * 8) - 1)
-        let highestBitMask : BigInt.Word = 1 << shift
-        var hi = v._words[n - 1]
-        var d = BigInt.Word(1)
-        while (Word(hi) & Word(highestBitMask)) == 0
-        {
-            hi = hi << 1
-            d  = d  << 1
-        }
-        
-        if d != 1 {
-            u = u * BigInt(d)
-            v = v * BigInt(d)
-        }
-        
-        if u._words.count < m + n + 1 {
-            u._words.append(0)
-        }
-        
-        for j in (0 ..< m+1).reversed()
-        {
-            // D3. Calculate q
-            let (hi, lo) = (u._words[j + n], u._words[j + n - 1])
-            let dividend: (BigInt.Word, BigInt.Word)
-            
-            let denominator = v._words[n - 1]
-            // If the high word is greater or equal to the denominator we would overflow dividingFullWidth.
-            // So in order to avoid that we are just dividing the high word, and rememember that the result
-            // needs to be shifted. Since we made sure the highest bit is set in v before this can at most
-            // result in a q of 1 (or so I convinced myself).
-            let dividendIsShifted = hi >= denominator
-            if !dividendIsShifted {
-                dividend = (hi, lo)
-            } else {
-                dividend = (0, hi)
-            }
-            
-            var (q, r) = denominator.dividingFullWidth(dividend)
-            
-            if q != 0 {
-                var numIterationsThroughLoop = 0
-                while true {
-                    let qTimesV = q.multipliedFullWidth(by: v._words[n - 2])
-                    guard qTimesV.0 > r ||
-                          qTimesV.0 == r && qTimesV.1 > u._words[j + n - 2]
-                    else {
-                        break
-                    }
-                    
-                    q = q - 1
-                    if q == 0 && dividendIsShifted {
-                        q = BigInt.Word.max
-                    }
-                    let overflow: Bool
-                    (r, overflow) = r.addingReportingOverflow(denominator)
-                    
-                    if overflow {
-                        break
-                    }
-                    
-                    numIterationsThroughLoop += 1
-                    
-                    assert(numIterationsThroughLoop <= 2)
-                }
-                
-                
-                // D4. Multiply and subtract
-                var vtemp = v
-                vtemp._words.append(0)
-                var temp = BigInt(u._words[j...j+n]) - vtemp * BigInt(q)
-
-                // D6. handle negative case
-                if temp.sign {
-                    temp = temp + vtemp
-                    q = q - 1
-                }
-
-                let count = temp._words.count
-                for i in 0 ..< n {
-                    u._words[j + i] = i < count ? temp._words[i] : 0
-                }
-            }
-            
-            result._words[j] = Word(q)
-            
-        }
-        
-        var q =  BigInt(result._words, negative: u.sign != v.sign)
-        
-        let uSlice = u._words[0..<n]
-        var remainder = BigInt(uSlice, negative: uSign) / d
-
-        q.normalize()
-        remainder.normalize()
-        
-        return (q, remainder)
-    }
-    
-    /// parts are given in little endian order
-    static func convert<Source : UnsignedInteger, Target : UnsignedInteger>(_ words : [Source], normalized: Bool = true) -> [Target]
-    {
-        let numberInTarget = MemoryLayout<Target>.size/MemoryLayout<Source>.size
-        
-        if numberInTarget == 1 {
-            return words.map({Target($0)})
-        }
-        
-        if numberInTarget > 0 {
-            
-            var number = [Target](repeating: 0, count: words.count / numberInTarget + ((words.count % MemoryLayout<Target>.size == 0) ? 0 : 1))
-            var index = 0
-            var numberIndex = 0
-            var n : UInt64 = 0
-            var shift = UInt64(0)
-            
-            for a in words
-            {
-                n = n + UInt64(a) << shift
-                shift = shift + UInt64(MemoryLayout<Source>.size * 8)
-                
-                if (index + 1) % numberInTarget == 0
-                {
-                    number[numberIndex] = Target(n)
-                    index = 0
-                    n = 0
-                    shift = 0
-                    numberIndex += 1
-                }
-                else {
-                    index += 1
-                }
-            }
-            
-            if n != 0 {
-                number[numberIndex] = Target(n)
-            }
-            
-            return number
-        }
-        else {
-            // T is a larger type than Target
-            let n = MemoryLayout<Source>.size/MemoryLayout<Target>.size
-            var number = [Target]()
-            
-            for a in words
-            {
-                let shift = UInt64(8 * MemoryLayout<Target>.size)
-                var mask : UInt64 = (0xffffffffffffffff >> UInt64(64 - shift))
-                for i in 0 ..< n
-                {
-                    let part : Target = Target((UInt64(a) & mask) >> (UInt64(i) * shift))
-                    number.append(part)
-                    mask = mask << shift
-                }
-            }
-            
-            if normalized {
-                while number.last != nil && number.last! == 0 {
-                    number.removeLast()
-                }
-            }
-            
-            return number
-        }
-    }
-
 }
 
-private extension String {
+func hexDigit(_ d : UInt8) -> String
+{
+    switch (d & 0xf)
+    {
+    case 0:
+        return "0"
+    case 1:
+        return "1"
+    case 2:
+        return "2"
+    case 3:
+        return "3"
+    case 4:
+        return "4"
+    case 5:
+        return "5"
+    case 6:
+        return "6"
+    case 7:
+        return "7"
+    case 8:
+        return "8"
+    case 9:
+        return "9"
+    case 0xa:
+        return "A"
+    case 0xb:
+        return "B"
+    case 0xc:
+        return "C"
+    case 0xd:
+        return "D"
+    case 0xe:
+        return "E"
+    case 0xf:
+        return "F"
+        
+    default:
+        return "0"
+    }
+}
+
+func hexString(_ c : UInt8) -> String
+{
+    return hexDigit((c & 0xf0) >> 4) + hexDigit(c & 0xf)
+}
+
+func hex(_ v: BigInt) -> String
+{
+    var s = ""
+    switch v.storage.storage {
+    case .externallyManaged(let buffer):
+        let ptr = UnsafeMutableRawBufferPointer(buffer)
+        let data = ptr.bindMemory(to: UInt8.self)
+        
+        let count = v.storage.count * MemoryLayout<BigIntStorage.Word>.size
+        for i in 0 ..< count {
+            let c = data[count - i - 1]
+            //        if (i % 16 == 0 && i != 0) {
+            //            s += "\n"
+            //        }
+            s += String(format: "%02x ", arguments: [c])
+        }
+        
+        ptr.bindMemory(to: BigIntStorage.Word.self)
+    case .internallyManaged(_):
+        let data = [UInt8](v.asBigEndianData().reversed())
+        let count = data.count
+        for i in 0..<count {
+            let c = data[count - i - 1]
+            //        if (i % 16 == 0 && i != 0) {
+            //            s += "\n"
+            //        }
+            s += String(format: "%02x ", arguments: [c])
+        }
+    }
+    
+    return v.sign ? "- " + s : s
+}
+
+extension String {
     init(stringInterpolationSegment expr : BigInt)
     {
+        var expr = expr
         var s = ""
         var onlyZeroesYet = true
-        let count = Int(expr._words.count)
+        let count = Int(expr.storage.count)
         
         for i in (0..<count).reversed()
         {
-            let part = expr._words[i]
+            let part = expr.storage[i]
             var c : UInt8
             
             var shift = (MemoryLayout<BigInt.Word>.size - 1) * 8
@@ -1168,4 +1868,3 @@ private extension String {
         self = expr.sign ? "-" + s : s
     }
 }
-

@@ -226,53 +226,63 @@ struct RSA
     }
     
     func rsasp1(m: BigInt) throws -> BigInt {
-        guard m < self.n - 1 else {
-            throw Error.messageRepresentativeOutOfRange
+        return try BigInt.withContextReturningBigInt { _ -> BigInt in
+            guard m < self.n - 1 else {
+                throw Error.messageRepresentativeOutOfRange
+            }
+        
+            guard let d = self.d else {
+                throw TLSError.error("Signing primitive used without a private key")
+            }
+        
+            // FIXME: Use second form (CRT) when applicable
+            let s = reducer.modular_pow(m, d)
+        
+            return s
         }
-        
-        guard let d = self.d else {
-            throw TLSError.error("Signing primitive used without a private key")
-        }
-        
-        // FIXME: Use second form (CRT) when applicable
-        let s = reducer.modular_pow(m, d)
-        
-        return s
     }
     
     func rsavp1(s: BigInt) throws -> BigInt {
-        guard s < self.n - 1 else {
-            throw Error.signatureRepresentativeOutOfRange
+        return try BigInt.withContextReturningBigInt { _ -> BigInt in
+            guard s < self.n - 1 else {
+                throw Error.signatureRepresentativeOutOfRange
+            }
+            
+
+            let m = reducer.modular_pow(s, e, constantTime: false)
+
+            return m
         }
-        
-        let m = reducer.modular_pow(s, e, constantTime: false)
-        
-        return m
     }
 
     func rsaep(m: BigInt) throws -> BigInt {
-        guard m < self.n - 1 else {
-            throw Error.messageRepresentativeOutOfRange
+        return try BigInt.withContextReturningBigInt { _ -> BigInt in
+            guard m < self.n - 1 else {
+                throw Error.messageRepresentativeOutOfRange
+            }
+            
+
+            let c = reducer.modular_pow(m, e)
+
+            return c
         }
-        
-        let c = reducer.modular_pow(m, e)
-        
-        return c
     }
-    
+
     func rsadp(c: BigInt) throws -> BigInt {
-        guard c < self.n - 1 else {
-            throw Error.cipherTextRepresentativeOutOfRange
+        return try BigInt.withContextReturningBigInt { _ -> BigInt in
+            guard c < self.n - 1 else {
+                throw Error.cipherTextRepresentativeOutOfRange
+            }
+        
+            guard let d = self.d else {
+                throw TLSError.error("Decryption primitive used without a private key")
+            }
+        
+            // FIXME: Use second form (CRT) when applicable
+            let m = reducer.modular_pow(c, d)
+        
+            return m
         }
-        
-        guard let d = self.d else {
-            throw TLSError.error("Decryption primitive used without a private key")
-        }
-        
-        // FIXME: Use second form (CRT) when applicable
-        let m = reducer.modular_pow(c, d)
-        
-        return m
     }
 
     // We are currently only supporting PKCS1 encryption, not OAEP
@@ -341,31 +351,35 @@ extension RSA : Signing
 {
     func sign(data: [UInt8]) throws -> [UInt8]
     {
-        switch self.algorithm {
-            
-        case .rsa_pkcs1(_):
-            return try rsassa_pkcs1_v1_5_sign(m: data)
-            
-        case .rsassa_pss(_, _):
-            return try rsassa_pss_sign(message: data)
-            
-        default:
-            fatalError("Invalid signature scheme \(self.algorithm)")
+        return try BigInt.withContext { _ in
+            switch self.algorithm {
+                
+            case .rsa_pkcs1(_):
+                return try rsassa_pkcs1_v1_5_sign(m: data)
+                
+            case .rsassa_pss(_, _):
+                return try rsassa_pss_sign(message: data)
+                
+            default:
+                fatalError("Invalid signature scheme \(self.algorithm)")
+            }
         }
     }
     
     func verify(signature : [UInt8], data : [UInt8]) throws -> Bool
     {
-        switch self.algorithm {
-            
-        case .rsa_pkcs1(_):
-            return try rsassa_pkcs1_v1_5_verify(m: data, s: signature)
-            
-        case .rsassa_pss(_, _):
-            return try rsassa_pss_verify(message: data, signature: signature)
-            
-        default:
-            fatalError("Invalid signature scheme \(self.algorithm)")
+        return try BigInt.withContext { _ in
+            switch self.algorithm {
+                
+            case .rsa_pkcs1(_):
+                return try rsassa_pkcs1_v1_5_verify(m: data, s: signature)
+                
+            case .rsassa_pss(_, _):
+                return try rsassa_pss_verify(message: data, signature: signature)
+                
+            default:
+                fatalError("Invalid signature scheme \(self.algorithm)")
+            }
         }
     }
 }

@@ -8,15 +8,15 @@
 
 import Foundation
 
-struct Montgomery : ModularReduction
+public struct Montgomery : ModularReduction
 {
-    let modulus: BigInt
+    public let modulus: BigInt
     let k: Int
     let r: BigInt
     let rInv: BigInt
     let mDash: BigInt
     
-    init(modulus: BigInt) {
+    public init(modulus: BigInt) {
         self.modulus = modulus
         self.k = modulus.words.count * MemoryLayout<BigInt.Word>.size * 8 + 1
         self.r = BigInt(1) << k
@@ -24,8 +24,9 @@ struct Montgomery : ModularReduction
         self.mDash = SwiftTLS.modular_inverse(BigInt(-1), self.modulus, mod: self.r)
     }
     
-    func reduce(_ x: BigInt) -> BigInt {
-        return x % modulus
+    public func reduce(_ x: BigInt) -> BigInt {
+        let result =  x % modulus
+        return result < 0 ? result + modulus : result
     }
     
     func montgomeryReduce(_ x: BigInt) -> BigInt {
@@ -35,7 +36,7 @@ struct Montgomery : ModularReduction
     func multiply(_ x: BigInt, _ y: BigInt) -> BigInt {
         let t = x * y
         var m = t * mDash
-        m.mask(upToHighestBit: k)
+        m = m.masked(upToHighestBit: k)
         var u = t + m * modulus
         u >>= k
         
@@ -46,7 +47,7 @@ struct Montgomery : ModularReduction
         return u
     }
     
-    func modular_pow(_ base: BigInt, _ exponent: BigInt, constantTime: Bool = true) -> BigInt {
+    public func modular_pow(_ base: BigInt, _ exponent: BigInt, constantTime: Bool = true) -> BigInt {
 //        let rSquared = reduce(r * r)
         let x = montgomeryReduce(base)
         

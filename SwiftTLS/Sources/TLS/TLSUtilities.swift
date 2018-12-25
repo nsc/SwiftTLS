@@ -323,53 +323,53 @@ class TLSSecurityParameters
     var serverVerifyData: [UInt8] = []
 }
 
-func hexDigit(_ d : UInt8) -> String
-{
-    switch (d & 0xf)
-    {
-    case 0:
-        return "0"
-    case 1:
-        return "1"
-    case 2:
-        return "2"
-    case 3:
-        return "3"
-    case 4:
-        return "4"
-    case 5:
-        return "5"
-    case 6:
-        return "6"
-    case 7:
-        return "7"
-    case 8:
-        return "8"
-    case 9:
-        return "9"
-    case 0xa:
-        return "A"
-    case 0xb:
-        return "B"
-    case 0xc:
-        return "C"
-    case 0xd:
-        return "D"
-    case 0xe:
-        return "E"
-    case 0xf:
-        return "F"
-        
-    default:
-        return "0"
-    }
-}
-
-func hexString(_ c : UInt8) -> String
-{
-    return hexDigit((c & 0xf0) >> 4) + hexDigit(c & 0xf)
-}
-
+//func hexDigit(_ d : UInt8) -> String
+//{
+//    switch (d & 0xf)
+//    {
+//    case 0:
+//        return "0"
+//    case 1:
+//        return "1"
+//    case 2:
+//        return "2"
+//    case 3:
+//        return "3"
+//    case 4:
+//        return "4"
+//    case 5:
+//        return "5"
+//    case 6:
+//        return "6"
+//    case 7:
+//        return "7"
+//    case 8:
+//        return "8"
+//    case 9:
+//        return "9"
+//    case 0xa:
+//        return "A"
+//    case 0xb:
+//        return "B"
+//    case 0xc:
+//        return "C"
+//    case 0xd:
+//        return "D"
+//    case 0xe:
+//        return "E"
+//    case 0xf:
+//        return "F"
+//
+//    default:
+//        return "0"
+//    }
+//}
+//
+//func hexString(_ c : UInt8) -> String
+//{
+//    return hexDigit((c & 0xf0) >> 4) + hexDigit(c & 0xf)
+//}
+//
 func hex(_ data : [UInt8]) -> String
 {
     var s = ""
@@ -380,15 +380,15 @@ func hex(_ data : [UInt8]) -> String
         }
         s += String(format: "%02x ", arguments: [c])
     }
-    
+
     return s
 }
-
-extension BigInt {
-    var hexString: String {
-        return "\(self)"
-    }
-}
+//
+//extension BigInt {
+//    var hexString: String {
+//        return "\(self)"
+//    }
+//}
 
 
 /// XOR
@@ -667,10 +667,8 @@ extension UnsignedInteger where Self : FixedWidthInteger {
     }
 }
 
-public func TLSRandomBytes(count: Int) -> [UInt8]
+public func TLSFillWithRandomBytes(_ buffer: UnsafeMutableRawBufferPointer)
 {
-    var randomBytes = [UInt8](repeating: 0, count: count)
-    
     #if os(Linux)
     struct SeedSetter {
         static let fd: Int32? = {
@@ -694,11 +692,23 @@ public func TLSRandomBytes(count: Int) -> [UInt8]
     
     _ = SeedSetter.fd
     
-    randomBytes = randomBytes.map {_ in UInt8(random() & 0xff)}
+    let uint8buffer = buffer.bindMemory(to: UInt8.self)
+    for i in 0..<buffer.count {
+        uint8buffer[i] = UInt8(random() & 0xff)
+    }
     #else
-    arc4random_buf(&randomBytes, count)
+    arc4random_buf(buffer.baseAddress, buffer.count)
     #endif
+}
 
+public func TLSRandomBytes(count: Int) -> [UInt8]
+{
+    var randomBytes = [UInt8](repeating: 0, count: count)
+    
+    randomBytes.withUnsafeMutableBytes { (buffer)  in
+        TLSFillWithRandomBytes(buffer)
+    }
+    
     return randomBytes
 }
 

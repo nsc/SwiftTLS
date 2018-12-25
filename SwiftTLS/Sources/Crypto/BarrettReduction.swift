@@ -29,7 +29,7 @@ public struct BarrettReduction : ModularReduction
         }
         
         let xSign = x.sign
-        x.sign = false
+        x = x.sign ? -x : x
         
         let k = modulus.words.count
         
@@ -38,9 +38,9 @@ public struct BarrettReduction : ModularReduction
         let q3 = q2 >> (BigInt.Word.bitWidth * (k + 1))
         
         var r1 = x
-        r1.mask(upToHighestBit: BigInt.Word.bitWidth * (k + 1))
+        r1 = r1.masked(upToHighestBit: BigInt.Word.bitWidth * (k + 1))
         var r2 = q3 * modulus
-        r2.mask(upToHighestBit: BigInt.Word.bitWidth * (k + 1))
+        r2 = r2.masked(upToHighestBit: BigInt.Word.bitWidth * (k + 1))
         
         var r = r1 - r2
         let tmp = r + BigInt(1) << (BigInt.Word.bitWidth * (k + 1))

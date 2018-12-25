@@ -88,10 +88,10 @@ public enum TLSSignatureScheme : UInt16 {
     var signatureAlgorithm: X509.SignatureAlgorithm? {
         switch self {
         case .ecdsa_secp256r1_sha256:
-            return .ecPublicKey(curveName: secp256r1.name.oid, hash: .sha256)
+            return .ecPublicKey(curveName: NamedGroup.secp256r1.oid, hash: .sha256)
 
         case .ecdsa_secp521r1_sha512:
-            return .ecPublicKey(curveName: secp521r1.name.oid, hash: .sha512)
+            return .ecPublicKey(curveName: NamedGroup.secp521r1.oid, hash: .sha512)
             
         case .rsa_pss_sha256:
             return .rsassa_pss(hash: .sha256, saltLength: HashAlgorithm.sha256.hashLength)

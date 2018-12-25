@@ -9,7 +9,7 @@
 // result: (quotient, remainder)
 func division<T : BinaryInteger>(_ a : T, _ b : T) -> (T, T)
 {
-    return (a / b, a % b)
+    return a.quotientAndRemainder(dividingBy: b)
 }
 
 public func modular_pow(_ base : BigInt, _ exponent : BigInt, _ mod : BigInt) -> BigInt

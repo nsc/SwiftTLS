@@ -15,12 +15,12 @@ class BigIntBitOperationTests: XCTestCase {
         ("test_shiftRight_nonMultiplesOfWordSize_givesCorrectResult", test_shiftRight_nonMultiplesOfWordSize_givesCorrectResult),
         ("test_shiftLeft_multiplesOfWordSize_givesCorrectResult", test_shiftLeft_multiplesOfWordSize_givesCorrectResult),
         ("test_shiftLeft_nonMultiplesOfWordSize_givesCorrectResult", test_shiftLeft_nonMultiplesOfWordSize_givesCorrectResult),
-    ]
+        ]
     
-
+    
     func test_shiftRight_multiplesOfWordSize_givesCorrectResult() {
         let value = BigInt([0x123456789abcdef0, 0xfedcba9876543210, 0xf67819356ef46abc] as [UInt64])
-
+        
         let testVectors = [(64, BigInt([0xfedcba9876543210, 0xf67819356ef46abc] as [UInt64])),
                            (128, BigInt([0xf67819356ef46abc] as [UInt64])),
                            (192, BigInt([0] as [UInt64])),
@@ -38,8 +38,9 @@ class BigIntBitOperationTests: XCTestCase {
         let value = BigInt(hexString: "123456789abcdef0fedcba9876543210f67819356ef46abc")!
         
         let testVectors = [(23, BigInt(hexString: "2468acf13579bde1fdb97530eca86421ecf0326add")!),
-                            (85, BigInt(hexString: "91a2b3c4d5e6f787f6e5d4c3b2")!)
-                           ]
+                           (85, BigInt(hexString: "91a2b3c4d5e6f787f6e5d4c3b2")!),
+                           (132, BigInt(hexString: "123456789abcdef")!)
+        ]
         
         for (shift, result) in testVectors {
             var b = value
@@ -79,5 +80,18 @@ class BigIntBitOperationTests: XCTestCase {
             XCTAssertTrue(b == result)
         }
     }
+    
+    func test_isBitSet__givesCorrectResult() {
+        let value = BigInt(hexString: "123456789abcdef0fedcba9876543210f67819356ef46abc")!
 
+        for i in 0..<value.bitWidth {
+            var a = value >> i
+            
+            let result = ((a.words.first ?? 0) & 0x1) != 0
+            
+            let isBitSet = value.isBitSet(i)
+            
+            XCTAssert(result == isBitSet)
+        }
+    }
 }

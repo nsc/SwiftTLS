@@ -329,7 +329,6 @@ class BigIntTests: XCTestCase {
 
     func randomBigInt() -> BigInt
     {
-        var parts = [UInt8]()
         let min = MemoryLayout<UInt64>.size
         let max = min * 5
 
@@ -351,10 +350,10 @@ class BigIntTests: XCTestCase {
     func test_divide_twoNumbers_givesCorrectResult()
     {
         let uvValues : [(String, String)] = [
-            ("8fae", "e0"),
-            ("10000", "ffff"),
-            ("1000000", "ffff"),
-            ("100000", "10ff"),
+//            ("8fae", "e0"),
+//            ("10000", "ffff"),
+//            ("1000000", "ffff"),
+//            ("100000", "10ff"),
             ("100000000000000000000000000000000", "ff000000000000000"),
             ("ffffffff26265235ffffff232323f23f23f232323f3243243f", "ffffffff12365981274ffffff1231265123ff"),
             ("A4F9B770F1A0A93F2880E44D1835EE3668B066401982AFA7BC44F3EA4A71D3594CA74BF7071B864106C7C1C862EE928336592C1F0C0C850F3A40E394C6BB71AE70461EE5C31F0D71E220FDFD755B3E921E1C32", "71FD484EBA7FBD7394"),
@@ -426,50 +425,79 @@ class BigIntTests: XCTestCase {
 
     func test_mod_pow_withTwoRandomNumbers_givesCorrectResult()
     {
-        for i in 0..<100
-        {
-            let u = randomBigInt()
-            let mod = randomBigInt()
-            let n = BigInt.Word(UInt64.random % 10000)
-
-            let s = BIGNUM_mod_pow(u.hexString, String(n, radix: 16), mod.hexString)
-
-            let result = modular_pow(u, BigInt(n), mod)
-
-            let divHex = result.hexString
-
-            if divHex.lowercased() != s.lowercased() {
-                print("\(i):")
-                print("Wrong mod_pow result for \(u) % \(n)")
-                print("    Should be       \(s)\n" +
-                    "    but is actually \(divHex)")
+        BigInt.withContext { _ in
+            for i in 0..<100
+            {
+                let u = randomBigInt()
+                let mod = randomBigInt()
+                let n = BigInt.Word(UInt64.random % 10000)
+                
+                let s = BIGNUM_mod_pow(u.hexString, String(n, radix: 16), mod.hexString)
+                
+                let result = modular_pow(u, BigInt(n), mod)
+                
+                let divHex = result.hexString
+                
+                if divHex.lowercased() != s.lowercased() {
+                    print("\(i):")
+                    print("Wrong mod_pow result for \(u) % \(n)")
+                    print("    Should be       \(s)\n" +
+                        "    but is actually \(divHex)")
+                }
+                
+                XCTAssert(divHex.lowercased() == s.lowercased(), "Wrong mod_pow result for \(u) ^ \(n) % \(mod)")
             }
-
-            XCTAssert(divHex.lowercased() == s.lowercased(), "Wrong mod_pow result for \(u) ^ \(n) % \(mod)")
         }
     }
 
     func test_mod_pow_withRandomBigIntExponent_givesCorrectResult()
     {
-        for i in 0..<100
-        {
-            let u = BigInt(3)
-            let mod = randomBigInt()
-            let n = randomBigInt()
+        BigInt.withContext { _ in
+            for i in 0..<100
+            {
+                let u = BigInt(3)
+                let mod = randomBigInt()
+                let n = randomBigInt()
+                
+                let s = BIGNUM_mod_pow(u.hexString, n.hexString, mod.hexString)
+                
+                let result = modular_pow(u, n, mod)
+                
+                let divHex = result.hexString
+                
+                if divHex.lowercased() != s.lowercased() {
+                    print("\(i):")
+                    print("Wrong mod_pow result for \(u) % \(n)")
+                    print("    Should be       \(s)\n" +
+                        "    but is actually \(divHex)")
+                }
+                
+                XCTAssert(divHex.lowercased() == s.lowercased(), "Wrong mod_pow result for \(u) ^ \(n) % \(mod)")
+            }
+        }
+    }
+
+    func test_mod_pow_withNonRandomBigIntExponent_givesCorrectResult() {
+        BigInt.withContext { _ in
+//            let u = BigInt(3)
+//            let mod = BigInt(hexString: "BEC82AE3617E90A9")!
+//            let n = BigInt(hexString: "A421A73A064554B7F65B48ACD1EB8FAF8D4A8A506480F13F53E3")!
+            let u = BigInt(hexString: "7BC1161DF786C7E1E73BF66E2BFBCA195893DCD4BAE620A1BE514A708A93A6108D3833C5A7")!
+            let mod = BigInt(hexString: "6FB35021AC01FE651D8EFDDFE3CDCD3E014396347B0E804720A02FE43E24CCBE2DCE26699B84334DD1C67E1E619AF4")!
+            let n = BigInt(6083)
 
             let s = BIGNUM_mod_pow(u.hexString, n.hexString, mod.hexString)
-
+            
             let result = modular_pow(u, n, mod)
-
+            
             let divHex = result.hexString
-
+            
             if divHex.lowercased() != s.lowercased() {
-                print("\(i):")
                 print("Wrong mod_pow result for \(u) % \(n)")
                 print("    Should be       \(s)\n" +
                     "    but is actually \(divHex)")
             }
-
+            
             XCTAssert(divHex.lowercased() == s.lowercased(), "Wrong mod_pow result for \(u) ^ \(n) % \(mod)")
         }
     }
@@ -516,11 +544,12 @@ class BigIntTests: XCTestCase {
             let x = BigInt(hexString: testVector.x)!
             let y = BigInt(hexString: testVector.y)!
             let a = BigInt(hexString: testVector.mod)!
+            let expectedResult = BigInt(hexString: testVector.result)!
             
             let reduction = BarrettReduction(modulus: a)
             let result = reduction.modular_inverse(x, y)
             
-            XCTAssert(result == BigInt(hexString: testVector.result)!)
+            XCTAssert(result == expectedResult)
         }
     }
 

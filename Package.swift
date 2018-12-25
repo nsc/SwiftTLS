@@ -26,6 +26,7 @@ let package = Package(
             name: "SwiftTLS",
             dependencies: [],
             path: "SwiftTLS",
+            exclude: ["Sources/Crypto/OldBigInt.swift"],
             sources: ["Sources"]
         ),
         .target(

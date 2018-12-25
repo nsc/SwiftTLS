@@ -17,30 +17,33 @@ class MontgomeryTests: XCTestCase {
     ]
     
     func test_multiply_forSomeInput_givesCorrectResult() {
-        let modulus = BigInt(72639)
-        let sut = Montgomery(modulus: modulus)
-        
-        print((sut.r * sut.rInv) % sut.modulus)
-        print((sut.modulus * sut.mDash) % sut.r)
-        
-        let a = BigInt(5791)
-        let b = BigInt(1229)
-        let aMon = sut.montgomeryReduce(BigInt(5791))
-        let bMon = sut.montgomeryReduce(BigInt(1229))
-        let result = sut.multiply(aMon, bMon)
-        
-        XCTAssert((a * b) % modulus == (result * sut.rInv) % modulus)
+        BigInt.withContext { _ in
+            let modulus = BigInt(72639)
+            let sut = Montgomery(modulus: modulus)
+            
+            print((sut.r * sut.rInv) % sut.modulus)
+            print((sut.modulus * sut.mDash) % sut.r)
+            
+            let a = BigInt(5791)
+            let b = BigInt(1229)
+            let aMon = sut.montgomeryReduce(BigInt(5791))
+            let bMon = sut.montgomeryReduce(BigInt(1229))
+            let result = sut.multiply(aMon, bMon)
+            
+            XCTAssert((a * b) % modulus == (result * sut.rInv) % modulus)
+        }
     }
 
     func test_modular_pow_forSomeInput_givesCorrectResult() {
-        let modulus = BigInt(72639)
-        let sut = Montgomery(modulus: modulus)
-        
-        let a = BigInt(5791)
-        let exponent = BigInt(175)
-        let result = sut.modular_pow(a, exponent)
-
-        XCTAssert(result == modular_pow(a, exponent, modulus))
+        BigInt.withContext { _ in
+            let modulus = BigInt(72639)
+            let sut = Montgomery(modulus: modulus)
+            
+            let a = BigInt(5791)
+            let exponent = BigInt(175)
+            let result = sut.modular_pow(a, exponent)
+            
+            XCTAssert(result == modular_pow(a, exponent, modulus))
+        }
     }
-
 }
