@@ -79,6 +79,10 @@ public class TLSConnection
     var handshakeMessages: [TLSHandshakeMessage]
     
     var transcriptHash: [UInt8] {
+        return transcriptHash(droppingLast: 0)
+    }
+    
+    private func transcriptHash(droppingLast numberOfDroppedBytes: Int) -> [UInt8] {
         var handshakeData: [UInt8] = []
         for message in self.handshakeMessages {
             if let version = self.negotiatedProtocolVersion,
@@ -97,7 +101,11 @@ public class TLSConnection
             handshakeData.append(contentsOf: message.messageData(with: self))
         }
         
-        return self.hashAlgorithm.hashFunction(handshakeData)
+        return self.hashAlgorithm.hashFunction([UInt8](handshakeData.dropLast(numberOfDroppedBytes)))
+    }
+    
+    func transcriptHashWithTruncatedClientHello(droppingLast numberOfDroppedBytes: Int) -> [UInt8] {
+        return transcriptHash(droppingLast: numberOfDroppedBytes)
     }
     
     var handshakeMessageData: [UInt8] {

@@ -85,11 +85,16 @@ func server(address: IPAddress, certificatePath: String, dhParametersPath : Stri
                         }
                     
                         let response = """
+                        <html><title>Swift TLS</title><body><pre>
                         Date: \(Date())
                         \(client.connectionInfo)
                         
                         Your Request:
                         \(clientRequest)
+                        
+                        </pre>
+                        <a href="/">reload</a>
+                        </body></html>
                         """
                         
                         log("""
@@ -105,7 +110,7 @@ func server(address: IPAddress, certificatePath: String, dhParametersPath : Stri
                             let clientWantsMeToCloseTheConnection = (httpHeader["Connection"]?.lowercased() == "close")
                             
                             let contentLength = response.utf8.count
-                            let header = "HTTP/1.0 200 OK\r\nServer: SwiftTLS\r\nConnection: Close\r\nContent-Length: \(contentLength)\r\n\r\n"
+                            let header = "HTTP/1.0 200 OK\r\nServer: SwiftTLS\r\nConnection: Close\r\nContent-Type: text/html\r\nContent-Length: \(contentLength)\r\n\r\n"
                             let body = "\(response)"
                             try client.write(header + body)
                             

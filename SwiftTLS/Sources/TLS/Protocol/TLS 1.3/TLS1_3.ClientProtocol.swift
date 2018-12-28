@@ -195,8 +195,9 @@ extension TLS1_3 {
                 else {
                     let truncatedClientHelloData = self.truncatedClientHelloDataForPSKBinders(for: clientHello, tickets: tickets)
                     let truncatedTranscriptData = self.connection.handshakeMessageData + truncatedClientHelloData
+                    let transcriptHash = self.connection.hashAlgorithm.hashFunction(truncatedTranscriptData)
                     
-                    binder = binderValueWithHashAlgorithm(ticket.hashAlgorithm, binderKey: binderKey, truncatedTranscriptData: truncatedTranscriptData)
+                    binder = binderValueWithHashAlgorithm(ticket.hashAlgorithm, binderKey: binderKey, transcriptHash: transcriptHash)
                 }
                 
                 binders.append(PSKBinderEntry(binder: binder))

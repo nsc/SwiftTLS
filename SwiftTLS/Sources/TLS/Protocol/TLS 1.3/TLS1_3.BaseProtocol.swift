@@ -187,10 +187,9 @@ extension TLS1_3 {
             fatalError("sendFinished not overridden")
         }
         
-        func binderValueWithHashAlgorithm(_ hashAlgorithm: HashAlgorithm, binderKey: [UInt8], truncatedTranscriptData: [UInt8]) -> [UInt8] {
+        func binderValueWithHashAlgorithm(_ hashAlgorithm: HashAlgorithm, binderKey: [UInt8], transcriptHash: [UInt8]) -> [UInt8] {
 
-            let hash = hashAlgorithm.hashFunction(truncatedTranscriptData)
-            let binder = hashAlgorithm.macAlgorithm.hmacFunction(binderKey, hash)
+            let binder = hashAlgorithm.macAlgorithm.hmacFunction(binderKey, transcriptHash)
             
             return binder
         }

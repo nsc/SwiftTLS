@@ -163,6 +163,22 @@ extension TLS1_3 {
                 }
             }
             
+            guard let cipherSuite = server.selectCipherSuite(clientHello.cipherSuites) else {
+                try server.sendAlert(.handshakeFailure, alertLevel: .fatal)
+                throw TLSError.error("No shared cipher suites. Client supports:" + clientHello.cipherSuites.map({"\($0)"}).reduce("", {$0 + "\n" + $1}))
+            }
+            
+            log("Selected cipher suite is \(cipherSuite)")
+            
+            guard let keyShares = clientKeyShares,
+                let keyShare = selectKeyShare(fromClientKeyShares: keyShares)
+                else {
+                    
+                    // Return without setting cipher suite and key share. The state machine
+                    // will send a retry request if possible.
+                    return
+            }
+
             // FIXME: Check that the combination of offered extensions for key share and PSKs is sane
             if let offeredPSKs = clientOfferedPSKs {
                 guard let pskKeyExchangeModes = clientPSKKeyExchangeModes else {
@@ -174,8 +190,7 @@ extension TLS1_3 {
                 }
                 
                 let bindersSize = offeredPSKs.bindersNetworkSize
-                let clientHelloData = clientHello.messageData(with: self.connection)
-                let truncatedClientHelloData = [UInt8](clientHelloData.dropLast(bindersSize))
+                let truncatedTranscriptHash = self.connection.transcriptHashWithTruncatedClientHello(droppingLast: bindersSize)
                 
                 var chosenTicket: Ticket? = nil
                 for i in 0..<offeredPSKs.identities.count {
@@ -199,7 +214,7 @@ extension TLS1_3 {
                         
                         let binderKey = deriveBinderKey()
                         
-                        let binderValue = binderValueWithHashAlgorithm(ticket.hashAlgorithm, binderKey: binderKey, truncatedTranscriptData: truncatedClientHelloData)
+                        let binderValue = binderValueWithHashAlgorithm(ticket.hashAlgorithm, binderKey: binderKey, transcriptHash: truncatedTranscriptHash)
                         
                         let binder = offeredPSKs.binders[i]
                         
@@ -223,22 +238,6 @@ extension TLS1_3 {
                     self.handshakeState.preSharedKey = nil
                     self.handshakeState.resumptionBinderSecret = nil
                 }
-            }
-            
-            guard let cipherSuite = server.selectCipherSuite(clientHello.cipherSuites) else {
-                try server.sendAlert(.handshakeFailure, alertLevel: .fatal)
-                throw TLSError.error("No shared cipher suites. Client supports:" + clientHello.cipherSuites.map({"\($0)"}).reduce("", {$0 + "\n" + $1}))
-            }
-            
-            log("Selected cipher suite is \(cipherSuite)")
-            
-            guard let keyShares = clientKeyShares,
-                  let keyShare = selectKeyShare(fromClientKeyShares: keyShares)
-            else {
-                    
-                // Return without setting cipher suite and key share. The state machine
-                // will send a retry request if possible.
-                return
             }
             
             server.cipherSuite = cipherSuite
