@@ -18,6 +18,16 @@ class RSATests: XCTestCase {
         ("test_decrypt_encryptedData_givesOriginalData", test_decrypt_encryptedData_givesOriginalData),
     ]
     
+    override func setUp() {
+        var ctx = BigIntContext()
+        ctx.open()
+        _ = BigIntContext.setContext(ctx)
+    }
+    
+    override func tearDown() {
+        _ = BigIntContext.setContext(nil)
+    }
+
     func test_sign_someData_verifies()
     {
         let certificatePath = path(forResource: "mycert.pem")

@@ -16,23 +16,30 @@ class ECDSATests: XCTestCase {
         ("test_verify_signaturefromECDSAPEMFile_verifies", test_verify_signaturefromECDSAPEMFile_verifies),
         ]
 
+    override func setUp() {
+        var ctx = BigIntContext()
+        ctx.open()
+        _ = BigIntContext.setContext(ctx)
+    }
+    
+    override func tearDown() {
+        _ = BigIntContext.setContext(nil)
+    }
+
     func test_verify_signatureFromSelfSignedECDSACertificate_verifies()
     {
-        BigInt.withContext { _ in
-            
-            let certificatePath = path(forResource: "Self Signed ECDSA Certificate.cer")
-            let data = (try! Data(contentsOf: URL(fileURLWithPath: certificatePath))).UInt8Array()
-            
-            guard let cert = X509.Certificate(derData: data) else { XCTFail(); return }
-            
-            let tbsData         = cert.tbsCertificate.DEREncodedCertificate!
-            let publicKeyInfo   = cert.tbsCertificate.subjectPublicKeyInfo
-            
-            let ecdsa = ECDSA(publicKeyInfo: publicKeyInfo)!
-            let verified = ecdsa.verify(signature: cert.signatureValue.bits, data: ecdsa.hashAlgorithm.hashFunction(tbsData))
-            
-            XCTAssertTrue(verified)
-        }
+        let certificatePath = path(forResource: "Self Signed ECDSA Certificate.cer")
+        let data = (try! Data(contentsOf: URL(fileURLWithPath: certificatePath))).UInt8Array()
+        
+        guard let cert = X509.Certificate(derData: data) else { XCTFail(); return }
+        
+        let tbsData         = cert.tbsCertificate.DEREncodedCertificate!
+        let publicKeyInfo   = cert.tbsCertificate.subjectPublicKeyInfo
+        
+        let ecdsa = ECDSA(publicKeyInfo: publicKeyInfo)!
+        let verified = ecdsa.verify(signature: cert.signatureValue.bits, data: ecdsa.hashAlgorithm.hashFunction(tbsData))
+        
+        XCTAssertTrue(verified)
     }
 
     func test_fromPEMFile_withSelfSignedECDSAIdentity_givesPrivateKey() {
@@ -43,65 +50,60 @@ class ECDSATests: XCTestCase {
     }
 
     func test_verify_signaturefromECDSAPEMFile_verifies() {
-        BigInt.withContext { _ in
-            
-            let pemFile = path(forResource: "ECDSA Identity.pem")
-            guard let ecdsa = ECDSA.fromPEMFile(pemFile) else {
-                XCTFail()
-                return
-            }
-            
-            guard let certificate = X509.Certificate(PEMFile: pemFile) else {
-                XCTFail()
-                return
-            }
-            
-            let tbsData = certificate.tbsCertificate.DEREncodedCertificate!
-            let verified = ecdsa.verify(signature: certificate.signatureValue.bits, data: ecdsa.hashAlgorithm.hashFunction(tbsData))
-            
-            XCTAssertTrue(verified)
+        let pemFile = path(forResource: "ECDSA Identity.pem")
+        guard let ecdsa = ECDSA.fromPEMFile(pemFile) else {
+            XCTFail()
+            return
         }
+        
+        guard let certificate = X509.Certificate(PEMFile: pemFile) else {
+            XCTFail()
+            return
+        }
+        
+        let tbsData = certificate.tbsCertificate.DEREncodedCertificate!
+        let verified = ecdsa.verify(signature: certificate.signatureValue.bits, data: ecdsa.hashAlgorithm.hashFunction(tbsData))
+        
+        XCTAssertTrue(verified)
     }
 
     func test_sign_whenSigningSelfSignedECDSACertificate_verifies() {
-        BigInt.withContext { _ in
-            let pemFile = path(forResource: "ECDSA Identity.pem")
-            guard let ecdsa = ECDSA.fromPEMFile(pemFile) else {
-                XCTFail()
-                return
-            }
-            
-            guard let certificate = X509.Certificate(PEMFile: pemFile) else {
-                XCTFail()
-                return
-            }
-            
-            guard let tbsData = certificate.tbsCertificate.DEREncodedCertificate else {
-                XCTFail()
-                return
-            }
-            
-            let signatureAlgorithm = certificate.signatureAlgorithm.algorithm
-            let hashAlgorithm: HashAlgorithm
-            switch signatureAlgorithm
-            {
-            case .ecdsa(hash: let hash):
-                hashAlgorithm = hash
-                
-            default:
-                XCTFail()
-                return
-            }
-            
-            let hashedData = hashAlgorithm.hashFunction(tbsData)
-            
-            var signature: [UInt8] = []
-            self.measure {
-                signature = try! ecdsa.sign(data: hashedData)
-            }
-            
-            XCTAssert(ecdsa.verify(signature: signature, data: hashedData))
+        let pemFile = path(forResource: "ECDSA Identity.pem")
+        guard let ecdsa = ECDSA.fromPEMFile(pemFile) else {
+            XCTFail()
+            return
         }
+        
+        guard let certificate = X509.Certificate(PEMFile: pemFile) else {
+            XCTFail()
+            return
+        }
+        
+        guard let tbsData = certificate.tbsCertificate.DEREncodedCertificate else {
+            XCTFail()
+            return
+        }
+        
+        let signatureAlgorithm = certificate.signatureAlgorithm.algorithm
+        let hashAlgorithm: HashAlgorithm
+        switch signatureAlgorithm
+        {
+        case .ecdsa(hash: let hash):
+            hashAlgorithm = hash
+            
+        default:
+            XCTFail()
+            return
+        }
+        
+        let hashedData = hashAlgorithm.hashFunction(tbsData)
+        
+        var signature: [UInt8] = []
+        self.measure {
+            signature = try! ecdsa.sign(data: hashedData)
+        }
+        
+        XCTAssert(ecdsa.verify(signature: signature, data: hashedData))
     }
     
     func test_sign_withSecp256r1_verifies() {

@@ -151,17 +151,19 @@ extension TLSServer : ServerSocketProtocol
     public func acceptConnection(withEarlyDataResponseHandler earlyDataResponseHandler: EarlyDataResponseHandler?) throws -> SocketProtocol
     {
         let clientSocket = try self.serverSocket.acceptConnection() as! TCPSocket
-        
         let clientTLSSocket = TLSServer(configuration: self.configuration, context: self.context)
-        clientTLSSocket.socket = clientSocket
-        clientTLSSocket.signer = self.signer
-        clientTLSSocket.configuration = self.configuration
-        clientTLSSocket.recordLayer.dataProvider = clientSocket
-        clientTLSSocket.context = self.context
         
-        clientTLSSocket.earlyDataResponseHandler = earlyDataResponseHandler
-        
-        try clientTLSSocket._acceptConnection()
+        try BigInt.withContext { _ in
+            clientTLSSocket.socket = clientSocket
+            clientTLSSocket.signer = self.signer
+            clientTLSSocket.configuration = self.configuration
+            clientTLSSocket.recordLayer.dataProvider = clientSocket
+            clientTLSSocket.context = self.context
+            
+            clientTLSSocket.earlyDataResponseHandler = earlyDataResponseHandler
+            
+            try clientTLSSocket._acceptConnection()
+        }
         
         return clientTLSSocket
     }
@@ -179,28 +181,30 @@ extension TLSServer : ServerSocketProtocol
         let queue = DispatchQueue.global()
         
         queue.async {
-            if let address = clientSocket.peerName {
-                log("Connection from \(address)")
+            BigInt.withContext { _ in
+                if let address = clientSocket.peerName {
+                    log("Connection from \(address)")
+                }
+                
+                let clientTLSSocket = TLSServer(configuration: self.configuration, context: self.context)
+                clientTLSSocket.socket = clientSocket
+                clientTLSSocket.signer = self.signer
+                clientTLSSocket.configuration = self.configuration
+                clientTLSSocket.recordLayer.dataProvider = clientSocket
+                clientTLSSocket.context = self.context
+                
+                clientTLSSocket.earlyDataResponseHandler = earlyDataResponseHandler
+                
+                do {
+                    try clientTLSSocket._acceptConnection()
+                } catch let error {
+                    completionHandler(.error(error))
+                }
+                
+                completionHandler(.client(clientTLSSocket))
+                
+                Thread.current.removeThreadNumber()
             }
-
-            let clientTLSSocket = TLSServer(configuration: self.configuration, context: self.context)
-            clientTLSSocket.socket = clientSocket
-            clientTLSSocket.signer = self.signer
-            clientTLSSocket.configuration = self.configuration
-            clientTLSSocket.recordLayer.dataProvider = clientSocket
-            clientTLSSocket.context = self.context
-            
-            clientTLSSocket.earlyDataResponseHandler = earlyDataResponseHandler
-            
-            do {
-                try clientTLSSocket._acceptConnection()
-            } catch let error {
-                completionHandler(.error(error))
-            }
-            
-            completionHandler(.client(clientTLSSocket))
-            
-            Thread.current.removeThreadNumber()
         }
     }
 

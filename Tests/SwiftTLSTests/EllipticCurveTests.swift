@@ -25,6 +25,16 @@ class EllipticCurveTests: XCTestCase {
         ("test_multiplyPoint_onWellKnownCurve_yieldsCorrectResults", test_multiplyPoint_onWellKnownCurve_yieldsCorrectResults),
     ]
 
+    override func setUp() {
+        var ctx = BigIntContext()
+        ctx.open()
+        _ = BigIntContext.setContext(ctx)
+    }
+    
+    override func tearDown() {
+        _ = BigIntContext.setContext(nil)
+    }
+    
     func test_secp256r1_exists()
     {
         guard EllipticCurve.named(.secp256r1) != nil else { XCTFail(); return }

@@ -18,6 +18,17 @@ class TLSTests: XCTestCase {
         ("test_acceptConnection_whenClientConnectsWithFragmentedRecords_works", test_acceptConnection_whenClientConnectsWithFragmentedRecords_works),
     ]
 
+    override func setUp() {
+        var ctx = BigIntContext()
+        ctx.open()
+        _ = BigIntContext.setContext(ctx)
+    }
+    
+    override func tearDown() {
+        _ = BigIntContext.setContext(nil)
+    }
+    
+
     func notest_connectTLS() {
         let certificatePath = path(forResource: "mycert.pem")
         let opensslServer = Process.launchedProcess(launchPath: "/usr/local/bin/openssl", arguments: ["s_server",  "-cert", certificatePath, "-www",  "-debug", "-cipher", "ALL:NULL" ])

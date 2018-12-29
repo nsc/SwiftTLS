@@ -21,11 +21,7 @@ public struct BigIntContext
     private var bufferStack: [(Buffer, Buffer)] = []
 
     var memory: [Buffer] = []
-    var nextBuffer: Buffer? {
-        didSet {
-            
-        }
-    }
+    var nextBuffer: Buffer?
     static let memoryCapacity = 16384
     
     lazy var scratchSpace = Buffer.allocate(capacity: 1024)
@@ -96,15 +92,16 @@ public struct BigIntContext
             return context
         }
         
-        var ctx = BigIntContext()
-        ctx.open()
+        let ctx = BigIntContext()
+//        ctx.open()
+
         return setContext(ctx)!
     }
 
     static func newContext() -> UnsafeMutablePointer<BigIntContext> {
         guard let context = getContext() else {
-            var ctx = BigIntContext()
-            ctx.open()
+            let ctx = BigIntContext()
+//            ctx.open()
             return setContext(ctx)!
         }
         
