@@ -131,7 +131,7 @@ struct ECDSA : Signing
 extension ECDSA {
     public static func fromPEMFile(_ file : String) -> ECDSA?
     {
-        var certificate: X509.Certificate? = nil
+//        var certificate: X509.Certificate? = nil
         var privateKeyECDSA: BigInt? = nil
         var publicKey: EllipticCurvePoint? = nil
         var curve: EllipticCurve? = nil
@@ -203,9 +203,9 @@ extension ECDSA {
                 }
                 
             case "CERTIFICATE":
-                if let sequence = object as? ASN1Sequence {
-                    certificate = X509.Certificate(asn1Sequence: sequence)
-                }
+//                if let sequence = object as? ASN1Sequence {
+//                    certificate = X509.Certificate(asn1Sequence: sequence)
+//                }
                 break
                 
             default:

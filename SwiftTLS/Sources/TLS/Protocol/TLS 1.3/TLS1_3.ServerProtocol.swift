@@ -181,7 +181,7 @@ extension TLS1_3 {
 
             // FIXME: Check that the combination of offered extensions for key share and PSKs is sane
             if let offeredPSKs = clientOfferedPSKs {
-                guard let pskKeyExchangeModes = clientPSKKeyExchangeModes else {
+                guard clientPSKKeyExchangeModes != nil else {
                     try server.abortHandshake()
                 }
                 
@@ -289,7 +289,7 @@ extension TLS1_3 {
                 // Read until EndOfEarlyData
                 EndOfEarlyDataLoop: while true {
                     let message = try self.recordLayer.readMessage()
-                    log("Early data: \(message)")
+                    log("Early data: \(String(describing: message))")
                     
                     switch message
                     {

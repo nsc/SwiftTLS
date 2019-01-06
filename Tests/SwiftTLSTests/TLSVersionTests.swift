@@ -73,7 +73,7 @@ class TLSVersionTests: XCTestCase {
         
         
         do {
-            try server.handleHandshakeMessage(clientHello)
+            _ = try server.handleHandshakeMessage(clientHello)
         } catch _ {
         }
         
@@ -115,7 +115,7 @@ class TLSVersionTests: XCTestCase {
         
         do {
             try client.sendClientHello()
-            try client.handleHandshakeMessage(serverHello)
+            _ = try client.handleHandshakeMessage(serverHello)
         } catch _ {
         }
         

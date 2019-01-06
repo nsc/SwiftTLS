@@ -140,7 +140,7 @@ class TLSTests: XCTestCase {
                     clientContext = client.context as? TLSClientContext
                 }
                 
-                let earlyDataWasSent = try client.connect(hostname: "127.0.0.1", port: address.port, withEarlyData: Data(bytes: [1,2,3]))
+                let _ = try client.connect(hostname: "127.0.0.1", port: address.port, withEarlyData: Data(bytes: [1,2,3]))
 
                 let response = try client.read(count: 3)
                 if response == [1,2,3] as [UInt8] {

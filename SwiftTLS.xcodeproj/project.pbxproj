@@ -101,7 +101,6 @@
 		036C8E612109C89700D5916C /* Montgomery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 036C8E602109C89700D5916C /* Montgomery.swift */; };
 		037EEF3A210DED06007C44B3 /* TLSReadExtensionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 037EEF39210DED06007C44B3 /* TLSReadExtensionsTests.swift */; };
 		038F68551C428F1000C66050 /* OIDTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 038F68541C428F1000C66050 /* OIDTests.swift */; };
-		03982E852166ABFD003C6B72 /* BigIntBitOperationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03982E842166ABFD003C6B72 /* BigIntBitOperationTests.swift */; };
 		039ADDB91C2F39BC00EDF99B /* EllipticCurveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 039ADDB81C2F39BC00EDF99B /* EllipticCurveTests.swift */; };
 		03A63D011C6FA0A10018A21E /* BlockCipherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03A63D001C6FA0A10018A21E /* BlockCipherTests.swift */; };
 		03B4F7551BA2199B00753DD5 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03B4F7541BA2199B00753DD5 /* main.swift */; };
@@ -1188,19 +1187,20 @@
 			attributes = {
 				LastSwiftMigration = 0700;
 				LastSwiftUpdateCheck = 0940;
-				LastUpgradeCheck = 0930;
+				LastUpgradeCheck = 1010;
 				ORGANIZATIONNAME = "Nico Schmidt";
 				TargetAttributes = {
 					03657D051B07BDEF00293CE3 = {
 						CreatedOnToolsVersion = 6.4;
+						LastSwiftMigration = 1010;
 					};
 					03FA949E1B9E1A0500F08FB8 = {
 						CreatedOnToolsVersion = 7.0;
-						LastSwiftMigration = 0800;
+						LastSwiftMigration = 1010;
 					};
 					03FA94A71B9E1A0500F08FB8 = {
 						CreatedOnToolsVersion = 7.0;
-						LastSwiftMigration = 0800;
+						LastSwiftMigration = 1010;
 					};
 				};
 			};
@@ -1452,7 +1452,6 @@
 				03091EF020850B7F0068C085 /* SHA512Tests.swift in Sources */,
 				032D0F231B9F5B67009C13F0 /* dsa_asn1.c in Sources */,
 				032D0F031B9F5B38009C13F0 /* bf_skey.c in Sources */,
-				03982E852166ABFD003C6B72 /* BigIntBitOperationTests.swift in Sources */,
 				032D0F201B9F5B5E009C13F0 /* dh_gen.c in Sources */,
 				032D0F121B9F5B4C009C13F0 /* bn_mul.c in Sources */,
 				032D0EF71B9F56A1009C13F0 /* TLSTests.swift in Sources */,
@@ -1600,7 +1599,7 @@
 				SWIFT_FORCE_STATIC_LINK_STDLIB = NO;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				"SWIFT_OPTIMIZATION_LEVEL[arch=*]" = "-Onone";
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 4.2;
 			};
 			name = Debug;
 		};
@@ -1623,7 +1622,7 @@
 				SWIFT_FORCE_DYNAMIC_LINK_STDLIB = YES;
 				SWIFT_FORCE_STATIC_LINK_STDLIB = NO;
 				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 4.2;
 			};
 			name = Release;
 		};
@@ -1650,7 +1649,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 4.2;
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
 			};
@@ -1679,7 +1678,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 4.2;
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
 			};
@@ -1699,7 +1698,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_INCLUDE_PATHS = "${SRCROOT}/SwiftTLS/modulemaps/OpenSSL";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 4.2;
 			};
 			name = Debug;
 		};
@@ -1715,7 +1714,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_INCLUDE_PATHS = "${SRCROOT}/SwiftTLS/modulemaps/OpenSSL";
 				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 4.2;
 			};
 			name = Release;
 		};
