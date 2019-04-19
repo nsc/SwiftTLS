@@ -10,12 +10,9 @@ import Foundation
 
 extension Data {
     func UInt8Array() -> [UInt8] {
-        var array: [UInt8] = []
-        withUnsafeBytes { bytes in
-            array = [UInt8](UnsafeBufferPointer<UInt8>(start: bytes, count: self.count))
+        return withUnsafeBytes { bytes in
+            return [UInt8](bytes.bindMemory(to: UInt8.self))
         }
-        
-        return array
     }
 }
 

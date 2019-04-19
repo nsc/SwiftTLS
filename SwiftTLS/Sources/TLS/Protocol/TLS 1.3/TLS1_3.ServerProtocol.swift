@@ -301,7 +301,7 @@ extension TLS1_3 {
                         let data = (message as! TLSApplicationData).applicationData
                         log("\t\(data)")
                         if let earlyDataResponseHandler = server.earlyDataResponseHandler {
-                            if let response = earlyDataResponseHandler(Data(bytes: data)) {
+                            if let response = earlyDataResponseHandler(Data(data)) {
                                 var buffer = [UInt8](repeating: 0, count: data.count)
                                 buffer.withUnsafeMutableBufferPointer {
                                     _ = response.copyBytes(to: $0)

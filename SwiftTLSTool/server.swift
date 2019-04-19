@@ -16,7 +16,7 @@ func parseHTTPHeader(_ string: String) -> [String:String] {
             continue
         }
         
-        if let colon = line.index(of: ":") {
+        if let colon = line.firstIndex(of: ":") {
             let key = line[..<colon]
             let afterColon = line.index(after: colon)
             let value = line[afterColon...].trimmingCharacters(in: .whitespaces)

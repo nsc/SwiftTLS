@@ -79,7 +79,7 @@ extension TLS1_3 {
             for serverName in ticket.serverNames {
                 // Filter for valid tickets in order we clean up our cache whenever we remove a ticket
                 var tickets = self.tickets[serverName, default: []].filter({$0.isValid(at: now)})
-                if let index = tickets.index(where: {$0.identity == ticket.identity}) {
+                if let index = tickets.firstIndex(where: {$0.identity == ticket.identity}) {
                     tickets.remove(at: index)
                 }
                 

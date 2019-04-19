@@ -314,10 +314,6 @@ public struct BigIntStorage {
 //        }
 //    }
     
-    public var hashValue: Int {
-        return storage[0].hashValue
-    }
-    
     public var count: Int = 0
     
     public var first: Word? {
@@ -541,7 +537,7 @@ public struct BigIntStorage {
 
     // Return a BigIntStorage for the range given. The resulting object does not take ownership of the memory.
     // It is only safe as long as the original BigIntStorage is still around retaining the memory.
-    internal subscript (_ range: Range<Int>) -> BigIntStorage {
+    public subscript (_ range: Range<Int>) -> BigIntStorage {
         get {
             switch storage {
             case .externallyManaged(let buffer):
@@ -562,7 +558,10 @@ public struct BigIntStorage {
         return storage
     }
     
-    static func ==(_ lhs: BigIntStorage, _ rhs: BigIntStorage) -> Bool {
+}
+
+extension BigIntStorage : Hashable {
+    public static func ==(_ lhs: BigIntStorage, _ rhs: BigIntStorage) -> Bool {
         guard lhs.count == rhs.count else {
             return false
         }
@@ -575,6 +574,10 @@ public struct BigIntStorage {
         default:
             fatalError()
         }
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(storage[0])
     }
 }
 
@@ -621,6 +624,9 @@ extension BigIntStorage : Collection {
 }
 
 extension BigIntStorage : MutableCollection {
+}
+
+extension BigIntStorage : RandomAccessCollection {
 }
 
 public struct BigInt
@@ -1099,16 +1105,14 @@ extension BigInt : ExpressibleByIntegerLiteral {
     
     public init(integerLiteral value: Int)
     {
-        precondition(value >= 0)
-        
         self.init(value)
     }
 }
 
 extension BigInt : Hashable
 {
-    public var hashValue: Int {
-        return storage.hashValue
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(storage)
     }
 }
 
@@ -1825,17 +1829,16 @@ func hex(_ v: BigInt) -> String
     return v.sign ? "- " + s : s
 }
 
-extension String {
-    init(stringInterpolationSegment expr : BigInt)
-    {
-        var expr = expr
+extension String.StringInterpolation {
+    mutating func appendInterpolation(_ value: BigInt) {
+        var value = value
         var s = ""
         var onlyZeroesYet = true
-        let count = Int(expr.storage.count)
+        let count = Int(value.storage.count)
         
         for i in (0..<count).reversed()
         {
-            let part = expr.storage[i]
+            let part = value.storage[i]
             var c : UInt8
             
             var shift = (MemoryLayout<BigInt.Word>.size - 1) * 8
@@ -1862,6 +1865,6 @@ extension String {
             }
         }
         
-        self = expr.sign ? "-" + s : s
+        appendLiteral(value.sign ? "-" + s : s)
     }
 }

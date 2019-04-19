@@ -76,5 +76,5 @@ class Log
 
 private let logger = Log()
 public func log(_ message: @autoclosure () -> String, file: StaticString = #file, line: UInt = #line) {
-    logger.log(message, file: file, line: line, time: Date())
+    logger.log(message(), file: file, line: line, time: Date())
 }

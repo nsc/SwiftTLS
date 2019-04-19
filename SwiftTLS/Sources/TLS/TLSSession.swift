@@ -58,8 +58,8 @@ struct TLSSessionID : Streamable
 }
 
 extension TLSSessionID: Hashable {
-    var hashValue: Int {
-        return sessionID[0].hashValue ^ sessionID[1].hashValue ^ sessionID[2].hashValue ^ sessionID[3].hashValue
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(sessionID)
     }
 }
 

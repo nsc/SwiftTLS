@@ -27,7 +27,7 @@ func connectTo(host : String, port : UInt16 = 443, supportedVersions: [TLSProtoc
                 client = TLSClient(configuration: configuration, context: context)
                 
                 let requestData = [UInt8]("GET / HTTP/1.1\r\nHost: \(host)\r\nUser-Agent: SwiftTLS\r\nConnection: Close\r\n\r\n".utf8)
-                let earlyDataWasSent = try client.connect(hostname: host, port: port, withEarlyData: Data(bytes: requestData))
+                let earlyDataWasSent = try client.connect(hostname: host, port: port, withEarlyData: Data(requestData))
                 
                 if context == nil {
                     context = client.context as? TLSClientContext

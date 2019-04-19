@@ -454,9 +454,8 @@ public class ASN1Parser
     
     public convenience init(data : Data)
     {
-        var array: [UInt8] = []
-        data.withUnsafeBytes { bytes in
-            array = [UInt8](UnsafeBufferPointer<UInt8>(start: bytes, count: data.count))
+        let array = data.withUnsafeBytes { bytes in
+            return [UInt8](bytes.bindMemory(to: UInt8.self))
         }
         
         self.init(data: array)
@@ -482,15 +481,13 @@ public class ASN1Parser
             for (sectionName, base64) in base64Blocks(with: base64string) {
                 if let data = Data(base64Encoded: base64, options: .ignoreUnknownCharacters) {
                     
-                    data.withUnsafeBytes { (bytes: UnsafePointer<UInt8>) -> () in
-                        let parser = ASN1Parser(data: [UInt8](UnsafeBufferPointer<UInt8>(start: bytes, count: data.count)))
-                        guard let object = parser.parseObject() else {
-                            return
-                        }
-                        
+                    let array: [UInt8] = data.withUnsafeBytes { bytes in
+                        return [UInt8](bytes.bindMemory(to: UInt8.self))
+                    }
+                    
+                    let parser = ASN1Parser(data: array)
+                    if let object = parser.parseObject() {                        
                         sections.append((sectionName, object))
-                        
-                        return
                     }
                 }
             }
