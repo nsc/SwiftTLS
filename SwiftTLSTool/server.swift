@@ -85,7 +85,12 @@ func server(address: IPAddress, certificatePath: String, dhParametersPath : Stri
                         }
                     
                         let response = """
-                        <html><title>Swift TLS</title><body><pre>
+                        <!DOCTYPE html>
+                        <html lang="en">
+                        <title>Swift TLS</title>
+                        <meta charset="utf-8">
+                        <body>
+                        <pre>
                         Date: \(Date())
                         \(client.connectionInfo)
                         
