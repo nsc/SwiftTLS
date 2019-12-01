@@ -794,7 +794,7 @@ private func rijndaelKeySetupEnc(_ rk: inout [UInt32], _ cipherKey: [UInt8], _ b
 /**
  * Expand the cipher key into the decryption key schedule.
  *
- * @return    the number of rounds for the given cipher key size.
+ * @returns    the number of rounds for the given cipher key size.
  */
 private func rijndaelKeySetupDec(_ rk: inout [UInt32], _ cipherKey: [UInt8], _ bitSize: AES.BitSize) {
     var temp: UInt32

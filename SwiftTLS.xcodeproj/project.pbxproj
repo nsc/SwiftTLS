@@ -12,6 +12,7 @@
 		03091EF020850B7F0068C085 /* SHA512Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03091EEF20850B7F0068C085 /* SHA512Tests.swift */; };
 		03091EF220850F730068C085 /* SHA384Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03091EF120850F730068C085 /* SHA384Tests.swift */; };
 		030FF6EB1DB0D45E00EB7F1F /* TLSVersionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 030FF6EA1DB0D45E00EB7F1F /* TLSVersionTests.swift */; };
+		0314D83B2370CD2100BCDC71 /* BigIntPerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 032F96121D0C209900377DDA /* BigIntPerformanceTests.swift */; };
 		031B8284210734B3009BB3A5 /* BigIntBitOperationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 031B8283210734B3009BB3A5 /* BigIntBitOperationTests.swift */; };
 		031CD12C1C32B5CC0027F973 /* RSATests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 031CD12B1C32B5CC0027F973 /* RSATests.swift */; };
 		032CA87D2094B57F00ACFF06 /* probeCipherSuites.swift in Sources */ = {isa = PBXBuildFile; fileRef = 034818302076AC8700264933 /* probeCipherSuites.swift */; };
@@ -1187,7 +1188,7 @@
 			attributes = {
 				LastSwiftMigration = 0700;
 				LastSwiftUpdateCheck = 0940;
-				LastUpgradeCheck = 1020;
+				LastUpgradeCheck = 1100;
 				ORGANIZATIONNAME = "Nico Schmidt";
 				TargetAttributes = {
 					03657D051B07BDEF00293CE3 = {
@@ -1439,6 +1440,7 @@
 				032D0F041B9F5B3F009C13F0 /* bio_lib.c in Sources */,
 				032D0F251B9F5B67009C13F0 /* dsa_key.c in Sources */,
 				032D0F301B9F5B81009C13F0 /* rc2_skey.c in Sources */,
+				0314D83B2370CD2100BCDC71 /* BigIntPerformanceTests.swift in Sources */,
 				032D0F001B9F5B2D009C13F0 /* openssl_utils.c in Sources */,
 				032D0F141B9F5B4C009C13F0 /* bn_print.c in Sources */,
 				032D0F2C1B9F5B6E009C13F0 /* ex_data.c in Sources */,
@@ -1586,6 +1588,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_IDENTITY = "-";
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -1611,6 +1614,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_IDENTITY = "-";
 				ENABLE_TESTABILITY = YES;
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_NO_COMMON_BLOCKS = YES;

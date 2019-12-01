@@ -513,8 +513,7 @@ public struct BigIntStorage {
     
     public subscript (_ i: Int) -> Word {
         get {
-            var a = self
-            return a.storage[i]
+            return self.storage[i]
         }
         set {
             storage[i] = newValue
@@ -700,8 +699,8 @@ public struct BigInt
         self.init(storage: target)
     }
     
-    func padded(count: Int) -> BigInt {
-        return BigInt(storage: self.storage.padded(count: count), normalized: false)
+    func padded(count: Int, context: UnsafeMutablePointer<BigIntContext>? = nil) -> BigInt {
+        return BigInt(storage: self.storage.padded(count: count, context: context), normalized: false)
     }
     
     var isZero: Bool {
@@ -872,7 +871,6 @@ public struct BigInt
     
     public static func /(u : BigInt, v : Word) -> BigInt
     {
-        var u = u
         var r = Word(0)
         var q: Word
         let n = u.storage.count
@@ -890,7 +888,6 @@ public struct BigInt
 
     private static func short_division(_ u : BigInt, _ v : BigInt.Word) -> (BigInt, BigInt.Word)
     {
-        var u = u
         var r = BigInt.Word(0)
         let n = u.storage.count
         let vv = BigInt.Word(v)
@@ -907,9 +904,6 @@ public struct BigInt
     }
     
     public static func /(u: BigInt, v: BigInt) -> BigInt {
-        var u = u
-        var v = v
-        
         // This is an implementation of Algorithm D in
         // "The Art of Computer Programming" by Donald E. Knuth, Volume 2, Seminumerical Algorithms, 3rd edition, p. 272
         if v.isZero {
@@ -935,7 +929,7 @@ public struct BigInt
             return v.sign ? -result : result
         }
         
-        return division(u, v).0
+        return divide(u, v).0
     }
     
     public static func /=(lhs: inout BigInt, rhs: BigInt) {
@@ -943,11 +937,11 @@ public struct BigInt
     }
     
     public static func %(lhs: BigInt, rhs: BigInt) -> BigInt {
-        return division(lhs, rhs).1
+        return divide(lhs, rhs).1
     }
     
     public static func %=(lhs: inout BigInt, rhs: BigInt) {
-        lhs = division(lhs, rhs).1
+        lhs = divide(lhs, rhs).1
     }
     
     public static func &=(lhs: inout BigInt, rhs: BigInt) {
@@ -963,140 +957,138 @@ public struct BigInt
     }
     
     public func quotientAndRemainder(dividingBy rhs: BigInt) -> (quotient: BigInt, remainder: BigInt) {
-        return BigInt.division(self, rhs)
+        return BigInt.divide(self, rhs)
     }
 
-    private static func division(_ u : BigInt, _ v : BigInt) -> (BigInt, BigInt)
+    public static func divide(_ u : BigInt, _ v : BigInt, context: UnsafeMutablePointer<BigIntContext>? = nil) -> (BigInt, BigInt)
     {
-//       return BigInt.withContextReturningBigInt { _ in
-            var u = u
-            var v = v
+        var u = u
+        var v = v
+        
+        // This is an implementation of Algorithm D in
+        // "The Art of Computer Programming" by Donald E. Knuth, Volume 2, Seminumerical Algorithms, 3rd edition, p. 272
+        if v.isZero {
+            // handle error
+            return (BigInt(0), BigInt(0))
+        }
+        
+        if u.isZero {
+            return (BigInt(0), BigInt(0))
+        }
+        
+        let n = v.storage.count
+        let m = u.storage.count - v.storage.count
+        
+        if m < 0 {
+            return (BigInt(0), u)
+        }
+        
+        if n == 1 && m == 0 {
+            let remainder = BigInt(u.storage[0] % v.storage[0], sign: u.sign)
             
-            // This is an implementation of Algorithm D in
-            // "The Art of Computer Programming" by Donald E. Knuth, Volume 2, Seminumerical Algorithms, 3rd edition, p. 272
-            if v.isZero {
-                // handle error
-                return (BigInt(0), BigInt(0))
+            return (BigInt(u.storage[0] / v.storage[0]), remainder)
+        }
+        else if n == 1 {
+            let divisor = v.storage[0]
+            
+            let (quotient, remainder) = short_division(u, divisor)
+            
+            return (quotient, BigInt(remainder))
+        }
+        
+        let uSign = u.sign
+        
+        var result = BigIntStorage(capacity: m + 1, context: context)
+        
+        // normalize, so that v[0] >= base/2 (i.e. 2^31 in our case)
+        let shift = BigInt.Word((MemoryLayout<Word>.size * 8) - 1)
+        let highestBitMask : BigInt.Word = 1 << shift
+        var hi = v.storage[n - 1]
+        var d = BigInt.Word(1)
+        while (Word(hi) & Word(highestBitMask)) == 0
+        {
+            hi = hi << 1
+            d  = d  << 1
+        }
+        
+        if d != 1 {
+            u = BigInt.multiply(u, BigInt(d), context: context)
+            v = BigInt.multiply(v, BigInt(d), context: context)
+        }
+        
+        if u.storage.count < m + n + 1 {
+            u = u.padded(count: 1, context: context)
+        }
+        
+        for j in (0 ..< m+1).reversed()
+        {
+            // D3. Calculate q
+            let (hi, lo) = (u.storage[j + n], u.storage[j + n - 1])
+            let dividend: (BigInt.Word, BigInt.Word)
+            
+            let denominator = v.storage[n - 1]
+            // If the high word is greater or equal to the denominator we would overflow dividingFullWidth.
+            // So in order to avoid that we are just dividing the high word, and rememember that the result
+            // needs to be shifted. Since we made sure the highest bit is set in v before this can at most
+            // result in a q of 1 (or so I convinced myself).
+            let dividendIsShifted = hi >= denominator
+            if !dividendIsShifted {
+                dividend = (hi, lo)
+            } else {
+                dividend = (0, hi)
             }
             
-            if u.isZero {
-                return (BigInt(0), BigInt(0))
-            }
+            var (q, r) = denominator.dividingFullWidth(dividend)
             
-            let n = v.storage.count
-            let m = u.storage.count - v.storage.count
-            
-            if m < 0 {
-                return (BigInt(0), u)
-            }
-            
-            if n == 1 && m == 0 {
-                let remainder = BigInt(u.storage[0] % v.storage[0], sign: u.sign)
-                
-                return (BigInt(u.storage[0] / v.storage[0]), remainder)
-            }
-            else if n == 1 {
-                let divisor = v.storage[0]
-                
-                let (quotient, remainder) = short_division(u, divisor)
-                
-                return (quotient, BigInt(remainder))
-            }
-            
-            let uSign = u.sign
-            
-            var result = BigIntStorage(capacity: m + 1)
-            
-            // normalize, so that v[0] >= base/2 (i.e. 2^31 in our case)
-            let shift = BigInt.Word((MemoryLayout<Word>.size * 8) - 1)
-            let highestBitMask : BigInt.Word = 1 << shift
-            var hi = v.storage[n - 1]
-            var d = BigInt.Word(1)
-            while (Word(hi) & Word(highestBitMask)) == 0
-            {
-                hi = hi << 1
-                d  = d  << 1
-            }
-            
-            if d != 1 {
-                u = u * BigInt(d)
-                v = v * BigInt(d)
-            }
-            
-            if u.storage.count < m + n + 1 {
-                u = u.padded(count: 1)
-            }
-            
-            for j in (0 ..< m+1).reversed()
-            {
-                // D3. Calculate q
-                let (hi, lo) = (u.storage[j + n], u.storage[j + n - 1])
-                let dividend: (BigInt.Word, BigInt.Word)
-                
-                let denominator = v.storage[n - 1]
-                // If the high word is greater or equal to the denominator we would overflow dividingFullWidth.
-                // So in order to avoid that we are just dividing the high word, and rememember that the result
-                // needs to be shifted. Since we made sure the highest bit is set in v before this can at most
-                // result in a q of 1 (or so I convinced myself).
-                let dividendIsShifted = hi >= denominator
-                if !dividendIsShifted {
-                    dividend = (hi, lo)
-                } else {
-                    dividend = (0, hi)
-                }
-                
-                var (q, r) = denominator.dividingFullWidth(dividend)
-                
-                if q != 0 {
-                    var numIterationsThroughLoop = 0
-                    while true {
-                        let qTimesV = q.multipliedFullWidth(by: v.storage[n - 2])
-                        guard qTimesV.0 > r ||
-                            qTimesV.0 == r && qTimesV.1 > u.storage[j + n - 2]
-                            else {
-                                break
-                        }
-                        
-                        q = q - 1
-                        if q == 0 && dividendIsShifted {
-                            q = BigInt.Word.max
-                        }
-                        let overflow: Bool
-                        (r, overflow) = r.addingReportingOverflow(denominator)
-                        
-                        if overflow {
+            if q != 0 {
+                var numIterationsThroughLoop = 0
+                while true {
+                    let qTimesV = q.multipliedFullWidth(by: v.storage[n - 2])
+                    guard qTimesV.0 > r ||
+                        qTimesV.0 == r && qTimesV.1 > u.storage[j + n - 2]
+                        else {
                             break
-                        }
-                        
-                        numIterationsThroughLoop += 1
-                        
-                        assert(numIterationsThroughLoop <= 2)
                     }
                     
+                    q = q - 1
+                    if q == 0 && dividendIsShifted {
+                        q = BigInt.Word.max
+                    }
+                    let overflow: Bool
+                    (r, overflow) = r.addingReportingOverflow(denominator)
                     
-                    // D4. Multiply and subtract
-                    var temp = BigInt(storage: u.storage[j...j+n]) - v * BigInt(q)
-                    
-                    // D6. handle negative case
-                    if temp.sign {
-                        temp = temp + v
-                        q = q - 1
+                    if overflow {
+                        break
                     }
                     
-                    let count = temp.storage.count
-                    for i in 0 ..< n {
-                        u.storage[j + i] = i < count ? temp.storage[i] : 0
-                    }
+                    numIterationsThroughLoop += 1
+                    
+                    assert(numIterationsThroughLoop <= 2)
                 }
                 
-                result[j] = Word(q)
+                
+                // D4. Multiply and subtract
+                var temp = BigInt(storage: u.storage[j...j+n]) - BigInt.multiply(v, BigInt(q), context: context)
+                
+                // D6. handle negative case
+                if temp.sign {
+                    temp = temp + v
+                    q = q - 1
+                }
+                
+                let count = temp.storage.count
+                for i in 0 ..< n {
+                    u.storage[j + i] = i < count ? temp.storage[i] : 0
+                }
             }
             
-            let q = BigInt(storage: result, sign: u.sign != v.sign)
-            let remainder = BigInt(storage: u.storage[0..<n], sign: uSign) / d
-            
-            return (q, remainder)
-//        }
+            result[j] = Word(q)
+        }
+        
+        let q = BigInt(storage: result, sign: u.sign != v.sign)
+        let remainder = BigInt(storage: u.storage[0..<n], sign: uSign) / d
+        
+        return (q, remainder)
     }
 }
 
@@ -1120,9 +1112,6 @@ extension BigInt : Numeric {
     public typealias Magnitude = BigInt
     
     public static func +(_ lhs: BigInt, _ rhs: BigInt) -> BigInt {
-        var lhs = lhs
-        var rhs = rhs
-        
         if lhs.sign != rhs.sign {
             if lhs.sign {
                 return rhs - (-lhs)
@@ -1169,9 +1158,6 @@ extension BigInt : Numeric {
     }
     
     public static func -(a: BigInt, b: BigInt) -> BigInt {
-        var a = a
-        var b = b
-        
         if a.sign != b.sign {
             if a.sign {
                 return -((-a) + b)
@@ -1228,64 +1214,64 @@ extension BigInt : Numeric {
         return BigInt(storage: v.storage, sign: !v.sign)
     }
     
-    public static func *(a: BigInt, b: BigInt) -> BigInt {
-//        return BigInt.withContextReturningBigInt { _ in
-            var a = a
-            var b = b
-            
-            let aCount = a.storage.count;
-            let bCount = b.storage.count;
-            let resultCount = aCount + bCount
-            
-            var result = BigIntStorage(capacity: resultCount)
-            result.initialize(repeating: 0)
+    public static func multiply(_ a: BigInt, _ b: BigInt, context: UnsafeMutablePointer<BigIntContext>? = nil) -> BigInt {
+        let aCount = a.storage.count;
+        let bCount = b.storage.count;
+        let resultCount = aCount + bCount
         
-            for i in 0 ..< aCount {
+        var result = BigIntStorage(capacity: resultCount, context: context)
+        result.initialize(repeating: 0)
+        
+        for i in 0 ..< aCount {
+            
+            var overflow    : Bool
+            
+            for j in 0 ..< bCount {
                 
-                var overflow    : Bool
+                let (_hi, _lo) = a.storage[i].multipliedFullWidth(by: b.storage[j])
                 
-                for j in 0 ..< bCount {
-                    
-                    let (_hi, _lo) = a.storage[i].multipliedFullWidth(by: b.storage[j])
-                    
-                    var hi = UInt64(_hi)
-                    var lo = UInt64(_lo)
-                    
-                    if lo == 0 && hi == 0 {
-                        continue
-                    }
-                    
-                    if MemoryLayout<BigInt.Word>.size < MemoryLayout<UInt64>.size {
-                        let shift : UInt64 = UInt64(8 * MemoryLayout<BigInt.Word>.size)
-                        let mask : UInt64 = (0xffffffffffffffff >> UInt64(64 - shift))
-                        hi = (lo & (mask << shift)) >> shift
-                        lo = lo & mask
-                    }
-                    
-                    (result[i + j], overflow) = result[i + j].addingReportingOverflow(BigInt.Word(lo))
-                    
+                var hi = UInt64(_hi)
+                var lo = UInt64(_lo)
+                
+                if lo == 0 && hi == 0 {
+                    continue
+                }
+                
+                if MemoryLayout<BigInt.Word>.size < MemoryLayout<UInt64>.size {
+                    let shift : UInt64 = UInt64(8 * MemoryLayout<BigInt.Word>.size)
+                    let mask : UInt64 = (0xffffffffffffffff >> UInt64(64 - shift))
+                    hi = (lo & (mask << shift)) >> shift
+                    lo = lo & mask
+                }
+                
+                (result[i + j], overflow) = result[i + j].addingReportingOverflow(BigInt.Word(lo))
+                
+                if overflow {
+                    hi += 1
+                }
+                
+                var temp = hi
+                var index = i + j + 1
+                while true {
+                    (result[index], overflow) = result[index].addingReportingOverflow(BigInt.Word(temp))
                     if overflow {
-                        hi += 1
+                        temp = 1
+                        index += 1
                     }
-                    
-                    var temp = hi
-                    var index = i + j + 1
-                    while true {
-                        (result[index], overflow) = result[index].addingReportingOverflow(BigInt.Word(temp))
-                        if overflow {
-                            temp = 1
-                            index += 1
-                        }
-                        else {
-                            break
-                        }
+                    else {
+                        break
                     }
                 }
             }
-            
-            return BigInt(storage: result, sign: (a.sign != b.sign))
-//        }
+        }
+        
+        return BigInt(storage: result, sign: (a.sign != b.sign))
     }
+
+    public static func *(a: BigInt, b: BigInt) -> BigInt {
+        return multiply(a, b)
+    }
+    
 
     public static func -= (lhs: inout BigInt, rhs: BigInt) {
         lhs = lhs - rhs
@@ -1630,9 +1616,6 @@ extension BigInt : Comparable
             return lhs.storage.count < rhs.storage.count
         }
         
-        var lhs = lhs
-        var rhs = rhs
-
         if lhs.storage.count > 0 {
             for i in (0 ..< lhs.storage.count).reversed()
             {
@@ -1661,9 +1644,6 @@ extension BigInt : Comparable
             return -lhs < -rhs
         }
         
-        var lhs = lhs
-        var rhs = rhs
-
         if lhs.storage.count != rhs.storage.count {
             if lhs.isZero && rhs.isZero {
                 return false
@@ -1831,7 +1811,6 @@ func hex(_ v: BigInt) -> String
 
 extension String.StringInterpolation {
     mutating func appendInterpolation(_ value: BigInt) {
-        var value = value
         var s = ""
         var onlyZeroesYet = true
         let count = Int(value.storage.count)

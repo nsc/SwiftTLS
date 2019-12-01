@@ -86,7 +86,7 @@ extension TLS1_2 {
                     let hmacSize = s.cipherType == .aead ? 0 : hmac.size
                     let numberOfKeyMaterialBytes = 2 * (hmacSize + s.encodeKeyLength + s.fixedIVLength)
                     let protocolHandler = self.connection!.protocolHandler as! TLS1_2.BaseProtocol
-                    var keyBlock = protocolHandler.PRF(secret: s.masterSecret!, label: TLSKeyExpansionLabel, seed: s.serverRandom! + s.clientRandom!, outputLength: numberOfKeyMaterialBytes)
+                    let keyBlock = protocolHandler.PRF(secret: s.masterSecret!, label: TLSKeyExpansionLabel, seed: s.serverRandom! + s.clientRandom!, outputLength: numberOfKeyMaterialBytes)
                     
                     var index = 0
                     let clientWriteMACKey = [UInt8](keyBlock[index..<index + hmacSize])

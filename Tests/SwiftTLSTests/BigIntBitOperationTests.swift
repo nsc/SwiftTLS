@@ -85,7 +85,7 @@ class BigIntBitOperationTests: XCTestCase {
         let value = BigInt(hexString: "123456789abcdef0fedcba9876543210f67819356ef46abc")!
 
         for i in 0..<value.bitWidth {
-            var a = value >> i
+            let a = value >> i
             
             let result = ((a.words.first ?? 0) & 0x1) != 0
             

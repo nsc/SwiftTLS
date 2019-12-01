@@ -237,8 +237,8 @@ extension TLS1_2 {
                 
                 assert(S1.count == S2.count)
                 
-                var md5data  = P_hash(HMAC_MD5,  secret: S1, seed: label + seed, outputLength: outputLength)
-                var sha1data = P_hash(HMAC_SHA1, secret: S2, seed: label + seed, outputLength: outputLength)
+                let md5data  = P_hash(HMAC_MD5,  secret: S1, seed: label + seed, outputLength: outputLength)
+                let sha1data = P_hash(HMAC_SHA1, secret: S2, seed: label + seed, outputLength: outputLength)
                 
                 var output = [UInt8](repeating: 0, count: outputLength)
                 for i in 0 ..< output.count

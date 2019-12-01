@@ -97,3 +97,19 @@ public func modular_inverse<T : BinaryInteger>(_ x : T, _ y : T, mod : T) -> T
     return result
 }
 
+public func modular_inverse(_ x : BigInt, _ y : BigInt, mod : BigInt, context: UnsafeMutablePointer<BigIntContext>? = nil) -> BigInt
+{
+    let x = x > 0 ? x : x + mod
+    let y = y > 0 ? y : y + mod
+
+    let inverse = extended_euclid(z: y, a: mod)
+
+    var result = BigInt.divide(BigInt.multiply(inverse, x, context: context), mod).1
+
+    let zero = BigInt(0)
+    if result < zero {
+        result = result + mod
+    }
+
+    return result
+}

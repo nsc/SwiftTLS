@@ -422,7 +422,7 @@ func P_hash(_ hmacFunction : HMACFunction, secret : [UInt8], seed : [UInt8], out
     while (bytesLeftToWrite > 0)
     {
         A = hmacFunction(secret, A)
-        var output = hmacFunction(secret, A + seed)
+        let output = hmacFunction(secret, A + seed)
         let bytesFromOutput = min(bytesLeftToWrite, output.count)
         outputData.append(contentsOf: output[0..<bytesFromOutput])
         

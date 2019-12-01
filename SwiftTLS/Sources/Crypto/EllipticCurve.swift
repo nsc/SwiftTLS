@@ -265,9 +265,9 @@ struct EllipticCurve
         self.G = G
         self.n = n
 
-        self.reducer = Montgomery(modulus: self.p)
+//        self.reducer = Montgomery(modulus: self.p)
 
-//        self.reducer = BarrettReduction(modulus: self.p)
+        self.reducer = BarrettReduction(modulus: self.p)
 //        self.reducer = DefaultModularReduction(modulus: self.p)
     }
 
@@ -282,15 +282,15 @@ struct EllipticCurve
         return rhs == lhs
     }
     
-    func addPoints(_ p1 : EllipticCurvePoint, _ p2 : EllipticCurvePoint, constantTime: Bool = true) -> EllipticCurvePoint
+    func addPoints(_ p1 : EllipticCurvePoint, _ p2 : EllipticCurvePoint, constantTime: Bool = true, context: UnsafeMutablePointer<BigIntContext>? = nil) -> EllipticCurvePoint
     {
         guard p1 != p2 else {
             return doublePoint(p1, constantTime: constantTime)
         }
      
-        let (x, y) = BigInt.withContextReturningBigInt { _ in
+        let (x, y) = BigInt.withContextReturningBigInt(context) { context in
             
-            let lambda = modular_inverse(p2.y - p1.y, p2.x - p1.x, mod: self.p)
+            let lambda = modular_inverse(p2.y - p1.y, p2.x - p1.x, mod: self.p, context: context)
             
             var x = (lambda * lambda - p1.x - p2.x) % self.p
             var y = (lambda * (p1.x - x) - p1.y) % self.p
@@ -312,9 +312,9 @@ struct EllipticCurve
         return EllipticCurvePoint(x: x, y: y)
     }
     
-    func doublePoint(_ p : EllipticCurvePoint, constantTime: Bool = true) -> EllipticCurvePoint
+    func doublePoint(_ p : EllipticCurvePoint, constantTime: Bool = true, context: UnsafeMutablePointer<BigIntContext>? = nil) -> EllipticCurvePoint
     {
-        let (x, y) = BigInt.withContextReturningBigInt { _ in
+        let (x, y) = BigInt.withContextReturningBigInt(context) { context in
             let lambda = self.reducer.modular_inverse(3 * (p.x * p.x) + self.a, 2 * p.y, constantTime: constantTime)
             
             let x = reducer.reduce(lambda * lambda - 2 * p.x)
