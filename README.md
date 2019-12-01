@@ -4,6 +4,9 @@ SwiftTLS is a Swift-only implementation of TLS 1.3 and 1.2 that hopes to avoid c
 
 SwiftTLS is licensed under the MIT License.
 
+## Status
+![](https://github.com/nsc/SwiftTLS/workflows/macOS/badge.svg) ![](https://github.com/nsc/SwiftTLS/workflows/Linux/badge.svg)
+
 ## Features
 Crypto
 - RSA-PKCS1 & RSA-PSS, DHE, ECDHE, ECDSA
