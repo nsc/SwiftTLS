@@ -55,7 +55,7 @@ extension Thread {
 
 class Log
 {
-    private var enabled: Bool = true
+    var enabled: Bool = true
     private let formatter = LoggingDateFormatter()
     private let logFile: FileHandle = FileHandle(fileDescriptor: 1)
     private let logQueue = DispatchQueue(label: "org.swifttls.logging")
@@ -77,4 +77,8 @@ class Log
 private let logger = Log()
 public func log(_ message: @autoclosure () -> String, file: StaticString = #file, line: UInt = #line) {
     logger.log(message(), file: file, line: line, time: Date())
+}
+
+public func TLSEnableLogging(_ v: Bool) {
+    logger.enabled = v
 }

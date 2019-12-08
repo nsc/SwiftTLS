@@ -261,10 +261,9 @@ extension TLS1_2 {
                 
                 let p = diffieHellmanParameters.p
                 let g = diffieHellmanParameters.g
-                let Ys = diffieHellmanParameters.Ys
                 
                 let dhKeyExchange = DHKeyExchange(primeModulus: p, generator: g)
-                dhKeyExchange.Ys = Ys
+                dhKeyExchange.peerPublicKey = diffieHellmanParameters.publicKey
                 
                 client.keyExchange = .dhe(dhKeyExchange)
                 

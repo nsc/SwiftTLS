@@ -11,12 +11,16 @@ import SwiftTLS
 
 func connectTo(host : String, port : UInt16 = 443, supportedVersions: [TLSProtocolVersion] = [.v1_3_draft28, .v1_3_draft26, .v1_2], cipherSuite : CipherSuite? = nil)
 {    
-    var configuration = TLSConfiguration(supportedVersions: supportedVersions)
+    var configuration: TLSConfiguration
 
     if let cipherSuite = cipherSuite {
+        configuration = TLSConfiguration(supportedVersions: cipherSuite.descriptor!.supportedProtocolVersions)
         configuration.cipherSuites = [cipherSuite]
     }
-    
+    else {
+        configuration = TLSConfiguration(supportedVersions: supportedVersions)
+    }
+
     // Connect twice to test session resumption
     var context: TLSClientContext? = nil
     BigInt.withContext { _ in

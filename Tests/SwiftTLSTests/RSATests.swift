@@ -37,7 +37,7 @@ class RSATests: XCTestCase {
             return
         }
         
-        let signatureAlgorithm = X509.SignatureAlgorithm.rsa_pkcs1(hash: .sha1)
+        let signatureAlgorithm = X509.SignatureAlgorithm.rsa_pkcs1(hash: .sha256)
         rsa.algorithm = signatureAlgorithm
         
         let data = [1,2,3,4,5,6,7,8] as [UInt8]

@@ -84,7 +84,7 @@ extension TLS1_3 {
         func sendCertificateVerify() throws
         {
             let identity = self.connection.configuration.identity!
-            var signer = identity.signer
+            var signer = identity.signer(with: self.connection.configuration.hashAlgorithm)
             
             var proofData = [UInt8](repeating: 0x20, count: 64)
             proofData += connection.isClient ? clientCertificateVerifyContext : serverCertificateVerifyContext

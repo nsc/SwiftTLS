@@ -82,14 +82,18 @@ class TLSTests: XCTestCase {
     
     func test_clientServerWithCipherSuite(_ cipherSuite : CipherSuite, serverSupportsEarlyData: Bool = true, clientSupportsEarlyData: Bool = true, maximumRecordSize: Int? = nil)
     {
-        let supportedVersions: [TLSProtocolVersion] = [.v1_3]
+        guard let supportedVersions = cipherSuite.descriptor?.supportedProtocolVersions else {
+            XCTFail("Error: unsupported cipher suite \(cipherSuite)")
+            return
+        }
+        
         var clientConfiguration = TLSConfiguration(supportedVersions: supportedVersions)
         clientConfiguration.cipherSuites = [cipherSuite]
-        clientConfiguration.earlyData = .supported(maximumEarlyDataSize: 4096)
+        clientConfiguration.earlyData = clientSupportsEarlyData ? .supported(maximumEarlyDataSize: 4096) : .notSupported
         clientConfiguration.maximumRecordSize = maximumRecordSize
         
         let server = createServer(with: cipherSuite, port: 12345, supportedVersions: supportedVersions)
-        server.configuration.earlyData = .supported(maximumEarlyDataSize: 4096)
+        server.configuration.earlyData = serverSupportsEarlyData ? .supported(maximumEarlyDataSize: 4096) : .notSupported
         server.configuration.maximumRecordSize = maximumRecordSize
 
         let expectation = self.expectation(description: "accept connection successfully")
@@ -196,14 +200,14 @@ class TLSTests: XCTestCase {
     func test_acceptConnection_whenClientConnects_works()
     {
         let cipherSuites : [CipherSuite] = [
-//            .TLS_RSA_WITH_AES_256_CBC_SHA,
-//            .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
-//            .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
-//            .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-//            .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-//            .TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+            .TLS_RSA_WITH_AES_256_CBC_SHA,
+            .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+            .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
+            .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+            .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+            .TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
             
-            .TLS_AES_128_GCM_SHA256
+            .TLS_AES_128_GCM_SHA256,
 //            .TLS_AES_256_GCM_SHA384
         ]
         

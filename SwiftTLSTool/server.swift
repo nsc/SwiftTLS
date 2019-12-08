@@ -34,16 +34,17 @@ func server(address: IPAddress, certificatePath: String, dhParametersPath : Stri
     
     let identity = PEMFileIdentity(pemFile: certificatePath)
     var configuration: TLSConfiguration
-    if let supportedVersions = supportedVersions {
+    if let cipherSuite = cipherSuite {
+        configuration = TLSConfiguration(supportedVersions: cipherSuite.descriptor!.supportedProtocolVersions, identity: identity)
+        configuration.cipherSuites = [cipherSuite]
+    }
+    else if let supportedVersions = supportedVersions {
         configuration = TLSConfiguration(supportedVersions: supportedVersions, identity: identity)
     }
     else {
         configuration = TLSConfiguration(identity: identity)
     }
     
-    if let cipherSuite = cipherSuite {
-        configuration.cipherSuites = [cipherSuite]
-    }
     
     if let dhParametersPath = dhParametersPath {
         configuration.dhParameters = DiffieHellmanParameters.fromPEMFile(dhParametersPath)

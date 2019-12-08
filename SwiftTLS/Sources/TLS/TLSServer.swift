@@ -119,7 +119,7 @@ public class TLSServer : TLSConnection
 
         if let identity = configuration.identity {
             // we are currently only supporting RSA certificates
-            self.signer = identity.signer
+            self.signer = identity.signer(with: self.hashAlgorithm)
         }
     }
 }

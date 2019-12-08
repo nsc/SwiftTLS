@@ -12,6 +12,8 @@ import SwiftTLS
 
 func probeCipherSuitesForHost(host : String, port : UInt16, protocolVersion: TLSProtocolVersion = .v1_3)
 {
+    TLSEnableLogging(false)
+    
     class StateMachine : TLSClientStateMachine
     {
         var state: TLSState = .idle

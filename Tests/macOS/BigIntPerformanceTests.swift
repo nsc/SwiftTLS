@@ -8,7 +8,7 @@
 
 import XCTest
 import OpenSSL
-import SwiftHelper
+//import SwiftHelper
 @testable import SwiftTLS
 
 class BigIntPerformanceTests: XCTestCase {

@@ -11,10 +11,29 @@ import Foundation
 public class PEMFileIdentity
 {
     public var certificateChain: [X509.Certificate]
-    public var signer: Signing {
-        return _signing
+    public func signer(with hashAlgorithm: HashAlgorithm) -> Signing {
+        switch _signing {
+        case is RSA:
+            var rsa = _signing as! RSA
+            switch rsa.algorithm {
+            case .rsa_pkcs1(hash: _):
+                rsa.algorithm = .rsa_pkcs1(hash: hashAlgorithm)
+            case .rsassa_pss(hash: _, saltLength: let saltLength):
+                rsa.algorithm = .rsassa_pss(hash: hashAlgorithm, saltLength: saltLength)
+            default:
+                fatalError("Unimplemented RSA algorithm \(rsa.algorithm)")
+            }
+            
+            return rsa
+
+        case is ECDSA:
+            fatalError("ECDSA certificates are currently unsupported")
+            
+        default:
+            fatalError("Unsupported certificate \(_signing)")
+        }
     }
-    
+        
     private var _signing: Signing
     
     public init?(certificateFile: String, privateKeyFile: String)

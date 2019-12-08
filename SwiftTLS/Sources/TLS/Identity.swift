@@ -11,5 +11,5 @@ import Foundation
 public protocol Identity
 {
     var certificateChain: [X509.Certificate] { get }
-    var signer: Signing { get }
+    func signer(with hashAlgorithm: HashAlgorithm) -> Signing
 }

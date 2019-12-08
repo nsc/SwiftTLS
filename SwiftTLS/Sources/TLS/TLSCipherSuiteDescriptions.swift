@@ -111,6 +111,15 @@ let TLSCipherSuiteDescriptions : [CipherSuiteDescriptor] = [
     ),
     
     CipherSuiteDescriptor(
+        cipherSuite: .TLS_DHE_RSA_WITH_AES_128_CBC_SHA256,
+        keyExchangeAlgorithm: .dhe,
+        bulkCipherAlgorithm: .aes128,
+        cipherType: .block,
+        blockCipherMode: .cbc,
+        hashFunction: .sha256
+    ),
+
+    CipherSuiteDescriptor(
         cipherSuite: .TLS_DHE_RSA_WITH_AES_256_CBC_SHA256,
         keyExchangeAlgorithm: .dhe,
         bulkCipherAlgorithm: .aes256,
@@ -119,6 +128,15 @@ let TLSCipherSuiteDescriptions : [CipherSuiteDescriptor] = [
         hashFunction: .sha256
     ),
 
+//    CipherSuiteDescriptor(
+//        cipherSuite: .TLS_DHE_RSA_WITH_AES_256_GCM_SHA384,
+//        keyExchangeAlgorithm: .dhe,
+//        bulkCipherAlgorithm: .aes256,
+//        cipherType: .block,
+//        blockCipherMode: .gcm,
+//        hashFunction: .sha384
+//    ),
+    
     CipherSuiteDescriptor(
         cipherSuite: .TLS_RSA_WITH_NULL_MD5,
         keyExchangeAlgorithm: .rsa,

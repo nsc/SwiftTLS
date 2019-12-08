@@ -19,6 +19,10 @@ public struct DiffieHellmanParameters
     var g : BigInt
     var Ys : BigInt
     
+    var publicKey: [UInt8] {
+        return Ys.asBigEndianData()
+    }
+    
     public static func fromPEMFile(_ file : String) -> DiffieHellmanParameters?
     {
         guard let sequence = ASN1Parser.objectFromPEMFile(file) as? ASN1Sequence else {
@@ -158,9 +162,9 @@ public struct ECDiffieHellmanParameters
             }
             
             let numBits = namedCurve.bitLength
-            let numBytes = numBits/8
-            let x = BigInt(bigEndianParts: [UInt8](rawPublicKeyPoint[1..<1+numBytes]))
-            let y = BigInt(bigEndianParts: [UInt8](rawPublicKeyPoint[1+numBytes..<1+2*numBytes]))
+            let numBytes = numBits / 8
+            let x = BigInt(bigEndianParts: [UInt8](rawPublicKeyPoint[1 ..< 1 + numBytes]))
+            let y = BigInt(bigEndianParts: [UInt8](rawPublicKeyPoint[1 + numBytes ..< 1 + 2 * numBytes]))
             self.publicKey = EllipticCurvePoint(x: x, y: y)
         default:
             fatalError("Error: unsupported curve type \(numericCurveType)")

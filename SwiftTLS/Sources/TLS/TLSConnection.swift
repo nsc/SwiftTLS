@@ -257,6 +257,9 @@ public class TLSConnection
             if self.stateMachine == nil || self.stateMachine!.shouldContinueHandshake(with: handshakeMessage) {
                 try self._didReceiveHandshakeMessage(handshakeMessage)
             }
+            else {
+                throw TLSError.error("Handshake aborted")
+            }
 
         case .alert:
             let alert = message as! TLSAlertMessage
