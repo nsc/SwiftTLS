@@ -62,12 +62,12 @@ public struct TLSConfiguration
     // TLS 1.3
     public var supportedGroups: [NamedGroup] = [.secp256r1]
     
-    enum EarlyDataSupport {
+    public enum EarlyDataSupport {
         case notSupported
         case supported(maximumEarlyDataSize: Int)
     }
     
-    var earlyData: EarlyDataSupport = .notSupported
+    public var earlyData: EarlyDataSupport = .notSupported
     
     
     var minimumSupportedVersion: TLSProtocolVersion {

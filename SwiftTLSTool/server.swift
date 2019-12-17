@@ -45,6 +45,7 @@ func server(address: IPAddress, certificatePath: String, dhParametersPath : Stri
         configuration = TLSConfiguration(identity: identity)
     }
     
+    configuration.earlyData = .supported(maximumEarlyDataSize: 4096)
     
     if let dhParametersPath = dhParametersPath {
         configuration.dhParameters = DiffieHellmanParameters.fromPEMFile(dhParametersPath)
