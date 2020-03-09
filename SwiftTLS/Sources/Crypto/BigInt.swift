@@ -696,7 +696,7 @@ public struct BigInt
         var target = BigIntStorage(capacity: targetCount)
         try! BigInt.convert(from: number, to: &target)
         
-        self.init(storage: target)
+        self.init(storage: target, sign: negative)
     }
     
     func padded(count: Int, context: UnsafeMutablePointer<BigIntContext>? = nil) -> BigInt {
@@ -1672,7 +1672,7 @@ extension BigInt : Comparable
 }
 
 extension BigInt {
-    init?(hexString : String)
+    private init?<S>(hexString : S) where S : StringProtocol
     {
         var bytes = [UInt8]()
         var bytesLeft = hexString.utf8.count
@@ -1718,6 +1718,47 @@ extension BigInt {
         self.init(storage: storage, sign: false)
     }
 
+    init?<S>(_ text: S, radix: Int = 10) where S : StringProtocol {
+        var isNegative = false
+        var isDroppingFirstCharacter = false
+        switch text.first {
+        case "-":
+            isNegative = true
+            fallthrough
+        case "+":
+            isDroppingFirstCharacter = true
+        default:
+            break
+        }
+
+        // make sure we have a subsequence by using dropFirst even if we don't need
+        // to drop the first character. I have found no better way to generically construct
+        // an S from an S.SubSequence
+        let text = text.dropFirst(isDroppingFirstCharacter ? 1 : 0)
+
+        var value: BigInt
+        if radix == 16 {
+            guard let v = BigInt(hexString: text) else {
+                return nil
+            }
+            
+            value = v
+        }
+        else {
+            let bigIntRadix = BigInt(radix)
+            value = BigInt.zero
+            for digit in text {
+                guard let d = Int(String(digit), radix: radix) else {
+                    return nil
+                }
+                
+                value = value * bigIntRadix + BigInt(d)
+            }
+        }
+
+        self = isNegative ? -value : value
+    }
+    
     var hexString: String {
         return "\(self)"
     }

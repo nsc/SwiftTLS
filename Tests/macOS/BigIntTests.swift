@@ -155,57 +155,74 @@ class BigIntTests: XCTestCase {
     
         let a = BigInt([UInt8]([0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0, 0x21, 0x34]))
 
-        XCTAssert(a == BigInt(hexString: "3421f0debc9a78563412")!)
+        XCTAssert(a == BigInt("3421f0debc9a78563412", radix: 16)!)
     }
     
     func test_init_withUInt16Array_givesCorrectResult() {
         
         let a = BigInt([UInt16]([0x1234, 0x5678, 0x9abc, 0xdef0, 0x2134]))
         
-        XCTAssert(a == BigInt(hexString: "2134def09abc56781234")!)
+        XCTAssert(a == BigInt("2134def09abc56781234", radix: 16)!)
     }
 
     func test_init_withUInt32Array_givesCorrectResult() {
         
         let a = BigInt([UInt32]([0x56789abc, 0xdef02134, 0x1234]))
         
-        XCTAssert(a == BigInt(hexString: "1234def0213456789abc")!)
+        XCTAssert(a == BigInt("1234def0213456789abc", radix: 16)!)
     }
 
     func test_init_withUInt64Array_givesCorrectResult() {
         
         let a = BigInt([UInt64]([0x56789abcdef02134, 0x1234]))
         
-        XCTAssert(a == BigInt(hexString: "123456789abcdef02134")!)
+        XCTAssert(a == BigInt("123456789abcdef02134", radix: 16)!)
     }
 
     func test_BigInt32init_withUInt64Array_givesCorrectResult() {
         
         let a = BigInt([UInt64]([0x56789abcdef02134, 0x1234]))
-        let expectedResult = BigInt(hexString: "123456789abcdef02134")!
+        let expectedResult = BigInt("123456789abcdef02134", radix: 16)!
 
         XCTAssert(a == expectedResult)
     }
 
     func test_init_withHexString_givesCorrectResult() {
         
-        let a = BigInt(hexString: "1234567890abcdefABCDEF")
+        let a = BigInt("1234567890abcdefABCDEF", radix: 16)
         
         XCTAssert(a! == BigInt([0x7890abcdefABCDEF, 0x123456] as [UInt64]))
     }
 
     func test_init_withSomeHexString_givesCorrectResult() {
         
-        let a = BigInt(hexString: "ffffffff12365981274ffffff1231265123ff")
+        let a = BigInt("ffffffff12365981274ffffff1231265123ff", radix: 16)!
         
-        XCTAssert(a! == BigInt([0xffff1231265123ff, 0xfff12365981274ff, 0xfffff] as [UInt64]))
+        XCTAssert(a == BigInt([0xffff1231265123ff, 0xfff12365981274ff, 0xfffff] as [UInt64]))
     }
 
-    
+    func test_init_withOctalString_givesCorrectResult() {
+        let a = BigInt("1365471653461273654761253137657654", radix: 8)!
+
+        XCTAssert(a == BigInt([0xaef59f15597f5fac, 0xbd673ab98] as [UInt64]))
+    }
+
+    func test_init_withDecimalString_givesCorrectResult() {
+        let a = BigInt("12350976091230597092730597093750745784", radix: 10)!
+
+        XCTAssert(a == BigInt([0xded22dd508022ab8, 0x94ab622e003ecba] as [UInt64]))
+    }
+
+    func test_init_withNegativeDecimalString_givesCorrectResult() {
+        let a = BigInt("-12350976091230597092730597093750745784", radix: 10)!
+
+        XCTAssert(a == BigInt([0xded22dd508022ab8, 0x94ab622e003ecba] as [UInt64], negative: true))
+    }
+
     func test_toString__givesCorrectResult()
     {
         let hexString = "1234567890abcdefABCDEF"
-        let a = BigInt(hexString: hexString)!
+        let a = BigInt(hexString, radix: 16)!
         
         XCTAssert(hexString.lowercased() == a.hexString.lowercased())
     }
@@ -306,7 +323,7 @@ class BigIntTests: XCTestCase {
     func test_multiply_aNumberWithItself_givesCorrectResult()
     {
         let hexString = "123456789abcdef02134"
-        let n = BigInt(hexString: hexString)!
+        let n = BigInt(hexString, radix: 16)!
         let nSquared = n * n
         
         XCTAssert(nSquared.hexString.lowercased() == "14b66dc33f6acdcaa9aec1f2b88af3475ce7290")
@@ -316,8 +333,8 @@ class BigIntTests: XCTestCase {
     {
         let aHex = "ffffffff12365981274ffffff1231265123ff"
         let bHex = "ffffffff26265235ffffff232323f23f23f232323f3243243f"
-        let a = BigInt(hexString: aHex)!
-        let b = BigInt(hexString: bHex)!
+        let a = BigInt(aHex, radix: 16)!
+        let b = BigInt(bHex, radix: 16)!
         let product = a * b
         
         let s = BIGNUM_multiply(aHex, bHex)
@@ -339,8 +356,8 @@ class BigIntTests: XCTestCase {
     
 //    func test_mod_withNegativeNumbers_givesCorrectResult()
 //    {
-//        let a = BigInt(hexString: "10000000000000000001", negative: true)!
-//        let b = BigInt(hexString: "10000000000000000000", negative: false)!
+    //        let a = BigInt("10000000000000000001", radix: 16, negative: true)!
+    //        let b = BigInt("10000000000000000000", radix: 16, negative: false)!
 //
 //        let c = a % b
 //
@@ -365,11 +382,11 @@ class BigIntTests: XCTestCase {
         ]
         
         for (uHex, vHex) in uvValues {
-           var u = BigInt(hexString: uHex)!
-           var v = BigInt(hexString: vHex)!
+            var u = BigInt(uHex, radix: 16)!
+            var v = BigInt(vHex, radix: 16)!
         
-//        let maxU = BigInt(hexString: "10000000000000000000000000000000000000000000000000000000000000000000000000000")!
-//        let maxV = BigInt(hexString: "1000000000000000000000000000000000000000000")!
+            //        let maxU = BigInt("10000000000000000000000000000000000000000000000000000000000000000000000000000", radix: 16)!
+            //        let maxV = BigInt("1000000000000000000000000000000000000000000", radix: 16)!
 //        for _ in 0..<1000000
 //        {
 //            var u = BigInt.random(maxU)
@@ -401,8 +418,8 @@ class BigIntTests: XCTestCase {
 
     func test_mod_twoNumbers_givesCorrectResult()
     {
-        var u = BigInt(hexString: "85326D2CCF0482A8CE97268130C4D8442BE616FFA4141E74A040CD57F2310845E30828BE9EA51F0EC606A3213125FE6DBF09F4E29C3918B4FB49A2C5D80A2DA7FC8F41AB2836E4305B8DA998C8DA333994BA34ED47183E0A3DE83BCDF541F563E8D369E6C14F9D917800BE8AE5EC6BCE7BDF529A6D5C97EF5EC8587A9559199006929")!
-        var v = BigInt(hexString: "1FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")!
+        var u = BigInt("85326D2CCF0482A8CE97268130C4D8442BE616FFA4141E74A040CD57F2310845E30828BE9EA51F0EC606A3213125FE6DBF09F4E29C3918B4FB49A2C5D80A2DA7FC8F41AB2836E4305B8DA998C8DA333994BA34ED47183E0A3DE83BCDF541F563E8D369E6C14F9D917800BE8AE5EC6BCE7BDF529A6D5C97EF5EC8587A9559199006929", radix: 16)!
+        var v = BigInt("1FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", radix: 16)!
         
             if u < v {
                 swap(&u, &v)
@@ -480,10 +497,10 @@ class BigIntTests: XCTestCase {
     func test_mod_pow_withNonRandomBigIntExponent_givesCorrectResult() {
         BigInt.withContext { _ in
 //            let u = BigInt(3)
-//            let mod = BigInt(hexString: "BEC82AE3617E90A9")!
-//            let n = BigInt(hexString: "A421A73A064554B7F65B48ACD1EB8FAF8D4A8A506480F13F53E3")!
-            let u = BigInt(hexString: "7BC1161DF786C7E1E73BF66E2BFBCA195893DCD4BAE620A1BE514A708A93A6108D3833C5A7")!
-            let mod = BigInt(hexString: "6FB35021AC01FE651D8EFDDFE3CDCD3E014396347B0E804720A02FE43E24CCBE2DCE26699B84334DD1C67E1E619AF4")!
+            //            let mod = BigInt("BEC82AE3617E90A9", radix: 16)!
+            //            let n = BigInt("A421A73A064554B7F65B48ACD1EB8FAF8D4A8A506480F13F53E3", radix: 16)!
+            let u = BigInt("7BC1161DF786C7E1E73BF66E2BFBCA195893DCD4BAE620A1BE514A708A93A6108D3833C5A7", radix: 16)!
+            let mod = BigInt("6FB35021AC01FE651D8EFDDFE3CDCD3E014396347B0E804720A02FE43E24CCBE2DCE26699B84334DD1C67E1E619AF4", radix: 16)!
             let n = BigInt(6083)
 
             let s = BIGNUM_mod_pow(u.hexString, n.hexString, mod.hexString)
@@ -541,10 +558,10 @@ class BigIntTests: XCTestCase {
         ]
         
         for testVector in testVectors {
-            let x = BigInt(hexString: testVector.x)!
-            let y = BigInt(hexString: testVector.y)!
-            let a = BigInt(hexString: testVector.mod)!
-            let expectedResult = BigInt(hexString: testVector.result)!
+            let x = BigInt(testVector.x, radix: 16)!
+            let y = BigInt(testVector.y, radix: 16)!
+            let a = BigInt(testVector.mod, radix: 16)!
+            let expectedResult = BigInt(testVector.result, radix: 16)!
             
             let reduction = BarrettReduction(modulus: a)
             let result = reduction.modular_inverse(x, y)
@@ -574,8 +591,8 @@ class BigIntTests: XCTestCase {
     }
     
     func test_barrettReduction__givesSameResultAsMod() {
-        let x       = BigInt(hexString: "ABE240AB8ED091C56723DE")!
-        let modulus = BigInt(hexString: "F6E7182efab8749FECE901AE")!
+        let x       = BigInt("ABE240AB8ED091C56723DE", radix: 16)!
+        let modulus = BigInt("F6E7182efab8749FECE901AE", radix: 16)!
         
         let barrett = BarrettReduction(modulus: modulus)
         

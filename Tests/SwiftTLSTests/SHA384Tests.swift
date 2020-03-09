@@ -22,7 +22,7 @@ class SHA384Tests: XCTestCase {
         sha.update([UInt8]("abc".utf8))
         let digest = sha.finalize()
         
-        let expectedDigest = BigInt(hexString: "cb00753f45a35e8bb5a03d699ac65007272c32ab0eded1631a8b605a43ff5bed8086072ba1e7cc2358baeca134c825a7")!.asBigEndianData()
+        let expectedDigest = BigInt("cb00753f45a35e8bb5a03d699ac65007272c32ab0eded1631a8b605a43ff5bed8086072ba1e7cc2358baeca134c825a7", radix: 16)!.asBigEndianData()
         
         XCTAssert(digest == expectedDigest)
     }
@@ -30,7 +30,7 @@ class SHA384Tests: XCTestCase {
     func test_sha384_withMultiBlockMessage_givesCorrectDigest() {
         let digest = SHA384.hash([UInt8]("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq".utf8))
         
-        let expectedDigest = BigInt(hexString: "3391fdddfc8dc7393707a65b1b4709397cf8b1d162af05abfe8f450de5f36bc6b0455a8520bc4e6f5fe95b1fe3c8452b")!.asBigEndianData()
+        let expectedDigest = BigInt("3391fdddfc8dc7393707a65b1b4709397cf8b1d162af05abfe8f450de5f36bc6b0455a8520bc4e6f5fe95b1fe3c8452b", radix: 16)!.asBigEndianData()
         
         XCTAssert(digest == expectedDigest)
     }
@@ -39,7 +39,7 @@ class SHA384Tests: XCTestCase {
         let message = [UInt8](repeating: [UInt8]("a".utf8)[0], count: 1_000_000)
         let digest = SHA384.hash(message)
         
-        let expectedDigest = BigInt(hexString: "9d0e1809716474cb086e834e310a4a1ced149e9c00f248527972cec5704c2a5b07b8b3dc38ecc4ebae97ddd87f3d8985")!.asBigEndianData()
+        let expectedDigest = BigInt("9d0e1809716474cb086e834e310a4a1ced149e9c00f248527972cec5704c2a5b07b8b3dc38ecc4ebae97ddd87f3d8985", radix: 16)!.asBigEndianData()
         
         XCTAssert(digest == expectedDigest)
     }

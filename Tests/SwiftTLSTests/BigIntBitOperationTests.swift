@@ -35,11 +35,11 @@ class BigIntBitOperationTests: XCTestCase {
     }
 
     func test_shiftRight_nonMultiplesOfWordSize_givesCorrectResult() {
-        let value = BigInt(hexString: "123456789abcdef0fedcba9876543210f67819356ef46abc")!
+        let value = BigInt("123456789abcdef0fedcba9876543210f67819356ef46abc", radix: 16)!
         
-        let testVectors = [(23, BigInt(hexString: "2468acf13579bde1fdb97530eca86421ecf0326add")!),
-                           (85, BigInt(hexString: "91a2b3c4d5e6f787f6e5d4c3b2")!),
-                           (132, BigInt(hexString: "123456789abcdef")!)
+        let testVectors = [(23, BigInt("2468acf13579bde1fdb97530eca86421ecf0326add", radix: 16)!),
+                           (85, BigInt("91a2b3c4d5e6f787f6e5d4c3b2", radix: 16)!),
+                           (132, BigInt("123456789abcdef", radix: 16)!)
         ]
         
         for (shift, result) in testVectors {
@@ -67,10 +67,10 @@ class BigIntBitOperationTests: XCTestCase {
     }
     
     func test_shiftLeft_nonMultiplesOfWordSize_givesCorrectResult() {
-        let value = BigInt(hexString: "123456789abcdef0fedcba9876543210f67819356ef46abc")!
+        let value = BigInt("123456789abcdef0fedcba9876543210f67819356ef46abc", radix: 16)!
         
-        let testVectors = [(23, BigInt(hexString: "91a2b3c4d5e6f787f6e5d4c3b2a19087b3c0c9ab77a355e000000")!),
-                           (85, BigInt(hexString: "2468acf13579bde1fdb97530eca86421ecf0326adde8d578000000000000000000000")!)
+        let testVectors = [(23, BigInt("91a2b3c4d5e6f787f6e5d4c3b2a19087b3c0c9ab77a355e000000", radix: 16)!),
+                           (85, BigInt("2468acf13579bde1fdb97530eca86421ecf0326adde8d578000000000000000000000", radix: 16)!)
         ]
         
         for (shift, result) in testVectors {
@@ -82,7 +82,7 @@ class BigIntBitOperationTests: XCTestCase {
     }
     
     func test_isBitSet__givesCorrectResult() {
-        let value = BigInt(hexString: "123456789abcdef0fedcba9876543210f67819356ef46abc")!
+        let value = BigInt("123456789abcdef0fedcba9876543210f67819356ef46abc", radix: 16)!
 
         for i in 0..<value.bitWidth {
             let a = value >> i
