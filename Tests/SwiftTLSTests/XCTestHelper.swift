@@ -11,7 +11,10 @@ import XCTest
 extension XCTestCase {
     func path(forResource name: String) -> String {
         if let value = ProcessInfo.processInfo.environment["XPC_SERVICE_NAME"],
-            value.contains("com.apple.dt") {
+        // Xcode pre 11.4
+        value.contains("com.apple.dt") ||
+        // Xcode >= 11.4
+        (value.contains("com.apple.xpc.launchd") && value.hasSuffix("Xcode")) {
             
             return Bundle(for: type(of: self)).path(forResource: name, ofType: nil)!
         }

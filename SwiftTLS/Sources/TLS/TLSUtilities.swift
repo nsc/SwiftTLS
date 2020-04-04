@@ -649,15 +649,16 @@ func TLSCipherSuiteDescriptorForCipherSuite(_ cipherSuite : CipherSuite) -> Ciph
 
 public extension String {
     static func fromUTF8Bytes(_ bytes : [UInt8]) -> String? {
-        let buffer = UnsafeBufferPointer(start: bytes, count: bytes.count)
-        var string  = ""
-        let hadError = transcode(buffer.makeIterator(), from: UTF8.self, to: UTF32.self, stoppingOnError: false) { string.append(Character(UnicodeScalar($0)!)) }
-        
-        if !hadError {
-            return string
+        return bytes.withUnsafeBufferPointer { buffer in
+            var string  = ""
+            let hadError = transcode(buffer.makeIterator(), from: UTF8.self, to: UTF32.self, stoppingOnError: false) { string.append(Character(UnicodeScalar($0)!)) }
+            
+            if !hadError {
+                return string
+            }
+            
+            return nil
         }
-        
-        return nil
     }
 }
 

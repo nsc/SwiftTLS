@@ -51,21 +51,26 @@ public class IPAddress : CustomStringConvertible
     }
     
     public class func peerName(with socket: Int32) -> IPAddress? {
-        var storage = sockaddr_storage()
+        var storage = UnsafeMutablePointer<sockaddr_storage>.allocate(capacity: 1)
+        
+        defer {
+            storage.deallocate()
+        }
+        
         var length = socklen_t(MemoryLayout<sockaddr_storage>.size)
-        let address = UnsafeMutableRawPointer(&storage).bindMemory(to: sockaddr.self, capacity: 1)
+        let address = UnsafeMutableRawPointer(storage).bindMemory(to: sockaddr.self, capacity: 1)
         guard getpeername(socket, address, &length) == 0 else {
             return nil
         }
         
         switch Int32(address.pointee.sa_family) {
         case AF_INET:
-            let inet4addr = UnsafeMutableRawPointer(&storage).bindMemory(to: sockaddr_in.self, capacity: 1)
+            let inet4addr = UnsafeMutableRawPointer(storage).bindMemory(to: sockaddr_in.self, capacity: 1)
             
             return IPv4Address(sockaddr: inet4addr.pointee)
             
         case AF_INET6:
-            let inet6addr = UnsafeMutableRawPointer(&storage).bindMemory(to: sockaddr_in6.self, capacity: 1)
+            let inet6addr = UnsafeMutableRawPointer(storage).bindMemory(to: sockaddr_in6.self, capacity: 1)
 
             return IPv6Address(sockaddr: inet6addr.pointee)
             
