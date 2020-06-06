@@ -85,8 +85,7 @@ public class TLSConnection
     private func transcriptHash(droppingLast numberOfDroppedBytes: Int) -> [UInt8] {
         var handshakeData: [UInt8] = []
         for message in self.handshakeMessages {
-            if let version = self.negotiatedProtocolVersion,
-                version == .v1_3 {
+            if self.negotiatedProtocolVersion == .v1_3 {
                 
                 // Check for special construct when a HelloRetryRequest is included
                 // see section 4.4.1 "The Transcript Hash" in RFC 8446
@@ -148,7 +147,7 @@ public class TLSConnection
     var preSharedKey: [UInt8]?
     
     var earlyData: [UInt8]? = nil
-    var earlyDataWasSent: Bool = false
+    var earlyDataWasAccepted: Bool = false
     
     private var connectionEstablishedCompletionBlock : ((_ error : TLSError?) -> ())?
 

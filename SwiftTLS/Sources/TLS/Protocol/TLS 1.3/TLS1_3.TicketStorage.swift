@@ -12,7 +12,7 @@ extension TLS1_3 {
     // The maximum amount we allow the clients view of a tickets age to be off in milliseconds
     static let maximumAcceptableTicketAgeOffset: UInt32 = 10_000
     
-    class Ticket
+    struct Ticket
     {
         var serverNames: [String]
         var identity: [UInt8]
@@ -23,6 +23,7 @@ extension TLS1_3 {
         var preSharedKey: [UInt8]!
         var hashAlgorithm: HashAlgorithm
         var cipherSuite: CipherSuite
+        var maxEarlyDataSize: UInt32
         
         var creationDate: Date
         
@@ -32,6 +33,7 @@ extension TLS1_3 {
              lifeTime: UInt32,
              ageAdd: UInt32,
              cipherSuite: CipherSuite,
+             maxEarlyDataSize: UInt32 = 0,
              hashAlgorithm: HashAlgorithm = .sha256)
         {
             self.serverNames = serverNames
@@ -40,6 +42,7 @@ extension TLS1_3 {
             self.lifeTime = lifeTime
             self.ageAdd = ageAdd
             self.cipherSuite = cipherSuite
+            self.maxEarlyDataSize = maxEarlyDataSize
             self.hashAlgorithm = hashAlgorithm
             
             self.creationDate = Date()
@@ -51,18 +54,18 @@ extension TLS1_3 {
             return age <= Double(self.lifeTime)
         }
         
-        internal func derivePreSharedKey(for connection: TLSConnection, sessionResumptionSecret: [UInt8]) {
+        internal mutating func derivePreSharedKey(for connection: TLSConnection, sessionResumptionSecret: [UInt8]) {
             self.preSharedKey = (connection.protocolHandler as! BaseProtocol).HKDF_Expand_Label(secret: sessionResumptionSecret, label: resumptionLabel, hashValue: self.nonce, outputLength: self.hashAlgorithm.hashLength)
         }
     }
     
-    class TicketStorage
+    struct TicketStorage
     {
         typealias ServerNameToTicketsDictionary = [String : [Ticket]]
         
         var tickets: ServerNameToTicketsDictionary = [:]
         
-        func add(_ ticket: Ticket) {
+        mutating func add(_ ticket: Ticket) {
             for serverName in ticket.serverNames {
                 var tickets = self.tickets[serverName, default: []]
                 tickets.append(ticket)
@@ -70,10 +73,10 @@ extension TLS1_3 {
                 self.tickets[serverName] = tickets
             }
             
-            log("Add ticket: \(self.tickets.debugDescription)")
+//            log("Add ticket: \(self.tickets.debugDescription)")
         }
         
-        func remove(_ ticket: Ticket) {
+        mutating func remove(_ ticket: Ticket) {
             let now = Date()
 
             for serverName in ticket.serverNames {
@@ -86,14 +89,14 @@ extension TLS1_3 {
                 self.tickets[serverName] = tickets
             }
             
-            log("Remove ticket: \(self.tickets.debugDescription)")
+//            log("Remove ticket: \(self.tickets.debugDescription)")
         }
         
         subscript(serverName serverName: String) -> [Ticket] {
             return self.tickets[serverName] ?? []
         }
         
-        func removeInvalidTickets() {
+        mutating func removeInvalidTickets() {
             let now = Date()
             for serverName in tickets.keys {
                 let tickets = self.tickets[serverName, default: []].filter({$0.isValid(at: now)})

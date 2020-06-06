@@ -390,7 +390,6 @@
 		03657D061B07BDEF00293CE3 /* tls */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = tls; sourceTree = BUILT_PRODUCTS_DIR; };
 		036656FB20A83ED700D8BF03 /* ECDSA Identity.pem */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "ECDSA Identity.pem"; sourceTree = "<group>"; };
 		03686BF41D270AE400CF88E2 /* rfc3447.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = rfc3447.txt; sourceTree = "<group>"; };
-		036A7C131B07C26800AE46F8 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		036C8E602109C89700D5916C /* Montgomery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Montgomery.swift; sourceTree = "<group>"; };
 		037EEF38210DE1B5007C44B3 /* XCTestManifests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XCTestManifests.swift; sourceTree = "<group>"; };
 		037EEF39210DED06007C44B3 /* TLSReadExtensionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TLSReadExtensionsTests.swift; sourceTree = "<group>"; };
@@ -581,7 +580,6 @@
 		033AC34D1AC473730004EEC1 = {
 			isa = PBXGroup;
 			children = (
-				036A7C131B07C26800AE46F8 /* Security.framework */,
 				033AC3581AC473730004EEC1 /* SwiftTLS */,
 				033AC36B1AC473730004EEC1 /* SwiftTLSTests */,
 				0379D7571BA219040091634C /* SwiftTLS Tool */,

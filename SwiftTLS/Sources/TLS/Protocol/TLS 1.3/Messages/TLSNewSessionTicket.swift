@@ -18,6 +18,10 @@ extension TLS1_3 {
         let ticket: [UInt8]
         let extensions: [TLSExtension]
         
+        var maxEarlyDataSize: UInt32 {
+            extensions.compactMap({$0 as? TLSEarlyDataIndication}).first?.maxEarlyDataSize ?? 0
+        }
+        
         convenience init(ticket: Ticket, extensions: [TLSExtension] = [])
         {
             self.init(ticketLifetime: ticket.lifeTime, ticketAgeAdd: ticket.ageAdd, ticketNonce: ticket.nonce, ticket: ticket.identity, extensions: extensions)

@@ -21,6 +21,8 @@ func connectTo(host : String, port : UInt16 = 443, supportedVersions: [TLSProtoc
         configuration = TLSConfiguration(supportedVersions: supportedVersions)
     }
 
+    configuration.earlyData = .supported(maximumEarlyDataSize: 4096)
+    
     // Connect twice to test session resumption
     var context: TLSClientContext? = nil
     BigInt.withContext { _ in
@@ -31,7 +33,10 @@ func connectTo(host : String, port : UInt16 = 443, supportedVersions: [TLSProtoc
                 client = TLSClient(configuration: configuration, context: context)
                 
                 let requestData = [UInt8]("GET / HTTP/1.1\r\nHost: \(host)\r\nUser-Agent: SwiftTLS\r\nConnection: Close\r\n\r\n".utf8)
-                let earlyDataWasSent = try client.connect(hostname: host, port: port, withEarlyData: Data(requestData))
+                try client.connect(hostname: host, port: port, withEarlyData: Data(requestData))
+                
+                let earlyDataState = client.earlyDataState
+                print("Early data: \(earlyDataState)")
                 
                 if context == nil {
                     context = client.context as? TLSClientContext
@@ -39,16 +44,22 @@ func connectTo(host : String, port : UInt16 = 443, supportedVersions: [TLSProtoc
                 
                 print("Connection established using cipher suite \(client.cipherSuite!)")
                 
-                if !earlyDataWasSent {
+                if earlyDataState != .accepted {
                     try client.write(requestData)
                 }
                 
-                let data = try client.read(count: 4096)
-                if data.count == 0 {
+                while true {
+                    let data = try client.read(count: 4096)
+                    if data.count == 0 {
+                        break
+                    }
+
+                    _ = data.withUnsafeBytes { buffer in
+                        write(1, buffer.baseAddress, buffer.count)
+                    }
+                    
                     break
                 }
-                print("\(data.count) bytes read.")
-                print("\(String.fromUTF8Bytes(data)!)")
             }
             catch (let error) {
                 client.close()

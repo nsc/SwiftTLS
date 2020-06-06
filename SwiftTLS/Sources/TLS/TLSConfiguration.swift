@@ -64,7 +64,7 @@ public struct TLSConfiguration
     
     public enum EarlyDataSupport {
         case notSupported
-        case supported(maximumEarlyDataSize: Int)
+        case supported(maximumEarlyDataSize: UInt32)
     }
     
     public var earlyData: EarlyDataSupport = .notSupported

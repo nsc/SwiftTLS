@@ -71,6 +71,7 @@ extension TLS1_3 {
             if clientHello.extensions.contains(where: {$0 is TLSEarlyDataIndication}) {
                 if case .supported(_) = self.server.configuration.earlyData {
                     self.serverHandshakeState.serverEarlyDataState = .accepted
+                    
                     deriveEarlyTrafficSecret()
                 }
                 else {
@@ -158,6 +159,17 @@ extension TLS1_3 {
                         clientOfferedPSKs = offeredPSKs
                     }
                     
+                case .earlyData:
+                    if case .supported(let maxEarlyDataSize) = self.server.configuration.earlyData {
+                        
+                        if maxEarlyDataSize > 0 {
+                            self.serverHandshakeState.serverEarlyDataState = .accepted
+                        }
+                        else {
+                            self.server.configuration.earlyData = .notSupported
+                        }
+                    }
+
                 default:
                     break
                 }
@@ -200,8 +212,9 @@ extension TLS1_3 {
                         let ticketAge = UInt32(Date().timeIntervalSince(ticket.creationDate) * 1000)
                         let identityAge = identity.obfuscatedTicketAge &- ticket.ageAdd
                         
-                        log("Server ticket age: \(ticketAge)")
-                        log("Client ticket age: \(identityAge)")
+                        log("Server ticket age      : \(ticketAge)")
+                        log("Client ticket age      : \(identityAge)")
+                        log("ticket hash algorithm  : \(ticket.hashAlgorithm)")
                         
                         // Reject ticket if the clients view of the ticket age is too far off
                         guard identityAge < ticketAge + maximumAcceptableTicketAgeOffset else {
@@ -223,9 +236,14 @@ extension TLS1_3 {
                             self.handshakeState.preSharedKey = ticket.preSharedKey
                             self.handshakeState.selectedIdentity = UInt16(i)
 
+                            // Remove ticket from cache to prevent replay attacks
+                            // (see RFC 8446, section 8.1 Single-Use Tickets)
                             self.context.ticketStorage.remove(ticket)
 
                             break
+                        }
+                        else {
+                            log("Binder value mismatch for identity \(identity)")
                         }
                     }
                 }
@@ -235,9 +253,14 @@ extension TLS1_3 {
                     log("Choose ticket \(ticket.identity)")
                 }
                 else {
+                    self.serverHandshakeState.serverEarlyDataState = .rejected
                     self.handshakeState.preSharedKey = nil
                     self.handshakeState.resumptionBinderSecret = nil
                 }
+            }
+            
+            if case .accepted = self.serverHandshakeState.serverEarlyDataState {
+                assert(self.serverHandshakeState.preSharedKey != nil)
             }
             
             server.cipherSuite = cipherSuite
@@ -314,6 +337,11 @@ extension TLS1_3 {
                         // TODO: give this data to the server
                         break
 
+                    case is TLSChangeCipherSpec:
+                        // FIXME: Check if this is legal. OpenSSL seems to send
+                        // a ChangeCipherSpec in its early data
+                        break
+                        
                     default:
                         try server.abortHandshake(with: .unexpectedMessage)
                     }
@@ -332,14 +360,19 @@ extension TLS1_3 {
             let ageAdd = UInt32(bigEndianBytes: TLSRandomBytes(count: 4))!
             // Currently we are sending only one session ticket per connection. If we want to support more than one, we would need
             // to chance the nonce here.
-            let ticket = Ticket(serverNames: serverNames, identity: identity, nonce: [0], lifeTime: 3600, ageAdd: ageAdd, cipherSuite: server.cipherSuite!, hashAlgorithm: server.hashAlgorithm)
+            var ticket = Ticket(serverNames: serverNames, identity: identity, nonce: [0], lifeTime: 3600, ageAdd: ageAdd, cipherSuite: server.cipherSuite!, hashAlgorithm: server.hashAlgorithm)
 
             deriveSessionResumptionSecret()
             ticket.derivePreSharedKey(for: connection, sessionResumptionSecret: self.handshakeState.sessionResumptionSecret!)
             
             self.context.ticketStorage.add(ticket)
             
-            try server.sendHandshakeMessage(TLSNewSessionTicket(ticket: ticket), appendToTranscript: false)
+            var extensions: [TLSExtension] = []
+            if case .supported(let maxEarlyDataSize) = self.connection.configuration.earlyData {
+                extensions.append(TLSEarlyDataIndication(maxEarlyDataSize: maxEarlyDataSize))
+            }
+            
+            try server.sendHandshakeMessage(TLSNewSessionTicket(ticket: ticket, extensions: extensions), appendToTranscript: false)
         }
         
         func handleFinished(_ finished: TLSFinished) throws {

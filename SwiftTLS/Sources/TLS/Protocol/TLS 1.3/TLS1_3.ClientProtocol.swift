@@ -122,12 +122,16 @@ extension TLS1_3 {
                 // without a pre-shared key
                 deriveEarlySecret()
                 self.handshakeState.resumptionBinderSecret = deriveResumptionPSKBinderSecret()
-                
+                                
                 if self.client.earlyData != nil {
-                    if case .supported(_) = self.client.configuration.earlyData {
-                        isSendingEarlyData = true
-                        clientHello.extensions.append(TLSEarlyDataIndication())
-                        self.client.cipherSuite = ticket.cipherSuite
+                    if case .supported(var maxEarlyDataSize) = self.client.configuration.earlyData {
+                        maxEarlyDataSize = min(maxEarlyDataSize, ticket.maxEarlyDataSize)
+                        
+                        isSendingEarlyData = maxEarlyDataSize > 0
+                        if isSendingEarlyData {
+                            clientHello.extensions.append(TLSEarlyDataIndication())
+                            self.client.cipherSuite = ticket.cipherSuite
+                        }
                     }
                 }
 
@@ -373,12 +377,13 @@ extension TLS1_3 {
                 fatalError("Client doesn't know the server it is connecting to.")
             }
             
-            let ticket = Ticket(serverNames: serverNames,
+            var ticket = Ticket(serverNames: serverNames,
                                 identity: newSessionTicket.ticket,
                                 nonce: newSessionTicket.ticketNonce,
                                 lifeTime: newSessionTicket.ticketLifetime,
                                 ageAdd: newSessionTicket.ticketAgeAdd,
                                 cipherSuite: self.client.cipherSuite!,
+                                maxEarlyDataSize: newSessionTicket.maxEarlyDataSize,
                                 hashAlgorithm: self.client.hashAlgorithm)
             
             ticket.derivePreSharedKey(for: connection, sessionResumptionSecret: self.handshakeState.sessionResumptionSecret!)

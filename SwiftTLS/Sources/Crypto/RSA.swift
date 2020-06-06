@@ -69,6 +69,7 @@ struct RSA
 
                 let algorithmIdentifier = (sequence.objects[1] as! ASN1Sequence)
                 let algorithm = (algorithmIdentifier.objects[0] as! ASN1ObjectIdentifier).identifier
+                // FIXME: support .rsassa_pss
                 guard let oid = OID(id: algorithm), oid == .rsaEncryption else {
                     return nil
                 }

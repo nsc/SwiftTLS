@@ -5,3 +5,17 @@
 
 TLS 1.2:
 - fix session reuse
+
+
+In case we should ever support the selection of a certificate according
+to the server name indication, we should send an empty server name indication
+in return to signal that we have used that information (see RFC 6066):
+
+   A server that receives a client hello containing the "server_name"
+   extension MAY use the information contained in the extension to guide
+   its selection of an appropriate certificate to return to the client,
+   and/or other aspects of security policy.  In this event, the server
+   SHALL include an extension of type "server_name" in the (extended)
+   server hello.  The "extension_data" field of this extension SHALL be
+   empty.
+

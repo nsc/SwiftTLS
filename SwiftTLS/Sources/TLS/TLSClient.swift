@@ -133,14 +133,12 @@ extension TLSClient : ClientSocketProtocol
         try self.startConnection(withEarlyData: [UInt8](earlyData))
     }
     
-    // Connect with early data. If the early data could actually be sent, returns true, fals otherwise
-    public func connect(hostname: String, port: UInt16 = 443, withEarlyData earlyData: Data) throws -> Bool
+    // Connect with early data.
+    public func connect(hostname: String, port: UInt16 = 443, withEarlyData earlyData: Data) throws
     {
         self.earlyData = [UInt8](earlyData)
         
         try connect(hostname: hostname, port: port)
-        
-        return self.earlyDataWasSent
     }
     
     public func connect(hostname: String, port: UInt16 = 443) throws
@@ -158,6 +156,26 @@ extension TLSClient : ClientSocketProtocol
             throw TLSError.error("Error: Could not resolve host \(hostname)")
         }
         
+    }
+    
+    public enum EarlyDataState {
+        case none
+        case sent
+        case accepted
+        case rejected
+    }
+    
+    public var earlyDataState: EarlyDataState {
+        guard let state = (clientProtocolHandler as? TLS1_3.ClientProtocol)?.clientHandshakeState.earlyDataState else {
+            return .none
+        }
+        
+        switch state {
+        case .none: return .none
+        case .sent: return .sent
+        case .accepted: return .accepted
+        case .rejected: return .rejected
+        }
     }
     
     // TODO: add connect method that takes a domain name rather than an IP

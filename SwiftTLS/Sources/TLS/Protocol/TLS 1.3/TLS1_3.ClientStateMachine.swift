@@ -52,12 +52,15 @@ extension TLS1_3 {
                 guard let newSessionTicket = client?.currentMessage as? TLSNewSessionTicket else {
                     fatalError("Invalid current message \(String(describing: client?.currentMessage))")
                 }
-                
+                                
                 log("New Session Ticket received:")
-                log("    ticket   = \(hex(newSessionTicket.ticket))")
-                log("    Nonce    = \(hex(newSessionTicket.ticketNonce))")
-                log("    lifeTime = \(newSessionTicket.ticketLifetime)")
-                log("    ageAdd   = \(newSessionTicket.ticketAgeAdd)")
+                log("    ticket         = \(hex(newSessionTicket.ticket))")
+                log("    Nonce          = \(hex(newSessionTicket.ticketNonce))")
+                log("    lifeTime       = \(newSessionTicket.ticketLifetime)")
+                log("    ageAdd         = \(newSessionTicket.ticketAgeAdd)")
+                log("    maxEarlyData   = \(newSessionTicket.maxEarlyDataSize)")
+
+                try transition(to: .connected)
                 
             default:
                 break
@@ -71,9 +74,9 @@ extension TLS1_3 {
         func clientDidConnect() throws {
             if let client = self.client {
                 if case .accepted = (client.clientProtocolHandler as! ClientProtocol).clientHandshakeState.earlyDataState {
-                    client.earlyDataWasSent = true
+                    client.earlyDataWasAccepted = true
                 } else {
-                    client.earlyDataWasSent = false
+                    client.earlyDataWasAccepted = false
                 }
             }
             try transition(to: .connected)
@@ -101,7 +104,7 @@ extension TLS1_3 {
                 
             case .encryptedExtensionsReceived:
                 if self.protocolHandler!.isUsingPreSharedKey {
-                        return state == .finishedReceived
+                    return state == .finishedReceived
                 }
                 
                 return state == .certificateRequestReceived || state == .certificateReceived
@@ -123,6 +126,9 @@ extension TLS1_3 {
                 
             case .endOfEarlyDataSent:
                 return state == .finishedSent
+                
+            case .newSessionTicketReceived:
+                return (state == .connected || state == .newSessionTicketReceived)
                 
             case .connected:
                 return (state == .closeReceived || state == .closeSent || state == .newSessionTicketReceived)

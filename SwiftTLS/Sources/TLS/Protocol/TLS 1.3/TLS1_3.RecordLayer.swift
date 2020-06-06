@@ -176,7 +176,7 @@ extension TLS1_3 {
         
             let cipherSuiteDescriptor = encryptionParameters.cipherSuiteDecriptor
 
-            log("recordData.count = \(recordData.count) / auth tag size = \(cipherSuiteDescriptor.authTagSize)")
+//            log("recordData.count = \(recordData.count) / auth tag size = \(cipherSuiteDescriptor.authTagSize)")
             guard recordData.count >= cipherSuiteDescriptor.authTagSize else {
                 // FIXME: I haven't found anything in the RFC about how to handle this case. What is the correct alert to send here?
                 try connection!.abortHandshake(with: .unexpectedMessage)

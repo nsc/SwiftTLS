@@ -123,7 +123,7 @@ extension TLS1_3 {
                 return state == .connected || state == .newSessionTicketSent
                 
             case .newSessionTicketSent:
-                return state == .connected
+                return state == .connected || state == .newSessionTicketSent
                 
             case .connected:
                 return (state == .closeReceived || state == .closeSent || state == .newSessionTicketSent)
