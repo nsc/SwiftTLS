@@ -68,15 +68,8 @@ extension TLS1_3 {
             let supportedVersions = TLSSupportedVersionsExtension(supportedVersions: [server.negotiatedProtocolVersion!])
             serverHello.extensions.append(supportedVersions)
             
-            if clientHello.extensions.contains(where: {$0 is TLSEarlyDataIndication}) {
-                if case .supported(_) = self.server.configuration.earlyData {
-                    self.serverHandshakeState.serverEarlyDataState = .accepted
-                    
-                    deriveEarlyTrafficSecret()
-                }
-                else {
-                    self.serverHandshakeState.serverEarlyDataState = .rejected
-                }
+            if self.serverHandshakeState.serverEarlyDataState == .accepted {
+                deriveEarlyTrafficSecret()
             }
             
             if let selectedIdentity = self.handshakeState.selectedIdentity {
@@ -252,13 +245,14 @@ extension TLS1_3 {
                     currentTicket = ticket
                     log("Choose ticket \(ticket.identity)")
                 }
-                else {
-                    self.serverHandshakeState.serverEarlyDataState = .rejected
-                    self.handshakeState.preSharedKey = nil
-                    self.handshakeState.resumptionBinderSecret = nil
-                }
             }
             
+            if currentTicket == nil {
+                self.serverHandshakeState.serverEarlyDataState = .rejected
+                self.handshakeState.preSharedKey = nil
+                self.handshakeState.resumptionBinderSecret = nil
+            }
+
             if case .accepted = self.serverHandshakeState.serverEarlyDataState {
                 assert(self.serverHandshakeState.preSharedKey != nil)
             }
