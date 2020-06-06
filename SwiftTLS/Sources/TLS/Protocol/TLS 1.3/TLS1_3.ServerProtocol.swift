@@ -184,6 +184,11 @@ extension TLS1_3 {
                     return
             }
 
+            // Set cipher suite. The transcript hash is using the hash function
+            // configured here.
+            server.cipherSuite = cipherSuite
+            server.clientKeyShare = keyShare
+
             // FIXME: Check that the combination of offered extensions for key share and PSKs is sane
             if let offeredPSKs = clientOfferedPSKs {
                 guard clientPSKKeyExchangeModes != nil else {
@@ -256,9 +261,6 @@ extension TLS1_3 {
             if case .accepted = self.serverHandshakeState.serverEarlyDataState {
                 assert(self.serverHandshakeState.preSharedKey != nil)
             }
-            
-            server.cipherSuite = cipherSuite
-            server.clientKeyShare = keyShare
         }
         
         func sendHelloRetryRequest(for clientHello: TLSClientHello) throws
