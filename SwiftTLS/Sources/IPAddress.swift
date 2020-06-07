@@ -51,7 +51,7 @@ public class IPAddress : CustomStringConvertible
     }
     
     public class func peerName(with socket: Int32) -> IPAddress? {
-        var storage = UnsafeMutablePointer<sockaddr_storage>.allocate(capacity: 1)
+        let storage = UnsafeMutablePointer<sockaddr_storage>.allocate(capacity: 1)
         
         defer {
             storage.deallocate()

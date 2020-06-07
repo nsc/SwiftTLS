@@ -316,11 +316,9 @@ extension Socket : ServerSocketProtocol
         }
         
         var yes : Int32 = 1
-        #if os(Linux)
-        setsockopt(clientSocket, Int32(IPPROTO_TCP), TCP_NODELAY, &yes, socklen_t(MemoryLayout<Int32>.size))
-        #else
-        setsockopt(clientSocket, IPPROTO_TCP, TCP_NODELAY, &yes, socklen_t(MemoryLayout<Int32>.size))
-        #endif
+        if setsockopt(clientSocket, Int32(IPPROTO_TCP), TCP_NODELAY, &yes, socklen_t(MemoryLayout<Int32>.size)) != 0 {
+            perror("setsockopt")
+        }
         
         return type(of: self).init(socketDescriptor: clientSocket)
     }

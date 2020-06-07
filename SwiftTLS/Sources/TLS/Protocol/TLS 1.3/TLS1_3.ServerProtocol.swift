@@ -300,6 +300,7 @@ extension TLS1_3 {
             // it after sending its Finished
             deriveApplicationTrafficSecrets()
 
+            log("Server: activate server traffic secret")
             self.recordLayer.changeWriteKeys(withTrafficSecret: self.handshakeState.serverTrafficSecret!)
 
             if case .accepted = self.serverHandshakeState.serverEarlyDataState {
@@ -308,7 +309,7 @@ extension TLS1_3 {
                 // Read until EndOfEarlyData
                 EndOfEarlyDataLoop: while true {
                     let message = try self.recordLayer.readMessage()
-                    log("Early data: \(String(describing: message))")
+                    log("Server: did receive early data: \(String(describing: message))")
                     
                     switch message
                     {
@@ -318,16 +319,20 @@ extension TLS1_3 {
                         
                     case is TLSApplicationData:
                         let data = (message as! TLSApplicationData).applicationData
-                        log("\t\(data)")
                         if let earlyDataResponseHandler = server.earlyDataResponseHandler {
-                            if let response = earlyDataResponseHandler(Data(data)) {
-                                var buffer = [UInt8](repeating: 0, count: data.count)
+                            if let response = earlyDataResponseHandler(self.server, Data(data)) {
+                                var buffer = [UInt8](repeating: 0, count: response.count)
                                 buffer.withUnsafeMutableBufferPointer {
                                     _ = response.copyBytes(to: $0)
                                 }
                                 
+                                log("Server: sending \(buffer.count) byts of early data")
+                                
                                 try server.sendApplicationData(buffer)
                             }
+                        }
+                        else {
+                            self.server.earlyData = data
                         }
                         
                         // TODO: give this data to the server
@@ -382,6 +387,7 @@ extension TLS1_3 {
             server.handshakeMessages.append(finished)
 
             // Activate the application traffic secret after Client Finished
+            log("Server: Activate client traffic secret")
             self.recordLayer.changeReadKeys(withTrafficSecret: self.handshakeState.clientTrafficSecret!)
         }
                 
@@ -431,11 +437,16 @@ extension TLS1_3 {
         }
         
         var connectionInfo: String {
+            var info = ""
             if let ticket = self.currentTicket {
-                return "Ticket:\n\(ticket)"
+                info += "Ticket:\n\(ticket)\n"
             }
             
-            return ""
+            if connection.earlyDataWasAccepted {
+                info += "Early Data: Accepted\n"
+            }
+
+            return info
         }
     }
 }

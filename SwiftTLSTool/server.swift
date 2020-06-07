@@ -45,7 +45,7 @@ func server(address: IPAddress, certificatePath: String, dhParametersPath : Stri
         configuration = TLSConfiguration(identity: identity)
     }
     
-    configuration.earlyData = .supported(maximumEarlyDataSize: 4096)
+    configuration.earlyData = .supported(maximumEarlyDataSize: 40960)
     
     if let dhParametersPath = dhParametersPath {
         configuration.dhParameters = DiffieHellmanParameters.fromPEMFile(dhParametersPath)
@@ -63,7 +63,7 @@ func server(address: IPAddress, certificatePath: String, dhParametersPath : Stri
     
     while true {
         do {
-            try server.acceptConnection(withEarlyDataResponseHandler: nil) { result in
+            try server.acceptConnection(withEarlyDataResponseHandler: responder(connection:data:)) { result in
                 var client: TLSConnection
                 switch result {
                 case .client(let connection):
@@ -74,52 +74,22 @@ func server(address: IPAddress, certificatePath: String, dhParametersPath : Stri
                     return
                 }
 
+                var earlyData = client.earlyData
                 while true {
                     do {
-                        let data = try client.read(count: 4096)
-                        let utf8Data = String.fromUTF8Bytes(data)
-                        let clientRequest: String
-                        if let utf8Data = utf8Data {
-                            clientRequest = utf8Data
+                        let data: [UInt8]
+                        if earlyData != nil {
+                            data = earlyData!
+                            earlyData = nil
                         }
                         else {
-                            clientRequest = data.reduce("", { $0 + String(format: "%02x ", $1)})
+                            data = try client.read(count: 4096)
                         }
-                    
-                        let response = """
-                        <!DOCTYPE html>
-                        <html lang="en">
-                        <title>Swift TLS</title>
-                        <meta charset="utf-8">
-                        <body>
-                        <pre>
-                        Date: \(Date())
-                        \(client.connectionInfo)
                         
-                        Your Request:
-                        \(clientRequest)
-                        
-                        </pre>
-                        <a href="/">reload</a>
-                        </body></html>
-                        """
-                        
-                        log("""
-                            \(client.connectionInfo)
+                        if let response = responder(connection: client, data: Data(data)) {
+                            try client.write(response)
                             
-                            Client Request:
-                            \(clientRequest)
-                            """)
-                        
-                        if clientRequest.hasPrefix("GET ") {
-                            let httpHeader = parseHTTPHeader(clientRequest)
-                            
-                            let clientWantsMeToCloseTheConnection = (httpHeader["Connection"]?.lowercased() == "close")
-                            
-                            let contentLength = response.utf8.count
-                            let header = "HTTP/1.0 200 OK\r\nServer: SwiftTLS\r\nConnection: Close\r\nContent-Type: text/html\r\nContent-Length: \(contentLength)\r\n\r\n"
-                            let body = "\(response)"
-                            try client.write(header + body)
+                            print("Sending response:\n \(response)")
                             
                             if clientWantsMeToCloseTheConnection {
                                 client.close()
@@ -146,3 +116,67 @@ func server(address: IPAddress, certificatePath: String, dhParametersPath : Stri
         }
     }
 }
+
+var clientWantsMeToCloseTheConnection = false
+func responder(connection: TLSConnection, data: Data) -> Data? {
+    let utf8Data = String(data: data, encoding: .utf8)
+    let clientRequest: String
+    if let utf8Data = utf8Data {
+        clientRequest = utf8Data
+    }
+    else {
+        clientRequest = data.reduce("", { $0 + String(format: "%02x ", $1)})
+    }
+
+    let response = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <title>Swift TLS</title>
+    <meta charset="utf-8">
+    <body>
+    <pre>
+    Date: \(Date())
+    \(connection.connectionInfo)
+    
+    Your Request:
+    \(clientRequest)
+    
+    </pre>
+    <a href="/">reload</a>
+    </body></html>
+    """
+    
+    log("""
+        \(connection.connectionInfo)
+        
+        Client Request:
+        \(clientRequest)
+        """)
+    
+    if clientRequest.hasPrefix("GET ") {
+        let httpHeader = parseHTTPHeader(clientRequest)
+        
+        clientWantsMeToCloseTheConnection = (httpHeader["Connection"]?.lowercased() == "close")
+        
+        let contentLength = response.utf8.count
+        let header = """
+            HTTP/1.1 200 OK
+            Server: SwiftTLS
+            Strict-Transport-Security: max-age=63072000
+            Connection: Close
+            Content-Type: text/html
+            Content-Length: \(contentLength)
+            """
+            .replacingOccurrences(of: "\n", with: "\r\n")
+            + "\r\n\r\n"
+        
+        let body = "\(response)"
+        
+        let responseData = (header + body).data(using: .utf8)
+
+        return responseData
+    }
+    
+    return nil
+}
+

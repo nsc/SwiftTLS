@@ -146,8 +146,8 @@ public class TLSConnection
     // TLS 1.3
     var preSharedKey: [UInt8]?
     
-    var earlyData: [UInt8]? = nil
-    var earlyDataWasAccepted: Bool = false
+    public var earlyData: [UInt8]? = nil
+    public var earlyDataWasAccepted: Bool = false
     
     private var connectionEstablishedCompletionBlock : ((_ error : TLSError?) -> ())?
 
@@ -422,5 +422,9 @@ extension TLSConnection : SocketProtocol {
     public func write(_ data: [UInt8]) throws
     {
         try self.sendApplicationData(data)
+    }
+    
+    public func write(_ data: Data) throws {
+        try write([UInt8](data))
     }
 }

@@ -14,6 +14,8 @@ class ECDSATests: XCTestCase {
         ("test_verify_signatureFromSelfSignedECDSACertificate_verifies", test_verify_signatureFromSelfSignedECDSACertificate_verifies),
         ("test_fromPEMFile_withSelfSignedECDSAIdentity_givesPrivateKey", test_fromPEMFile_withSelfSignedECDSAIdentity_givesPrivateKey),
         ("test_verify_signaturefromECDSAPEMFile_verifies", test_verify_signaturefromECDSAPEMFile_verifies),
+        ("test_sign_whenSigningSelfSignedECDSACertificate_verifies", test_sign_whenSigningSelfSignedECDSACertificate_verifies),
+        ("test_sign_withSecp256r1_verifies", test_sign_withSecp256r1_verifies)
         ]
 
     override func setUp() {

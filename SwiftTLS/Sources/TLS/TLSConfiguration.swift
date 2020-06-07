@@ -109,7 +109,8 @@ public struct TLSConfiguration
         if supportedVersions.contains(.v1_2) {
             cipherSuites.append(contentsOf: [
                 .TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-                .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+                .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+//                .TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
                 ])
         }
         

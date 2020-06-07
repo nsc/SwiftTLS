@@ -115,14 +115,14 @@ class TLSTests: XCTestCase {
                     for _ in 0..<numberOfTries {
                         var hasSentEarlyData = false
                         serverSideClientSocket = try server.acceptConnection(withEarlyDataResponseHandler: {
-                            (earlyData: Data) in
+                            (connection: TLSConnection, earlyData: Data) in
                             
                             hasSentEarlyData = true
                             
-                            return Data([1,2,3])
+                            return Data([3,4,5])
                         })
                         if !hasSentEarlyData {
-                            try serverSideClientSocket?.write([1,2,3])
+                            try serverSideClientSocket?.write([3,4,5])
                         }
 
                         try serverSideClientSocket?.write([4,5,6])
@@ -147,7 +147,7 @@ class TLSTests: XCTestCase {
                 let _ = try client.connect(hostname: "127.0.0.1", port: address.port, withEarlyData: Data([1,2,3]))
 
                 let response = try client.read(count: 3)
-                if response == [1,2,3] as [UInt8] {
+                if response == [3,4,5] as [UInt8] {
                     let response = try client.read(count: 3)
                     if response == [4,5,6] as [UInt8] {
                         numberOfSuccesses += 1

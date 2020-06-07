@@ -3,3 +3,4 @@ xcuserdata
 xcbaselines
 *.xccheckout
 .build
+.swiftpm

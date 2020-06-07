@@ -138,7 +138,7 @@ extension TLSServer : ServerSocketProtocol
         return try acceptConnection(withEarlyDataResponseHandler: nil)
     }
     
-    public typealias EarlyDataResponseHandler = ((_ earlyData: Data) -> (Data?))
+    public typealias EarlyDataResponseHandler = ((_ connection: TLSConnection, _ earlyData: Data) -> (Data?))
     
     /// Accept a connection
     ///
