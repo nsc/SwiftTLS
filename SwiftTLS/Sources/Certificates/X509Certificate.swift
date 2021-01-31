@@ -275,18 +275,29 @@ public struct X509
         {
             self.DEREncodedCertificate = sequence.underlyingData
             
-            guard sequence.objects.count >= 7 else { return nil }
+            guard sequence.objects.count >= 6 else { return nil }
             
-            guard let asn1tbsCertVersion            = (sequence.objects[0] as? ASN1TaggedObject)?.object as? ASN1Integer   else { return nil }
-            guard let asn1certificateSerialNumber   = sequence.objects[1] as? ASN1Integer   else { return nil }
-            guard let asn1signatureAlgorithm2       = sequence.objects[2] as? ASN1Sequence  else { return nil }
-            guard let asn1issuer                    = sequence.objects[3] as? ASN1Sequence  else { return nil }
-            guard let asn1validity                  = sequence.objects[4] as? ASN1Sequence  else { return nil }
-            guard let asn1subject                   = sequence.objects[5] as? ASN1Sequence  else { return nil }
-            guard let asn1subjectPublicKeyInfo      = sequence.objects[6] as? ASN1Sequence  else { return nil }
+            let offset: Int
+            if let asn1tbsCertVersion = (sequence.objects[0] as? ASN1TaggedObject)?.object as? ASN1Integer,
+               asn1tbsCertVersion.value.count == 1,
+               let version = CertificateVersion(rawValue:Int(asn1tbsCertVersion.value[0])) {
+                
+                self.version = version
+                offset = 1
+            }
+            else {
+                // If the version is omitted this is a version 1 certificate
+                self.version = .v1
+                offset = 0
+            }
+
+            guard let asn1certificateSerialNumber   = sequence.objects[offset + 0] as? ASN1Integer   else { return nil }
+            guard let asn1signatureAlgorithm2       = sequence.objects[offset + 1] as? ASN1Sequence  else { return nil }
+            guard let asn1issuer                    = sequence.objects[offset + 2] as? ASN1Sequence  else { return nil }
+            guard let asn1validity                  = sequence.objects[offset + 3] as? ASN1Sequence  else { return nil }
+            guard let asn1subject                   = sequence.objects[offset + 4] as? ASN1Sequence  else { return nil }
+            guard let asn1subjectPublicKeyInfo      = sequence.objects[offset + 5] as? ASN1Sequence  else { return nil }
             
-            guard asn1tbsCertVersion.value.count == 1, let version = CertificateVersion(rawValue:Int(asn1tbsCertVersion.value[0])) else { return nil }
-            self.version = version
             self.serialNumber = BigInt(bigEndianParts: asn1certificateSerialNumber.value)
             
             guard let signature = AlgorithmIdentifier(asn1sequence: asn1signatureAlgorithm2) else { return nil }
