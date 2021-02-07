@@ -98,7 +98,7 @@ class TLSTests: XCTestCase {
 
         let expectation = self.expectation(description: "accept connection successfully")
         
-        let address = IPv4Address.localAddress()
+        var address = IPv4Address.localAddress
         address.port = UInt16(12345)
         
         var clientContext: TLSClientContext? = nil

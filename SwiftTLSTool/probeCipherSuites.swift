@@ -37,7 +37,7 @@ func probeCipherSuitesForHost(host : String, port : UInt16, protocolVersion: TLS
         }
     }
     
-    guard let address = IPAddress.addressWithString(host, port: port) else { print("Error: No such host \(host)"); return }
+    guard let address = IPv6Address.addressWithString(host, port: port) else { print("Error: No such host \(host)"); return }
     
     let cipherSuites = CipherSuite.allValues.filter({
         // TLS 1.3 cipher suites are currently only in the range 0x1300...0x1305

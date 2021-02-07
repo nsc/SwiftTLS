@@ -79,7 +79,7 @@ class Socket : SocketProtocol
             return nil
         }
         
-        return IPAddress.peerName(with: sock)
+        return IPv4Address.peerName(with: sock)
     }
     
     var socketDescriptor : Int32?
@@ -128,11 +128,11 @@ class Socket : SocketProtocol
                     bytesWrittenThisTurn = self._write(socket, [UInt8](currentSlice), currentSlice.count)
                 }
                 else {
-                    let addr = address!.unsafeSockAddrPointer
+                    let addr = address!.socketAddress
                     bytesWrittenThisTurn = currentSlice.withUnsafeBufferPointer {
                         (buffer : UnsafeBufferPointer<UInt8>) -> Int in
                         let bufferPointer = buffer.baseAddress
-                        return sendto(socket, bufferPointer, currentSlice.count, Int32(0), addr, address!.sockAddrLength)
+                        return addr.withSocketAddress {sendto(socket, bufferPointer, currentSlice.count, Int32(0), $0, addr.length) }
                     }
                 }
                 
@@ -246,7 +246,7 @@ extension Socket : ClientSocketProtocol
     func _connect(_ address : IPAddress) throws
     {
         if (socketDescriptor == nil) {
-            socketDescriptor = createSocket(address.unsafeSockAddrPointer.pointee.sa_family)
+            socketDescriptor = createSocket(address.socketAddress.family)
             if (socketDescriptor == nil) {
                 throw SocketError.posixError(errno: errno)
             }
@@ -254,12 +254,14 @@ extension Socket : ClientSocketProtocol
         
         let socket = socketDescriptor!
         
-        let addr = address.unsafeSockAddrPointer
-        #if os(Linux)
-        let status = Glibc.connect(socket, addr, address.sockAddrLength)
-        #else
-        let status = Darwin.connect(socket, addr, address.sockAddrLength)
-        #endif
+        var sockaddr = address.socketAddress
+        let status = sockaddr.withSocketAddress { sockaddrPointer -> Int in
+            #if os(Linux)
+            return Int(Glibc.connect(socket, sockaddrPointer, sockaddr.length))
+            #else
+            return Int(Darwin.connect(socket, sockaddrPointer, sockaddr.length))
+            #endif
+        }
         
         if status < 0
         {
@@ -274,25 +276,29 @@ extension Socket : ServerSocketProtocol
         if self.socketDescriptor != nil {
             self.close()
         }
-        self.socketDescriptor = createSocket(address.unsafeSockAddrPointer.pointee.sa_family)
+        self.socketDescriptor = createSocket(address.socketAddress.family)
         
         guard let socket = self.socketDescriptor else {
             throw SocketError.closed
         }
         
-        #if os(Linux)
-        var result = Glibc.bind(socket, address.unsafeSockAddrPointer, socklen_t(address.sockAddrLength))
-        #else
-        var result = Darwin.bind(socket, address.unsafeSockAddrPointer, socklen_t(address.sockAddrLength))
-        #endif
+        var sockaddr = address.socketAddress
+        var result = sockaddr.withSocketAddress { sockaddrPointer -> Int in
+            #if os(Linux)
+            return Int(Glibc.bind(socket, sockaddrPointer, sockaddr.length))
+            #else
+            return Int(Darwin.bind(socket, sockaddrPointer, sockaddr.length))
+            #endif
+        }
+        
         if result < 0 {
             throw SocketError.posixError(errno: errno)
         }
         
         #if os(Linux)
-        result = Glibc.listen(socket, 5)
+        result = Int(Glibc.listen(socket, 5))
         #else
-        result = Darwin.listen(socket, 5)
+        result = Int(Darwin.listen(socket, 5))
         #endif
         if result < 0 {
             throw SocketError.posixError(errno: errno)

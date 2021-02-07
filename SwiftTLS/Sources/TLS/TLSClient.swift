@@ -143,7 +143,7 @@ extension TLSClient : ClientSocketProtocol
     
     public func connect(hostname: String, port: UInt16 = 443) throws
     {
-        if let address = IPAddress.addressWithString(hostname, port: port) {
+        if let address = IPv4Address.addressWithString(hostname, port: port) {
             var hostNameAndPort = hostname
             if port != 443 {
                 hostNameAndPort = "\(hostname):\(port)"

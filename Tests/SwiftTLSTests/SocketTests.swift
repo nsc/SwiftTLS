@@ -17,7 +17,7 @@ class SocketTests: XCTestCase {
     func test_listen_whenClientConnects_callsAcceptBlock()
     {
         let server = TCPSocket()
-        let address = IPv4Address.localAddress()
+        var address = IPv4Address.localAddress
         address.port = UInt16(12345)
         
         let expectation = self.expectation(description: "accept connection successfully")

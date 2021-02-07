@@ -28,7 +28,7 @@ func parseHTTPHeader(_ string: String) -> [String:String] {
     return header
 }
 
-func server(address: IPAddress, certificatePath: String, dhParametersPath : String? = nil, cipherSuite: CipherSuite? = nil, supportedVersions: [TLSProtocolVersion]? = nil)
+func server(address: IPAddress = IPv6Address.anyAddress, certificatePath: String, dhParametersPath : String? = nil, cipherSuite: CipherSuite? = nil, supportedVersions: [TLSProtocolVersion]? = nil)
 {    
     log("Listening on port \(address.port)")
     

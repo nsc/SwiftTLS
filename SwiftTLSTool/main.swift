@@ -53,7 +53,7 @@ case "server":
     
     var host: String? = nil
     var port: UInt16 = 443
-    var address: IPAddress? = IPAddress.localAddress()
+    var address: IPAddress? = IPv6Address.anyAddress
     var protocolVersion: TLSProtocolVersion? = nil
     var cipherSuite: CipherSuite? = nil
     var certificatePath: String? = nil
@@ -143,7 +143,7 @@ case "server":
                     let argument = arguments[argumentIndex]
                     argumentIndex += 1
                     
-                    address = IPAddress.addressWithString(argument, port: port)
+                    address = IPv6Address.addressWithString(argument, port: port)
                 case "--certificate":
                     if arguments.count <= argumentIndex {
                         throw MyError.Error("Missing argument for --certificate")
@@ -232,7 +232,7 @@ case "server":
             }
 
         case .server:
-            if let address = address {
+            if var address = address {
                 address.port = port
                 var supportedVersions: [TLSProtocolVersion]? = nil
                 if let version = protocolVersion {
