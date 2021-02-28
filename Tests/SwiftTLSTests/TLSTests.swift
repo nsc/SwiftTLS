@@ -29,43 +29,43 @@ class TLSTests: XCTestCase {
     }
     
 
-    func notest_connectTLS() {
-        let certificatePath = path(forResource: "mycert.pem")
-        let opensslServer = Process.launchedProcess(launchPath: "/usr/local/bin/openssl", arguments: ["s_server",  "-cert", certificatePath, "-www",  "-debug", "-cipher", "ALL:NULL" ])
-        
-        // wait for server to be up
-        sleep(1)
-        
-        var configuration = TLSConfiguration(supportedVersions: [.v1_3])
-        
-        configuration.cipherSuites = [.TLS_AES_128_GCM_SHA256]
-//        configuration.cipherSuites = [.TLS_RSA_WITH_AES_256_CBC_SHA]
-//        configuration.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
-//        configuration.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256]
-//        configuration.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256]
-        let client = TLSClient(configuration: configuration)
-
-//        let (host, port) = ("127.0.0.1", 4433)
-        
-        do {
-//            try socket.connect(IPAddress.addressWithString(host, port: port)!)
-            try client.connect(hostname: "localhost", port: 4433)
-            try client.write([UInt8]("GET / HTTP/1.1\r\nHost: example.com\r\n\r\n".utf8))
-            let data = try client.read(count: 100)
-            print("\(String(describing: String.fromUTF8Bytes(data)))")
-            client.close()
-        }
-        catch let error as SocketError {
-            print("Error: \(error)")
-            XCTFail()
-        }
-        catch let error {
-            print("Error: \(error)")
-            XCTFail()
-        }
-    
-        opensslServer.terminate()
-    }
+//    func notest_connectTLS() {
+//        let certificatePath = path(forResource: "mycert.pem")
+//        let opensslServer = Process.launchedProcess(launchPath: "/usr/local/bin/openssl", arguments: ["s_server",  "-cert", certificatePath, "-www",  "-debug", "-cipher", "ALL:NULL" ])
+//
+//        // wait for server to be up
+//        sleep(1)
+//
+//        var configuration = TLSConfiguration(supportedVersions: [.v1_3])
+//
+//        configuration.cipherSuites = [.TLS_AES_128_GCM_SHA256]
+////        configuration.cipherSuites = [.TLS_RSA_WITH_AES_256_CBC_SHA]
+////        configuration.cipherSuites = [.TLS_DHE_RSA_WITH_AES_256_CBC_SHA]
+////        configuration.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256]
+////        configuration.cipherSuites = [.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256]
+//        let client = TLSClient(configuration: configuration)
+//
+////        let (host, port) = ("127.0.0.1", 4433)
+//
+//        do {
+////            try socket.connect(IPAddress.addressWithString(host, port: port)!)
+//            try client.connect(hostname: "localhost", port: 4433)
+//            try client.write([UInt8]("GET / HTTP/1.1\r\nHost: example.com\r\n\r\n".utf8))
+//            let data = try client.read(count: 100)
+//            print("\(String(describing: String.fromUTF8Bytes(data)))")
+//            client.close()
+//        }
+//        catch let error as SocketError {
+//            print("Error: \(error)")
+//            XCTFail()
+//        }
+//        catch let error {
+//            print("Error: \(error)")
+//            XCTFail()
+//        }
+//
+//        opensslServer.terminate()
+//    }
     
     func createServer(with cipherSuite: CipherSuite, port: Int, supportedVersions: [TLSProtocolVersion]) -> TLSServer
     {

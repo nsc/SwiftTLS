@@ -304,6 +304,8 @@ extension TLS1_3 {
             self.recordLayer.changeWriteKeys(withTrafficSecret: self.handshakeState.serverTrafficSecret!)
 
             if case .accepted = self.serverHandshakeState.serverEarlyDataState {
+                server.earlyDataWasAccepted = true
+
                 activateEarlyTrafficSecret()
                 
                 // Read until EndOfEarlyData
@@ -326,7 +328,7 @@ extension TLS1_3 {
                                     _ = response.copyBytes(to: $0)
                                 }
                                 
-                                log("Server: sending \(buffer.count) byts of early data")
+                                log("Server: sending \(buffer.count) bytes of early data")
                                 
                                 try server.sendApplicationData(buffer)
                             }
@@ -335,7 +337,6 @@ extension TLS1_3 {
                             self.server.earlyData = data
                         }
                         
-                        // TODO: give this data to the server
                         break
 
                     case is TLSChangeCipherSpec:
@@ -349,6 +350,9 @@ extension TLS1_3 {
                 }
                 
                 self.recordLayer.changeReadKeys(withTrafficSecret: self.handshakeState.clientHandshakeTrafficSecret!)
+            }
+            else {
+                self.server.earlyDataWasAccepted = false
             }
         }
 
@@ -443,7 +447,7 @@ extension TLS1_3 {
             }
             
             if connection.earlyDataWasAccepted {
-                info += "Early Data: Accepted\n"
+                info += "Early Data:     Accepted\n"
             }
 
             return info

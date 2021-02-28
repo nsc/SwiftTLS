@@ -36,6 +36,10 @@ public class TLSConnection
         }
     }
     
+    public var peerAddress: IPAddress? {
+        (socket as? Socket)?.peerName
+    }
+
     var socket: SocketProtocol
     var protocolHandler: TLSProtocol!
 
@@ -52,10 +56,11 @@ public class TLSConnection
     
     public var connectionInfo: String {
         return """
+        Connection from \(peerAddress!)
         TLS Version: \(self.negotiatedProtocolVersion!)
         Cipher: \(self.cipherSuite!)
         \(self.protocolHandler.connectionInfo)
-        """
+        """ + (self.earlyData != nil ? "Early data was sent\n" : "")
     }
     
     var serverNames: [String]?

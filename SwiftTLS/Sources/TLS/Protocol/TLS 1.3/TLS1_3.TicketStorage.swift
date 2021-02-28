@@ -116,7 +116,7 @@ extension TLS1_3.Ticket : CustomDebugStringConvertible {
         lifeTime:       \(lifeTime)
         ageAdd:         \(ageAdd)
         cipherSuite:    \(cipherSuite)
-        hashAlgorithm   \(hashAlgorithm)
+        hashAlgorithm:  \(hashAlgorithm)
         """
     }
 }

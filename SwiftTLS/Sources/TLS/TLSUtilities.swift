@@ -154,7 +154,7 @@ public enum TLSError : Error
     case alert(alert : TLSAlert, alertLevel : TLSAlertLevel)
 }
 
-protocol TLSDataProvider : class
+protocol TLSDataProvider : AnyObject
 {
     func writeData(_ data : [UInt8]) throws
     func readData(count : Int) throws -> [UInt8]

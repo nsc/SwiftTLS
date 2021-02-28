@@ -142,7 +142,7 @@ extension TLSMessageType {
     }
 }
     
-public protocol TLSConnectionStateMachine : class
+public protocol TLSConnectionStateMachine : AnyObject
 {
     var state : TLSState { get set }
     
@@ -309,6 +309,7 @@ extension TLSServerStateMachine
     }
     
     func didConnect() throws {
+        log("server did connect")
         try self.serverDidConnect()
     }
     

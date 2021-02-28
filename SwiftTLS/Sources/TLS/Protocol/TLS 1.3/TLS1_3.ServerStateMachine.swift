@@ -83,14 +83,6 @@ extension TLS1_3 {
         }
         
         func serverDidConnect() throws {
-            if let server = self.server {
-                if case .accepted = (server.serverProtocolHandler as! ServerProtocol).serverHandshakeState.serverEarlyDataState {
-                    server.earlyDataWasAccepted = true
-                } else {
-                    server.earlyDataWasAccepted = false
-                }
-            }
-
             try transition(to: .connected)
         }
         
