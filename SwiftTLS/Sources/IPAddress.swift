@@ -305,7 +305,9 @@ public struct IPv6Address : IPAddress
                                        socklen_t(INET6_ADDRSTRLEN))
 
                 if result != nil {
-                    return String(cString: result!, encoding: .utf8) ?? "<invalid address>"
+                    let address = String(cString: result!)
+                    let mappedIPv4prefix = "::ffff:"
+                    return address.hasPrefix(mappedIPv4prefix) ? String(address.dropFirst(mappedIPv4prefix.count)) : address
                 }
                 
                 return ""
