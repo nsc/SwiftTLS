@@ -9,10 +9,10 @@
 import Foundation
 import SwiftTLS
 
-func connectTo(host : String, port : UInt16 = 443, supportedVersions: [TLSProtocolVersion] = [.v1_3_draft28, .v1_3_draft26, .v1_2], cipherSuite : CipherSuite? = nil)
-{    
+func connectTo(host : String, port : UInt16 = 443, supportedVersions: [TLSProtocolVersion] = [.v1_3_draft28, .v1_3_draft26, .v1_2], cipherSuite : CipherSuite? = nil) async throws
+{
     var configuration: TLSConfiguration
-
+    
     if let cipherSuite = cipherSuite {
         configuration = TLSConfiguration(supportedVersions: cipherSuite.descriptor!.supportedProtocolVersions)
         configuration.cipherSuites = [cipherSuite]
@@ -20,12 +20,12 @@ func connectTo(host : String, port : UInt16 = 443, supportedVersions: [TLSProtoc
     else {
         configuration = TLSConfiguration(supportedVersions: supportedVersions)
     }
-
+    
     configuration.earlyData = .supported(maximumEarlyDataSize: 4096)
     
     // Connect twice to test session resumption
     var context: TLSClientContext? = nil
-    BigInt.withContext { _ in
+    try await BigInt.withContext { _ in
         var client: TLSClient
         for _ in 0..<2 {
             do {
@@ -33,7 +33,7 @@ func connectTo(host : String, port : UInt16 = 443, supportedVersions: [TLSProtoc
                 client = TLSClient(configuration: configuration, context: context)
                 
                 let requestData = [UInt8]("GET / HTTP/1.1\r\nHost: \(host)\r\nUser-Agent: SwiftTLS\r\nConnection: Close\r\n\r\n".utf8)
-                try client.connect(hostname: host, port: port, withEarlyData: Data(requestData))
+                try await client.connect(hostname: host, port: port, withEarlyData: Data(requestData))
                 
                 let earlyDataState = client.earlyDataState
                 print("Early data: \(earlyDataState)")
@@ -45,15 +45,15 @@ func connectTo(host : String, port : UInt16 = 443, supportedVersions: [TLSProtoc
                 print("Connection established using cipher suite \(client.cipherSuite!)")
                 
                 if earlyDataState != .accepted {
-                    try client.write(requestData)
+                    try await client.write(requestData)
                 }
                 
                 while true {
-                    let data = try client.read(count: 4096)
+                    let data = try await client.read(count: 4096)
                     if data.count == 0 {
                         break
                     }
-
+                    
                     _ = data.withUnsafeBytes { buffer in
                         write(1, buffer.baseAddress, buffer.count)
                     }
@@ -62,7 +62,7 @@ func connectTo(host : String, port : UInt16 = 443, supportedVersions: [TLSProtoc
                 }
             }
             catch (let error) {
-                client.close()
+                await client.close()
                 
                 print("Error: \(error)")
             }

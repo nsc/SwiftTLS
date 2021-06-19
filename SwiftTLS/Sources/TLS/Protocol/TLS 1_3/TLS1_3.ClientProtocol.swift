@@ -20,33 +20,7 @@ extension TLS1_3 {
     }
     
     class ClientProtocol : BaseProtocol, TLSClientProtocol {
-        weak var client: TLSClient! {
-            return (self.connection as! TLSClient)
-        }
-        
-        var clientContext: TLSClientContext {
-            return self.connection.context as! TLSClientContext
-        }
-        
-        var clientHandshakeState: ClientHandshakeState {
-            return self.handshakeState as! ClientHandshakeState
-        }
-        
-        // We need to remember this in case the server wants to fallback to
-        // a TLS version < 1.3. In that case we need to switch to a different
-        // protocol handler and hand it the client hello random
-        var clientHelloRandom: Random?
-        
-        var selectedGroupFromHelloRetryRequest: NamedGroup?
-        
-        var offeredPsks: OfferedPSKs? = nil
-        
-        var keyExchangesAnnouncedToServer: [NamedGroup : KeyExchange] = [:]
-        var pskKeyExchangeModesAnnouncedToServer: [PSKKeyExchangeMode] = []
-        var ticketsAnnouncedToServer: [Ticket] = []
-
-        init(client: TLSClient)
-        {
+        init(client: TLSClient) {
             super.init(connection: client)
         }
         
@@ -54,7 +28,32 @@ extension TLS1_3 {
             self.handshakeState = ClientHandshakeState()
         }
         
-        func sendClientHello() throws
+        func connect() async throws {
+            try await sendClientHello()
+            
+            var serverHello = try await receive(TLSServerHello.self)
+            if let helloRetry = serverHello as? TLSHelloRetryRequest {
+                try handle(helloRetry)
+                try await sendClientHello()
+                
+                serverHello = try await receive(TLSServerHello.self)
+            }
+            try await handle(serverHello)
+            
+            try await handle(receive(TLSEncryptedExtensions.self))
+            
+            if !isUsingPreSharedKey {
+                try await handle(receive(TLSCertificateMessage.self))
+                try await handle(receive(TLSCertificateVerify.self))
+            }
+            
+            try await handle(receive(TLSFinished.self))
+                
+            // FIXME: Handle Certificate and CertificateVerify if requested
+            try await sendFinished()
+        }
+                
+        func sendClientHello() async throws
         {
             let cipherSuites = client.configuration.cipherSuites
             clientHelloRandom = Random()
@@ -153,21 +152,21 @@ extension TLS1_3 {
                 log("Client: No tickets for current connection")
             }
 
-            try client.sendHandshakeMessage(clientHello)
+            try await client.sendHandshakeMessage(clientHello)
             if isSendingEarlyData {
                 if let earlyData = self.client.earlyData {
-                    try sendEarlyData(earlyData)
+                    try await sendEarlyData(earlyData)
                 }
             }
         }
         
-        func sendEarlyData(_ earlyData: [UInt8]) throws {
+        func sendEarlyData(_ earlyData: [UInt8]) async throws {
             deriveEarlyTrafficSecret()
             activateEarlyTrafficSecret()
             
             log("Client: did send early data")
             
-            try client.sendApplicationData(earlyData)
+            try await client.sendApplicationData(earlyData)
         }
         
         func preSharedKeyExtension(for clientHello: TLSClientHello,
@@ -234,14 +233,14 @@ extension TLS1_3 {
             return [UInt8](truncatedClientHelloData)
         }
         
-        func handleServerHello(_ serverHello: TLSServerHello) throws {
+        func handle(_ serverHello: TLSServerHello) async throws {
             guard serverHello.version == .v1_3 else {
         
                 // If the server does not support TLS 1.3, fall back to lower version
                 // if the configuration supports it
         
                 if !client.configuration.supports(serverHello.version) {
-                    try client.abortHandshake()
+                    try await client.abortHandshake()
                 }
                 
                 switch serverHello.version {
@@ -249,10 +248,10 @@ extension TLS1_3 {
                     client.setupClient(with: .v1_2)
                     let protocolHandler = client.protocolHandler as! TLS1_2.ClientProtocol
                     protocolHandler.securityParameters.clientRandom = [UInt8](self.clientHelloRandom!)
-                    try client.clientProtocolHandler.handleServerHello(serverHello)
+                    try await client.clientProtocolHandler.handle(serverHello)
                     
                 default:
-                    try client.abortHandshake()
+                    try await client.abortHandshake()
                 }
                 
                 return
@@ -261,7 +260,7 @@ extension TLS1_3 {
             log("Server wants to speak \(serverHello.version)")
 
             if let helloRetryRequest = serverHello as? TLSHelloRetryRequest {
-                try self.handleHelloRetryRequest(helloRetryRequest)
+                try self.handle(helloRetryRequest)
                 
                 return
             }
@@ -279,14 +278,14 @@ extension TLS1_3 {
                 case .preSharedKey:
                     if case .serverHello(let selectedIdentity) = (serverExtension as! TLSPreSharedKeyExtension).preSharedKey {
                         guard selectedIdentity < self.ticketsAnnouncedToServer.count else {
-                            throw TLSError.alert(alert: .illegalParameter, alertLevel: .fatal)
+                            throw TLSError.alert(.illegalParameter, alertLevel: .fatal)
                         }
                         
                         ticketChosenByServer = self.ticketsAnnouncedToServer[Int(selectedIdentity)]
                     }
                     else {
                         // FIXME: Is this the right error to throw here? What does the RFC say about it?
-                        throw TLSError.alert(alert: .decodeError, alertLevel: .fatal)
+                        throw TLSError.alert(.decodeError, alertLevel: .fatal)
                     }
 
                 case .keyShare:
@@ -294,7 +293,7 @@ extension TLS1_3 {
                         let group = keyShare.namedGroup
                         let peerPublicKey = keyShare.keyExchange
                         guard var keyExchange = self.keyExchangesAnnouncedToServer[group]?.pfsKeyExchange else {
-                            throw TLSError.alert(alert: .illegalParameter, alertLevel: .fatal)
+                            throw TLSError.alert(.illegalParameter, alertLevel: .fatal)
                         }
 
                         keyExchange.peerPublicKey = peerPublicKey
@@ -303,7 +302,7 @@ extension TLS1_3 {
                     }
                     else {
                         // FIXME: Is this the right error to throw here? What does the RFC say about it?
-                        throw TLSError.alert(alert: .decodeError, alertLevel: .fatal)
+                        throw TLSError.alert(.decodeError, alertLevel: .fatal)
                     }
                     
                 case .supportedVersions:
@@ -330,19 +329,19 @@ extension TLS1_3 {
             }
             
             guard let keyExchange = keyExchangeChosenByServer else {
-                throw TLSError.alert(alert: .illegalParameter, alertLevel: .fatal)
+                throw TLSError.alert(.illegalParameter, alertLevel: .fatal)
             }
             
             deriveHandshakeSecret(with: keyExchange)
 
             guard let serverHandShakeTrafficSecret = self.handshakeState.serverHandshakeTrafficSecret else {
-                throw TLSError.alert(alert: .handshakeFailure, alertLevel: .fatal)
+                throw TLSError.alert(.handshakeFailure, alertLevel: .fatal)
             }
 
             self.recordLayer.changeReadKeys(withTrafficSecret: serverHandShakeTrafficSecret)
         }
         
-        func handleEncryptedExtensions(_ encryptedExtensions: TLSEncryptedExtensions) throws {
+        func handle(_ encryptedExtensions: TLSEncryptedExtensions) throws {
             log("EncryptedExtensions: \(encryptedExtensions.extensions)")
             
             if encryptedExtensions.extensions.contains(where: {$0 is TLSEarlyDataIndication}) {
@@ -350,7 +349,7 @@ extension TLS1_3 {
             }
         }
         
-        func handleHelloRetryRequest(_ helloRetryRequest: TLSHelloRetryRequest) throws {
+        func handle(_ helloRetryRequest: TLSHelloRetryRequest) throws {
             for helloRetryRequestExtension in helloRetryRequest.extensions {
                 switch helloRetryRequestExtension.extensionType {
                 case .keyShare:
@@ -359,7 +358,7 @@ extension TLS1_3 {
                     }
                     else {
                         // FIXME: Is this the right error to throw here? What does the RFC say about it?
-                        throw TLSError.alert(alert: .decodeError, alertLevel: .fatal)
+                        throw TLSError.alert(.decodeError, alertLevel: .fatal)
                     }
 
                 case .supportedVersions:
@@ -372,7 +371,7 @@ extension TLS1_3 {
             }
         }
         
-        func handleNewSessionTicket(_ newSessionTicket: TLSNewSessionTicket) throws {
+        func handle(_ newSessionTicket: TLSNewSessionTicket) throws {
             guard let serverNames = self.client.serverNames else {
                 fatalError("Client doesn't know the server it is connecting to.")
             }
@@ -389,16 +388,23 @@ extension TLS1_3 {
             ticket.derivePreSharedKey(for: connection, sessionResumptionSecret: self.handshakeState.sessionResumptionSecret!)
 
             self.context.ticketStorage.add(ticket)
+            
+            log("New Session Ticket received:")
+            log("    ticket         = \(hex(newSessionTicket.ticket))")
+            log("    Nonce          = \(hex(newSessionTicket.ticketNonce))")
+            log("    lifeTime       = \(newSessionTicket.ticketLifetime)")
+            log("    ageAdd         = \(newSessionTicket.ticketAgeAdd)")
+            log("    maxEarlyData   = \(newSessionTicket.maxEarlyDataSize)")
         }
         
-        override func sendFinished() throws
+        override func sendFinished() async throws
         {            
             // The secret contains all the handshake messages up to Server Finished, so the client has to derive
             // it before sending its Finished
             deriveApplicationTrafficSecrets()
 
             if case .accepted = self.clientHandshakeState.earlyDataState {
-                try self.connection.sendHandshakeMessage(TLSEndOfEarlyData())
+                try await connection.sendHandshakeMessage(TLSEndOfEarlyData())
             }
 
             let verifyData = self.finishedData(forClient: connection.isClient)
@@ -408,7 +414,7 @@ extension TLS1_3 {
             }
             self.recordLayer.changeWriteKeys(withTrafficSecret: clientHandshakeTrafficSecret)
             
-            try self.connection.sendHandshakeMessage(TLSFinished(verifyData: verifyData))
+            try await connection.sendHandshakeMessage(TLSFinished(verifyData: verifyData))
             
             deriveSessionResumptionSecret()
             
@@ -416,40 +422,46 @@ extension TLS1_3 {
             self.recordLayer.changeWriteKeys(withTrafficSecret: self.handshakeState.clientTrafficSecret!)
         }
 
-        override func handleHandshakeMessage(_ handshakeMessage: TLSHandshakeMessage) throws -> Bool {
-            guard try !super.handleHandshakeMessage(handshakeMessage) else {
-                return true
-            }
-            
-            switch handshakeMessage.handshakeType
-            {
-            case .encryptedExtensions:
-                try self.handleEncryptedExtensions(handshakeMessage as! TLSEncryptedExtensions)
-                
-            case .newSessionTicket:
-                try self.handleNewSessionTicket(handshakeMessage as! TLSNewSessionTicket)
-                
-            default:
-                return false
-            }
-            
-            return true
-        }
-        
-        func handleFinished(_ finished: TLSFinished) throws {
+        @discardableResult
+        func handle(_ finished: TLSFinished) throws -> TLSFinished {
             // Verify finished data
             let finishedData = self.finishedData(forClient: false)
             if finishedData != finished.verifyData {
-                log("Client error: could not verify Finished message.")
-                try client.sendAlert(.decryptError, alertLevel: .fatal)
+                throw TLSError.alert(.decodeError, alertLevel: .fatal, message: "Client error: could not verify Finished message.")
             }
             
             client.handshakeMessages.append(finished)
+            
+            return finished
         }
         
         var connectionInfo: String {
             return ""
         }
 
+        weak var client: TLSClient! {
+            return (self.connection as! TLSClient)
+        }
+        
+        var clientContext: TLSClientContext {
+            return self.connection.context as! TLSClientContext
+        }
+        
+        var clientHandshakeState: ClientHandshakeState {
+            return self.handshakeState as! ClientHandshakeState
+        }
+        
+        // We need to remember this in case the server wants to fallback to
+        // a TLS version < 1.3. In that case we need to switch to a different
+        // protocol handler and hand it the client hello random
+        var clientHelloRandom: Random?
+        
+        var selectedGroupFromHelloRetryRequest: NamedGroup?
+        
+        var offeredPsks: OfferedPSKs? = nil
+        
+        var keyExchangesAnnouncedToServer: [NamedGroup : KeyExchange] = [:]
+        var pskKeyExchangeModesAnnouncedToServer: [PSKKeyExchangeMode] = []
+        var ticketsAnnouncedToServer: [Ticket] = []
     }
 }

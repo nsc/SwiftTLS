@@ -12,7 +12,7 @@ extension TLSConnection {
     convenience init() {
         class EmptyDataProvider : SocketProtocol, TLSDataProvider
         {
-            var isReadyToRead: Bool {return true}
+            var isReadyToRead: Bool { return true }
             func read(count: Int) throws -> [UInt8] { return [] }
             func write(_ data: [UInt8]) throws {}
             func close() {}

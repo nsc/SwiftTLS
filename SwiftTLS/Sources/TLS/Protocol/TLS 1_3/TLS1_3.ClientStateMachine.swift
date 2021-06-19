@@ -34,39 +34,6 @@ extension TLS1_3 {
             self.state = .idle
         }
         
-        func actOnCurrentState() throws
-        {
-            switch self.state
-            {
-            case .helloRetryRequestReceived:
-                try self.protocolHandler!.sendClientHello()
-                
-            case .finishedReceived:
-                // FIXME: Handle Certifcate and CertificateVerify if requested
-                try self.protocolHandler!.sendFinished()
-                
-            case .finishedSent:
-                try clientDidConnect()
-                
-            case .newSessionTicketReceived:
-                guard let newSessionTicket = client?.currentMessage as? TLSNewSessionTicket else {
-                    fatalError("Invalid current message \(String(describing: client?.currentMessage))")
-                }
-                                
-                log("New Session Ticket received:")
-                log("    ticket         = \(hex(newSessionTicket.ticket))")
-                log("    Nonce          = \(hex(newSessionTicket.ticketNonce))")
-                log("    lifeTime       = \(newSessionTicket.ticketLifetime)")
-                log("    ageAdd         = \(newSessionTicket.ticketAgeAdd)")
-                log("    maxEarlyData   = \(newSessionTicket.maxEarlyDataSize)")
-
-                try transition(to: .connected)
-                
-            default:
-                break
-            }
-        }
-
         func clientDidReceiveAlert(_ alert: TLSAlertMessage) {
             log("Client: did receive message \(alert.alertLevel) \(alert.alert)")
         }

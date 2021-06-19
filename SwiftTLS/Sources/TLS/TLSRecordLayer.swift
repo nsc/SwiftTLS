@@ -15,9 +15,9 @@ protocol TLSRecordLayer
     var protocolVersion: TLSProtocolVersion  { get set }
     var isClient : Bool { get }
 
-    func sendMessage(_ message : TLSMessage) throws
-    func sendData(contentType: ContentType, data: [UInt8]) throws
-    func readMessage() throws -> TLSMessage?
+    func sendMessage(_ message : TLSMessage) async throws
+    func sendData(contentType: ContentType, data: [UInt8]) async throws
+    func readMessage() async throws -> TLSMessage
 
     func recordData(forContentType contentType: ContentType, data: [UInt8]) throws -> [UInt8]
     func data(forContentType contentType: ContentType, recordData: [UInt8]) throws -> (ContentType, [UInt8])
@@ -46,17 +46,17 @@ class TLSBaseRecordLayer : TLSRecordLayer
         self.maximumRecordSize = connection.configuration.maximumRecordSize
     }
     
-    func sendMessage(_ message : TLSMessage) throws
+    func sendMessage(_ message : TLSMessage) async throws
     {
         let contentType = message.contentType
         let messageData = [UInt8](message, context: self.connection)
         
-        try sendData(contentType: contentType, data: messageData)
+        try await sendData(contentType: contentType, data: messageData)
     }
 
-    func sendData(contentType: ContentType, data: [UInt8]) throws
+    func sendData(contentType: ContentType, data: [UInt8]) async throws
     {
-        if let maximumRecordSize = self.maximumRecordSize, maximumRecordSize < data.count {
+        if let maximumRecordSize = maximumRecordSize, maximumRecordSize < data.count {
             var start = 0
             var end = 0
             while end < data.count {
@@ -67,62 +67,69 @@ class TLSBaseRecordLayer : TLSRecordLayer
                     end = data.count
                 }
                 
-                let recordData = try self.recordData(forContentType: contentType, data: [UInt8](data[start..<end]))
-                try self.dataProvider?.writeData(recordData)
+                let recordData = try recordData(forContentType: contentType, data: [UInt8](data[start..<end]))
+                try await dataProvider?.writeData(recordData)
             }
         }
         else {
-            let recordData = try self.recordData(forContentType: contentType, data: data)
-            try self.dataProvider?.writeData(recordData)
+            let recordData = try recordData(forContentType: contentType, data: data)
+            try await dataProvider?.writeData(recordData)
         }
     }
     
-    func readRecordBody(count: Int) throws -> [UInt8]
+    func readRecordBody(count: Int) async throws -> [UInt8]
     {
-        return try self.readData(count: count)
+        return try await readData(count: count)
     }
 
-    func readData(count: Int) throws -> [UInt8] {
-        if self.bufferedRawData.count >= count {
-            let data = [UInt8](self.bufferedRawData[0..<count])
-            self.bufferedRawData = [UInt8](self.bufferedRawData.dropFirst(count))
+    func readData(count: Int) async throws -> [UInt8] {
+        if bufferedRawData.count >= count {
+            let data = [UInt8](bufferedRawData[0..<count])
+            bufferedRawData = [UInt8](bufferedRawData.dropFirst(count))
             
             return data
         }
         
-        let data = try self.dataProvider!.readData(count: count - self.bufferedRawData.count)
-        self.bufferedRawData += data
+        let data = try await dataProvider!.readData(count: count - bufferedRawData.count)
+        bufferedRawData += data
         
-        return try readData(count: count)
+        return try await readData(count: count)
     }
     
-    private func readRecordData() throws -> (ContentType, [UInt8])? {
+    private func readRecordData() async throws -> (ContentType, [UInt8])? {
         let headerProbeLength = TLSRecord.headerProbeLength
-        let header = try self.readData(count: headerProbeLength)
+        let header = try await readData(count: headerProbeLength)
         
         guard let (contentType, bodyLength) = TLSRecord.probeHeader(header) else {
             throw TLSError.error("Probe failed with malformed header \(header)")
         }
         
-        let body = try self.readRecordBody(count: bodyLength)
+        let body = try await readRecordBody(count: bodyLength)
         
-        return try self.data(forContentType: contentType, recordData: body)
+        return try data(forContentType: contentType, recordData: body)
     }
     
-    func readMessage() throws -> TLSMessage?
-    {
+    func readMessage() async throws -> TLSMessage {
+        while true {
+            if let message = try await readMessageInternal() {
+                return message
+            }
+        }
+    }
+    
+    func readMessageInternal() async throws -> TLSMessage? {
         var messageBody: [UInt8]
         var contentTypeFromRecord: ContentType
-        if self.bufferedRecordData.count > 0 {
-            guard let contentType = self.bufferedContentType else {
+        if bufferedRecordData.count > 0 {
+            guard let contentType = bufferedContentType else {
                 fatalError()
             }
             
-            messageBody = self.bufferedRecordData
+            messageBody = bufferedRecordData
             contentTypeFromRecord = contentType
         }
         else {
-            guard let (contentType, data) = try self.readRecordData() else {
+            guard let (contentType, data) = try await readRecordData() else {
                 return nil
             }
             
@@ -133,41 +140,41 @@ class TLSBaseRecordLayer : TLSRecordLayer
         switch (contentTypeFromRecord)
         {
         case .changeCipherSpec:
-            return TLSChangeCipherSpec(inputStream: BinaryInputStream(messageBody), context: self.connection!)
+            return TLSChangeCipherSpec(inputStream: BinaryInputStream(messageBody), context: connection!)
             
         case .alert:
-            return TLSAlertMessage.alertFromData(messageBody, context: self.connection!)
+            return TLSAlertMessage.alertFromData(messageBody, context: connection!)
             
         case .handshake:
-            let result = TLSHandshakeMessage.handshakeMessageFromData(messageBody, context: self.connection!)
+            let result = TLSHandshakeMessage.handshakeMessageFromData(messageBody, context: connection!)
             
             switch result {
             case .message(let message, let excessData):
-                self.bufferedRecordData = excessData
-                self.bufferedContentType = contentTypeFromRecord
+                bufferedRecordData = excessData
+                bufferedContentType = contentTypeFromRecord
                 
                 return message
                 
             case .notEnoughData:
-                guard let (contentType, recordData) = try self.readRecordData() else {
+                guard let (contentType, recordData) = try await readRecordData() else {
                     return nil
                 }
 
                 guard contentType == contentTypeFromRecord else {
-                    throw TLSError.alert(alert: .unexpectedMessage, alertLevel: .fatal)
+                    throw TLSError.alert(.unexpectedMessage, alertLevel: .fatal)
                 }
                 
-                self.bufferedRecordData = messageBody + recordData
-                self.bufferedContentType = contentType
+                bufferedRecordData = messageBody + recordData
+                bufferedContentType = contentType
 
                 return nil
                 
             case .error:
                 if contentTypeFromRecord == .handshake {
-                    throw TLSError.alert(alert: .handshakeFailure, alertLevel: .fatal)
+                    throw TLSError.alert(.handshakeFailure, alertLevel: .fatal)
                 }
                 
-                throw TLSError.alert(alert: .unexpectedMessage, alertLevel: .fatal)
+                throw TLSError.alert(.unexpectedMessage, alertLevel: .fatal)
             }
             
         case .applicationData:
@@ -176,10 +183,10 @@ class TLSBaseRecordLayer : TLSRecordLayer
     }
 
     func recordData(forContentType contentType: ContentType, data: [UInt8]) throws -> [UInt8] {
-        fatalError("sendData not implemented")
+        fatalError("recordData(forContentType:, data:) not implemented")
     }
 
     func data(forContentType contentType: ContentType, recordData: [UInt8]) throws -> (ContentType, [UInt8]) {
-        fatalError("decryptMessageBody not implemented")
+        fatalError("data(forContentType contentType:, recordData:) not implemented")
     }
 }

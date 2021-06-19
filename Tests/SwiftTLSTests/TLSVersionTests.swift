@@ -29,11 +29,11 @@ class TLSVersionTests: XCTestCase {
                 _negotiatedProtocolVersion = newValue
             }
         }
-        override func sendHandshakeMessage(_ message: TLSHandshakeMessage, appendToTranscript: Bool = true) throws {
+        override func sendHandshakeMessage(_ message: TLSHandshakeMessage, appendToTranscript: Bool = true) async throws {
         }
         
         var hasAbortedHandshake: Bool = false
-        override func abortHandshake(with alert: TLSAlert) throws -> Never{
+        override func abortHandshake(with alert: TLSAlert) async throws -> Never{
             hasAbortedHandshake = true
             throw Alert()
         }
@@ -50,17 +50,17 @@ class TLSVersionTests: XCTestCase {
                 _negotiatedProtocolVersion = newValue
             }
         }
-        override func sendHandshakeMessage(_ message: TLSHandshakeMessage, appendToTranscript: Bool = true) throws {
+        override func sendHandshakeMessage(_ message: TLSHandshakeMessage, appendToTranscript: Bool = true) async throws {
         }
         
         var hasAbortedHandshake: Bool = false
-        override func abortHandshake(with alert: TLSAlert) throws -> Never {
+        override func abortHandshake(with alert: TLSAlert) async throws -> Never {
             hasAbortedHandshake = true
             throw Alert()
         }
     }
 
-    func receiveClientHello(with version: TLSProtocolVersion, highestSupportedVersion: TLSProtocolVersion, result: (Server) -> ())
+    func receiveClientHello(with version: TLSProtocolVersion, highestSupportedVersion: TLSProtocolVersion, result: (Server) -> ()) async
     {
         let clientHello = TLSClientHello(configuration: TLSConfiguration(supportedVersions: [version]),
                                          random: Random(),
@@ -73,7 +73,7 @@ class TLSVersionTests: XCTestCase {
         
         
         do {
-            _ = try server.handleHandshakeMessage(clientHello)
+            _ = try await server.handleHandshakeMessage(clientHello)
         } catch _ {
         }
         
@@ -92,16 +92,16 @@ class TLSVersionTests: XCTestCase {
 //        })
 //    }
 
-    func test_receiveClientHello_withLowerUnknownVersion_abortsHandshake() {
+    func test_receiveClientHello_withLowerUnknownVersion_abortsHandshake() async {
         let version = TLSProtocolVersion(major: 1, minor: 1)
         let highestSupportedVersion = TLSProtocolVersion.v1_2
         
-        receiveClientHello(with: version, highestSupportedVersion: highestSupportedVersion, result: { (server: Server) in
+        await receiveClientHello(with: version, highestSupportedVersion: highestSupportedVersion, result: { (server: Server) in
             XCTAssert(server.hasAbortedHandshake)
         })
     }
     
-    func receiveServerHello(with version: TLSProtocolVersion, highestSupportedVersion: TLSProtocolVersion, minimumVersion: TLSProtocolVersion, result: (Client) -> ())
+    func receiveServerHello(with version: TLSProtocolVersion, highestSupportedVersion: TLSProtocolVersion, minimumVersion: TLSProtocolVersion, result: (Client) -> ()) async
     {
         let configuration = TLSConfiguration(supportedVersions: [highestSupportedVersion, minimumVersion])
         let serverHello = TLSServerHello(serverVersion: version,
@@ -114,8 +114,8 @@ class TLSVersionTests: XCTestCase {
         client.stateMachine = nil
         
         do {
-            try client.sendClientHello()
-            _ = try client.handleHandshakeMessage(serverHello)
+            try await client.sendClientHello()
+            _ = try await client.handleHandshakeMessage(serverHello)
         } catch _ {
         }
         
@@ -123,21 +123,21 @@ class TLSVersionTests: XCTestCase {
         result(client)
     }
 
-    func test_receiveServerHello_withUnknownVersion_abortsHandshake() {
+    func test_receiveServerHello_withUnknownVersion_abortsHandshake() async {
         let version = TLSProtocolVersion(major: 10, minor: 10)
         let highestSupportedVersion = TLSProtocolVersion.v1_2
 
-        receiveServerHello(with: version, highestSupportedVersion: highestSupportedVersion, minimumVersion: highestSupportedVersion, result: { (client: Client) in
+        await receiveServerHello(with: version, highestSupportedVersion: highestSupportedVersion, minimumVersion: highestSupportedVersion, result: { (client: Client) in
             XCTAssert(client.hasAbortedHandshake)
         })
     }
     
-    func test_receiveServerHello_withLowerVersionThanWeAdvertisedButHigherOrEqualToMinimumSupportedVersion_dropsToMinimumVersion() {
+    func test_receiveServerHello_withLowerVersionThanWeAdvertisedButHigherOrEqualToMinimumSupportedVersion_dropsToMinimumVersion() async {
         let version = TLSProtocolVersion.v1_1
         let highestSupportedVersion = TLSProtocolVersion.v1_2
         let minimumVersions = version
 
-        receiveServerHello(with: version, highestSupportedVersion: highestSupportedVersion, minimumVersion: minimumVersions, result: { (client: Client) in
+        await receiveServerHello(with: version, highestSupportedVersion: highestSupportedVersion, minimumVersion: minimumVersions, result: { (client: Client) in
             XCTAssert(client.negotiatedProtocolVersion == version)
         })
 

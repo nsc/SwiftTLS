@@ -157,33 +157,35 @@ public class TLSConnection
     private var connectionEstablishedCompletionBlock : ((_ error : TLSError?) -> ())?
 
     func reset() {
-        self.currentSession = nil
-        self.pendingSessionID = nil
         
-        self.isInitialHandshake = true
+        currentSession = nil
+        pendingSessionID = nil
         
-        self.negotiatedProtocolVersion = configuration.supportedVersions.first!
-        self.handshakeMessages = []
-        self.keyExchange = .rsa
+        isInitialHandshake = true
+        isReusingSession = false
+
+        negotiatedProtocolVersion = configuration.supportedVersions.first!
+        handshakeMessages = []
+        keyExchange = .rsa
         
-        switch self.negotiatedProtocolVersion! {
+        switch negotiatedProtocolVersion! {
         case TLSProtocolVersion.v1_0, TLSProtocolVersion.v1_1, TLSProtocolVersion.v1_2:
-            self.recordLayer = TLS1_2.RecordLayer(connection: self, dataProvider: self.recordLayer.dataProvider!)
+            recordLayer = TLS1_2.RecordLayer(connection: self, dataProvider: recordLayer.dataProvider!)
         
         case TLSProtocolVersion.v1_3:
-            self.recordLayer = TLS1_3.RecordLayer(connection: self, dataProvider: self.recordLayer.dataProvider!)
+            recordLayer = TLS1_3.RecordLayer(connection: self, dataProvider: recordLayer.dataProvider!)
         
         default:
-            fatalError("No such version \(self.negotiatedProtocolVersion!)")
+            fatalError("No such version \(negotiatedProtocolVersion!)")
             break
         }
 
-        self.stateMachine?.reset()
+        stateMachine?.reset()
     }
     
     func didConnect() throws
     {
-        try self.stateMachine?.didConnect()
+        try stateMachine?.didConnect()
     }
 
     func didRenegotiate()
@@ -192,15 +194,15 @@ public class TLSConnection
     }
 
     
-    func sendApplicationData(_ data : [UInt8]) throws
+    func sendApplicationData(_ data : [UInt8]) async throws
     {
-        try self.recordLayer.sendData(contentType: .applicationData, data: data)
+        try await recordLayer.sendData(contentType: .applicationData, data: data)
     }
     
-    func sendMessage(_ message : TLSMessage) throws
+    func sendMessage(_ message : TLSMessage) async throws
     {
-        try self.recordLayer.sendMessage(message)
-        self.currentMessage = message
+        try await recordLayer.sendMessage(message)
+        currentMessage = message
 
         switch message.contentType
         {
@@ -208,31 +210,31 @@ public class TLSConnection
             break
 
         default:
-            try self.stateMachine?.didSendMessage(message)
+            try stateMachine?.didSendMessage(message)
         }
     }
     
-    func sendAlert(_ alert : TLSAlert, alertLevel : TLSAlertLevel) throws
+    func sendAlert(_ alert : TLSAlert, alertLevel : TLSAlertLevel) async throws
     {
         let alertMessage = TLSAlertMessage(alert: alert, alertLevel: alertLevel)
-        try self.sendMessage(alertMessage)
+        try await sendMessage(alertMessage)
     }
     
-    func abortHandshake(with alert: TLSAlert = .handshakeFailure) throws -> Never
+    func abortHandshake(with alert: TLSAlert = .handshakeFailure) async throws -> Never
     {
-        try self.sendAlert(alert, alertLevel: .fatal)
-        throw TLSError.alert(alert: alert, alertLevel: .fatal)
+        try await self.sendAlert(alert, alertLevel: .fatal)
+        throw TLSError.alert(alert, alertLevel: .fatal)
     }
     
-    func sendHandshakeMessage(_ message : TLSHandshakeMessage, appendToTranscript: Bool = true) throws
+    func sendHandshakeMessage(_ message : TLSHandshakeMessage, appendToTranscript: Bool = true) async throws
     {
-        try self.sendMessage(message)
+        try await self.sendMessage(message)
         
         if appendToTranscript {
             self.handshakeMessages.append(message)
         }
         
-        try self.stateMachine?.didSendHandshakeMessage(message)
+        try await stateMachine?.didSendHandshakeMessage(message)
     }
     
     func didReceiveHandshakeMessage(_ message : TLSHandshakeMessage)
@@ -245,21 +247,20 @@ public class TLSConnection
         }
     }
     
-    func _didReceiveMessage(_ message : TLSMessage) throws
+    func _didReceiveMessage(_ message : TLSMessage) async throws
     {
         switch (message.type)
         {
         case .changeCipherSpec:
-            try self.protocolHandler.handleMessage(message)
-            try self.stateMachine?.didReceiveChangeCipherSpec()
-            try self.receiveNextTLSMessage()
+            try stateMachine?.didReceiveChangeCipherSpec()
+            try await receiveNextTLSMessage()
             
             break
             
         case .handshake:
             let handshakeMessage = message as! TLSHandshakeMessage
-            if self.stateMachine == nil || self.stateMachine!.shouldContinueHandshake(with: handshakeMessage) {
-                try self._didReceiveHandshakeMessage(handshakeMessage)
+            if stateMachine == nil || stateMachine!.shouldContinueHandshake(with: handshakeMessage) {
+                try await _didReceiveHandshakeMessage(handshakeMessage)
             }
             else {
                 throw TLSError.error("Handshake aborted")
@@ -267,9 +268,9 @@ public class TLSConnection
 
         case .alert:
             let alert = message as! TLSAlertMessage
-            self.stateMachine?.didReceiveAlert(alert)
+            stateMachine?.didReceiveAlert(alert)
             if alert.alertLevel == .fatal {
-                throw TLSError.alert(alert: alert.alert, alertLevel: alert.alertLevel)
+                throw TLSError.alert(alert.alert, alertLevel: alert.alertLevel)
             }
             
             break
@@ -279,27 +280,7 @@ public class TLSConnection
         }
     }
 
-    func handleHandshakeMessage(_ message : TLSHandshakeMessage) throws -> Bool
-    {
-        let handshakeType = message.handshakeType
-        
-        switch (handshakeType)
-        {
-        case .certificate:
-            let certificateMessage = message as! TLSCertificateMessage
-            self.protocolHandler.handleCertificate(certificateMessage)
-
-        default:
-            return false
-        }
-
-        try self.stateMachine?.didReceiveHandshakeMessage(message)
-
-        return true
-    }
-    
-
-    func _didReceiveHandshakeMessage(_ message : TLSHandshakeMessage) throws
+    func _didReceiveHandshakeMessage(_ message : TLSHandshakeMessage) async throws
     {
         let handshakeType = message.handshakeType
 
@@ -314,11 +295,9 @@ public class TLSConnection
         default:
             self.handshakeMessages.append(message)
         }
-        
-        _ = try self.handleHandshakeMessage(message)
-        
+                
         if handshakeType != .finished && handshakeType != .newSessionTicket {
-            try self.receiveNextTLSMessage()
+//            try await receiveNextTLSMessage()
         }
     }
         
@@ -331,19 +310,20 @@ public class TLSConnection
         return try signer.sign(data: data)
     }
     
-    func receiveNextTLSMessage() throws
-    {
-        guard let message = try self.recordLayer.readMessage() else { return }
-
+    func receiveNextTLSMessage() async throws -> TLSMessage {
+        let message = try await recordLayer.readMessage()
+        
         self.currentMessage = message
         
-        try self._didReceiveMessage(message)
+        try await self._didReceiveMessage(message)
+        
+        return message
     }
-
-    func readTLSMessage() throws -> TLSMessage
+    
+    func readTLSMessage() async throws -> TLSMessage
     {
         while true {
-            guard let message = try self.recordLayer.readMessage() else { continue }
+            let message = try await receiveNextTLSMessage()
             
             if message.contentType == .applicationData {
                 return message
@@ -351,7 +331,7 @@ public class TLSConnection
             
             self.currentMessage = message
 
-            try self._didReceiveMessage(message)
+            try await _didReceiveMessage(message)
         }
     }
     
@@ -373,13 +353,12 @@ public class TLSConnection
 
 extension TLSConnection : SocketProtocol {
     public var isReadyToRead: Bool {
-        return self.socket.isReadyToRead
+        socket.isReadyToRead
     }
     
-    public func close()
-    {
+    public func close() async {
         do {
-            try self.sendAlert(.closeNotify, alertLevel: .warning)
+            try await sendAlert(.closeNotify, alertLevel: .warning)
         }
         catch
         {
@@ -387,19 +366,19 @@ extension TLSConnection : SocketProtocol {
         
         // When the send is done, close the underlying socket
         // We might want to have an option to wait for the peer to send *its* closeNotify if it wants to
-        self.socket.close()
+        await socket.close()
     }
     
-    public func read(count: Int) throws -> [UInt8]
+    public func read(count: Int) async throws -> [UInt8]
     {
-        let message = try self.readTLSMessage()
+        let message = try await readTLSMessage()
         switch message.type
         {
         case .applicationData:
             let applicationData = (message as! TLSApplicationData).applicationData
             
             if applicationData.count == 0 {
-                return try self.read(count: count)
+                return try await read(count: count)
             }
             else {
                 return applicationData
@@ -414,22 +393,22 @@ extension TLSConnection : SocketProtocol {
         }
     }
     
-    func readData(count: Int) throws -> [UInt8]
+    func readData(count: Int) async throws -> [UInt8]
     {
-        return try self.socket.read(count: count)
+        try await socket.read(count: count)
     }
     
-    func writeData(_ data: [UInt8]) throws
+    func writeData(_ data: [UInt8]) async throws
     {
-        try self.socket.write(data)
+        try await socket.write(data)
     }
     
-    public func write(_ data: [UInt8]) throws
+    public func write(_ data: [UInt8]) async throws
     {
-        try self.sendApplicationData(data)
+        try await sendApplicationData(data)
     }
     
-    public func write(_ data: Data) throws {
-        try write([UInt8](data))
+    public func write(_ data: Data) async throws {
+        try await write([UInt8](data))
     }
 }

@@ -26,7 +26,11 @@ extension TLS1_2 {
             super.init(connection: client)
         }
         
-        func sendClientHello() throws
+        func connect() async throws {
+            fatalError("Implement connect for TLS 1.2")
+        }
+        
+        func sendClientHello() async throws
         {
             var cipherSuites = client.configuration.cipherSuites
             if client.isInitialHandshake {
@@ -71,10 +75,10 @@ extension TLS1_2 {
             
             self.securityParameters.clientRandom = [UInt8](clientHelloRandom)
             
-            try client.sendHandshakeMessage(clientHello)
+            try await client.sendHandshakeMessage(clientHello)
         }
         
-        func handleServerHello(_ serverHello: TLSServerHello) throws
+        func handle(_ serverHello: TLSServerHello) async throws
         {
             let version = serverHello.legacyVersion
             log("Server wants to speak \(version)")
@@ -82,7 +86,7 @@ extension TLS1_2 {
             guard version.isKnownVersion &&
                 client.configuration.supports(version) else
             {
-                try client.abortHandshake()
+                try await client.abortHandshake()
             }
             
             client.recordLayer?.protocolVersion = version
@@ -97,12 +101,12 @@ extension TLS1_2 {
                 
                 if client.isInitialHandshake {
                     if secureRenegotiationInfo.renegotiatedConnection.count != 0 {
-                        try client.abortHandshake()
+                        try await client.abortHandshake()
                     }
                 }
                 else {
                     if secureRenegotiationInfo.renegotiatedConnection != self.securityParameters.clientVerifyData + self.securityParameters.serverVerifyData {
-                        try client.abortHandshake()
+                        try await client.abortHandshake()
                     }
                 }
             }
@@ -110,7 +114,7 @@ extension TLS1_2 {
                 if !client.isInitialHandshake && self.securityParameters.isUsingSecureRenegotiation {
                     // When we are using secure renegotiation and the server hello doesn't include
                     // the extension, we need to abort the handshake
-                    try client.abortHandshake()
+                    try await client.abortHandshake()
                 }
                 self.securityParameters.isUsingSecureRenegotiation = false
             }
@@ -147,7 +151,7 @@ extension TLS1_2 {
             }
         }
         
-        func sendClientKeyExchange() throws
+        func sendClientKeyExchange() async throws
         {
             switch connection.keyExchange {
             case .dhe(let keyExchange): //, .ecdhe(let keyExchange):
@@ -158,7 +162,7 @@ extension TLS1_2 {
                 self.setPreMasterSecretAndCommitSecurityParameters(sharedSecret)
                 
                 let message = TLSClientKeyExchange(keyExchange: connection.keyExchange)
-                try connection.sendHandshakeMessage(message)
+                try await connection.sendHandshakeMessage(message)
                 
             case .ecdhe(let keyExchange):
                 keyExchange.createKeyPair()
@@ -168,32 +172,32 @@ extension TLS1_2 {
                 self.setPreMasterSecretAndCommitSecurityParameters(sharedSecret)
                 
                 let message = TLSClientKeyExchange(keyExchange: connection.keyExchange)
-                try connection.sendHandshakeMessage(message)
+                try await connection.sendHandshakeMessage(message)
 
             case .rsa:
                 if let rsa = self.serverKey as? RSA {
                     // RSA
                     let message = TLSClientKeyExchange(preMasterSecret: self.preMasterSecret!, rsa: rsa)
-                    try connection.sendHandshakeMessage(message)
+                    try await connection.sendHandshakeMessage(message)
                 }
             }
         }
         
-        func renegotiate() throws
+        func renegotiate() async throws
         {
-            try sendClientHello()
-            _ = try connection.readTLSMessage()
+            try await sendClientHello()
+            _ = try await connection.readTLSMessage()
             
             connection.didRenegotiate()
         }
 
-        func handleFinished(_ finished: TLSFinished) throws {
+        func handle(_ finished: TLSFinished) throws -> TLSFinished {
             
-            if (self.verifyFinishedMessage(finished, isClient: false, saveForSecureRenegotiation: true)) {
+            if (verifyFinishedMessage(finished, isClient: false, saveForSecureRenegotiation: true)) {
                 log("Client: Finished verified.")
-                if self.isRenegotiatingSecurityParameters {
+                if isRenegotiatingSecurityParameters {
                     log("Client: Renegotiated security parameters successfully.")
-                    self.isRenegotiatingSecurityParameters = false
+                    isRenegotiatingSecurityParameters = false
                 }
                 
                 if client.currentSession != nil {
@@ -203,12 +207,12 @@ extension TLS1_2 {
                     
 //                    try self.sendChangeCipherSpec()
                     
-                    return
+                    return finished
                 }
                 else if let sessionID = client.pendingSessionID {
                     if let serverName = client.serverNames?.first {
                         let session = TLSSession(sessionID: sessionID, cipherSpec: client.cipherSuite!, masterSecret: self.securityParameters.masterSecret!)
-                        self.clientContext.sessionCache[serverName] = session
+                        clientContext.sessionCache[serverName] = session
                         log("Save session for \(serverName)")
                     }
                 }
@@ -216,15 +220,16 @@ extension TLS1_2 {
             }
             else {
                 log("Error: could not verify Finished message.")
-                try client.sendAlert(.decryptError, alertLevel: .fatal)
+                throw TLSError.alert(.decryptError, alertLevel: .fatal)
             }
             
+            return finished
         }
         
-        func handleCertificate(_ certificate: TLSCertificateMessage) {
+        func handle(_ certificate: TLSCertificateMessage) {
             let certificates = certificate.certificates
             client.peerCertificates = certificates
-            self.serverKey = certificates.first!.publicKeySigner
+            serverKey = certificates.first!.publicKeySigner
         }
         
         override func handleMessage(_ message: TLSMessage) throws {
@@ -235,7 +240,7 @@ extension TLS1_2 {
                 switch handshake.handshakeType
                 {
                 case .serverKeyExchange:
-                    try self.handleServerKeyExchange(handshake as! TLSServerKeyExchange)
+                    try self.handle(handshake as! TLSServerKeyExchange)
                     
                 case .serverHelloDone:
                     break
@@ -253,7 +258,7 @@ extension TLS1_2 {
             }
         }
         
-        func handleServerKeyExchange(_ serverKeyExchange: TLSServerKeyExchange) throws {
+        func handle(_ serverKeyExchange: TLSServerKeyExchange) throws {
             
             switch serverKeyExchange.parameters {
                 

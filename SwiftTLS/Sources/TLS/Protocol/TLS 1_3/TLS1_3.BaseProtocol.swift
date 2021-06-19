@@ -73,15 +73,23 @@ extension TLS1_3 {
         func reset() {
         }
         
-        func sendCertificate() throws
+        func receive<T>(_ messageType: T.Type) async throws -> T {
+            guard let message = try await connection.receiveNextTLSMessage() as? T else {
+                throw TLSError.alert(.handshakeFailure, alertLevel: .fatal, message: nil)
+            }
+            
+            return message
+        }
+        
+        func sendCertificate() async throws
         {
             let certificates = self.connection.configuration.identity!.certificateChain
             let certificateMessage = TLSCertificateMessage(certificates: certificates)
             
-            try self.connection.sendHandshakeMessage(certificateMessage);
+            try await self.connection.sendHandshakeMessage(certificateMessage);
         }
         
-        func sendCertificateVerify() throws
+        func sendCertificateVerify() async throws
         {
             let identity = self.connection.configuration.identity!
             var signer = identity.signer(with: self.connection.configuration.hashAlgorithm)
@@ -109,19 +117,19 @@ extension TLS1_3 {
             let signature = try signer.sign(data: proofData)
             let certificateVerify = TLSCertificateVerify(algorithm: TLSSignatureScheme(signatureAlgorithm: signer.algorithm)!, signature: signature)
             
-            try self.connection.sendHandshakeMessage(certificateVerify)
+            try await self.connection.sendHandshakeMessage(certificateVerify)
         }
         
-        func handleCertificate(_ certificate: TLSCertificateMessage) {
+        func handle(_ certificate: TLSCertificateMessage) {
             self.connection.peerCertificates = certificate.certificates
         }
 
-        func handleCertificateVerify(_ certificateVerify: TLSCertificateVerify) throws {
+        func handle(_ certificateVerify: TLSCertificateVerify) async throws {
             guard let certificate = self.connection.peerCertificates?.first,
                 var signer = certificate.publicKeySigner,
                 let signatureAlgorithm = certificateVerify.algorithm.signatureAlgorithm
             else {
-                try self.connection.abortHandshake()
+                try await connection.abortHandshake()
             }
 
             signer.algorithm = signatureAlgorithm
@@ -137,33 +145,10 @@ extension TLS1_3 {
             guard let verified = try? signer.verify(signature: signature, data: proofData),
                 verified
             else {
-                try self.connection.abortHandshake(with: .decryptError)
+                try await connection.abortHandshake(with: .decryptError)
             }
             
             self.connection.handshakeMessages.append(certificateVerify)
-        }
-
-        func handleHandshakeMessage(_ handshakeMessage: TLSHandshakeMessage) throws -> Bool {
-            switch handshakeMessage.handshakeType {
-            case .certificateVerify:
-                try self.handleCertificateVerify(handshakeMessage as! TLSCertificateVerify)
-            
-            default:
-                return false
-            }
-            
-            return true
-        }
-        
-        func handleMessage(_ message: TLSMessage) throws {
-            switch message.type
-            {
-            case .handshake(_):
-                _ = try self.handleHandshakeMessage(message as! TLSHandshakeMessage)
-                
-            default:
-                break
-            }
         }
 
         var transcriptHash: [UInt8] {
@@ -182,8 +167,7 @@ extension TLS1_3 {
             return finishedData
         }
         
-        func sendFinished() throws
-        {
+        func sendFinished() async throws {
             fatalError("sendFinished not overridden")
         }
         

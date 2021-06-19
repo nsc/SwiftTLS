@@ -28,7 +28,7 @@ func parseHTTPHeader(_ string: String) -> [String:String] {
     return header
 }
 
-func server(address: IPAddress = IPv6Address.anyAddress, certificatePath: String, dhParametersPath : String? = nil, cipherSuite: CipherSuite? = nil, supportedVersions: [TLSProtocolVersion]? = nil)
+func server(address: IPAddress = IPv6Address.anyAddress, certificatePath: String, dhParametersPath : String? = nil, cipherSuite: CipherSuite? = nil, supportedVersions: [TLSProtocolVersion]? = nil) async
 {    
     log("Listening on port \(address.port)")
     
@@ -63,7 +63,7 @@ func server(address: IPAddress = IPv6Address.anyAddress, certificatePath: String
     
     while true {
         do {
-            try server.acceptConnection(withEarlyDataResponseHandler: responder(connection:data:)) { result in
+            try await server.acceptConnection(withEarlyDataResponseHandler: responder(connection:data:)) { result in
                 var client: TLSConnection
                 switch result {
                 case .client(let connection):
@@ -73,7 +73,7 @@ func server(address: IPAddress = IPv6Address.anyAddress, certificatePath: String
                     log("Error accepting connection: \(error)")
                     return
                 }
-
+                
                 var earlyData = client.earlyData
                 while true {
                     do {
@@ -83,16 +83,16 @@ func server(address: IPAddress = IPv6Address.anyAddress, certificatePath: String
                             earlyData = nil
                         }
                         else {
-                            data = try client.read(count: 4096)
+                            data = try await client.read(count: 4096)
                         }
                         
-                        if let response = responder(connection: client, data: Data(data)) {
-                            try client.write(response)
+                        if let response = await responder(connection: client, data: Data(data)) {
+                            try await client.write(response)
                             
                             print("Sending response:\n \(response)")
                             
                             if clientWantsMeToCloseTheConnection {
-                                client.close()
+                                await client.close()
                                 break
                             }
                         }
@@ -101,8 +101,8 @@ func server(address: IPAddress = IPv6Address.anyAddress, certificatePath: String
                             switch tlserror {
                             case .error(let message):
                                 log("Error: \(message)")
-                            case .alert(let alert, let level):
-                                log("Alert: \(level) \(alert)")
+                            case .alert(let alert, let level, let message):
+                                log("Alert: \(level) \(alert)\(message != nil ? ": " + message! : "")")
                             }
                         }
                         
@@ -118,7 +118,7 @@ func server(address: IPAddress = IPv6Address.anyAddress, certificatePath: String
 }
 
 var clientWantsMeToCloseTheConnection = false
-func responder(connection: TLSConnection, data: Data) -> Data? {
+func responder(connection: TLSConnection, data: Data) async -> Data? {
     let utf8Data = String(data: data, encoding: .utf8)
     let clientRequest: String
     if let utf8Data = utf8Data {

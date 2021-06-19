@@ -272,6 +272,16 @@ extension BigInt {
         return result
     }
 
+    public static func withContext<Result>(_ context: UnsafeMutablePointer<BigIntContext>? = nil, _ block: (_ context: UnsafeMutablePointer<BigIntContext>) async throws -> Result) async throws -> Result {
+        let context = context ?? BigIntContext.newContext()
+        
+        context.pointee.open()
+        let result = try await block(context)
+        context.pointee.close()
+        
+        return result
+    }
+
     public static func withContextReturningBigInt(_ context: UnsafeMutablePointer<BigIntContext>? = nil, _ block: (_ context: UnsafeMutablePointer<BigIntContext>) -> BigInt) -> BigInt {
         let context = context ?? BigIntContext.newContext()
         

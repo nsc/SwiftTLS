@@ -10,14 +10,14 @@
 import Foundation
 import SwiftTLS
 
-func probeCipherSuitesForHost(host : String, port : UInt16, protocolVersion: TLSProtocolVersion = .v1_3)
+func probeCipherSuitesForHost(host : String, port : UInt16, protocolVersion: TLSProtocolVersion = .v1_3) async
 {
     TLSEnableLogging(false)
     
     class StateMachine : TLSClientStateMachine
     {
         var state: TLSState = .idle
-
+        
         var cipherSuite : CipherSuite!
         
         func shouldContinueHandshake(with message: TLSHandshakeMessage) -> Bool
@@ -56,11 +56,11 @@ func probeCipherSuitesForHost(host : String, port : UInt16, protocolVersion: TLS
         
         do {
             stateMachine.cipherSuite = cipherSuite
-            try client.connect(address)
+            try await client.connect(address)
         } catch let error as SocketError {
             switch error {
             case .closed:
-                client.close()
+                await client.close()
                 
             default:
                 print("Error: \(error)")

@@ -24,7 +24,11 @@ extension TLS1_2 {
             return self.connection.context as! TLSServerContext
         }
 
-        func sendServerHello(for clientHello: TLSClientHello) throws {
+        func acceptConnection() async throws {
+            
+        }
+        
+        func sendServerHello(for clientHello: TLSClientHello) async throws {
             var sessionID: TLSSessionID
             if let session = server.currentSession {
                 sessionID = session.sessionID
@@ -65,15 +69,15 @@ extension TLS1_2 {
             
             server.isInitialHandshake = false
             
-            try server.sendHandshakeMessage(serverHello)
+            try await server.sendHandshakeMessage(serverHello)
         }
         
-        func sendServerHelloDone() throws
+        func sendServerHelloDone() async throws
         {
-            try server.sendHandshakeMessage(TLSServerHelloDone())
+            try await server.sendHandshakeMessage(TLSServerHelloDone())
         }
         
-        func sendServerKeyExchange() throws
+        func sendServerKeyExchange() async throws
         {
             guard let cipherSuiteDescriptor = TLSCipherSuiteDescriptorForCipherSuite(server.cipherSuite!) else {
                 throw TLSError.error("No cipher suite")
@@ -94,7 +98,7 @@ extension TLS1_2 {
                 server.keyExchange = .dhe(dhKeyExchange)
                 
                 let message = try TLSServerKeyExchange(keyExchangeParameters: .dhe(dhParameters), context: server)
-                try server.sendHandshakeMessage(message)
+                try await server.sendHandshakeMessage(message)
                 
             case .ecdhe:
                 guard var ecdhParameters = server.configuration.ecdhParameters else {
@@ -107,7 +111,7 @@ extension TLS1_2 {
                 
                 ecdhParameters.publicKey = Q
                 let message = try TLSServerKeyExchange(keyExchangeParameters: .ecdhe(ecdhParameters), context:server)
-                try server.sendHandshakeMessage(message)
+                try await server.sendHandshakeMessage(message)
                 break
                 
             default:
@@ -115,12 +119,13 @@ extension TLS1_2 {
             }
         }
 
-        func handleCertificate(_ certificate: TLSCertificateMessage) {
+        func handle(_ certificate: TLSCertificateMessage) {
         }
         
-        func handleClientHello(_ clientHello: TLSClientHello) throws {
+        @discardableResult
+        func handle(_ clientHello: TLSClientHello) async throws -> TLSClientHello {
             if !server.configuration.supports(clientHello.legacyVersion) {
-                try server.abortHandshake()
+                try await server.abortHandshake()
             }
             
             // Secure Renegotiation
@@ -138,7 +143,7 @@ extension TLS1_2 {
                     }
                     else {
                         // abort handshake if the renegotiationInfo isn't empty
-                        try server.abortHandshake()
+                        try await server.abortHandshake()
                     }
                 }
                 else {
@@ -148,15 +153,15 @@ extension TLS1_2 {
             else if self.securityParameters.isUsingSecureRenegotiation {
                 // Renegotiated handshake (RFC 5746, Section 3.7)
                 if clientHelloContainsEmptyRenegotiationSCSV {
-                    try server.abortHandshake()
+                    try await server.abortHandshake()
                 }
                 else if let secureRenegotiationInfo = secureRenegotiationInfo {
                     if secureRenegotiationInfo.renegotiatedConnection.count == 0 {
-                        try server.abortHandshake()
+                        try await server.abortHandshake()
                     }
                     else {
                         if secureRenegotiationInfo.renegotiatedConnection != self.securityParameters.clientVerifyData {
-                            try server.abortHandshake()
+                            try await server.abortHandshake()
                         }
                         
                         self.isRenegotiatingSecurityParameters = true
@@ -164,7 +169,7 @@ extension TLS1_2 {
                 }
                 else {
                     // abort if secureRenegotiationInfo is missing
-                    try server.abortHandshake()
+                    try await server.abortHandshake()
                 }
             }
             else {
@@ -187,8 +192,9 @@ extension TLS1_2 {
             server.cipherSuite = server.selectCipherSuite(clientHello.cipherSuites)
             
             if server.cipherSuite == nil {
-                try server.sendAlert(.handshakeFailure, alertLevel: .fatal)
-                throw TLSError.error("No shared cipher suites. Client supports:" + clientHello.cipherSuites.map({"\($0)"}).reduce("", {$0 + "\n" + $1}))
+                throw TLSError.alert(.handshakeFailure,
+                                     alertLevel: .fatal,
+                                     message: "No shared cipher suites. Client supports:" + clientHello.cipherSuites.map({"\($0)"}).reduce("", {$0 + "\n" + $1}))
             }
             else {
                 log("Selected cipher suite is \(server.cipherSuite!)")
@@ -203,9 +209,10 @@ extension TLS1_2 {
                 }
             }
 
+            return clientHello
         }
         
-        func handleFinished(_ finished: TLSFinished) throws {
+        func handle(_ finished: TLSFinished) throws -> TLSFinished {
             if (self.verifyFinishedMessage(finished, isClient: true, saveForSecureRenegotiation: true)) {
                 log("Server: Finished verified.")
                 if self.isRenegotiatingSecurityParameters {
@@ -222,9 +229,10 @@ extension TLS1_2 {
                 server.handshakeMessages.append(finished)
             }
             else {
-                log("Error: could not verify Finished message.")
-                try server.sendAlert(.decryptError, alertLevel: .fatal)
+                throw TLSError.alert(.decryptError, alertLevel: .fatal, message: "Error: could not verify Finished message.")
             }
+            
+            return finished
         }
         
         override func handleMessage(_ message: TLSMessage) throws {
@@ -235,7 +243,7 @@ extension TLS1_2 {
                 switch handshake.handshakeType
                 {
                 case .clientKeyExchange:
-                    try self.handleClientKeyExchange(handshake as! TLSClientKeyExchange)
+                    try self.handle(handshake as! TLSClientKeyExchange)
                     
                 default:
                     fatalError("handleMessage called with a handshake message that should be handled in a more specific method")
@@ -250,7 +258,7 @@ extension TLS1_2 {
 
         }
         
-        func handleClientKeyExchange(_ clientKeyExchange: TLSClientKeyExchange) throws {
+        func handle(_ clientKeyExchange: TLSClientKeyExchange) throws {
             var preMasterSecret : [UInt8]
             
             switch (server.keyExchange, clientKeyExchange.keyExchange) {
@@ -284,7 +292,7 @@ extension TLS1_2 {
                         let rsa = server.configuration.identity!.signer(with: self.connection.configuration.hashAlgorithm) as! RSA
                         preMasterSecret = try rsa.decrypt(encryptedPreMasterSecret)
                     } catch _ as RSA.Error {
-                        throw TLSError.alert(alert: .decryptError, alertLevel: .fatal)
+                        throw TLSError.alert(.decryptError, alertLevel: .fatal)
                     }
                 }
                 else {

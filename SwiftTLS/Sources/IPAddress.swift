@@ -56,6 +56,8 @@ public protocol IPAddress : CustomStringConvertible {
     var sockAddrLength: socklen_t { get }
     static var anyAddress: IPAddress { get }
     static var localAddress: IPAddress { get }
+    
+    func with(port: Int) -> Self
 }
 
 extension IPAddress {
@@ -156,6 +158,12 @@ extension IPAddress {
         return address
     }
     
+    public func with(port: Int) -> Self {
+        var address = self
+        address.port = UInt16(port)
+        return address
+    }
+
 }
 
 public struct IPv4Address : IPAddress

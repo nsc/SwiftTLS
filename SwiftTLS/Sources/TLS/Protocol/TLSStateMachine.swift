@@ -149,8 +149,8 @@ public protocol TLSConnectionStateMachine : AnyObject
     func reset()
     
     func didSendMessage(_ message : TLSMessage) throws
-    func didSendHandshakeMessage(_ message : TLSHandshakeMessage) throws
-    func didReceiveHandshakeMessage(_ message : TLSHandshakeMessage) throws
+    func didSendHandshakeMessage(_ message : TLSHandshakeMessage) async throws
+    func didReceiveHandshakeMessage(_ message : TLSHandshakeMessage) async throws
     func didReceiveChangeCipherSpec() throws
     func didSendChangeCipherSpec() throws
     func didReceiveAlert(_ alert : TLSAlertMessage)
@@ -158,22 +158,22 @@ public protocol TLSConnectionStateMachine : AnyObject
     func shouldContinueHandshake(with message : TLSHandshakeMessage) -> Bool
     
     func transition(to state: TLSState) throws
-    func actOnCurrentState() throws
+    func actOnCurrentState() async throws
 }
 
 public extension TLSConnectionStateMachine
 {
     func reset() {}
     func transition(to state: TLSState) throws {}
-    func actOnCurrentState() throws {}
+    func actOnCurrentState() async throws {}
 }
 
 public protocol TLSClientStateMachine : TLSConnectionStateMachine
 {
-    func clientDidSendHandshakeMessage(_ message : TLSHandshakeMessage) throws
+    func clientDidSendHandshakeMessage(_ message : TLSHandshakeMessage) async throws
     func clientDidSendChangeCipherSpec() throws
     func clientDidReceiveChangeCipherSpec() throws
-    func clientDidReceiveHandshakeMessage(_ message : TLSHandshakeMessage) throws
+    func clientDidReceiveHandshakeMessage(_ message : TLSHandshakeMessage) async throws
     func clientShouldContinueHandshake(with message : TLSHandshakeMessage) -> Bool
     func clientDidReceiveAlert(_ alert : TLSAlertMessage)
     func clientDidConnect() throws
@@ -196,26 +196,24 @@ public extension TLSClientStateMachine
         log("Client: did send message \(TLSMessageNameForType(message.type))")
     }
     
-    func didSendHandshakeMessage(_ message : TLSHandshakeMessage) throws {
-        try self.clientDidSendHandshakeMessage(message)
+    func didSendHandshakeMessage(_ message : TLSHandshakeMessage) async throws {
+        try await self.clientDidSendHandshakeMessage(message)
     }
     
-    func didReceiveHandshakeMessage(_ message : TLSHandshakeMessage) throws {
-        try self.clientDidReceiveHandshakeMessage(message)
+    func didReceiveHandshakeMessage(_ message : TLSHandshakeMessage) async throws {
+        try await self.clientDidReceiveHandshakeMessage(message)
     }
     
-    func clientDidSendHandshakeMessage(_ message : TLSHandshakeMessage) throws
+    func clientDidSendHandshakeMessage(_ message : TLSHandshakeMessage) async throws
     {
         try self.didSendMessage(message)
-        try self.transition(to: message.type.sentState)
-        try self.actOnCurrentState()
     }
     
-    func clientDidReceiveHandshakeMessage(_ message : TLSHandshakeMessage) throws
+    func clientDidReceiveHandshakeMessage(_ message : TLSHandshakeMessage) async throws
     {
         log("Client: did receive message \(TLSHandshakeMessageNameForType(message.handshakeType))")
         try self.transition(to: message.type.receivedState)
-        try self.actOnCurrentState()
+        try await self.actOnCurrentState()
     }
 
     func didSendChangeCipherSpec() throws {
@@ -241,7 +239,7 @@ public extension TLSClientStateMachine
     func transition(to state: TLSState) throws {
         if !checkClientStateTransition(state) {
             log("Client: Illegal state transition \(self.state) -> \(state)")
-            throw TLSError.alert(alert: .unexpectedMessage, alertLevel: .fatal)
+            throw TLSError.alert(.unexpectedMessage, alertLevel: .fatal)
         }
         
         self.state = state
@@ -252,10 +250,10 @@ public extension TLSClientStateMachine
 
 protocol TLSServerStateMachine : TLSConnectionStateMachine
 {
-    func serverDidSendHandshakeMessage(_ message : TLSHandshakeMessage) throws
+    func serverDidSendHandshakeMessage(_ message : TLSHandshakeMessage) async throws
     func serverDidSendChangeCipherSpec() throws
     func serverDidReceiveChangeCipherSpec() throws
-    func serverDidReceiveHandshakeMessage(_ message : TLSHandshakeMessage) throws
+    func serverDidReceiveHandshakeMessage(_ message : TLSHandshakeMessage) async throws
     func serverShouldContinueHandshake(with message : TLSHandshakeMessage) -> Bool
     func serverDidReceiveAlert(_ alert : TLSAlertMessage)
     func serverDidConnect() throws
@@ -278,53 +276,51 @@ extension TLSServerStateMachine
         log("Server: did send message \(TLSMessageNameForType(message.type))")
     }
     
-    func didSendHandshakeMessage(_ message : TLSHandshakeMessage) throws {
-        try self.serverDidSendHandshakeMessage(message)
+    func didSendHandshakeMessage(_ message : TLSHandshakeMessage) async throws {
+        try await serverDidSendHandshakeMessage(message)
     }
     
-    func didReceiveHandshakeMessage(_ message : TLSHandshakeMessage) throws {
-        try self.serverDidReceiveHandshakeMessage(message)
+    func didReceiveHandshakeMessage(_ message : TLSHandshakeMessage) async throws {
+        try await serverDidReceiveHandshakeMessage(message)
     }
     
-    func serverDidSendHandshakeMessage(_ message : TLSHandshakeMessage) throws
+    func serverDidSendHandshakeMessage(_ message : TLSHandshakeMessage) async throws
     {
-        try self.didSendMessage(message)
-        try self.transition(to: message.type.sentState)
-        try self.actOnCurrentState()
+        try didSendMessage(message)
     }
     
-    func serverDidReceiveHandshakeMessage(_ message : TLSHandshakeMessage) throws
+    func serverDidReceiveHandshakeMessage(_ message : TLSHandshakeMessage) async throws
     {
         log("Server: did receive message \(TLSHandshakeMessageNameForType(message.handshakeType))")
-        try self.transition(to: message.type.receivedState)
-        try self.actOnCurrentState()
+//        try transition(to: message.type.receivedState)
+//        try await actOnCurrentState()
     }
 
     func didSendChangeCipherSpec() throws {
-        try self.serverDidReceiveChangeCipherSpec()
+        try serverDidReceiveChangeCipherSpec()
     }
 
     func didReceiveChangeCipherSpec() throws {
-        try self.serverDidReceiveChangeCipherSpec()
+        try serverDidReceiveChangeCipherSpec()
     }
     
     func didConnect() throws {
         log("server did connect")
-        try self.serverDidConnect()
+        try serverDidConnect()
     }
     
     func didReceiveAlert(_ alert : TLSAlertMessage) {
-        self.serverDidReceiveAlert(alert)
+        serverDidReceiveAlert(alert)
     }
     
     func shouldContinueHandshake(with message : TLSHandshakeMessage) -> Bool {
-        return self.serverShouldContinueHandshake(with: message)
+        return serverShouldContinueHandshake(with: message)
     }
     
     func transition(to state: TLSState) throws {
         if !checkServerStateTransition(state) {
             log("Server: Illegal state transition \(self.state) -> \(state)")
-            throw TLSError.alert(alert: .unexpectedMessage, alertLevel: .fatal)
+            throw TLSError.alert(.unexpectedMessage, alertLevel: .fatal)
         }
         
         self.state = state

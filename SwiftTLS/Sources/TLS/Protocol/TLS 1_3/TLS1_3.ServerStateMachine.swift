@@ -34,50 +34,6 @@ extension TLS1_3 {
             self.state = .idle
         }
         
-        func actOnCurrentState() throws
-        {
-            switch self.state
-            {
-            case .clientHelloReceived:
-                guard let clientHello = server?.clientHello else {
-                    fatalError("clientHello not available")
-                }
-                
-                if self.server!.cipherSuite == nil {
-                    try self.protocolHandler!.sendHelloRetryRequest(for: clientHello)
-                }
-                else {
-                    try self.protocolHandler!.sendServerHello(for: clientHello)
-                }
-                
-            case .serverHelloSent:
-                try self.protocolHandler!.sendEncryptedExtensions()
-                
-            case .encryptedExtensionsSent:
-                if self.protocolHandler!.isUsingPreSharedKey {
-                    try self.protocolHandler!.sendFinished()
-                }
-                else {
-                    try self.protocolHandler!.sendCertificate()
-                }
-                
-            case .certificateSent:
-                try self.protocolHandler!.sendCertificateVerify()
-                
-            case .certificateVerifySent:
-                try self.protocolHandler!.sendFinished()
-                
-            case .finishedReceived:
-                if self.server!.configuration.supportsSessionResumption && !(self.server!.serverNames?.isEmpty ?? true)  {
-                    try self.protocolHandler!.sendNewSessionTicket()
-                }
-                try serverDidConnect()
-
-            default:
-                break
-            }
-        }
-        
         func serverDidReceiveAlert(_ alert: TLSAlertMessage) {
             log("Server: did receive message \(alert.alertLevel) \(alert.alert)")
         }

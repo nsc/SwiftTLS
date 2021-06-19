@@ -34,7 +34,7 @@ extension TLS1_2 {
             self.state = .idle
         }
         
-        func actOnCurrentState() throws
+        func actOnCurrentState() async throws
         {
             switch self.state
             {
@@ -43,33 +43,33 @@ extension TLS1_2 {
                     fatalError("clientHello not available")
                 }
                 
-                try self.protocolHandler!.sendServerHello(for: clientHello)
+                try await protocolHandler!.sendServerHello(for: clientHello)
 
             case .serverHelloSent:
-                if self.server!.isReusingSession {
-                    try self.protocolHandler!.sendChangeCipherSpec()
+                if server!.isReusingSession {
+                    try await protocolHandler!.sendChangeCipherSpec()
                 }
                 else {
-                    try self.protocolHandler!.sendCertificate()
+                    try await protocolHandler!.sendCertificate()
                 }
                 
             case .certificateSent:
-                if self.server!.cipherSuite!.needsServerKeyExchange() {
-                    try self.protocolHandler!.sendServerKeyExchange()
+                if server!.cipherSuite!.needsServerKeyExchange() {
+                    try await protocolHandler!.sendServerKeyExchange()
                 }
                 else {
-                    try self.protocolHandler!.sendServerHelloDone()
+                    try await protocolHandler!.sendServerHelloDone()
                 }
                 
             case .serverKeyExchangeSent:
-                try self.protocolHandler!.sendServerHelloDone()
+                try await protocolHandler!.sendServerHelloDone()
                 
-            case .finishedSent where !self.server!.isReusingSession:
+            case .finishedSent where !server!.isReusingSession:
                 try serverDidConnect()
                 
             case .finishedReceived:
-                if !self.server!.isReusingSession {
-                    try self.protocolHandler!.sendChangeCipherSpec()
+                if !server!.isReusingSession {
+                    try await protocolHandler!.sendChangeCipherSpec()
                 }
                 else {
                     try serverDidConnect()
@@ -80,17 +80,17 @@ extension TLS1_2 {
             }
         }
         
-        func didSendChangeCipherSpec() throws
+        func didSendChangeCipherSpec() async throws
         {
             log("did send change cipher spec")
             try self.transition(to: .changeCipherSpecSent)
-            try self.protocolHandler!.sendFinished()
+            try await protocolHandler!.sendFinished()
         }
         
         func didReceiveChangeCipherSpec() throws
         {
             log("did receive change cipher spec")
-            try self.transition(to: .changeCipherSpecReceived)
+            try transition(to: .changeCipherSpecReceived)
         }
         
         func serverDidReceiveAlert(_ alert: TLSAlertMessage) {

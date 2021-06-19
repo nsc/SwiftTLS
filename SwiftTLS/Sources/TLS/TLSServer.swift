@@ -38,56 +38,26 @@ public class TLSServer : TLSConnection
         setupServer(with: configuration)
     }
     
-    func _acceptConnection() throws
+    func _acceptConnection() async throws
     {
         reset()
         
         do {
-            while stateMachine?.state != .connected {
-                try self.receiveNextTLSMessage()
-            }
-        } catch TLSError.alert(alert: let alert, alertLevel: let alertLevel) {
+            try await serverProtocolHandler.acceptConnection()
+        } catch TLSError.alert(let alert, alertLevel: let alertLevel, let message) {
             if alertLevel == .fatal {
-                try abortHandshake(with: alert)
+                try await abortHandshake(with: alert)
             }
             
-            throw TLSError.alert(alert: alert, alertLevel: alertLevel)
+            if let message = message {
+                log(message)
+            }
+            throw TLSError.alert(alert, alertLevel: alertLevel, message: message)
         }
         
         self.handshakeMessages = []
     }
     
-    override func handleHandshakeMessage(_ message : TLSHandshakeMessage) throws -> Bool
-    {
-        guard try !super.handleHandshakeMessage(message) else {
-            return true
-        }
-        
-        let handshakeType = message.handshakeType
-        
-        switch (handshakeType)
-        {
-        case .clientHello:
-            let clientHello = (message as! TLSClientHello)
-            self.clientHello = clientHello
-            try self.serverProtocolHandler.handleClientHello(clientHello)
-            
-        case .clientKeyExchange:
-            try self.protocolHandler.handleMessage(message)
-
-        case .finished:
-            let finished = message as! TLSFinished
-            try self.protocolHandler.handleFinished(finished)
-            
-        default:
-            try self.protocolHandler.handleMessage(message)
-        }
-        
-        try self.stateMachine?.didReceiveHandshakeMessage(message)
-        
-        return true
-    }
-
     func setupServer(with configuration: TLSConfiguration, version: TLSProtocolVersion? = nil)
     {
         var version = version
@@ -134,11 +104,11 @@ extension TLSServer : ServerSocketProtocol
         try self.serverSocket.listen(on: address)
     }
     
-    public func acceptConnection() throws -> SocketProtocol {
-        return try acceptConnection(withEarlyDataResponseHandler: nil)
+    public func acceptConnection() async throws -> SocketProtocol {
+        try await acceptConnection(withEarlyDataResponseHandler: nil)
     }
     
-    public typealias EarlyDataResponseHandler = ((_ connection: TLSConnection, _ earlyData: Data) -> (Data?))
+    public typealias EarlyDataResponseHandler = ((_ connection: TLSConnection, _ earlyData: Data) async -> (Data?))
     
     /// Accept a connection
     ///
@@ -148,12 +118,12 @@ extension TLSServer : ServerSocketProtocol
     ///
     /// - Returns: the socket rerpresenting the client that has connected
     /// - Throws: Mainly TLSError I think :) (Make this more rigorous)
-    public func acceptConnection(withEarlyDataResponseHandler earlyDataResponseHandler: EarlyDataResponseHandler?) throws -> SocketProtocol
+    public func acceptConnection(withEarlyDataResponseHandler earlyDataResponseHandler: EarlyDataResponseHandler?) async throws -> SocketProtocol
     {
-        let clientSocket = try self.serverSocket.acceptConnection() as! TCPSocket
+        let clientSocket = try await self.serverSocket.acceptConnection() as! TCPSocket
         let clientTLSSocket = TLSServer(configuration: self.configuration, context: self.context)
         
-        try BigInt.withContext { _ in
+        try await BigInt.withContext { _ in
             clientTLSSocket.socket = clientSocket
             clientTLSSocket.signer = self.signer
             clientTLSSocket.configuration = self.configuration
@@ -162,7 +132,7 @@ extension TLSServer : ServerSocketProtocol
             
             clientTLSSocket.earlyDataResponseHandler = earlyDataResponseHandler
             
-            try clientTLSSocket._acceptConnection()
+            try await clientTLSSocket._acceptConnection()
         }
         
         return clientTLSSocket
@@ -174,14 +144,12 @@ extension TLSServer : ServerSocketProtocol
         case client(TLSConnection)
     }
     
-    public func acceptConnection(withEarlyDataResponseHandler earlyDataResponseHandler: EarlyDataResponseHandler?, completionHandler: @escaping (AcceptConnectionResult) -> ()) throws
+    public func acceptConnection(withEarlyDataResponseHandler earlyDataResponseHandler: EarlyDataResponseHandler?, completionHandler: @escaping (AcceptConnectionResult) async -> ()) async throws
     {
-        let clientSocket = try self.serverSocket.acceptConnection() as! TCPSocket
-        
-        let queue = DispatchQueue.global()
-        
-        queue.async {
-            BigInt.withContext { _ in
+        let clientSocket = try await serverSocket.acceptConnection() as! TCPSocket
+                
+        Task {
+            try await BigInt.withContext { _ in
                 if let address = clientSocket.peerName {
                     log("Connection from \(address)")
                 }
@@ -196,12 +164,12 @@ extension TLSServer : ServerSocketProtocol
                 clientTLSSocket.earlyDataResponseHandler = earlyDataResponseHandler
                 
                 do {
-                    try clientTLSSocket._acceptConnection()
+                    try await clientTLSSocket._acceptConnection()
                 } catch let error {
-                    completionHandler(.error(error))
+                    await completionHandler(.error(error))
                 }
                 
-                completionHandler(.client(clientTLSSocket))
+                await completionHandler(.client(clientTLSSocket))
                 
                 Thread.current.removeThreadNumber()
             }

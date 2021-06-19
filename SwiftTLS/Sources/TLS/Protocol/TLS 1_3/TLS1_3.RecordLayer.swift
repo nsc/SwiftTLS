@@ -115,12 +115,12 @@ extension TLS1_3 {
             }
         }
         
-        override func readRecordBody(count: Int) throws -> [UInt8] {
+        override func readRecordBody(count: Int) async throws -> [UInt8] {
             guard count > 0 && count <= (1 << 14) + 256 else {
-                try connection!.abortHandshake(with: .recordOverflow)
+                try await connection!.abortHandshake(with: .recordOverflow)
             }
             
-            return try super.readRecordBody(count: count)
+            return try await super.readRecordBody(count: count)
         }
         
         override func recordData(forContentType contentType: ContentType, data: [UInt8]) throws -> [UInt8] {
@@ -178,8 +178,8 @@ extension TLS1_3 {
 
 //            log("recordData.count = \(recordData.count) / auth tag size = \(cipherSuiteDescriptor.authTagSize)")
             guard recordData.count >= cipherSuiteDescriptor.authTagSize else {
-                // FIXME: I haven't found anything in the RFC about how to handle this case. What is the correct alert to send here?
-                try connection!.abortHandshake(with: .unexpectedMessage)
+                // FIXME: I haven't found anything in the RFC about how to handle this case. What is the correct alert to throw here?
+                throw TLSError.alert(.unexpectedMessage, alertLevel: .fatal)
             }
             
             // FIXME: The server has crashed in the next line with an invalid index
@@ -195,7 +195,7 @@ extension TLS1_3 {
             
                 if authTag != self.decryptor.authTag! {
                     // FIXME: Check if this actually *is* the correct alert
-                    throw TLSError.alert(alert: .badRecordMAC, alertLevel: .fatal)
+                    throw TLSError.alert(.badRecordMAC, alertLevel: .fatal)
                 }
                 
                 self.readEncryptionParameters!.sequenceNumber += 1
@@ -207,23 +207,23 @@ extension TLS1_3 {
                 }
                 
                 guard index >= 0 else {
-                    throw TLSError.alert(alert: .unexpectedMessage, alertLevel: .fatal)
+                    throw TLSError.alert(.unexpectedMessage, alertLevel: .fatal)
                 }
                 
                 if let contentType = ContentType(rawValue:messageData[index]) {
                     if index == 0 && contentType != .applicationData {
-                        throw TLSError.alert(alert: .unexpectedMessage, alertLevel: .fatal)
+                        throw TLSError.alert(.unexpectedMessage, alertLevel: .fatal)
                     }
                     
                     return (contentType, [UInt8](messageData[0..<index]))
                 }
                 else {
-                    throw TLSError.alert(alert: .unexpectedMessage, alertLevel: .fatal)
+                    throw TLSError.alert(.unexpectedMessage, alertLevel: .fatal)
                 }
             }
             else {
                 // FIXME: Check if this actually *is* the correct alert
-                throw TLSError.alert(alert: .badRecordMAC, alertLevel: .fatal)
+                throw TLSError.alert(.badRecordMAC, alertLevel: .fatal)
             }
         }
         
@@ -237,7 +237,7 @@ extension TLS1_3 {
             return self.decryptor.update(data: data, authData: authData, key: key, IV: IV)
         }
     
-        override func readMessage() throws -> TLSMessage?
+        override func readMessage() async throws -> TLSMessage
         {
             // When we are a server still in the handshake phase and we have rejected early data, we need to try to decrypt incoming packets
             // with our handshake keys until we can actually decrypt it.
@@ -246,18 +246,15 @@ extension TLS1_3 {
                 serverProtocolHandler.server.stateMachine!.state != .connected,
                 case .rejected = serverProtocolHandler.serverHandshakeState.serverEarlyDataState
             else {
-                return try super.readMessage()
+                return try await super.readMessage()
             }
             
-            let message: TLSMessage?
             do {
-                message = try super.readMessage()
-            } catch TLSError.alert(let alert, _) where alert == .badRecordMAC {
+                return try await super.readMessage()
+            } catch TLSError.alert(let alert, _, _) where alert == .badRecordMAC {
                 // ignore message and read the next one
-                return try readMessage()
+                return try await readMessage()
             }
-            
-            return message
         }
     }
 

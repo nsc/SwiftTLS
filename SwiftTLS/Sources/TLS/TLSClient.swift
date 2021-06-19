@@ -32,68 +32,27 @@ public class TLSClient : TLSConnection
         setupClient(with: protocolVersion!, stateMachine: stateMachine)
     }
     
-    func startConnection(withEarlyData earlyData: [UInt8]? = nil) throws
+    func startConnection(withEarlyData earlyData: [UInt8]? = nil) async throws
     {
         reset()
         
         self.earlyData = earlyData
         
         do {
-            try self.sendClientHello()
-            while stateMachine?.state != .connected {
-                try self.receiveNextTLSMessage()
-            }
-        } catch TLSError.alert(alert: let alert, alertLevel: let alertLevel) {
+            try await clientProtocolHandler.connect()
+        } catch TLSError.alert(let alert, alertLevel: let alertLevel, let message) {
             if alertLevel == .fatal {
-                try abortHandshake(with: alert)
+                try await abortHandshake(with: alert)
             }
             
-            throw TLSError.alert(alert: alert, alertLevel: alertLevel)
+            if let message = message {
+                log(message)
+            }
+            
+            throw TLSError.alert(alert, alertLevel: alertLevel, message: message)
         }
                 
         self.handshakeMessages = []
-    }
-    
-    override func handleHandshakeMessage(_ message : TLSHandshakeMessage) throws -> Bool
-    {
-        guard try !super.handleHandshakeMessage(message) else {
-            return true
-        }
-
-        let handshakeType = message.handshakeType
-        
-        switch (handshakeType)
-        {
-        case .serverHello:
-            let serverHello = message as! TLSServerHello
-            try self.clientProtocolHandler.handleServerHello(serverHello)
-
-        case .certificate:
-            let certificateMessage = message as! TLSCertificateMessage
-            self.protocolHandler.handleCertificate(certificateMessage)
-            
-        case .finished:
-            try self.protocolHandler.handleFinished(message as! TLSFinished)
-            
-        default:
-            try self.protocolHandler.handleMessage(message)
-        }
-        
-        try self.stateMachine?.didReceiveHandshakeMessage(message)
-        
-        return true
-    }
-
-    func sendClientHello() throws
-    {
-        // reset current pending session ID
-        self.pendingSessionID = nil
-        self.currentSession = nil
-        self.isReusingSession = false
-        
-        self.handshakeMessages = []
-        
-        try self.clientProtocolHandler.sendClientHello()
     }
     
     func setupClient(with version: TLSProtocolVersion, stateMachine: TLSClientStateMachine? = nil)
@@ -127,21 +86,21 @@ extension TLSClient : ClientSocketProtocol
         return (self.socket as! ClientSocketProtocol)
     }
     
-    public func connect(_ address: IPAddress, withEarlyData earlyData: Data) throws
+    public func connect(_ address: IPAddress, withEarlyData earlyData: Data) async throws
     {
-        try self.clientSocket.connect(address)
-        try self.startConnection(withEarlyData: [UInt8](earlyData))
+        try await clientSocket.connect(address)
+        try await startConnection(withEarlyData: [UInt8](earlyData))
     }
     
     // Connect with early data.
-    public func connect(hostname: String, port: UInt16 = 443, withEarlyData earlyData: Data) throws
+    public func connect(hostname: String, port: UInt16 = 443, withEarlyData earlyData: Data) async throws
     {
         self.earlyData = [UInt8](earlyData)
         
-        try connect(hostname: hostname, port: port)
+        try await connect(hostname: hostname, port: port)
     }
     
-    public func connect(hostname: String, port: UInt16 = 443) throws
+    public func connect(hostname: String, port: UInt16 = 443) async throws
     {
         if let address = IPv4Address.addressWithString(hostname, port: port) {
             var hostNameAndPort = hostname
@@ -150,7 +109,7 @@ extension TLSClient : ClientSocketProtocol
             }
             self.serverNames = [hostNameAndPort]
             
-            try connect(address)
+            try await connect(address)
         }
         else {
             throw TLSError.error("Error: Could not resolve host \(hostname)")
@@ -180,9 +139,9 @@ extension TLSClient : ClientSocketProtocol
     
     // TODO: add connect method that takes a domain name rather than an IP
     // so we can check the server certificate against that name
-    public func connect(_ address: IPAddress) throws
+    public func connect(_ address: IPAddress) async throws
     {
-        try self.clientSocket.connect(address)
-        try self.startConnection(withEarlyData: self.earlyData)
+        try await clientSocket.connect(address)
+        try await self.startConnection(withEarlyData: self.earlyData)
     }
 }

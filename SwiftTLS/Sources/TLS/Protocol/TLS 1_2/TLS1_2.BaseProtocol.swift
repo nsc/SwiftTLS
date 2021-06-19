@@ -29,29 +29,29 @@ extension TLS1_2 {
             self.securityParameters = TLSSecurityParameters()
         }
         
-        func sendChangeCipherSpec() throws
+        func sendChangeCipherSpec() async throws
         {
             let message = TLSChangeCipherSpec()
-            try self.connection.sendMessage(message)
-            self.recordLayer.activateWriteEncryptionParameters()
-            try self.connection.stateMachine?.didSendChangeCipherSpec()
+            try await connection.sendMessage(message)
+            recordLayer.activateWriteEncryptionParameters()
+            try connection.stateMachine?.didSendChangeCipherSpec()
         }
         
-        func sendCertificate() throws
+        func sendCertificate() async throws
         {
-            let certificates = self.connection.configuration.identity!.certificateChain
+            let certificates = connection.configuration.identity!.certificateChain
             let certificateMessage = TLSCertificateMessage(certificates: certificates)
             
-            try self.connection.sendHandshakeMessage(certificateMessage);
+            try await connection.sendHandshakeMessage(certificateMessage);
         }
         
-        func sendFinished() throws
+        func sendFinished() async throws
         {
-            let verifyData = self.verifyDataForFinishedMessage(isClient: self.connection.isClient)
-            if self.securityParameters.isUsingSecureRenegotiation {
-                self.saveVerifyDataForSecureRenegotiation(data: verifyData, forClient: self.connection.isClient)
+            let verifyData = verifyDataForFinishedMessage(isClient: self.connection.isClient)
+            if securityParameters.isUsingSecureRenegotiation {
+                saveVerifyDataForSecureRenegotiation(data: verifyData, forClient: self.connection.isClient)
             }
-            try self.connection.sendHandshakeMessage(TLSFinished(verifyData: verifyData))
+            try await connection.sendHandshakeMessage(TLSFinished(verifyData: verifyData))
         }
         
         func handleMessage(_ message: TLSMessage) throws
@@ -185,7 +185,7 @@ extension TLS1_2 {
 //                let alert = message as! TLSAlertMessage
 //                self.connection.stateMachine?.didReceiveAlert(alert)
 //                if alert.alertLevel == .fatal {
-//                    throw TLSError.alert(alert: alert.alert, alertLevel: alert.alertLevel)
+//                    throw TLSError.alert(alert.alert, alertLevel: alert.alertLevel)
 //                }
 //                
 //                break

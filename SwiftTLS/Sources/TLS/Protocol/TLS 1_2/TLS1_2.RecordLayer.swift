@@ -258,7 +258,7 @@ extension TLS1_2 {
                     return (contentType, decryptedMessage)
                 }
                 else {
-                    throw TLSError.alert(alert: .badRecordMAC, alertLevel: .fatal)
+                    throw TLSError.alert(.badRecordMAC, alertLevel: .fatal)
                 }
             }
 

@@ -151,13 +151,13 @@ struct TLSSignedData : Streamable
 public enum TLSError : Error
 {
     case error(String)
-    case alert(alert : TLSAlert, alertLevel : TLSAlertLevel)
+    case alert(_ alert : TLSAlert, alertLevel : TLSAlertLevel, message: String? = nil)
 }
 
 protocol TLSDataProvider : AnyObject
 {
-    func writeData(_ data : [UInt8]) throws
-    func readData(count : Int) throws -> [UInt8]
+    func writeData(_ data : [UInt8]) async throws
+    func readData(count : Int) async throws -> [UInt8]
 }
 
 let TLSClientFinishedLabel = [UInt8]("client finished".utf8)

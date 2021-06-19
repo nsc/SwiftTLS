@@ -35,19 +35,19 @@ extension TLS1_2 {
             self.state = .idle
         }
         
-        func actOnCurrentState() throws
+        func actOnCurrentState() async throws
         {
             switch self.state
             {
             case .clientKeyExchangeSent:
-                try self.protocolHandler!.sendChangeCipherSpec()
+                try await protocolHandler!.sendChangeCipherSpec()
 
             case .serverHelloDoneReceived:
-                try self.protocolHandler!.sendClientKeyExchange()
+                try await protocolHandler!.sendClientKeyExchange()
                 
             case .finishedReceived:
                 if self.client!.isReusingSession {
-                    try self.protocolHandler!.sendChangeCipherSpec()
+                    try await protocolHandler!.sendChangeCipherSpec()
                 }
                 else {
                     try clientDidConnect()
@@ -61,17 +61,17 @@ extension TLS1_2 {
             }
         }
         
-        func didSendChangeCipherSpec() throws
+        func didSendChangeCipherSpec() async throws
         {
             log("did send change cipher spec")
-            try self.transition(to: .changeCipherSpecSent)
-            try self.protocolHandler!.sendFinished()
+            try transition(to: .changeCipherSpecSent)
+            try await protocolHandler!.sendFinished()
         }
         
         func didReceiveChangeCipherSpec() throws
         {
             log("did receive change cipher spec")
-            try self.transition(to: .changeCipherSpecReceived)
+            try transition(to: .changeCipherSpecReceived)
         }
         
         func clientDidReceiveAlert(_ alert: TLSAlertMessage) {
