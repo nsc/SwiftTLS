@@ -66,75 +66,24 @@ public struct BigIntContext
         }
         scratchSpace.deallocate()
     }
-    
-    static let contextKey: pthread_key_t = {
-        var key = pthread_key_t()
-        pthread_key_create(&key, { (ptr) in
-            let contextPointer: UnsafeMutableRawPointer
-            #if os(Linux)
-            contextPointer = ptr!
-            #else
-            contextPointer = ptr
-            #endif
-            
-            let context = contextPointer.bindMemory(to: BigIntContext.self, capacity: 1)
-            context.pointee.deallocate()
-            
-            contextPointer.deallocate()
-        })
         
-        return key
-    }()
-    
+    @TaskLocal static var context: UnsafeMutablePointer<BigIntContext>?
     static func getContext() -> UnsafeMutablePointer<BigIntContext>? {
-        if let ptr = pthread_getspecific(contextKey) {
-            let context = ptr.bindMemory(to: BigIntContext.self, capacity: 1)
+        if let context = Self.context {
             return context
         }
-        
-        let ctx = BigIntContext()
-//        ctx.open()
 
-        return setContext(ctx)!
+        return newContext()
     }
 
     static func newContext() -> UnsafeMutablePointer<BigIntContext> {
-        guard let context = getContext() else {
-            let ctx = BigIntContext()
-//            ctx.open()
-            return setContext(ctx)!
+        guard let context = BigIntContext.context else {
+            let contextPointer = UnsafeMutablePointer<BigIntContext>.allocate(capacity: 1)
+            contextPointer.initialize(to: BigIntContext())
+            return contextPointer
         }
         
         return context
-    }
-
-    static func setContext(_ context: BigIntContext?) -> UnsafeMutablePointer<BigIntContext>? {
-        guard let context = context else {
-            if let ptr = pthread_getspecific(contextKey) {
-                let oldContext = ptr.bindMemory(to: BigIntContext.self, capacity: 1)
-                oldContext.pointee.deallocate()
-
-                ptr.deallocate()
-                
-                pthread_setspecific(contextKey, nil)
-            }
-            
-            return nil
-        }
-
-        let contextPointer: UnsafeMutablePointer<BigIntContext>
-        if let ptr = pthread_getspecific(contextKey) {
-            contextPointer = ptr.bindMemory(to: BigIntContext.self, capacity: 1)
-            contextPointer.pointee.deallocate()
-            contextPointer.pointee = context
-        }
-        else {
-            contextPointer = UnsafeMutablePointer<BigIntContext>.allocate(capacity: 1)
-            contextPointer.initialize(to: context)
-            pthread_setspecific(contextKey, contextPointer)
-        }
-        
-        return contextPointer
     }
     
     var maxMemory: UInt = 0
@@ -153,7 +102,7 @@ public struct BigIntContext
         if self.refCount == 0 {
 //            print("max memory: \(maxMemory)")
 
-            _ = BigIntContext.setContext(nil)
+//            _ = BigIntContext.setContext(nil)
         }
     }
 
@@ -175,7 +124,7 @@ public struct BigIntContext
             let result = BigInt.externalBigInt(from: result)
 //            print("max memory: \(maxMemory)")
 
-            _ = BigIntContext.setContext(nil)
+//            _ = BigIntContext.setContext(nil)
 
             return result
         }
@@ -207,7 +156,7 @@ public struct BigIntContext
             let result = (BigInt.externalBigInt(from: result.0), BigInt.externalBigInt(from: result.1))
 //            print("max memory: \(maxMemory)")
 
-            _ = BigIntContext.setContext(nil)
+//            _ = BigIntContext.setContext(nil)
 
             return result
         }
@@ -255,11 +204,12 @@ extension BigInt {
     public static func withContext<Result>(_ context: UnsafeMutablePointer<BigIntContext>? = nil, _ block: (_ context: UnsafeMutablePointer<BigIntContext>) -> Result) -> Result {
         let context = context ?? BigIntContext.newContext()
         
-        context.pointee.open()
-        let result = block(context)
-        context.pointee.close()
-        
-        return result
+        return BigIntContext.$context.withValue(context) {
+            context.pointee.open()
+            let result = block(context)
+            context.pointee.close()
+            return result
+        }
     }
 
     public static func withContext<Result>(_ context: UnsafeMutablePointer<BigIntContext>? = nil, _ block: (_ context: UnsafeMutablePointer<BigIntContext>) throws -> Result) throws -> Result {
@@ -275,35 +225,43 @@ extension BigInt {
     public static func withContext<Result>(_ context: UnsafeMutablePointer<BigIntContext>? = nil, _ block: (_ context: UnsafeMutablePointer<BigIntContext>) async throws -> Result) async throws -> Result {
         let context = context ?? BigIntContext.newContext()
         
-        context.pointee.open()
-        let result = try await block(context)
-        context.pointee.close()
-        
-        return result
+        return try await BigIntContext.$context.withValue(context) {
+            context.pointee.open()
+            let result = try await block(context)
+            context.pointee.close()
+            
+            return result
+        }
     }
 
     public static func withContextReturningBigInt(_ context: UnsafeMutablePointer<BigIntContext>? = nil, _ block: (_ context: UnsafeMutablePointer<BigIntContext>) -> BigInt) -> BigInt {
         let context = context ?? BigIntContext.newContext()
         
-        context.pointee.open()
-        let result = block(context)
-        return context.pointee.close(withResult: result)
+        return BigIntContext.$context.withValue(context) {
+            context.pointee.open()
+            let result = block(context)
+            return context.pointee.close(withResult: result)
+        }
     }
 
     public static func withContextReturningBigInt(_ context: UnsafeMutablePointer<BigIntContext>? = nil, _ block: (_ context: UnsafeMutablePointer<BigIntContext>) throws -> BigInt) throws -> BigInt {
         let context = context ?? BigIntContext.newContext()
         
-        context.pointee.open()
-        let result = try block(context)
-        return context.pointee.close(withResult: result)
+        return try BigIntContext.$context.withValue(context) {
+            context.pointee.open()
+            let result = try block(context)
+            return context.pointee.close(withResult: result)
+        }
     }
 
     public static func withContextReturningBigInt(_ context: UnsafeMutablePointer<BigIntContext>? = nil, _ block: (_ context: UnsafeMutablePointer<BigIntContext>) -> (BigInt, BigInt)) -> (BigInt, BigInt) {
         let context = context ?? BigIntContext.newContext()
         
-        context.pointee.open()
-        let result = block(context)
-        return context.pointee.close(withResult: result)
+        return BigIntContext.$context.withValue(context) {
+            context.pointee.open()
+            let result = block(context)
+            return context.pointee.close(withResult: result)
+        }
     }
 
 }
