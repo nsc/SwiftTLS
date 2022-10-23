@@ -253,7 +253,7 @@ public class TLSConnection
         {
         case .changeCipherSpec:
             try stateMachine?.didReceiveChangeCipherSpec()
-            try await receiveNextTLSMessage()
+            _ = try await receiveNextTLSMessage()
             
             break
             

@@ -270,18 +270,6 @@ public struct BigIntStorage {
     public typealias Word = BigInt.Word
     typealias Buffer = UnsafeMutableBufferPointer<Word>
     
-//    fileprivate var pointer: Buffer {
-//        mutating get {
-//            return storage
-//        }
-//        set {
-//            let destination = pointer.baseAddress
-//            let source = newValue.baseAddress
-//            memcpy(destination, source, newValue.count * MemoryLayout<Word>.size)
-//            count = newValue.count
-//        }
-//    }
-    
     public var count: Int = 0
     
     public var first: Word? {
@@ -362,7 +350,7 @@ public struct BigIntStorage {
         self.count = self.storage.count
     }
     
-    init(capacity: Int, context: UnsafeMutablePointer<BigIntContext>? = nil)
+    fileprivate init(capacity: Int, context: UnsafeMutablePointer<BigIntContext>? = nil)
     {
         if let context = context ?? BigIntContext.getContext() {
             storage = .externallyManaged(context.pointee.allocate(capacity: capacity))
@@ -576,21 +564,18 @@ extension BigIntStorage : Sequence
     }
 }
 
-extension BigIntStorage : Collection {
+extension BigIntStorage : MutableCollection {
     public func index(after i: Int) -> Int {
         return i + 1
     }
-    
+
     public var startIndex: Int {
         return 0
     }
-    
+
     public var endIndex: Int {
         return count
     }
-}
-
-extension BigIntStorage : MutableCollection {
 }
 
 extension BigIntStorage : RandomAccessCollection {
@@ -1308,8 +1293,6 @@ extension BigInt : BinaryInteger {
         }
     }
     
-    public typealias Words = BigIntStorage
-
     /// Creates an integer from the given floating-point value, if it can be
     /// represented exactly.
     ///
