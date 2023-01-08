@@ -252,9 +252,6 @@ public class TLSConnection
         switch (message.type)
         {
         case .changeCipherSpec:
-            try stateMachine?.didReceiveChangeCipherSpec()
-            _ = try await receiveNextTLSMessage()
-            
             break
             
         case .handshake:

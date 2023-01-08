@@ -21,11 +21,11 @@ class RSATests: XCTestCase {
     override func setUp() {
         var ctx = BigIntContext()
         ctx.open()
-        _ = BigIntContext.setContext(ctx)
+//        _ = BigIntContext.setContext(ctx)
     }
     
     override func tearDown() {
-        _ = BigIntContext.setContext(nil)
+//        _ = BigIntContext.setContext(nil)
     }
 
     func test_sign_someData_verifies()

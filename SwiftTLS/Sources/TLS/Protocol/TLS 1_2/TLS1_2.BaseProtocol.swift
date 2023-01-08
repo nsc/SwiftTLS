@@ -29,12 +29,25 @@ extension TLS1_2 {
             self.securityParameters = TLSSecurityParameters()
         }
         
+        @discardableResult
+        func receive<T>(_ messageType: T.Type) async throws -> T {
+            let m = try await connection.receiveNextTLSMessage()
+            log("\(connection.isClient ? "Client" : "Server"): did receive message \(m)")
+            
+            guard let message = m as? T else {
+                throw TLSError.alert(.handshakeFailure, alertLevel: .fatal, message: nil)
+            }
+                        
+            try await handleMessage(m)
+            
+            return message
+        }
+
         func sendChangeCipherSpec() async throws
         {
             let message = TLSChangeCipherSpec()
             try await connection.sendMessage(message)
             recordLayer.activateWriteEncryptionParameters()
-            try connection.stateMachine?.didSendChangeCipherSpec()
         }
         
         func sendCertificate() async throws
@@ -54,7 +67,7 @@ extension TLS1_2 {
             try await connection.sendHandshakeMessage(TLSFinished(verifyData: verifyData))
         }
         
-        func handleMessage(_ message: TLSMessage) throws
+        func handleMessage(_ message: TLSMessage) async throws
         {
             switch message.type {
             case .changeCipherSpec:
@@ -164,37 +177,6 @@ extension TLS1_2 {
             return true
         }
         
-//        func handleMessage(_ message: TLSMessage) throws
-//        {
-//            switch (message.type)
-//            {
-//            case .changeCipherSpec:
-//                self.recordLayer.activateReadEncryptionParameters()
-//                try self.connection.stateMachine?.didReceiveChangeCipherSpec()
-//                try self.connection.receiveNextTLSMessage()
-//                
-//                break
-//                
-//            case .handshake:
-//                let handshakeMessage = message as! TLSHandshakeMessage
-//                if self.connection.stateMachine == nil || self.connection.stateMachine!.shouldContinueHandshake(with: handshakeMessage) {
-//                    try self._didReceiveHandshakeMessage(handshakeMessage)
-//                }
-//                
-//            case .alert:
-//                let alert = message as! TLSAlertMessage
-//                self.connection.stateMachine?.didReceiveAlert(alert)
-//                if alert.alertLevel == .fatal {
-//                    throw TLSError.alert(alert.alert, alertLevel: alert.alertLevel)
-//                }
-//                
-//                break
-//                
-//            case .applicationData:
-//                break
-//            }
-//        }
-
         func verifyDataForFinishedMessage(isClient: Bool) -> [UInt8]
         {
             let finishedLabel = isClient ? TLSClientFinishedLabel : TLSServerFinishedLabel

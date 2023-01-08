@@ -10,7 +10,7 @@ import Foundation
 
 extension TLS1_2 {
     class ClientProtocol : BaseProtocol, TLSClientProtocol
-    {
+    {        
         weak var client: TLSClient! {
             return (self.connection as! TLSClient)
         }
@@ -27,7 +27,33 @@ extension TLS1_2 {
         }
         
         func connect() async throws {
-            fatalError("Implement connect for TLS 1.2")
+            try await sendClientHello()
+            try await receive(TLSServerHello.self)
+            
+            if client.isReusingSession {
+                // abbreviated handshake
+                try await receive(TLSChangeCipherSpec.self)
+                try await receive(TLSFinished.self)
+                try await sendChangeCipherSpec()
+                try await sendFinished()
+            }
+            else {
+                // full handshake
+                try await receive(TLSCertificateMessage.self)
+                
+                if client.cipherSuite!.needsServerKeyExchange() {
+                    try await receive(TLSServerKeyExchange.self)
+                }
+                try await receive(TLSServerHelloDone.self)
+
+                try await sendClientKeyExchange()
+                try await sendChangeCipherSpec()
+                try await sendFinished()
+                
+                try await receive(TLSChangeCipherSpec.self)
+
+                try await receive(TLSFinished.self)
+            }
         }
         
         func sendClientHello() async throws
@@ -191,7 +217,7 @@ extension TLS1_2 {
             connection.didRenegotiate()
         }
 
-        func handle(_ finished: TLSFinished) throws -> TLSFinished {
+        func handle(_ finished: TLSFinished) throws {
             
             if (verifyFinishedMessage(finished, isClient: false, saveForSecureRenegotiation: true)) {
                 log("Client: Finished verified.")
@@ -206,8 +232,6 @@ extension TLS1_2 {
 //                    try client.stateMachine?.didReceiveHandshakeMessage(finished)
                     
 //                    try self.sendChangeCipherSpec()
-                    
-                    return finished
                 }
                 else if let sessionID = client.pendingSessionID {
                     if let serverName = client.serverNames?.first {
@@ -222,8 +246,6 @@ extension TLS1_2 {
                 log("Error: could not verify Finished message.")
                 throw TLSError.alert(.decryptError, alertLevel: .fatal)
             }
-            
-            return finished
         }
         
         func handle(_ certificate: TLSCertificateMessage) {
@@ -232,25 +254,33 @@ extension TLS1_2 {
             serverKey = certificates.first!.publicKeySigner
         }
         
-        override func handleMessage(_ message: TLSMessage) throws {
-            
+        override func handleMessage(_ message: TLSMessage) async throws {
             switch message.contentType {
             case .handshake:
                 let handshake = message as! TLSHandshakeMessage
                 switch handshake.handshakeType
                 {
+                case .serverHello:
+                    try await self.handle(handshake as! TLSServerHello)
+                    
                 case .serverKeyExchange:
                     try self.handle(handshake as! TLSServerKeyExchange)
                     
                 case .serverHelloDone:
                     break
                     
+                case .certificate:
+                    self.handle(handshake as! TLSCertificateMessage)
+
+                case .finished:
+                    try self.handle(handshake as! TLSFinished)
+
                 default:
                     fatalError("handleMessage called with a handshake message that should be handled in a more specific method")
                 }
                 
             case .changeCipherSpec:
-                try super.handleMessage(message)
+                try await super.handleMessage(message)
                 break
                 
             default:

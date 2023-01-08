@@ -25,7 +25,7 @@ extension TLS1_2 {
         }
 
         func acceptConnection() async throws {
-            
+            fatalError("Implement TLS 1.2 acceptConnection")
         }
         
         func sendServerHello(for clientHello: TLSClientHello) async throws {
@@ -106,7 +106,7 @@ extension TLS1_2 {
                 }
                 
                 let ecdhKeyExchange = ECDHKeyExchange(curve: ecdhParameters.curve)
-                let Q = ecdhKeyExchange.calculatePublicKeyPoint()
+                let Q = ecdhKeyExchange.createPublicKeyPoint()
                 server.keyExchange = .ecdhe(ecdhKeyExchange)
                 
                 ecdhParameters.publicKey = Q
@@ -212,7 +212,7 @@ extension TLS1_2 {
             return clientHello
         }
         
-        func handle(_ finished: TLSFinished) throws -> TLSFinished {
+        func handle(_ finished: TLSFinished) throws {
             if (self.verifyFinishedMessage(finished, isClient: true, saveForSecureRenegotiation: true)) {
                 log("Server: Finished verified.")
                 if self.isRenegotiatingSecurityParameters {
@@ -231,11 +231,9 @@ extension TLS1_2 {
             else {
                 throw TLSError.alert(.decryptError, alertLevel: .fatal, message: "Error: could not verify Finished message.")
             }
-            
-            return finished
         }
         
-        override func handleMessage(_ message: TLSMessage) throws {
+        override func handleMessage(_ message: TLSMessage) async throws {
             
             switch message.contentType {
             case .handshake:
@@ -250,7 +248,7 @@ extension TLS1_2 {
                 }
                 
             case .changeCipherSpec:
-                try super.handleMessage(message)
+                try await super.handleMessage(message)
                 
             default:
                 fatalError("handleMessage called with a message that should be handled at the TLSServer/TLSConnection level: \(message)")

@@ -12,6 +12,9 @@ class ECDHKeyExchange
     
     var d : BigInt?
     var Q : EllipticCurvePoint?
+    var publicKeyPoint: EllipticCurvePoint? {
+        Q
+    }
     var peerPublicKeyPoint : EllipticCurvePoint?
     
     init(curve : EllipticCurve)
@@ -19,7 +22,7 @@ class ECDHKeyExchange
         self.curve = curve
     }
 
-    func calculatePublicKeyPoint() -> EllipticCurvePoint
+    func createPublicKeyPoint() -> EllipticCurvePoint
     {
         createKeyPair()
         
@@ -27,11 +30,11 @@ class ECDHKeyExchange
     }
     
     // dA * dB * G
-    func calculateSharedSecret() -> BigInt?
+    func calculateSharedSecret(with peerPublicKeyPoint : EllipticCurvePoint? = nil) -> BigInt?
     {
         guard
             let d = self.d,
-            let peerPublicKeyPoint = self.peerPublicKeyPoint
+            let peerPublicKeyPoint = peerPublicKeyPoint ?? self.peerPublicKeyPoint
         else {
             return nil
         }

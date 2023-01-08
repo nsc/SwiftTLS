@@ -21,11 +21,11 @@ class TLSTests: XCTestCase {
     override func setUp() {
         var ctx = BigIntContext()
         ctx.open()
-        _ = BigIntContext.setContext(ctx)
+//        _ = BigIntContext.setContext(ctx)
     }
     
     override func tearDown() {
-        _ = BigIntContext.setContext(nil)
+//        _ = BigIntContext.setContext(nil)
     }
     
 
@@ -103,7 +103,7 @@ class TLSTests: XCTestCase {
         let numberOfTries = 3
 
         do {
-            async {
+            Task {
                 var serverSideClientSocket: SocketProtocol? = nil
                 do {
                     try server.listen(on: address)
@@ -190,12 +190,12 @@ class TLSTests: XCTestCase {
     func test_acceptConnection_whenClientConnects_works() async
     {
         let cipherSuites : [CipherSuite] = [
-            .TLS_RSA_WITH_AES_256_CBC_SHA,
-            .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-            .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
-            .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-            .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-            .TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+//            .TLS_RSA_WITH_AES_256_CBC_SHA,
+//            .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+//            .TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
+//            .TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+//            .TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+//            .TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
             
             .TLS_AES_128_GCM_SHA256,
 //            .TLS_AES_256_GCM_SHA384

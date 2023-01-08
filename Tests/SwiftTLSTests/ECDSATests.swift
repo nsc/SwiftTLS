@@ -21,11 +21,11 @@ class ECDSATests: XCTestCase {
     override func setUp() {
         var ctx = BigIntContext()
         ctx.open()
-        _ = BigIntContext.setContext(ctx)
+//        _ = BigIntContext.setContext(ctx)
     }
     
     override func tearDown() {
-        _ = BigIntContext.setContext(nil)
+//        _ = BigIntContext.setContext(nil)
     }
 
     func test_verify_signatureFromSelfSignedECDSACertificate_verifies()
@@ -121,5 +121,4 @@ class ECDSATests: XCTestCase {
         
         XCTAssert(ecdsa.verify(signature: signature, data: data))
     }
-
 }

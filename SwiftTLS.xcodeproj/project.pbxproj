@@ -11,7 +11,6 @@
 		03091EEB2084FE590068C085 /* SHA224Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03091EEA2084FE590068C085 /* SHA224Tests.swift */; };
 		03091EF020850B7F0068C085 /* SHA512Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03091EEF20850B7F0068C085 /* SHA512Tests.swift */; };
 		03091EF220850F730068C085 /* SHA384Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03091EF120850F730068C085 /* SHA384Tests.swift */; };
-		030FF6EB1DB0D45E00EB7F1F /* TLSVersionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 030FF6EA1DB0D45E00EB7F1F /* TLSVersionTests.swift */; };
 		031833D626A2D1E100277A34 /* tlstool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 031833D526A2D1E100277A34 /* tlstool.swift */; };
 		031B8284210734B3009BB3A5 /* BigIntBitOperationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 031B8283210734B3009BB3A5 /* BigIntBitOperationTests.swift */; };
 		031CD12C1C32B5CC0027F973 /* RSATests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 031CD12B1C32B5CC0027F973 /* RSATests.swift */; };
@@ -1425,7 +1424,6 @@
 				039ADDB91C2F39BC00EDF99B /* EllipticCurveTests.swift in Sources */,
 				032D0F2E1B9F5B79009C13F0 /* mem.c in Sources */,
 				032D0F281B9F5B67009C13F0 /* dsa_sign.c in Sources */,
-				030FF6EB1DB0D45E00EB7F1F /* TLSVersionTests.swift in Sources */,
 				033482FD1C9585AA00625D92 /* GaloisFieldTests.swift in Sources */,
 				032D0F211B9F5B5E009C13F0 /* dh_key.c in Sources */,
 				032D0F0C1B9F5B4C009C13F0 /* bn_exp.c in Sources */,

@@ -407,8 +407,7 @@ extension TLS1_3 {
             try await server.sendHandshakeMessage(TLSNewSessionTicket(ticket: ticket, extensions: extensions), appendToTranscript: false)
         }
         
-        @discardableResult
-        func handle(_ finished: TLSFinished) throws -> TLSFinished {
+        func handle(_ finished: TLSFinished) throws {
             // Verify finished data
             let finishedData = finishedData(forClient: true)
             if finishedData != finished.verifyData {
@@ -421,8 +420,6 @@ extension TLS1_3 {
             // Activate the application traffic secret after Client Finished
             log("Server: Activate client traffic secret")
             recordLayer.changeReadKeys(withTrafficSecret: self.handshakeState.clientTrafficSecret!)
-            
-            return finished
         }
                 
         func selectVersion(for clientHello: TLSClientHello) -> TLSProtocolVersion? {

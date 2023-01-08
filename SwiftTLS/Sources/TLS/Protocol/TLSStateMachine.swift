@@ -189,6 +189,7 @@ public extension TLSClientStateMachine
     {
         return true
     }
+    
     func clientDidReceiveAlert(_ alert : TLSAlertMessage) {}
     func clientDidConnect() throws {}
     

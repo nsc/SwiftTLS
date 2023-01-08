@@ -10,7 +10,7 @@ import Foundation
 
 protocol TLSProtocol
 {
-    func handle(_ finished: TLSFinished) throws -> TLSFinished
+    func handle(_ finished: TLSFinished) throws
     func handle(_ certificate: TLSCertificateMessage)
     func sendCertificate() async throws
     func sendFinished() async throws

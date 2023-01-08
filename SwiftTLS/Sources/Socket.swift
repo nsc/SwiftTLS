@@ -191,15 +191,19 @@ class Socket : SocketProtocol {
     }
     
     internal func _close() {
-        if let socket = socketDescriptor {            
-            #if os(Linux)
-            _ = Glibc.close(socket)
-            #else
-            _ = Darwin.close(socket)
-            #endif
-
-            socketDescriptor = nil
+        Task.detached { [readDispatchSource, writeDispatchSource] in
+            readDispatchSource?.cancel()
+            writeDispatchSource?.cancel()
         }
+//        if let socket = socketDescriptor {            
+//            #if os(Linux)
+//            _ = Glibc.close(socket)
+//            #else
+//            _ = Darwin.close(socket)
+//            #endif
+//
+//            socketDescriptor = nil
+//        }
     }
     
     func _read(_ socket: Int32, _ buffer: UnsafeMutableRawPointer, _ count: Int) async -> Int {

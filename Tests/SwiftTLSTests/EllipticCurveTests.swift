@@ -28,11 +28,11 @@ class EllipticCurveTests: XCTestCase {
     override func setUp() {
         var ctx = BigIntContext()
         ctx.open()
-        _ = BigIntContext.setContext(ctx)
+//        _ = BigIntContext.setContext(ctx)
     }
     
     override func tearDown() {
-        _ = BigIntContext.setContext(nil)
+//        _ = BigIntContext.setContext(nil)
     }
     
     func test_secp256r1_exists()
@@ -187,6 +187,27 @@ class EllipticCurveTests: XCTestCase {
             let verified = ecdsa2.verify(signature: signature, data: data)
             
             XCTAssert(verified)
+        }
+    }
+    
+    func test_staticKeyExchange() {
+        // Generate key pair for server once
+        let serverKeyExchange = ECDHKeyExchange(curve: .named(.secp256r1)!)
+        serverKeyExchange.createKeyPair()
+        let publicServerKey = serverKeyExchange.publicKeyPoint
+        
+        for _ in 1...2 {
+            // For every message create client key pair
+            let clientKeyExchange = ECDHKeyExchange(curve: .named(.secp256r1)!)
+            clientKeyExchange.createKeyPair()
+            let publicClientKey = clientKeyExchange.publicKeyPoint
+            
+            let clientSharedSecret = clientKeyExchange.calculateSharedSecret(with: publicServerKey)!
+            
+            // send public key to server
+            let serverSharedSecret = serverKeyExchange.calculateSharedSecret(with: publicClientKey)!
+            
+            XCTAssert(clientSharedSecret == serverSharedSecret)
         }
     }
     

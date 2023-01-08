@@ -94,7 +94,7 @@ extension TLS1_3 {
                 
                 if let curve = EllipticCurve.named(group) {
                     let keyExchange = ECDHKeyExchange(curve: curve)
-                    let Q = keyExchange.calculatePublicKeyPoint()
+                    let Q = keyExchange.createPublicKeyPoint()
                     
                     let data = [UInt8](Q)
                     keyShareEntries.append(KeyShareEntry(namedGroup: group, keyExchange: data))
@@ -422,8 +422,7 @@ extension TLS1_3 {
             self.recordLayer.changeWriteKeys(withTrafficSecret: self.handshakeState.clientTrafficSecret!)
         }
 
-        @discardableResult
-        func handle(_ finished: TLSFinished) throws -> TLSFinished {
+        func handle(_ finished: TLSFinished) throws {
             // Verify finished data
             let finishedData = self.finishedData(forClient: false)
             if finishedData != finished.verifyData {
@@ -431,8 +430,6 @@ extension TLS1_3 {
             }
             
             client.handshakeMessages.append(finished)
-            
-            return finished
         }
         
         var connectionInfo: String {

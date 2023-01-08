@@ -502,6 +502,9 @@ public struct BigIntStorage {
                 return BigIntStorage(storage: .internallyManaged([Word](array[range])))
             }
         }
+        set {
+           fatalError()
+        }
     }
     
     fileprivate func map(_ transform : (Word) -> Word) -> BigIntStorage {
@@ -524,10 +527,15 @@ extension BigIntStorage : Hashable {
         switch (lhs.storage, rhs.storage) {
         case (.externallyManaged(let a), .externallyManaged(let b)):
             return memcmp(UnsafeRawPointer(a.baseAddress!), UnsafeRawPointer(b.baseAddress!), lhs.count * MemoryLayout<Word>.size) == 0
+        
         case (.internallyManaged(let a), .internallyManaged(let b)):
             return a[0..<lhs.count] == b[0..<rhs.count]
-        default:
-            fatalError()
+        
+        case (.externallyManaged(let a), .internallyManaged(var b)):
+            return memcmp(UnsafeRawPointer(a.baseAddress!), &b, lhs.count * MemoryLayout<Word>.size) == 0
+        
+        case (.internallyManaged(var a), .externallyManaged(let b)):
+            return memcmp(&a, UnsafeRawPointer(b.baseAddress!), lhs.count * MemoryLayout<Word>.size) == 0
         }
     }
 
