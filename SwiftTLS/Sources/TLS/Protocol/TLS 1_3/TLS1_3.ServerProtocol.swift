@@ -25,38 +25,56 @@ extension TLS1_3 {
         }
 
         func acceptConnection(withClientHello clientHello: TLSClientHello?) async throws {
-            let clientHello = try await handle(receive(TLSClientHello.self))
-
-            if server.negotiatedProtocolVersion != .v1_3 {
-                // when we have fallen back to a lesser version,
-                // the protocol handler for that version has already
-                // completed the handshake
-                return
-            }
+            var hasSentHelloRetry = false
             
-            if self.server!.cipherSuite == nil {
-                try await sendHelloRetryRequest(for: clientHello)
-            }
-            else {
-                try await sendServerHello(for: clientHello)
-            }
+            // When the client hello does not have a key share for a key exchange
+            // that we support, the server needs to send a hello retry once with
+            // a supported key share. The client then sends another client hello
+            // which must match. If it doesn't the handshake is aborted.
+            repeat {
+                let clientHello = try await handle(receive(TLSClientHello.self))
                 
-            try await sendEncryptedExtensions()
+                if server.negotiatedProtocolVersion != .v1_3 {
+                    // when we have fallen back to a lesser version,
+                    // the protocol handler for that version has already
+                    // completed the handshake
+                    return
+                }
                 
-            if isUsingPreSharedKey {
-                try await sendFinished()
-            }
-            else {
-                try await sendCertificate()
-                try await sendCertificateVerify()
-                try await sendFinished()
-            }
-
-            try await handle(receive(TLSFinished.self))
-            
-            if self.server!.configuration.supportsSessionResumption && !(self.server!.serverNames?.isEmpty ?? true)  {
-                try await sendNewSessionTicket()
-            }
+                if self.server!.cipherSuite == nil {
+                    if hasSentHelloRetry {
+                        // abort handshake if after the second client hello
+                        // we still couldn't agree on a cipher suite
+                        try await server.abortHandshake()
+                    }
+                    
+                    try await sendHelloRetryRequest(for: clientHello)
+                    hasSentHelloRetry = true
+                    continue
+                }
+                else {
+                    try await sendServerHello(for: clientHello)
+                }
+                
+                try await sendEncryptedExtensions()
+                
+                if isUsingPreSharedKey {
+                    try await sendFinished()
+                }
+                else {
+                    try await sendCertificate()
+                    try await sendCertificateVerify()
+                    try await sendFinished()
+                }
+                
+                try await handle(receive(TLSFinished.self))
+                
+                if self.server!.configuration.supportsSessionResumption && !(self.server!.serverNames?.isEmpty ?? true)  {
+                    try await sendNewSessionTicket()
+                }
+                
+                break
+            } while (true)
         }
 
         func receiveClientHello() async throws -> TLSClientHello {

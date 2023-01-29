@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import System
+import SystemPackage
 
 public enum SocketError : CustomStringConvertible, Error {
     case posixError(errno : Int32)

@@ -245,6 +245,8 @@ public class TLSConnection
     
     func _didReceiveMessage(_ message : TLSMessage) async throws
     {
+        log("did receive \(message)")
+        
         switch (message.type)
         {
         case .changeCipherSpec:

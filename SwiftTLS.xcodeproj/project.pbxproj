@@ -94,6 +94,8 @@
 		034818332076ACBF00264933 /* scan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 034818322076ACBF00264933 /* scan.swift */; };
 		034833781C35498400D58547 /* TLSServerKeyExchangeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 034833771C35498400D58547 /* TLSServerKeyExchangeTests.swift */; };
 		03507156207212F5008DFF57 /* TLSEncryptedExtensionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03507155207212F5008DFF57 /* TLSEncryptedExtensionsTests.swift */; };
+		0350CAC22986E5B8008F3BCF /* SystemPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 0350CAC12986E5B8008F3BCF /* SystemPackage */; };
+		0350CAC42986E5C6008F3BCF /* SystemPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 0350CAC32986E5C6008F3BCF /* SystemPackage */; };
 		035406C01C651C5200C48E5D /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 035406BE1C651C5200C48E5D /* Utilities.swift */; };
 		0355C0DA20825A71007B19A2 /* SHA256Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0355C0D920825A71007B19A2 /* SHA256Tests.swift */; };
 		03591FB81C679FDC005A97EC /* ECDSATests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03591FB71C679FDC005A97EC /* ECDSATests.swift */; };
@@ -508,6 +510,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0350CAC22986E5B8008F3BCF /* SystemPackage in Frameworks */,
 				03E6B7E92088E5BC0070EDFC /* SwiftTLS.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -516,6 +519,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0350CAC42986E5C6008F3BCF /* SystemPackage in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1117,6 +1121,9 @@
 				03A642A32088FD75002663EB /* PBXTargetDependency */,
 			);
 			name = tls;
+			packageProductDependencies = (
+				0350CAC12986E5B8008F3BCF /* SystemPackage */,
+			);
 			productName = "swifttls-test";
 			productReference = 03657D061B07BDEF00293CE3 /* tls */;
 			productType = "com.apple.product-type.tool";
@@ -1135,6 +1142,9 @@
 			dependencies = (
 			);
 			name = SwiftTLS;
+			packageProductDependencies = (
+				0350CAC32986E5C6008F3BCF /* SystemPackage */,
+			);
 			productName = SwiftTLS;
 			productReference = 03FA949F1B9E1A0500F08FB8 /* SwiftTLS.framework */;
 			productType = "com.apple.product-type.framework";
@@ -1191,6 +1201,9 @@
 				Base,
 			);
 			mainGroup = 033AC34D1AC473730004EEC1;
+			packageReferences = (
+				0350CAC02986E5B8008F3BCF /* XCRemoteSwiftPackageReference "swift-system" */,
+			);
 			productRefGroup = 033AC3571AC473730004EEC1 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -1763,6 +1776,30 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		0350CAC02986E5B8008F3BCF /* XCRemoteSwiftPackageReference "swift-system" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-system.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		0350CAC12986E5B8008F3BCF /* SystemPackage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0350CAC02986E5B8008F3BCF /* XCRemoteSwiftPackageReference "swift-system" */;
+			productName = SystemPackage;
+		};
+		0350CAC32986E5C6008F3BCF /* SystemPackage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0350CAC02986E5B8008F3BCF /* XCRemoteSwiftPackageReference "swift-system" */;
+			productName = SystemPackage;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 033AC34E1AC473730004EEC1 /* Project object */;
 }

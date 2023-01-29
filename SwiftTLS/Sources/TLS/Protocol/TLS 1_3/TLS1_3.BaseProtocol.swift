@@ -74,7 +74,14 @@ extension TLS1_3 {
         }
         
         func receive<T>(_ messageType: T.Type) async throws -> T {
-            guard let message = try await connection.receiveNextTLSMessage() as? T else {
+            var m = try await connection.receiveNextTLSMessage()
+            if m.contentType == .changeCipherSpec {
+                // TLS 1.3 ignored change cipher spec messages
+                m = try await connection.receiveNextTLSMessage()
+            }
+            
+            guard let message = m as? T else {
+                log("Error: expected \(messageType), but received \(m)")
                 throw TLSError.alert(.handshakeFailure, alertLevel: .fatal, message: nil)
             }
             

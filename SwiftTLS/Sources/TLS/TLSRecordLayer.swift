@@ -48,6 +48,8 @@ class TLSBaseRecordLayer : TLSRecordLayer
     
     func sendMessage(_ message : TLSMessage) async throws
     {
+        log("sending \(message)")
+
         let contentType = message.contentType
         let messageData = [UInt8](message, context: self.connection)
         
