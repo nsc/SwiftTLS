@@ -43,7 +43,7 @@ public class TLSServer : TLSConnection
         reset()
         
         do {
-            try await serverProtocolHandler.acceptConnection()
+            try await serverProtocolHandler.acceptConnection(withClientHello: nil)
         } catch TLSError.alert(let alert, alertLevel: let alertLevel, let message) {
             if alertLevel == .fatal {
                 try await abortHandshake(with: alert)
@@ -118,7 +118,7 @@ extension TLSServer : ServerSocketProtocol
     ///
     /// - Returns: the socket rerpresenting the client that has connected
     /// - Throws: Mainly TLSError I think :) (Make this more rigorous)
-    public func acceptConnection(withEarlyDataResponseHandler earlyDataResponseHandler: EarlyDataResponseHandler?) async throws -> SocketProtocol
+    public func acceptConnection(withEarlyDataResponseHandler earlyDataResponseHandler: EarlyDataResponseHandler? = nil) async throws -> SocketProtocol
     {
         let clientSocket = try await self.serverSocket.acceptConnection() as! TCPSocket
         let clientTLSSocket = TLSServer(configuration: self.configuration, context: self.context)

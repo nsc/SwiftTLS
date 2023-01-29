@@ -30,7 +30,7 @@ extension TLS1_2 {
         }
         
         @discardableResult
-        func receive<T>(_ messageType: T.Type) async throws -> T {
+        func receive<T>(_ messageType: T.Type, handlingMessage handleMessage: Bool = true) async throws -> T {
             let m = try await connection.receiveNextTLSMessage()
             log("\(connection.isClient ? "Client" : "Server"): did receive message \(m)")
             
@@ -38,7 +38,9 @@ extension TLS1_2 {
                 throw TLSError.alert(.handshakeFailure, alertLevel: .fatal, message: nil)
             }
                   
-            try await handleMessage(m)
+            if handleMessage {
+                try await self.handleMessage(m)
+            }
             
             return message
         }

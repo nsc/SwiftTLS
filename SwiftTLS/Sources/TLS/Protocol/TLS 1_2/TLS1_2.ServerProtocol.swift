@@ -24,10 +24,18 @@ extension TLS1_2 {
             return self.connection.context as! TLSServerContext
         }
 
-        func acceptConnection() async throws {
-            let clientHello = try await receive(TLSClientHello.self)
+        func acceptConnection(withClientHello clientHello: TLSClientHello? = nil) async throws {
+            var hello: TLSClientHello
+            if let clientHello {
+                hello = clientHello
+            }
+            else {
+                hello = try await receive(TLSClientHello.self)
+            }
+
+            try await handle(hello)
             
-            try await sendServerHello(for: clientHello)
+            try await sendServerHello(for: hello)
                 
             if server!.isReusingSession {
                 try await sendChangeCipherSpec()

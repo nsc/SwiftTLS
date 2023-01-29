@@ -10,11 +10,6 @@ import Foundation
 
 protocol TLSProtocol
 {
-    func handle(_ finished: TLSFinished) throws
-    func handle(_ certificate: TLSCertificateMessage)
-    func sendCertificate() async throws
-    func sendFinished() async throws
-    
     var connectionInfo: String { get }
 }
 
@@ -26,7 +21,5 @@ protocol TLSClientProtocol : TLSProtocol
 
 protocol TLSServerProtocol : TLSProtocol
 {
-    func acceptConnection() async throws
-    @discardableResult
-    func handle(_ clientHello: TLSClientHello) async throws -> TLSClientHello
+    func acceptConnection(withClientHello clientHello: TLSClientHello?) async throws
 }

@@ -24,8 +24,15 @@ extension TLS1_3 {
             super.init(connection: server)
         }
 
-        func acceptConnection() async throws {
-            let clientHello = try await handle(receiveClientHello())
+        func acceptConnection(withClientHello clientHello: TLSClientHello?) async throws {
+            let clientHello = try await handle(receive(TLSClientHello.self))
+
+            if server.negotiatedProtocolVersion != .v1_3 {
+                // when we have fallen back to a lesser version,
+                // the protocol handler for that version has already
+                // completed the handshake
+                return
+            }
             
             if self.server!.cipherSuite == nil {
                 try await sendHelloRetryRequest(for: clientHello)
@@ -148,7 +155,7 @@ extension TLS1_3 {
                 // fallback to lesser version
                 server.setupServer(with: self.server.configuration, version: negotiatedProtocolVersion)
                 
-                try await server.serverProtocolHandler.handle(clientHello)
+                try await server.serverProtocolHandler.acceptConnection(withClientHello: clientHello)
                 
                 return clientHello
             }
