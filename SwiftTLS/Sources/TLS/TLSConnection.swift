@@ -49,6 +49,8 @@ public class TLSConnection
 
     public var configuration: TLSConfiguration
     public var context: TLSContext!
+
+    public var isConnected: Bool = false
     
     var negotiatedProtocolVersion: TLSProtocolVersion? {
         didSet {
@@ -80,9 +82,7 @@ public class TLSConnection
     }
     
     var currentMessage: TLSMessage?
-    
-    var stateMachine: TLSConnectionStateMachine?
-    
+        
     var peerCertificates: [X509.Certificate]?
     
     var handshakeMessages: [TLSHandshakeMessage]
@@ -171,6 +171,7 @@ public class TLSConnection
         negotiatedProtocolVersion = configuration.supportedVersions.first!
         handshakeMessages = []
         keyExchange = .rsa
+        isConnected = false
         
         switch negotiatedProtocolVersion! {
         case TLSProtocolVersion.v1_0, TLSProtocolVersion.v1_1, TLSProtocolVersion.v1_2:
@@ -183,13 +184,6 @@ public class TLSConnection
             fatalError("No such version \(negotiatedProtocolVersion!)")
             break
         }
-
-        stateMachine?.reset()
-    }
-    
-    func didConnect() throws
-    {
-        try stateMachine?.didConnect()
     }
 
     func didRenegotiate()
@@ -214,7 +208,7 @@ public class TLSConnection
             break
 
         default:
-            try stateMachine?.didSendMessage(message)
+            break
         }
     }
     
@@ -237,8 +231,6 @@ public class TLSConnection
         if appendToTranscript {
             self.handshakeMessages.append(message)
         }
-        
-        try await stateMachine?.didSendHandshakeMessage(message)
     }
     
     func didReceiveHandshakeMessage(_ message : TLSHandshakeMessage)
@@ -260,16 +252,11 @@ public class TLSConnection
             
         case .handshake:
             let handshakeMessage = message as! TLSHandshakeMessage
-            if stateMachine == nil || stateMachine!.shouldContinueHandshake(with: handshakeMessage) {
-                try await _didReceiveHandshakeMessage(handshakeMessage)
-            }
-            else {
-                throw TLSError.error("Handshake aborted")
-            }
+            try await _didReceiveHandshakeMessage(handshakeMessage)
+            
 
         case .alert:
             let alert = message as! TLSAlertMessage
-            stateMachine?.didReceiveAlert(alert)
             if alert.alertLevel == .fatal {
                 throw TLSError.alert(alert.alert, alertLevel: alert.alertLevel)
             }

@@ -14,28 +14,28 @@ func probeCipherSuitesForHost(host : String, port : UInt16, protocolVersion: TLS
 {
     TLSEnableLogging(false)
     
-    class StateMachine : TLSClientStateMachine
-    {
-        var state: TLSState = .idle
-        
-        var cipherSuite : CipherSuite!
-        
-        func shouldContinueHandshake(with message: TLSHandshakeMessage) -> Bool
-        {
-            if let hello = message as? TLSServerHello {
-                print("\(hello.cipherSuite)")
-                
-                return false
-            }
-            
-            return true
-        }
-        
-        func didReceiveAlert(_ alert: TLSAlertMessage) {
-            //            print("\(cipherSuite) not supported")
-            //            print("NO")
-        }
-    }
+//    class StateMachine : TLSClientStateMachine
+//    {
+//        var state: TLSState = .idle
+//        
+//        var cipherSuite : CipherSuite!
+//        
+//        func shouldContinueHandshake(with message: TLSHandshakeMessage) -> Bool
+//        {
+//            if let hello = message as? TLSServerHello {
+//                print("\(hello.cipherSuite)")
+//                
+//                return false
+//            }
+//            
+//            return true
+//        }
+//        
+//        func didReceiveAlert(_ alert: TLSAlertMessage) {
+//            //            print("\(cipherSuite) not supported")
+//            //            print("NO")
+//        }
+//    }
     
     guard let address = IPv6Address.addressWithString(host, port: port) else { print("Error: No such host \(host)"); return }
     
@@ -49,13 +49,11 @@ func probeCipherSuitesForHost(host : String, port : UInt16, protocolVersion: TLS
     })
     
     for cipherSuite in cipherSuites {
-        let stateMachine = StateMachine()
-        let client = TLSClient(configuration: TLSConfiguration(supportedVersions: [protocolVersion]), stateMachine: stateMachine)
+        let client = TLSClient(configuration: TLSConfiguration(supportedVersions: [protocolVersion]))
         
         client.configuration.cipherSuites = [cipherSuite]
         
         do {
-            stateMachine.cipherSuite = cipherSuite
             try await client.connect(address)
         } catch let error as SocketError {
             switch error {

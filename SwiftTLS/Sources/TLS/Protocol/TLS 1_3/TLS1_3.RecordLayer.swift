@@ -243,7 +243,7 @@ extension TLS1_3 {
             // with our handshake keys until we can actually decrypt it.
             // Since early data is encrypted with early data keys, this will fail until the client sends its Finished message.
             guard let serverProtocolHandler = ((self.connection as? TLSServer)?.serverProtocolHandler as? ServerProtocol),
-                serverProtocolHandler.server.stateMachine!.state != .connected,
+                serverProtocolHandler.server.isConnected,
                 case .rejected = serverProtocolHandler.serverHandshakeState.serverEarlyDataState
             else {
                 return try await super.readMessage()

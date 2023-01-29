@@ -228,10 +228,6 @@ extension TLS1_2 {
                 
                 if client.currentSession != nil {
                     client.handshakeMessages.append(finished)
-                    
-//                    try client.stateMachine?.didReceiveHandshakeMessage(finished)
-                    
-//                    try self.sendChangeCipherSpec()
                 }
                 else if let sessionID = client.pendingSessionID {
                     if let serverName = client.serverNames?.first {
