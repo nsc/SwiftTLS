@@ -67,7 +67,7 @@ class TLSTests: XCTestCase {
 //        opensslServer.terminate()
 //    }
     
-    func createServer(with cipherSuite: CipherSuite, port: Int, supportedVersions: [TLSProtocolVersion]) -> TLSServer
+    func createServer(with cipherSuite: CipherSuite, supportedVersions: [TLSProtocolVersion]) -> TLSServer
     {
         var configuration = TLSConfiguration(supportedVersions: supportedVersions)
         
@@ -92,11 +92,11 @@ class TLSTests: XCTestCase {
         clientConfiguration.earlyData = clientSupportsEarlyData ? .supported(maximumEarlyDataSize: 4096) : .notSupported
         clientConfiguration.maximumRecordSize = maximumRecordSize
         
-        let server = createServer(with: cipherSuite, port: 12345, supportedVersions: supportedVersions)
+        let server = createServer(with: cipherSuite, supportedVersions: supportedVersions)
         server.configuration.earlyData = serverSupportsEarlyData ? .supported(maximumEarlyDataSize: 4096) : .notSupported
         server.configuration.maximumRecordSize = maximumRecordSize
         
-        let address = IPv4Address.localAddress.with(port: 12345)
+        let address = IPv4Address.localAddress
         
         var clientContext: TLSClientContext? = nil
 
@@ -129,9 +129,12 @@ class TLSTests: XCTestCase {
                     await server.close()
                 } catch(let error) {
                     XCTFail("\(error)")
+                    return
                 }
             }
             sleep(1)
+            
+            let port = server.address!.port
             
             var numberOfSuccesses = 0
             for _ in 0..<3 {
@@ -140,7 +143,8 @@ class TLSTests: XCTestCase {
                     clientContext = client.context as? TLSClientContext
                 }
                 
-                let _ = try await client.connect(hostname: "127.0.0.1", port: address.port, withEarlyData: Data([1,2,3]))
+                print("Client connecting to port \(port)")
+                let _ = try await client.connect(hostname: "127.0.0.1", port: port, withEarlyData: Data([1,2,3]))
 
                 let response = try await client.read(count: 3)
                 if response == [3,4,5] as [UInt8] {

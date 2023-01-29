@@ -25,7 +25,32 @@ extension TLS1_2 {
         }
 
         func acceptConnection() async throws {
-            fatalError("Implement TLS 1.2 acceptConnection")
+            let clientHello = try await receive(TLSClientHello.self)
+            
+            try await sendServerHello(for: clientHello)
+                
+            if server!.isReusingSession {
+                try await sendChangeCipherSpec()
+                try await sendFinished()
+
+                try await receive(TLSChangeCipherSpec.self)
+                try await receive(TLSFinished.self)
+            }
+            else {
+                try await sendCertificate()
+
+                if server!.cipherSuite!.needsServerKeyExchange() {
+                    try await sendServerKeyExchange()
+                }
+
+                try await sendServerHelloDone()
+                try await receive(TLSClientKeyExchange.self)
+                try await receive(TLSChangeCipherSpec.self)
+                try await receive(TLSFinished.self)
+                
+                try await sendChangeCipherSpec()
+                try await sendFinished()
+            }
         }
         
         func sendServerHello(for clientHello: TLSClientHello) async throws {
@@ -242,7 +267,13 @@ extension TLS1_2 {
                 {
                 case .clientKeyExchange:
                     try self.handle(handshake as! TLSClientKeyExchange)
-                    
+
+                case .clientHello:
+                    try await self.handle(handshake as! TLSClientHello)
+
+                case .finished:
+                    try self.handle(handshake as! TLSFinished)
+
                 default:
                     fatalError("handleMessage called with a handshake message that should be handled in a more specific method")
                 }

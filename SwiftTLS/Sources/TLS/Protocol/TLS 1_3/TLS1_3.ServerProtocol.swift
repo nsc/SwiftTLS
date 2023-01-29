@@ -115,7 +115,7 @@ extension TLS1_3 {
             self.recordLayer.changeKeys(withClientTrafficSecret: self.handshakeState.clientHandshakeTrafficSecret!,
                                         serverTrafficSecret: self.handshakeState.serverHandshakeTrafficSecret!)
 
-            try await server.stateMachine?.didSendHandshakeMessage(serverHello)
+//            try await server.stateMachine?.didSendHandshakeMessage(serverHello)
         }
         
         func sendEncryptedExtensions() async throws {

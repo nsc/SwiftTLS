@@ -37,7 +37,7 @@ extension TLS1_2 {
             guard let message = m as? T else {
                 throw TLSError.alert(.handshakeFailure, alertLevel: .fatal, message: nil)
             }
-                        
+                  
             try await handleMessage(m)
             
             return message

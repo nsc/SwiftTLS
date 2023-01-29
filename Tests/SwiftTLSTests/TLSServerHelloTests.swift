@@ -13,6 +13,7 @@ extension TLSConnection {
         class EmptyDataProvider : SocketProtocol, TLSDataProvider
         {
             var isReadyToRead: Bool { return true }
+            var isListening: Bool { return false }
             func read(count: Int) throws -> [UInt8] { return [] }
             func write(_ data: [UInt8]) throws {}
             func close() {}

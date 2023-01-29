@@ -40,6 +40,10 @@ public class TLSConnection
         (socket as? Socket)?.peerName
     }
 
+    public var address: IPAddress? {
+        (socket as? Socket)?.socketName
+    }
+
     var socket: SocketProtocol
     var protocolHandler: TLSProtocol!
 
@@ -352,10 +356,16 @@ extension TLSConnection : SocketProtocol {
     public var isReadyToRead: Bool {
         socket.isReadyToRead
     }
-    
+
+    public var isListening: Bool {
+        socket.isListening
+    }
+
     public func close() async {
         do {
-            try await sendAlert(.closeNotify, alertLevel: .warning)
+            if !socket.isListening {
+                try await sendAlert(.closeNotify, alertLevel: .warning)
+            }
         }
         catch
         {

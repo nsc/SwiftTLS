@@ -9,7 +9,7 @@
 import Foundation
 import SwiftTLS
 
-func connectTo(host : String, port : UInt16 = 443, supportedVersions: [TLSProtocolVersion] = [.v1_3_draft28, .v1_3_draft26, .v1_2], cipherSuite : CipherSuite? = nil) async throws
+func connectTo(host : String, port : UInt16 = 443, supportedVersions: [TLSProtocolVersion] = [.v1_3, .v1_2], cipherSuite : CipherSuite? = nil) async throws
 {
     var configuration: TLSConfiguration
     
