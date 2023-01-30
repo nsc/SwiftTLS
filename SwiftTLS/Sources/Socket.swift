@@ -6,7 +6,12 @@
 //
 
 import Foundation
+
+#if os(Linux)
 import SystemPackage
+#else
+import System
+#endif
 
 public enum SocketError : CustomStringConvertible, Error {
     case posixError(errno : Int32)
@@ -74,7 +79,7 @@ class Socket : SocketProtocol {
             return nil
         }
         
-        return IPv4Address.peerName(with: sock)
+        return IPv4Address.peerName(with: sock.rawValue)
     }
 
     var socketName: IPAddress? {
@@ -82,12 +87,14 @@ class Socket : SocketProtocol {
             return nil
         }
         
-        return IPv4Address.socketName(with: sock)
+        return IPv4Address.socketName(with: sock.rawValue)
     }
 
-    var socketDescriptor : Int32?
-    var readDispatchSource: DispatchSourceRead!
-    var writeDispatchSource: DispatchSourceWrite!
+    var socketDescriptor : FileDescriptor?
+    var readDispatchSource: DispatchSourceRead?
+    var writeDispatchSource: DispatchSourceWrite?
+    var isReadDispatchSourceSuspended = false
+    var isWriteDispatchSourceSuspended = false
 
     /// Is this socket being listened on
     var isListening = false
@@ -96,9 +103,7 @@ class Socket : SocketProtocol {
     }
     
     required init(socketDescriptor : Int32) {
-        self.socketDescriptor = socketDescriptor
-        setupSuspendedReadDispatchSource()
-        setupSuspendedWriteDispatchSource()
+        self.socketDescriptor = FileDescriptor(rawValue: socketDescriptor)
     }
     
     func createSocket(_ protocolFamily : sa_family_t) -> Int32? {
@@ -110,7 +115,7 @@ class Socket : SocketProtocol {
     }
 
     var isReadyToRead: Bool {
-        var p = pollfd(fd: socketDescriptor!, events: Int16(POLLIN), revents: 0)
+        var p = pollfd(fd: socketDescriptor!.rawValue, events: Int16(POLLIN), revents: 0)
         let result = poll(&p, 1, 0)
         switch result {
         case 1:
@@ -134,7 +139,7 @@ class Socket : SocketProtocol {
                     bytesWrittenThisTurn = currentSlice.withUnsafeBufferPointer {
                         (buffer : UnsafeBufferPointer<UInt8>) -> Int in
                         let bufferPointer = buffer.baseAddress
-                        return addr.withSocketAddress { sendto(socket, bufferPointer, currentSlice.count, Int32(0), $0, addr.length) }
+                        return addr.withSocketAddress { sendto(socket.rawValue, bufferPointer, currentSlice.count, Int32(0), $0, addr.length) }
                     }
                 }
                 else {
@@ -203,90 +208,81 @@ class Socket : SocketProtocol {
     }
     
     internal func _close() {
-        if socketDescriptor != nil {
-            Task.detached { [readDispatchSource, writeDispatchSource] in
-                readDispatchSource?.cancel()
-                writeDispatchSource?.cancel()
+        if let fd = self.socketDescriptor?.rawValue {
+            shutdown(fd, Int32(SHUT_RDWR))
+            
+            do {
+                try self.socketDescriptor?.close()
+            }
+            catch {
+                
             }
         }
     }
     
-    func _read(_ socket: Int32, _ buffer: UnsafeMutableRawPointer, _ count: Int) async throws -> Int {
+    func _read(_ socket: FileDescriptor, _ buffer: UnsafeMutableRawPointer, _ count: Int) async throws -> Int {
         try await withCheckedThrowingContinuation { continuation in
-            readDispatchSource?.setEventHandler {
-                self.readDispatchSource?.suspend()
-
-    #if os(Linux)
-                let result = Glibc.read(socket, buffer, count)
-    #else
-                let result = Darwin.read(socket, buffer, count)
-    #endif
-
-                continuation.resume(returning: result)
-            }
-            
-            readDispatchSource?.setCancelHandler {
-                if let socket = self.socketDescriptor {
-#if os(Linux)
-                    _ = Glibc.close(socket)
-#else
-                    _ = Darwin.close(socket)
-#endif
-                    self.socketDescriptor = nil
+            readDispatchSource = makeSuspendedReadDispatchSource(withEventHandler: { [unowned self] in
+                self.readDispatchSource?.setEventHandler(handler: {})
+                self.readDispatchSource = nil
+                
+                do {
+                    let result = try socket.read(into: UnsafeMutableRawBufferPointer(start: buffer, count: count))
+                    
+                    continuation.resume(returning: result)
                 }
-                continuation.resume(throwing: SocketError.closed)
-            }
-
+                catch {
+                    continuation.resume(throwing: error)
+                }
+            })
+            
             readDispatchSource?.resume()
         }
     }
     
-    func _write(_ socket: Int32, _ buffer: UnsafeRawPointer, _ count: Int) async throws -> Int {
+    func _write(_ socket: FileDescriptor, _ buffer: UnsafeRawPointer, _ count: Int) async throws -> Int {
         try await withCheckedThrowingContinuation { continuation in
-            writeDispatchSource?.setEventHandler {
-                self.writeDispatchSource?.suspend()
-
-#if os(Linux)
-                let result = Glibc.write(socket, buffer, count)
-#else
-                let result = Darwin.write(socket, buffer, count)
-#endif
-                continuation.resume(returning: result)
-            }
-            
-            writeDispatchSource?.setCancelHandler {
-                if let socket = self.socketDescriptor {
-#if os(Linux)
-                    _ = Glibc.close(socket)
-#else
-                    _ = Darwin.close(socket)
-#endif
-                    self.socketDescriptor = nil
+            writeDispatchSource = makeSuspendedWriteDispatchSource(withEventHandler: { [unowned self] in
+                self.writeDispatchSource?.setEventHandler(handler: {})
+                self.writeDispatchSource = nil
+                
+                do {
+                    let result = try socket.write(UnsafeRawBufferPointer(start: buffer, count: count))
+                    
+                    continuation.resume(returning: result)
                 }
-                continuation.resume(throwing: SocketError.closed)
-            }
+                catch {
+                    continuation.resume(throwing: error)
+                }
+            })
             writeDispatchSource?.resume()
         }
     }
     
-    func setupSuspendedReadDispatchSource() {
+    func makeSuspendedReadDispatchSource(withEventHandler eventHandler: @escaping () -> ()) -> DispatchSourceRead {
         guard let fd = socketDescriptor else {
             fatalError("Error: Can't setup dispatch source without a file descriptor")
         }
         
-        readDispatchSource = DispatchSource.makeReadSource(fileDescriptor: fd)
-        readDispatchSource.activate()
+        let readDispatchSource = DispatchSource.makeReadSource(fileDescriptor: fd.rawValue)
         readDispatchSource.suspend()
+        readDispatchSource.setEventHandler(handler: eventHandler)
+        readDispatchSource.activate()
+
+        return readDispatchSource
     }
     
-    func setupSuspendedWriteDispatchSource() {
+    func makeSuspendedWriteDispatchSource(withEventHandler eventHandler: @escaping () -> ()) -> DispatchSourceWrite {
         guard let fd = socketDescriptor else {
             fatalError("Error: Can't setup dispatch source without a file descriptor")
         }
 
-        writeDispatchSource = DispatchSource.makeWriteSource(fileDescriptor: fd)
-        writeDispatchSource.activate()
+        let writeDispatchSource = DispatchSource.makeWriteSource(fileDescriptor: fd.rawValue)
         writeDispatchSource.suspend()
+        writeDispatchSource.setEventHandler(handler: eventHandler)
+        writeDispatchSource.activate()
+        
+        return writeDispatchSource
     }
 }
 
@@ -298,25 +294,23 @@ extension Socket : ClientSocketProtocol {
     func _connect(_ address : IPAddress) async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) -> Void in
             if socketDescriptor == nil {
-                socketDescriptor = createSocket(address.socketAddress.family)
-                guard socketDescriptor != nil else {
+                let descriptor = createSocket(address.socketAddress.family)
+                guard descriptor != nil else {
                     continuation.resume(throwing: SocketError.posixError(errno: errno))
                     return
                 }
+                socketDescriptor = FileDescriptor(rawValue: CInt(descriptor!))
             }
             
             let socket = socketDescriptor!
-            
-            setupSuspendedReadDispatchSource()
-            setupSuspendedWriteDispatchSource()
-            
+                        
             var sockaddr = address.socketAddress
             let status = sockaddr.withSocketAddress { sockaddrPointer -> Int in
                 isBlocking = false
 #if os(Linux)
-                return Int(Glibc.connect(socket, sockaddrPointer, sockaddr.length))
+                return Int(Glibc.connect(socket.rawValue, sockaddrPointer, sockaddr.length))
 #else
-                return Int(Darwin.connect(socket, sockaddrPointer, sockaddr.length))
+                return Int(Darwin.connect(socket.rawValue, sockaddrPointer, sockaddr.length))
 #endif
             }
 
@@ -325,33 +319,34 @@ extension Socket : ClientSocketProtocol {
                 return
             }
             
-            writeDispatchSource.setEventHandler {
+            writeDispatchSource = makeSuspendedWriteDispatchSource(withEventHandler: { [unowned self] in
+                self.writeDispatchSource?.setEventHandler(handler: {})
+                self.writeDispatchSource = nil
+
                 self.isBlocking = true
-                self.writeDispatchSource.suspend()
                 
                 var error: Int32 = 0
                 var size: socklen_t = socklen_t(MemoryLayout<Int32>.size)
-                getsockopt(socket, SOL_SOCKET, SO_ERROR, &error, &size)
+                getsockopt(socket.rawValue, SOL_SOCKET, SO_ERROR, &error, &size)
                 guard error == 0 else {
                     continuation.resume(throwing: SocketError.posixError(errno: error))
                     return
                 }
                 
                 continuation.resume()
-            }
-
-            writeDispatchSource.resume()
+            })
+            writeDispatchSource?.resume()
         }
     }
     
     var isBlocking: Bool {
         get {
-            guard let fd = socketDescriptor else { return true }
+            guard let fd = socketDescriptor?.rawValue else { return true }
             
             return fcntl(fd, F_GETFL) & O_NONBLOCK != 0
         }
         set {
-            guard let fd = socketDescriptor else { return }
+            guard let fd = socketDescriptor?.rawValue else { return }
             
             var flags = fcntl(fd, F_GETFL)
             flags = newValue ? (flags & ~O_NONBLOCK) : (flags | O_NONBLOCK)
@@ -365,11 +360,10 @@ extension Socket : ServerSocketProtocol {
         if self.socketDescriptor != nil {
             self.close()
         }
-        self.socketDescriptor = createSocket(address.socketAddress.family)
+        self.socketDescriptor = createSocket(address.socketAddress.family).map { FileDescriptor(rawValue: $0)}
         isBlocking = false
-        setupSuspendedReadDispatchSource()
         
-        guard let socket = self.socketDescriptor else {
+        guard let socket = self.socketDescriptor?.rawValue else {
             throw SocketError.closed
         }
         
@@ -387,9 +381,9 @@ extension Socket : ServerSocketProtocol {
         }
         
         #if os(Linux)
-        result = Int(Glibc.listen(socket, 5))
+        result = Int(Glibc.listen(socket, 100))
         #else
-        result = Int(Darwin.listen(socket, 5))
+        result = Int(Darwin.listen(socket, 100))
         #endif
         if result < 0 {
             throw SocketError.posixError(errno: errno)
@@ -398,7 +392,7 @@ extension Socket : ServerSocketProtocol {
     }
     
     func acceptConnection() async throws -> SocketProtocol {
-        guard let socket = self.socketDescriptor else {
+        guard let socket = self.socketDescriptor?.rawValue else {
             throw SocketError.closed
         }
         
@@ -414,9 +408,9 @@ extension Socket : ServerSocketProtocol {
                 return
             }
             
-            readDispatchSource.setEventHandler {
-                self.readDispatchSource.suspend()
-                
+            readDispatchSource = makeSuspendedReadDispatchSource(withEventHandler: { [unowned self] in
+                self.readDispatchSource?.setEventHandler(handler: {})
+                self.readDispatchSource = nil
 #if os(Linux)
                 let clientSocket = Glibc.accept(socket, nil, nil)
 #else
@@ -434,8 +428,8 @@ extension Socket : ServerSocketProtocol {
                 }
                 
                 continuation.resume(returning: type(of: self).init(socketDescriptor: clientSocket))
-            }
-            readDispatchSource.resume()
+            })
+            readDispatchSource?.resume()
         }
     }
 }
