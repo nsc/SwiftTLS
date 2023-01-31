@@ -248,7 +248,7 @@ class Socket : SocketProtocol {
                 
                 do {
                     let result = try socket.write(UnsafeRawBufferPointer(start: buffer, count: count))
-                    
+
                     continuation.resume(returning: result)
                 }
                 catch {
@@ -451,11 +451,12 @@ class TCPSocket : Socket {
         var yes : Int32 = 1
         #if os(Linux)
         
-        var sigpipe = sigset_t()
-        sigemptyset(&sigpipe)
-        sigaddset(&sigpipe, SIGPIPE)
-        
-        pthread_sigmask(SIG_BLOCK, &sigpipe, nil)
+//        var sigpipe = sigset_t()
+//        sigemptyset(&sigpipe)
+//        sigaddset(&sigpipe, SIGPIPE)
+//
+//        pthread_sigmask(SIG_BLOCK, &sigpipe, nil)
+        signal(SIGPIPE, SIG_IGN)
         
         #else
         setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &yes, socklen_t(MemoryLayout<Int32>.size))
