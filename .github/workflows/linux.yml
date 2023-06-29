@@ -4,8 +4,8 @@ on: [push]
 jobs:
   linux:
     name: Linux
-    runs-on: ubuntu-18.04
-    container: swift:5.1
+    runs-on: ubuntu-latest
+    container: swift:5.7
     steps:
       - uses: actions/checkout@v1
       - name: Run tests
