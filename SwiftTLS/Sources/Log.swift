@@ -21,51 +21,24 @@ class LoggingDateFormatter : DateFormatter
     }
 }
 
-private var threadNumber = 0
-private var threadNumberDict: [Thread:Int] = [:]
-private let threadNumberQueue = DispatchQueue(label: "threadNumber")
-
-extension Thread {
-    var number: Int {
-        var number = 0
-        let thread = self
-        threadNumberQueue.sync {
-            if let n = threadNumberDict[thread] {
-                number = n
-                return
-            }
-            
-            threadNumber += 1
-            
-            threadNumberDict[thread] = threadNumber
-            
-            number = threadNumber
-        }
-        
-        return number
-    }
-    
-    func removeThreadNumber() {
-        let thread = self
-        threadNumberQueue.async {
-            threadNumberDict.removeValue(forKey: thread)
-        }
-    }
-}
-
-class Log
+public class Log
 {
+    @TaskLocal static var connectionNumber: Int?
+    public static func withConnectionNumber<R>(_ n: Int, _ handler: () async throws -> R) async rethrows -> R {
+        try await $connectionNumber.withValue(n) {
+            try await handler()
+        }
+    }
+
     var enabled: Bool = true
-    private let formatter = LoggingDateFormatter()
+    fileprivate let formatter = LoggingDateFormatter()
     private let logFile: FileHandle = FileHandle(fileDescriptor: 1)
     private let logQueue = DispatchQueue(label: "org.swifttls.logging")
     
-    func log(_ message: @autoclosure () -> String, file: StaticString, line: UInt, time: Date) {
+    func log(_ message: @autoclosure () -> String, file: StaticString, line: UInt, prefixString: String = "") {
         if enabled {
-            let threadNumber = Thread.current.number
-
             logQueue.sync {
-                let line = "\(formatter.string(from: time)) (~\(threadNumber)): \(message())\n"
+                let line = "\(prefixString)\(message())\n"
                 let utf8 = Data(line.utf8)
 
                 logFile.write(utf8)
@@ -76,7 +49,12 @@ class Log
 
 private let logger = Log()
 public func log(_ message: @autoclosure () -> String, file: StaticString = #file, line: UInt = #line) {
-    logger.log(message(), file: file, line: line, time: Date())
+    var prefixString = "\(logger.formatter.string(from: Date())) "
+    if let n = Log.connectionNumber {
+        prefixString += "~\(n): "
+    }
+
+    logger.log(message(), file: file, line: line, prefixString: prefixString)
 }
 
 public func TLSEnableLogging(_ v: Bool) {

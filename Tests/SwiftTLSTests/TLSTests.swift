@@ -122,10 +122,8 @@ class TLSTests: XCTestCase {
                         }
 
                         try await serverSideClientSocket?.write([4,5,6])
-
-                        await serverSideClientSocket?.close()
                     }
-                    
+
                     await server.close()
                 } catch(let error) {
                     XCTFail("\(error)")

@@ -96,19 +96,21 @@ extension TLSClient : ClientSocketProtocol
     
     public func connect(hostname: String, port: UInt16 = 443) async throws
     {
-        if let address = IPv4Address.addressWithString(hostname, port: port) {
-            var hostNameAndPort = hostname
-            if port != 443 {
-                hostNameAndPort = "\(hostname):\(port)"
+        await ConnectionNumber.increase()
+        try await Log.withConnectionNumber(ConnectionNumber.value) {
+            if let address = IPv4Address.addressWithString(hostname, port: port) {
+                var hostNameAndPort = hostname
+                if port != 443 {
+                    hostNameAndPort = "\(hostname):\(port)"
+                }
+                self.serverNames = [hostNameAndPort]
+                
+                try await connect(address)
             }
-            self.serverNames = [hostNameAndPort]
-            
-            try await connect(address)
+            else {
+                throw TLSError.error("Error: Could not resolve host \(hostname)")
+            }
         }
-        else {
-            throw TLSError.error("Error: Could not resolve host \(hostname)")
-        }
-        
     }
     
     public enum EarlyDataState {

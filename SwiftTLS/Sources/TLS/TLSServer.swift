@@ -116,17 +116,20 @@ extension TLSServer : ServerSocketProtocol
     {
         let clientSocket = try await self.serverSocket.acceptConnection() as! TCPSocket
         let clientTLSSocket = TLSServer(configuration: self.configuration, context: self.context)
-        
-        try await BigInt.withContext { _ in
-            clientTLSSocket.socket = clientSocket
-            clientTLSSocket.signer = self.signer
-            clientTLSSocket.configuration = self.configuration
-            clientTLSSocket.recordLayer.dataProvider = clientSocket
-            clientTLSSocket.context = self.context
-            
-            clientTLSSocket.earlyDataResponseHandler = earlyDataResponseHandler
-            
-            try await clientTLSSocket._acceptConnection()
+
+        await ConnectionNumber.increase()
+        try await Log.withConnectionNumber(ConnectionNumber.value) {
+            try await BigInt.withContext { _ in
+                clientTLSSocket.socket = clientSocket
+                clientTLSSocket.signer = self.signer
+                clientTLSSocket.configuration = self.configuration
+                clientTLSSocket.recordLayer.dataProvider = clientSocket
+                clientTLSSocket.context = self.context
+
+                clientTLSSocket.earlyDataResponseHandler = earlyDataResponseHandler
+
+                try await clientTLSSocket._acceptConnection()
+            }
         }
         
         return clientTLSSocket
@@ -137,37 +140,59 @@ extension TLSServer : ServerSocketProtocol
         case error(Error)
         case client(TLSConnection)
     }
-    
+
     public func acceptConnection(withEarlyDataResponseHandler earlyDataResponseHandler: EarlyDataResponseHandler?, completionHandler: @escaping (AcceptConnectionResult) async -> ()) async throws
     {
         let clientSocket = try await serverSocket.acceptConnection() as! TCPSocket
                 
         Task {
-            try await BigInt.withContext { _ in
-                if let address = clientSocket.peerName {
-                    log("Connection from \(address)")
+            await ConnectionNumber.increase()
+            try await Log.withConnectionNumber(ConnectionNumber.value) {
+                try await BigInt.withContext { _ in
+                    if let address = clientSocket.peerName {
+                        log("Connection from \(address)")
+                    }
+
+                    let clientTLSSocket = TLSServer(configuration: self.configuration, context: self.context)
+                    clientTLSSocket.socket = clientSocket
+                    clientTLSSocket.signer = self.signer
+                    clientTLSSocket.configuration = self.configuration
+                    clientTLSSocket.recordLayer.dataProvider = clientSocket
+                    clientTLSSocket.context = self.context
+
+                    clientTLSSocket.earlyDataResponseHandler = earlyDataResponseHandler
+
+                    do {
+                        try await clientTLSSocket._acceptConnection()
+                    } catch let error {
+                        await completionHandler(.error(error))
+                    }
+
+                    await completionHandler(.client(clientTLSSocket))
                 }
-                
-                let clientTLSSocket = TLSServer(configuration: self.configuration, context: self.context)
-                clientTLSSocket.socket = clientSocket
-                clientTLSSocket.signer = self.signer
-                clientTLSSocket.configuration = self.configuration
-                clientTLSSocket.recordLayer.dataProvider = clientSocket
-                clientTLSSocket.context = self.context
-                
-                clientTLSSocket.earlyDataResponseHandler = earlyDataResponseHandler
-                
-                do {
-                    try await clientTLSSocket._acceptConnection()
-                } catch let error {
-                    await completionHandler(.error(error))
-                }
-                
-                await completionHandler(.client(clientTLSSocket))
-                
-                Thread.current.removeThreadNumber()
             }
         }
     }
 
+}
+
+actor ConnectionNumber {
+    func increase() {
+        _value += 1
+    }
+
+    var value: Int { _value }
+    private var _value = 0
+
+    static let shared = ConnectionNumber()
+
+    static func increase() async {
+        await shared.increase()
+    }
+
+    static var value: Int {
+        get async {
+            await shared.value
+        }
+    }
 }

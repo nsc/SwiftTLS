@@ -41,10 +41,11 @@ class SocketTests: XCTestCase {
             let client = TCPSocket()
             do {
                 try await client.connect(address)
-                                
-                await self.waitForExpectations(timeout: 50.0, handler: { (error : Error?) -> Void in
+
+//                await self.fulfillment(of: [expectation], timeout: 50)
+                await waitForExpectations(timeout: 50.0, handler: { (error : Error?) -> Void in
                 })
-            }
+          }
             catch let error as SocketError {
                 print("\(error)")
                 XCTFail()
