@@ -10,7 +10,10 @@ import XCTest
 
 extension XCTestCase {
     func path(forResource name: String) -> String {
-        if let value = ProcessInfo.processInfo.environment["XPC_SERVICE_NAME"],
+        if let value = ProcessInfo.processInfo.environment["XCTestBundlePath"] {
+            return Bundle(for: type(of: self)).path(forResource: name, ofType: nil)!
+        }
+        else if let value = ProcessInfo.processInfo.environment["XPC_SERVICE_NAME"],
         // Xcode pre 11.4
         value.contains("com.apple.dt") ||
         // Xcode >= 11.4
@@ -18,6 +21,7 @@ extension XCTestCase {
             
             return Bundle(for: type(of: self)).path(forResource: name, ofType: nil)!
         }
+
         let resourcesPath = "Tests/SwiftTLSTests/Resources/"
         return resourcesPath.appending(name)
     }
