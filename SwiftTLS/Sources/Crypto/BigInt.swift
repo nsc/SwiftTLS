@@ -655,7 +655,7 @@ public struct BigInt
     {
         let targetCount = (number.count * MemoryLayout<Source.Element>.size + MemoryLayout<Word>.size - 1) / MemoryLayout<Word>.size
         var target = BigIntStorage(capacity: targetCount)
-        try! BigInt.convert(from: number, to: &target)
+//        try! BigInt.convert(from: number, to: &target)
         
         self.init(storage: target, sign: negative)
     }
