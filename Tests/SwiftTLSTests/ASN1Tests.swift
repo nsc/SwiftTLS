@@ -247,9 +247,9 @@ class ASN1Tests: XCTestCase {
         let writer = ASN1Writer()
         
         let testVectors : [[Int]] = [
-            [1,3,14,3,2,26],
-            [1,2,840,113549,1,1,1],
-            [1,2,840,113549,1,1,11]
+            [1, 3, 14, 3, 2, 26],
+            [1, 2, 840, 113549, 1, 1, 1],
+            [1, 2, 840, 113549, 1, 1, 11]
         ]
         
         for values in testVectors

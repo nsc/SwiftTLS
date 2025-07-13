@@ -18,6 +18,10 @@ extension XCTestCase {
             
             return Bundle(for: type(of: self)).path(forResource: name, ofType: nil)!
         }
+        else if let bundlePath = ProcessInfo.processInfo.environment["XCTestBundlePath"] {
+            return bundlePath.appending("/Contents/Resources/\(name)")
+        }
+            
         let resourcesPath = "Tests/SwiftTLSTests/Resources/"
         return resourcesPath.appending(name)
     }

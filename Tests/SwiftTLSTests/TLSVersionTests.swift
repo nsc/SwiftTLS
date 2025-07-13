@@ -111,7 +111,6 @@ class TLSVersionTests: XCTestCase {
         
         
         let client = Client(configuration: configuration)
-        client.stateMachine = nil
         
         do {
             try await client.sendClientHello()

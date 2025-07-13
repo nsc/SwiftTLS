@@ -103,7 +103,7 @@ class TLSTests: XCTestCase {
         let numberOfTries = 3
 
         do {
-            Task {
+            Task.detached {
                 var serverSideClientSocket: SocketProtocol? = nil
                 do {
                     try server.listen(on: address)
@@ -122,8 +122,6 @@ class TLSTests: XCTestCase {
                         }
 
                         try await serverSideClientSocket?.write([4,5,6])
-
-                        await serverSideClientSocket?.close()
                     }
                     
                     await server.close()
@@ -132,7 +130,7 @@ class TLSTests: XCTestCase {
                     return
                 }
             }
-            sleep(1)
+            sleep(5)
             
             let port = server.address!.port
             
