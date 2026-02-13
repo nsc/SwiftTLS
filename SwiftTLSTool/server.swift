@@ -117,7 +117,7 @@ func server(address: IPAddress = IPv6Address.anyAddress, certificatePath: String
     }
 }
 
-var clientWantsMeToCloseTheConnection = false
+nonisolated(unsafe) var clientWantsMeToCloseTheConnection = false
 func responder(connection: TLSConnection, data: Data) async -> Data? {
     let utf8Data = String(data: data, encoding: .utf8)
     let clientRequest: String

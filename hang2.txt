@@ -1,0 +1,63 @@
+(lldb) bt all
+* thread #1, name = 'tls', stop reason = signal SIGSTOP
+  * frame #0: 0x00007f8d1387f80a libc.so.6`__sigsuspend + 74
+    frame #1: 0x00007f8d14162008 libdispatch.so`_dispatch_sigsuspend + 24
+    frame #2: 0x00007f8d1415f296 libdispatch.so`_dispatch_sig_thread + 6
+    frame #3: 0x00007f8d138ce691 libc.so.6`___lldb_unnamed_symbol3467 + 161
+    frame #4: 0x00007f8d13866d9c libc.so.6`___lldb_unnamed_symbol3139 + 140
+    frame #5: 0x00007f8d13866e40 libc.so.6`__libc_start_main + 128
+    frame #6: 0x000055d67fac34e5 tls`_start + 37
+  thread #2, name = 'tls', stop reason = signal SIGSTOP
+    frame #0: 0x00007f8d13962e9e libc.so.6`epoll_wait + 94
+    frame #1: 0x00007f8d14169056 libdispatch.so`_dispatch_event_loop_drain + 54
+    frame #2: 0x00007f8d1415e072 libdispatch.so`_dispatch_mgr_invoke + 146
+    frame #3: 0x00007f8d1415dfbb libdispatch.so`_dispatch_mgr_thread + 123
+    frame #4: 0x00007f8d14161a92 libdispatch.so`_dispatch_worker_thread + 514
+    frame #5: 0x00007f8d138d1ac3 libc.so.6`___lldb_unnamed_symbol3481 + 755
+    frame #6: 0x00007f8d139638c0 libc.so.6`___lldb_unnamed_symbol3866 + 11
+  thread #3, name = 'tls', stop reason = signal SIGSTOP
+    frame #0: 0x00007f8d13e7af54 libswiftCore.so`swift_beginAccess + 84
+    frame #1: 0x000055d67fb1bc24 tls`BinaryInputStream.bytesRead.getter at <compiler-generated>:0 [opt]
+    frame #2: 0x000055d67fb34bb5 tls`specialized TLSKeyShareExtension.init(inputStream:messageType:) [inlined] protocol witness for SwiftTLS.InputStreamType.bytesRead.getter : Swift.Int in conformance SwiftTLS.BinaryInputStream : SwiftTLS.InputStreamType in SwiftTLS at <compiler-generated>:0 [opt]
+    frame #3: 0x000055d67fb34bab tls`specialized TLSKeyShareExtension.init(inputStream=SwiftTLS.InputStreamType @ 0x00007f8ae5e8da60, messageType=<unavailable>) at TLSKeyShareExtension.swift:89:45 [opt]
+    frame #4: 0x000055d67fb36993 tls`specialized TLSReadExtensions(from:length:messageType:context:) [inlined] generic specialization <SwiftTLS.BinaryInputStream> of function signature specialization <Arg[0] = Existential To Protocol Constrained Generic> of SwiftTLS.TLSKeyShareExtension.init(inputStream: SwiftTLS.InputStreamType, messageType: SwiftTLS.TLSMessageExtensionType) -> Swift.Optional<SwiftTLS.TLSKeyShareExtension> at <compiler-generated>:0 [opt]
+    frame #5: 0x000055d67fb36987 tls`specialized TLSReadExtensions(from:length:messageType:context:) [inlined] SwiftTLS.TLSKeyShareExtension.init(inputStream: SwiftTLS.InputStreamType, messageType: SwiftTLS.TLSMessageExtensionType) -> Swift.Optional<SwiftTLS.TLSKeyShareExtension> at <compiler-generated>:77:5 [opt]
+    frame #6: 0x000055d67fb36987 tls`specialized TLSReadExtensions(length=<unavailable>, messageType=clientHello) at TLSExtension.swift:104:38 [opt]
+    frame #7: 0x000055d67fb34424 tls`specialized TLSClientHello.init(inputStream:context:) [inlined] generic specialization <SwiftTLS.BinaryInputStream> of function signature specialization <Arg[0] = Existential To Protocol Constrained Generic> of SwiftTLS.TLSReadExtensions(from: SwiftTLS.InputStreamType, length: Swift.Int, messageType: SwiftTLS.TLSMessageExtensionType, context: Swift.Optional<SwiftTLS.TLSConnection>) -> Swift.Array<SwiftTLS.TLSExtension> at TLSClientHello.swift:0 [opt]
+    frame #8: 0x000055d67fb3441d tls`specialized TLSClientHello.init(inputStream:context:) [inlined] SwiftTLS.TLSReadExtensions(from: SwiftTLS.InputStreamType, length: Swift.Int, messageType: SwiftTLS.TLSMessageExtensionType, context: Swift.Optional<SwiftTLS.TLSConnection>) -> Swift.Array<SwiftTLS.TLSExtension> at <compiler-generated>:43:6 [opt]
+    frame #9: 0x000055d67fb34418 tls`specialized TLSClientHello.init(inputStream=SwiftTLS.InputStreamType @ 0x00007f8b1bf94930, context=0x00007f8b3c15fa50) at TLSClientHello.swift:82:31 [opt]
+    frame #10: 0x000055d67fb30c2a tls`static TLSHandshakeMessage.handshakeMessageFromData(_:context:) [inlined] SwiftTLS.TLSClientHello.init(inputStream: SwiftTLS.InputStreamType, context: SwiftTLS.TLSConnection) -> Swift.Optional<SwiftTLS.TLSClientHello> at TLSHandshake.swift:0:14 [opt]
+    frame #11: 0x000055d67fb30c1c tls`static TLSHandshakeMessage.handshakeMessageFromData(_:context:) [inlined] generic specialization <SwiftTLS.BinaryInputStream> of function signature specialization <serialized, Arg[0] = Existential To Protocol Constrained Generic> of SwiftTLS.TLSClientHello.__allocating_init(inputStream: SwiftTLS.InputStreamType, context: SwiftTLS.TLSConnection) -> Swift.Optional<SwiftTLS.TLSClientHello> at TLSClientHello.swift:55:14 [opt]
+    frame #12: 0x000055d67fb30c1c tls`static TLSHandshakeMessage.handshakeMessageFromData(_:context:) [inlined] SwiftTLS.TLSClientHello.__allocating_init(inputStream: SwiftTLS.InputStreamType, context: SwiftTLS.TLSConnection) -> Swift.Optional<SwiftTLS.TLSClientHello> at <compiler-generated>:55:14 [opt]
+    frame #13: 0x000055d67fb30c1c tls`static TLSHandshakeMessage.handshakeMessageFromData(data=<unavailable>, context=0x00007f8b3c15fa50, self=<unavailable>) at TLSHandshake.swift:49:23 [opt]
+    frame #14: 0x000055d67fb83c4d tls`TLSBaseRecordLayer.readMessageInternal(self=0x00007f8d0ffe1800) at TLSRecordLayer.swift:151:46 [opt]
+    frame #15: 0x00007f8d1410649e libswift_Concurrency.so`swift::runJobInEstablishedExecutorContext(swift::Job*) + 142
+    frame #16: 0x00007f8d14106c4c libswift_Concurrency.so`swift_job_run + 92
+    frame #17: 0x00007f8d141563f5 libdispatch.so`_dispatch_continuation_pop + 357
+    frame #18: 0x00007f8d141561a3 libdispatch.so`_dispatch_async_redirect_invoke + 211
+    frame #19: 0x00007f8d14161a92 libdispatch.so`_dispatch_worker_thread + 514
+    frame #20: 0x00007f8d138d1ac3 libc.so.6`___lldb_unnamed_symbol3481 + 755
+    frame #21: 0x00007f8d139638c0 libc.so.6`___lldb_unnamed_symbol3866 + 11
+  thread #4, name = 'tls', stop reason = signal SIGSTOP
+    frame #0: 0x00007f8d13e7ee90 libswiftCore.so`swift::metadataimpl::BufferValueWitnesses<swift::metadataimpl::ValueWitnesses<swift::metadataimpl::SwiftRetainableBox>, true, 8ul, 8ul, (swift::metadataimpl::FixedPacking)1>::initializeBufferWithCopyOfBuffer(swift::TargetValueBuffer<swift::InProcess>*, swift::TargetValueBuffer<swift::InProcess>*, swift::TargetMetadata<swift::InProcess> const*)
+    frame #1: 0x000055d67fb2e6b0 tls`outlined init with copy of InputStreamType at <compiler-generated>:0 [opt]
+    frame #2: 0x000055d67fb34bc8 tls`specialized TLSKeyShareExtension.init(inputStream=SwiftTLS.InputStreamType @ 0x00007f8b3ccc7800, messageType=<unavailable>) at TLSKeyShareExtension.swift:90:64 [opt]
+    frame #3: 0x000055d67fb36993 tls`specialized TLSReadExtensions(from:length:messageType:context:) [inlined] generic specialization <SwiftTLS.BinaryInputStream> of function signature specialization <Arg[0] = Existential To Protocol Constrained Generic> of SwiftTLS.TLSKeyShareExtension.init(inputStream: SwiftTLS.InputStreamType, messageType: SwiftTLS.TLSMessageExtensionType) -> Swift.Optional<SwiftTLS.TLSKeyShareExtension> at <compiler-generated>:0 [opt]
+    frame #4: 0x000055d67fb36987 tls`specialized TLSReadExtensions(from:length:messageType:context:) [inlined] SwiftTLS.TLSKeyShareExtension.init(inputStream: SwiftTLS.InputStreamType, messageType: SwiftTLS.TLSMessageExtensionType) -> Swift.Optional<SwiftTLS.TLSKeyShareExtension> at <compiler-generated>:77:5 [opt]
+    frame #5: 0x000055d67fb36987 tls`specialized TLSReadExtensions(length=<unavailable>, messageType=clientHello) at TLSExtension.swift:104:38 [opt]
+    frame #6: 0x000055d67fb34424 tls`specialized TLSClientHello.init(inputStream:context:) [inlined] generic specialization <SwiftTLS.BinaryInputStream> of function signature specialization <Arg[0] = Existential To Protocol Constrained Generic> of SwiftTLS.TLSReadExtensions(from: SwiftTLS.InputStreamType, length: Swift.Int, messageType: SwiftTLS.TLSMessageExtensionType, context: Swift.Optional<SwiftTLS.TLSConnection>) -> Swift.Array<SwiftTLS.TLSExtension> at TLSClientHello.swift:0 [opt]
+    frame #7: 0x000055d67fb3441d tls`specialized TLSClientHello.init(inputStream:context:) [inlined] SwiftTLS.TLSReadExtensions(from: SwiftTLS.InputStreamType, length: Swift.Int, messageType: SwiftTLS.TLSMessageExtensionType, context: Swift.Optional<SwiftTLS.TLSConnection>) -> Swift.Array<SwiftTLS.TLSExtension> at <compiler-generated>:43:6 [opt]
+    frame #8: 0x000055d67fb34418 tls`specialized TLSClientHello.init(inputStream=SwiftTLS.InputStreamType @ 0x00007f8b3cf56fc0, context=0x00007f8d0c846cd0) at TLSClientHello.swift:82:31 [opt]
+    frame #9: 0x000055d67fb30c2a tls`static TLSHandshakeMessage.handshakeMessageFromData(_:context:) [inlined] SwiftTLS.TLSClientHello.init(inputStream: SwiftTLS.InputStreamType, context: SwiftTLS.TLSConnection) -> Swift.Optional<SwiftTLS.TLSClientHello> at TLSHandshake.swift:0:14 [opt]
+    frame #10: 0x000055d67fb30c1c tls`static TLSHandshakeMessage.handshakeMessageFromData(_:context:) [inlined] generic specialization <SwiftTLS.BinaryInputStream> of function signature specialization <serialized, Arg[0] = Existential To Protocol Constrained Generic> of SwiftTLS.TLSClientHello.__allocating_init(inputStream: SwiftTLS.InputStreamType, context: SwiftTLS.TLSConnection) -> Swift.Optional<SwiftTLS.TLSClientHello> at TLSClientHello.swift:55:14 [opt]
+    frame #11: 0x000055d67fb30c1c tls`static TLSHandshakeMessage.handshakeMessageFromData(_:context:) [inlined] SwiftTLS.TLSClientHello.__allocating_init(inputStream: SwiftTLS.InputStreamType, context: SwiftTLS.TLSConnection) -> Swift.Optional<SwiftTLS.TLSClientHello> at <compiler-generated>:55:14 [opt]
+    frame #12: 0x000055d67fb30c1c tls`static TLSHandshakeMessage.handshakeMessageFromData(data=<unavailable>, context=0x00007f8d0c846cd0, self=<unavailable>) at TLSHandshake.swift:49:23 [opt]
+    frame #13: 0x000055d67fb83c4d tls`TLSBaseRecordLayer.readMessageInternal(self=0x00007f8ae5e8cc60) at TLSRecordLayer.swift:151:46 [opt]
+    frame #14: 0x00007f8d1410649e libswift_Concurrency.so`swift::runJobInEstablishedExecutorContext(swift::Job*) + 142
+    frame #15: 0x00007f8d14106c4c libswift_Concurrency.so`swift_job_run + 92
+    frame #16: 0x00007f8d141563f5 libdispatch.so`_dispatch_continuation_pop + 357
+    frame #17: 0x00007f8d141561a3 libdispatch.so`_dispatch_async_redirect_invoke + 211
+    frame #18: 0x00007f8d14161a92 libdispatch.so`_dispatch_worker_thread + 514
+    frame #19: 0x00007f8d138d1ac3 libc.so.6`___lldb_unnamed_symbol3481 + 755
+    frame #20: 0x00007f8d139638c0 libc.so.6`___lldb_unnamed_symbol3866 + 11
+(lldb) 

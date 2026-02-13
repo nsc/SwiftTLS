@@ -36,7 +36,7 @@ class TLSCertificateMessage : TLSHandshakeMessage
             let a = UInt32(header[0])
             let b = UInt32(header[1])
             let c = UInt32(header[2])
-            let bytesForCertificates = Int(a << 16 + b << 8 + c)
+            var bytesForCertificates = Int(a << 16 + b << 8 + c)
             
             certificates = []
             
@@ -45,9 +45,25 @@ class TLSCertificateMessage : TLSHandshakeMessage
                     let a = UInt32(certHeader[0])
                     let b = UInt32(certHeader[1])
                     let c = UInt32(certHeader[2])
-                    var bytesForCertificate = Int(a << 16 + b << 8 + c)
+                    let bytesForCertificate = Int(a << 16 + b << 8 + c)
+                    
+                    guard bytesForCertificate <= bytesForCertificates else {
+                        // FIXME: throw an error here (make all message initializers throwing first)
+                        return nil
+                    }
                     
                     let data : [UInt8]? = inputStream.read(count: bytesForCertificate)
+                    bytesForCertificates -= bytesForCertificate + 3 /* 3 bytes for the header */
+
+                    if context.negotiatedProtocolVersion! >= .v1_3 {
+                        let startIndex = inputStream.bytesRead
+                        let extensions = TLSReadExtensions(from: inputStream, length: bytesForCertificate, messageType: .certificate, context: context)
+                        
+                        if !extensions.isEmpty {
+                            print("Certificate Message extensions: \(extensions)")
+                        }
+                        bytesForCertificates -= inputStream.bytesRead - startIndex
+                    }
                     
                     if let d = data {
                         let x509Cert = X509.Certificate(derData: d)
@@ -55,9 +71,7 @@ class TLSCertificateMessage : TLSHandshakeMessage
                         if let cert = x509Cert {
                             certificates!.append(cert)
                         }
-                    }
-                    
-                    bytesForCertificate -= bytesForCertificate
+                    }                    
                 }
                 else {
                     break

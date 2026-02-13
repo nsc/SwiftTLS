@@ -1,0 +1,629 @@
+root@localhost:/home/nsc# ~nsc/swift/usr/bin/lldb -p 3047461
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+ModuleNotFoundError: No module named 'lldb'
+(lldb) process attach --pid 3047461
+warning: tls was compiled with optimization - stepping may behave oddly; variables may not be available.
+Process 3047461 stopped
+* thread #1, name = 'tls', stop reason = signal SIGSTOP
+    frame #0: 0x00007ffb0a4b680a libc.so.6`__sigsuspend + 74
+libc.so.6`__sigsuspend:
+->  0x7ffb0a4b680a <+74>: cmpq   $-0x1000, %rax            ; imm = 0xF000 
+    0x7ffb0a4b6810 <+80>: ja     0x7ffb0a4b6848            ; <+136>
+    0x7ffb0a4b6812 <+82>: movl   %r8d, %edi
+    0x7ffb0a4b6815 <+85>: movl   %eax, 0x8(%rsp)
+  thread #2, name = 'tls', stop reason = signal SIGSTOP
+    frame #0: 0x00007ffb0a599e9e libc.so.6`epoll_wait + 94
+libc.so.6`epoll_wait:
+->  0x7ffb0a599e9e <+94>:  cmpq   $-0x1000, %rax            ; imm = 0xF000 
+    0x7ffb0a599ea4 <+100>: ja     0x7ffb0a599ed8            ; <+152>
+    0x7ffb0a599ea6 <+102>: movl   %r8d, %edi
+    0x7ffb0a599ea9 <+105>: movl   %eax, 0xc(%rsp)
+  thread #3, name = 'tls', stop reason = signal SIGSTOP
+    frame #0: 0x000056536dbade37 tls`specialized TLSKeyShareExtension.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff950250b60, messageType=<unavailable>) at TLSKeyShareExtension.swift:88:28 [opt]
+   85  	            var numBytes = Int(numBytes16)
+   86  	            var clientShares: [KeyShareEntry] = []
+   87  	            
+-> 88  	            while numBytes > 0 {
+   89  	                let bytesRead = inputStream.bytesRead
+   90  	                let keyShareEntry = KeyShareEntry(inputStream: inputStream)
+   91  	                
+  thread #4, name = 'tls', stop reason = signal SIGSTOP
+    frame #0: 0x00007ffb0aab1f4b libswiftCore.so`swift_beginAccess + 75
+libswiftCore.so`swift_beginAccess:
+->  0x7ffb0aab1f4b <+75>: addq   $0x8, %rsp
+    0x7ffb0aab1f4f <+79>: popq   %rbx
+    0x7ffb0aab1f50 <+80>: popq   %r12
+    0x7ffb0aab1f52 <+82>: popq   %r14
+Target 0: (tls) stopped.
+Executable module set to "/home/nsc/SwiftTLS/.build/x86_64-unknown-linux-gnu/release/tls".
+Architecture set to: x86_64-unknown-linux-gnu.
+(lldb) bt
+* thread #1, name = 'tls', stop reason = signal SIGSTOP
+  * frame #0: 0x00007ffb0a4b680a libc.so.6`__sigsuspend + 74
+    frame #1: 0x00007ffb0ad99008 libdispatch.so`_dispatch_sigsuspend + 24
+    frame #2: 0x00007ffb0ad96296 libdispatch.so`_dispatch_sig_thread + 6
+    frame #3: 0x00007ffb0a505691 libc.so.6`___lldb_unnamed_symbol3467 + 161
+    frame #4: 0x00007ffb0a49dd9c libc.so.6`___lldb_unnamed_symbol3139 + 140
+    frame #5: 0x00007ffb0a49de40 libc.so.6`__libc_start_main + 128
+    frame #6: 0x000056536db3c4e5 tls`_start + 37
+(lldb) bt all
+* thread #1, name = 'tls', stop reason = signal SIGSTOP
+  * frame #0: 0x00007ffb0a4b680a libc.so.6`__sigsuspend + 74
+    frame #1: 0x00007ffb0ad99008 libdispatch.so`_dispatch_sigsuspend + 24
+    frame #2: 0x00007ffb0ad96296 libdispatch.so`_dispatch_sig_thread + 6
+    frame #3: 0x00007ffb0a505691 libc.so.6`___lldb_unnamed_symbol3467 + 161
+    frame #4: 0x00007ffb0a49dd9c libc.so.6`___lldb_unnamed_symbol3139 + 140
+    frame #5: 0x00007ffb0a49de40 libc.so.6`__libc_start_main + 128
+    frame #6: 0x000056536db3c4e5 tls`_start + 37
+  thread #2, name = 'tls', stop reason = signal SIGSTOP
+    frame #0: 0x00007ffb0a599e9e libc.so.6`epoll_wait + 94
+    frame #1: 0x00007ffb0ada0056 libdispatch.so`_dispatch_event_loop_drain + 54
+    frame #2: 0x00007ffb0ad95072 libdispatch.so`_dispatch_mgr_invoke + 146
+    frame #3: 0x00007ffb0ad94fbb libdispatch.so`_dispatch_mgr_thread + 123
+    frame #4: 0x00007ffb0ad98a92 libdispatch.so`_dispatch_worker_thread + 514
+    frame #5: 0x00007ffb0a508ac3 libc.so.6`___lldb_unnamed_symbol3481 + 755
+    frame #6: 0x00007ffb0a59a8c0 libc.so.6`___lldb_unnamed_symbol3866 + 11
+  thread #3, name = 'tls', stop reason = signal SIGSTOP
+    frame #0: 0x000056536dbade37 tls`specialized TLSKeyShareExtension.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff950250b60, messageType=<unavailable>) at TLSKeyShareExtension.swift:88:28 [opt]
+    frame #1: 0x000056536dbaf993 tls`specialized TLSReadExtensions(from:length:messageType:context:) [inlined] generic specialization <SwiftTLS.BinaryInputStream> of function signature specialization <Arg[0] = Existential To Protocol Constrained Generic> of SwiftTLS.TLSKeyShareExtension.init(inputStream: SwiftTLS.InputStreamType, messageType: SwiftTLS.TLSMessageExtensionType) -> Swift.Optional<SwiftTLS.TLSKeyShareExtension> at <compiler-generated>:0 [opt]
+    frame #2: 0x000056536dbaf987 tls`specialized TLSReadExtensions(from:length:messageType:context:) [inlined] SwiftTLS.TLSKeyShareExtension.init(inputStream: SwiftTLS.InputStreamType, messageType: SwiftTLS.TLSMessageExtensionType) -> Swift.Optional<SwiftTLS.TLSKeyShareExtension> at <compiler-generated>:77:5 [opt]
+    frame #3: 0x000056536dbaf987 tls`specialized TLSReadExtensions(length=<unavailable>, messageType=clientHello) at TLSExtension.swift:104:38 [opt]
+    frame #4: 0x000056536dbad424 tls`specialized TLSClientHello.init(inputStream:context:) [inlined] generic specialization <SwiftTLS.BinaryInputStream> of function signature specialization <Arg[0] = Existential To Protocol Constrained Generic> of SwiftTLS.TLSReadExtensions(from: SwiftTLS.InputStreamType, length: Swift.Int, messageType: SwiftTLS.TLSMessageExtensionType, context: Swift.Optional<SwiftTLS.TLSConnection>) -> Swift.Array<SwiftTLS.TLSExtension> at TLSClientHello.swift:0 [opt]
+    frame #5: 0x000056536dbad41d tls`specialized TLSClientHello.init(inputStream:context:) [inlined] SwiftTLS.TLSReadExtensions(from: SwiftTLS.InputStreamType, length: Swift.Int, messageType: SwiftTLS.TLSMessageExtensionType, context: Swift.Optional<SwiftTLS.TLSConnection>) -> Swift.Array<SwiftTLS.TLSExtension> at <compiler-generated>:43:6 [opt]
+    frame #6: 0x000056536dbad418 tls`specialized TLSClientHello.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff9457808e0, context=0x00007ff8faacd320) at TLSClientHello.swift:82:31 [opt]
+    frame #7: 0x000056536dba9c2a tls`static TLSHandshakeMessage.handshakeMessageFromData(_:context:) [inlined] SwiftTLS.TLSClientHello.init(inputStream: SwiftTLS.InputStreamType, context: SwiftTLS.TLSConnection) -> Swift.Optional<SwiftTLS.TLSClientHello> at TLSHandshake.swift:0:14 [opt]
+    frame #8: 0x000056536dba9c1c tls`static TLSHandshakeMessage.handshakeMessageFromData(_:context:) [inlined] generic specialization <SwiftTLS.BinaryInputStream> of function signature specialization <serialized, Arg[0] = Existential To Protocol Constrained Generic> of SwiftTLS.TLSClientHello.__allocating_init(inputStream: SwiftTLS.InputStreamType, context: SwiftTLS.TLSConnection) -> Swift.Optional<SwiftTLS.TLSClientHello> at TLSClientHello.swift:55:14 [opt]
+    frame #9: 0x000056536dba9c1c tls`static TLSHandshakeMessage.handshakeMessageFromData(_:context:) [inlined] SwiftTLS.TLSClientHello.__allocating_init(inputStream: SwiftTLS.InputStreamType, context: SwiftTLS.TLSConnection) -> Swift.Optional<SwiftTLS.TLSClientHello> at <compiler-generated>:55:14 [opt]
+    frame #10: 0x000056536dba9c1c tls`static TLSHandshakeMessage.handshakeMessageFromData(data=<unavailable>, context=0x00007ff8faacd320, self=<unavailable>) at TLSHandshake.swift:49:23 [opt]
+    frame #11: 0x000056536dbfcc4d tls`TLSBaseRecordLayer.readMessageInternal(self=0x00007ff9589c3f40) at TLSRecordLayer.swift:151:46 [opt]
+    frame #12: 0x00007ffb0ad3d49e libswift_Concurrency.so`swift::runJobInEstablishedExecutorContext(swift::Job*) + 142
+    frame #13: 0x00007ffb0ad3dc4c libswift_Concurrency.so`swift_job_run + 92
+    frame #14: 0x00007ffb0ad8d3f5 libdispatch.so`_dispatch_continuation_pop + 357
+    frame #15: 0x00007ffb0ad8d1a3 libdispatch.so`_dispatch_async_redirect_invoke + 211
+    frame #16: 0x00007ffb0ad98a92 libdispatch.so`_dispatch_worker_thread + 514
+    frame #17: 0x00007ffb0a508ac3 libc.so.6`___lldb_unnamed_symbol3481 + 755
+    frame #18: 0x00007ffb0a59a8c0 libc.so.6`___lldb_unnamed_symbol3866 + 11
+  thread #4, name = 'tls', stop reason = signal SIGSTOP
+    frame #0: 0x00007ffb0aab1f4b libswiftCore.so`swift_beginAccess + 75
+    frame #1: 0x000056536db94c24 tls`BinaryInputStream.bytesRead.getter at <compiler-generated>:0 [opt]
+    frame #2: 0x000056536dbadda6 tls`specialized TLSKeyShareExtension.init(inputStream:messageType:) [inlined] protocol witness for SwiftTLS.InputStreamType.bytesRead.getter : Swift.Int in conformance SwiftTLS.BinaryInputStream : SwiftTLS.InputStreamType in SwiftTLS at <compiler-generated>:0 [opt]
+    frame #3: 0x000056536dbadd9c tls`specialized TLSKeyShareExtension.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff8fb2b5a70, messageType=<unavailable>) at TLSKeyShareExtension.swift:92:42 [opt]
+    frame #4: 0x000056536dbaf993 tls`specialized TLSReadExtensions(from:length:messageType:context:) [inlined] generic specialization <SwiftTLS.BinaryInputStream> of function signature specialization <Arg[0] = Existential To Protocol Constrained Generic> of SwiftTLS.TLSKeyShareExtension.init(inputStream: SwiftTLS.InputStreamType, messageType: SwiftTLS.TLSMessageExtensionType) -> Swift.Optional<SwiftTLS.TLSKeyShareExtension> at <compiler-generated>:0 [opt]
+    frame #5: 0x000056536dbaf987 tls`specialized TLSReadExtensions(from:length:messageType:context:) [inlined] SwiftTLS.TLSKeyShareExtension.init(inputStream: SwiftTLS.InputStreamType, messageType: SwiftTLS.TLSMessageExtensionType) -> Swift.Optional<SwiftTLS.TLSKeyShareExtension> at <compiler-generated>:77:5 [opt]
+    frame #6: 0x000056536dbaf987 tls`specialized TLSReadExtensions(length=<unavailable>, messageType=clientHello) at TLSExtension.swift:104:38 [opt]
+    frame #7: 0x000056536dbad424 tls`specialized TLSClientHello.init(inputStream:context:) [inlined] generic specialization <SwiftTLS.BinaryInputStream> of function signature specialization <Arg[0] = Existential To Protocol Constrained Generic> of SwiftTLS.TLSReadExtensions(from: SwiftTLS.InputStreamType, length: Swift.Int, messageType: SwiftTLS.TLSMessageExtensionType, context: Swift.Optional<SwiftTLS.TLSConnection>) -> Swift.Array<SwiftTLS.TLSExtension> at TLSClientHello.swift:0 [opt]
+    frame #8: 0x000056536dbad41d tls`specialized TLSClientHello.init(inputStream:context:) [inlined] SwiftTLS.TLSReadExtensions(from: SwiftTLS.InputStreamType, length: Swift.Int, messageType: SwiftTLS.TLSMessageExtensionType, context: Swift.Optional<SwiftTLS.TLSConnection>) -> Swift.Array<SwiftTLS.TLSExtension> at <compiler-generated>:43:6 [opt]
+    frame #9: 0x000056536dbad418 tls`specialized TLSClientHello.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff95036ff30, context=0x00007ff9589c3c30) at TLSClientHello.swift:82:31 [opt]
+    frame #10: 0x000056536dba9c2a tls`static TLSHandshakeMessage.handshakeMessageFromData(_:context:) [inlined] SwiftTLS.TLSClientHello.init(inputStream: SwiftTLS.InputStreamType, context: SwiftTLS.TLSConnection) -> Swift.Optional<SwiftTLS.TLSClientHello> at TLSHandshake.swift:0:14 [opt]
+    frame #11: 0x000056536dba9c1c tls`static TLSHandshakeMessage.handshakeMessageFromData(_:context:) [inlined] generic specialization <SwiftTLS.BinaryInputStream> of function signature specialization <serialized, Arg[0] = Existential To Protocol Constrained Generic> of SwiftTLS.TLSClientHello.__allocating_init(inputStream: SwiftTLS.InputStreamType, context: SwiftTLS.TLSConnection) -> Swift.Optional<SwiftTLS.TLSClientHello> at TLSClientHello.swift:55:14 [opt]
+    frame #12: 0x000056536dba9c1c tls`static TLSHandshakeMessage.handshakeMessageFromData(_:context:) [inlined] SwiftTLS.TLSClientHello.__allocating_init(inputStream: SwiftTLS.InputStreamType, context: SwiftTLS.TLSConnection) -> Swift.Optional<SwiftTLS.TLSClientHello> at <compiler-generated>:55:14 [opt]
+    frame #13: 0x000056536dba9c1c tls`static TLSHandshakeMessage.handshakeMessageFromData(data=<unavailable>, context=0x00007ff9589c3c30, self=<unavailable>) at TLSHandshake.swift:49:23 [opt]
+    frame #14: 0x000056536dbfcc4d tls`TLSBaseRecordLayer.readMessageInternal(self=0x00007ff9589c36c0) at TLSRecordLayer.swift:151:46 [opt]
+    frame #15: 0x00007ffb0ad3d49e libswift_Concurrency.so`swift::runJobInEstablishedExecutorContext(swift::Job*) + 142
+    frame #16: 0x00007ffb0ad3dc4c libswift_Concurrency.so`swift_job_run + 92
+    frame #17: 0x00007ffb0ad8d3f5 libdispatch.so`_dispatch_continuation_pop + 357
+    frame #18: 0x00007ffb0ad8d1a3 libdispatch.so`_dispatch_async_redirect_invoke + 211
+    frame #19: 0x00007ffb0ad98a92 libdispatch.so`_dispatch_worker_thread + 514
+    frame #20: 0x00007ffb0a508ac3 libc.so.6`___lldb_unnamed_symbol3481 + 755
+    frame #21: 0x00007ffb0a59a8c0 libc.so.6`___lldb_unnamed_symbol3866 + 11
+(lldb) 
+* thread #1, name = 'tls', stop reason = signal SIGSTOP
+  * frame #0: 0x00007ffb0a4b680a libc.so.6`__sigsuspend + 74
+    frame #1: 0x00007ffb0ad99008 libdispatch.so`_dispatch_sigsuspend + 24
+    frame #2: 0x00007ffb0ad96296 libdispatch.so`_dispatch_sig_thread + 6
+    frame #3: 0x00007ffb0a505691 libc.so.6`___lldb_unnamed_symbol3467 + 161
+    frame #4: 0x00007ffb0a49dd9c libc.so.6`___lldb_unnamed_symbol3139 + 140
+    frame #5: 0x00007ffb0a49de40 libc.so.6`__libc_start_main + 128
+    frame #6: 0x000056536db3c4e5 tls`_start + 37
+  thread #2, name = 'tls', stop reason = signal SIGSTOP
+    frame #0: 0x00007ffb0a599e9e libc.so.6`epoll_wait + 94
+    frame #1: 0x00007ffb0ada0056 libdispatch.so`_dispatch_event_loop_drain + 54
+    frame #2: 0x00007ffb0ad95072 libdispatch.so`_dispatch_mgr_invoke + 146
+    frame #3: 0x00007ffb0ad94fbb libdispatch.so`_dispatch_mgr_thread + 123
+    frame #4: 0x00007ffb0ad98a92 libdispatch.so`_dispatch_worker_thread + 514
+    frame #5: 0x00007ffb0a508ac3 libc.so.6`___lldb_unnamed_symbol3481 + 755
+    frame #6: 0x00007ffb0a59a8c0 libc.so.6`___lldb_unnamed_symbol3866 + 11
+  thread #3, name = 'tls', stop reason = signal SIGSTOP
+    frame #0: 0x000056536dbade37 tls`specialized TLSKeyShareExtension.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff950250b60, messageType=<unavailable>) at TLSKeyShareExtension.swift:88:28 [opt]
+    frame #1: 0x000056536dbaf993 tls`specialized TLSReadExtensions(from:length:messageType:context:) [inlined] generic specialization <SwiftTLS.BinaryInputStream> of function signature specialization <Arg[0] = Existential To Protocol Constrained Generic> of SwiftTLS.TLSKeyShareExtension.init(inputStream: SwiftTLS.InputStreamType, messageType: SwiftTLS.TLSMessageExtensionType) -> Swift.Optional<SwiftTLS.TLSKeyShareExtension> at <compiler-generated>:0 [opt]
+    frame #2: 0x000056536dbaf987 tls`specialized TLSReadExtensions(from:length:messageType:context:) [inlined] SwiftTLS.TLSKeyShareExtension.init(inputStream: SwiftTLS.InputStreamType, messageType: SwiftTLS.TLSMessageExtensionType) -> Swift.Optional<SwiftTLS.TLSKeyShareExtension> at <compiler-generated>:77:5 [opt]
+    frame #3: 0x000056536dbaf987 tls`specialized TLSReadExtensions(length=<unavailable>, messageType=clientHello) at TLSExtension.swift:104:38 [opt]
+    frame #4: 0x000056536dbad424 tls`specialized TLSClientHello.init(inputStream:context:) [inlined] generic specialization <SwiftTLS.BinaryInputStream> of function signature specialization <Arg[0] = Existential To Protocol Constrained Generic> of SwiftTLS.TLSReadExtensions(from: SwiftTLS.InputStreamType, length: Swift.Int, messageType: SwiftTLS.TLSMessageExtensionType, context: Swift.Optional<SwiftTLS.TLSConnection>) -> Swift.Array<SwiftTLS.TLSExtension> at TLSClientHello.swift:0 [opt]
+    frame #5: 0x000056536dbad41d tls`specialized TLSClientHello.init(inputStream:context:) [inlined] SwiftTLS.TLSReadExtensions(from: SwiftTLS.InputStreamType, length: Swift.Int, messageType: SwiftTLS.TLSMessageExtensionType, context: Swift.Optional<SwiftTLS.TLSConnection>) -> Swift.Array<SwiftTLS.TLSExtension> at <compiler-generated>:43:6 [opt]
+    frame #6: 0x000056536dbad418 tls`specialized TLSClientHello.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff9457808e0, context=0x00007ff8faacd320) at TLSClientHello.swift:82:31 [opt]
+    frame #7: 0x000056536dba9c2a tls`static TLSHandshakeMessage.handshakeMessageFromData(_:context:) [inlined] SwiftTLS.TLSClientHello.init(inputStream: SwiftTLS.InputStreamType, context: SwiftTLS.TLSConnection) -> Swift.Optional<SwiftTLS.TLSClientHello> at TLSHandshake.swift:0:14 [opt]
+    frame #8: 0x000056536dba9c1c tls`static TLSHandshakeMessage.handshakeMessageFromData(_:context:) [inlined] generic specialization <SwiftTLS.BinaryInputStream> of function signature specialization <serialized, Arg[0] = Existential To Protocol Constrained Generic> of SwiftTLS.TLSClientHello.__allocating_init(inputStream: SwiftTLS.InputStreamType, context: SwiftTLS.TLSConnection) -> Swift.Optional<SwiftTLS.TLSClientHello> at TLSClientHello.swift:55:14 [opt]
+    frame #9: 0x000056536dba9c1c tls`static TLSHandshakeMessage.handshakeMessageFromData(_:context:) [inlined] SwiftTLS.TLSClientHello.__allocating_init(inputStream: SwiftTLS.InputStreamType, context: SwiftTLS.TLSConnection) -> Swift.Optional<SwiftTLS.TLSClientHello> at <compiler-generated>:55:14 [opt]
+    frame #10: 0x000056536dba9c1c tls`static TLSHandshakeMessage.handshakeMessageFromData(data=<unavailable>, context=0x00007ff8faacd320, self=<unavailable>) at TLSHandshake.swift:49:23 [opt]
+    frame #11: 0x000056536dbfcc4d tls`TLSBaseRecordLayer.readMessageInternal(self=0x00007ff9589c3f40) at TLSRecordLayer.swift:151:46 [opt]
+    frame #12: 0x00007ffb0ad3d49e libswift_Concurrency.so`swift::runJobInEstablishedExecutorContext(swift::Job*) + 142
+    frame #13: 0x00007ffb0ad3dc4c libswift_Concurrency.so`swift_job_run + 92
+    frame #14: 0x00007ffb0ad8d3f5 libdispatch.so`_dispatch_continuation_pop + 357
+    frame #15: 0x00007ffb0ad8d1a3 libdispatch.so`_dispatch_async_redirect_invoke + 211
+    frame #16: 0x00007ffb0ad98a92 libdispatch.so`_dispatch_worker_thread + 514
+    frame #17: 0x00007ffb0a508ac3 libc.so.6`___lldb_unnamed_symbol3481 + 755
+    frame #18: 0x00007ffb0a59a8c0 libc.so.6`___lldb_unnamed_symbol3866 + 11
+  thread #4, name = 'tls', stop reason = signal SIGSTOP
+    frame #0: 0x00007ffb0aab1f4b libswiftCore.so`swift_beginAccess + 75
+    frame #1: 0x000056536db94c24 tls`BinaryInputStream.bytesRead.getter at <compiler-generated>:0 [opt]
+    frame #2: 0x000056536dbadda6 tls`specialized TLSKeyShareExtension.init(inputStream:messageType:) [inlined] protocol witness for SwiftTLS.InputStreamType.bytesRead.getter : Swift.Int in conformance SwiftTLS.BinaryInputStream : SwiftTLS.InputStreamType in SwiftTLS at <compiler-generated>:0 [opt]
+    frame #3: 0x000056536dbadd9c tls`specialized TLSKeyShareExtension.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff8fb2b5a70, messageType=<unavailable>) at TLSKeyShareExtension.swift:92:42 [opt]
+    frame #4: 0x000056536dbaf993 tls`specialized TLSReadExtensions(from:length:messageType:context:) [inlined] generic specialization <SwiftTLS.BinaryInputStream> of function signature specialization <Arg[0] = Existential To Protocol Constrained Generic> of SwiftTLS.TLSKeyShareExtension.init(inputStream: SwiftTLS.InputStreamType, messageType: SwiftTLS.TLSMessageExtensionType) -> Swift.Optional<SwiftTLS.TLSKeyShareExtension> at <compiler-generated>:0 [opt]
+    frame #5: 0x000056536dbaf987 tls`specialized TLSReadExtensions(from:length:messageType:context:) [inlined] SwiftTLS.TLSKeyShareExtension.init(inputStream: SwiftTLS.InputStreamType, messageType: SwiftTLS.TLSMessageExtensionType) -> Swift.Optional<SwiftTLS.TLSKeyShareExtension> at <compiler-generated>:77:5 [opt]
+    frame #6: 0x000056536dbaf987 tls`specialized TLSReadExtensions(length=<unavailable>, messageType=clientHello) at TLSExtension.swift:104:38 [opt]
+    frame #7: 0x000056536dbad424 tls`specialized TLSClientHello.init(inputStream:context:) [inlined] generic specialization <SwiftTLS.BinaryInputStream> of function signature specialization <Arg[0] = Existential To Protocol Constrained Generic> of SwiftTLS.TLSReadExtensions(from: SwiftTLS.InputStreamType, length: Swift.Int, messageType: SwiftTLS.TLSMessageExtensionType, context: Swift.Optional<SwiftTLS.TLSConnection>) -> Swift.Array<SwiftTLS.TLSExtension> at TLSClientHello.swift:0 [opt]
+    frame #8: 0x000056536dbad41d tls`specialized TLSClientHello.init(inputStream:context:) [inlined] SwiftTLS.TLSReadExtensions(from: SwiftTLS.InputStreamType, length: Swift.Int, messageType: SwiftTLS.TLSMessageExtensionType, context: Swift.Optional<SwiftTLS.TLSConnection>) -> Swift.Array<SwiftTLS.TLSExtension> at <compiler-generated>:43:6 [opt]
+    frame #9: 0x000056536dbad418 tls`specialized TLSClientHello.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff95036ff30, context=0x00007ff9589c3c30) at TLSClientHello.swift:82:31 [opt]
+    frame #10: 0x000056536dba9c2a tls`static TLSHandshakeMessage.handshakeMessageFromData(_:context:) [inlined] SwiftTLS.TLSClientHello.init(inputStream: SwiftTLS.InputStreamType, context: SwiftTLS.TLSConnection) -> Swift.Optional<SwiftTLS.TLSClientHello> at TLSHandshake.swift:0:14 [opt]
+    frame #11: 0x000056536dba9c1c tls`static TLSHandshakeMessage.handshakeMessageFromData(_:context:) [inlined] generic specialization <SwiftTLS.BinaryInputStream> of function signature specialization <serialized, Arg[0] = Existential To Protocol Constrained Generic> of SwiftTLS.TLSClientHello.__allocating_init(inputStream: SwiftTLS.InputStreamType, context: SwiftTLS.TLSConnection) -> Swift.Optional<SwiftTLS.TLSClientHello> at TLSClientHello.swift:55:14 [opt]
+    frame #12: 0x000056536dba9c1c tls`static TLSHandshakeMessage.handshakeMessageFromData(_:context:) [inlined] SwiftTLS.TLSClientHello.__allocating_init(inputStream: SwiftTLS.InputStreamType, context: SwiftTLS.TLSConnection) -> Swift.Optional<SwiftTLS.TLSClientHello> at <compiler-generated>:55:14 [opt]
+    frame #13: 0x000056536dba9c1c tls`static TLSHandshakeMessage.handshakeMessageFromData(data=<unavailable>, context=0x00007ff9589c3c30, self=<unavailable>) at TLSHandshake.swift:49:23 [opt]
+    frame #14: 0x000056536dbfcc4d tls`TLSBaseRecordLayer.readMessageInternal(self=0x00007ff9589c36c0) at TLSRecordLayer.swift:151:46 [opt]
+    frame #15: 0x00007ffb0ad3d49e libswift_Concurrency.so`swift::runJobInEstablishedExecutorContext(swift::Job*) + 142
+    frame #16: 0x00007ffb0ad3dc4c libswift_Concurrency.so`swift_job_run + 92
+    frame #17: 0x00007ffb0ad8d3f5 libdispatch.so`_dispatch_continuation_pop + 357
+    frame #18: 0x00007ffb0ad8d1a3 libdispatch.so`_dispatch_async_redirect_invoke + 211
+    frame #19: 0x00007ffb0ad98a92 libdispatch.so`_dispatch_worker_thread + 514
+    frame #20: 0x00007ffb0a508ac3 libc.so.6`___lldb_unnamed_symbol3481 + 755
+    frame #21: 0x00007ffb0a59a8c0 libc.so.6`___lldb_unnamed_symbol3866 + 11
+(lldb) p numBytes
+error: expression failed to parse:
+error: <user expression 0>:1:1: use of undeclared identifier 'numBytes'
+numBytes
+^
+(lldb) bt
+* thread #1, name = 'tls', stop reason = signal SIGSTOP
+  * frame #0: 0x00007ffb0a4b680a libc.so.6`__sigsuspend + 74
+    frame #1: 0x00007ffb0ad99008 libdispatch.so`_dispatch_sigsuspend + 24
+    frame #2: 0x00007ffb0ad96296 libdispatch.so`_dispatch_sig_thread + 6
+    frame #3: 0x00007ffb0a505691 libc.so.6`___lldb_unnamed_symbol3467 + 161
+    frame #4: 0x00007ffb0a49dd9c libc.so.6`___lldb_unnamed_symbol3139 + 140
+    frame #5: 0x00007ffb0a49de40 libc.so.6`__libc_start_main + 128
+    frame #6: 0x000056536db3c4e5 tls`_start + 37
+(lldb) help thread
+Commands for operating on one or more threads in the current process.
+
+Syntax: thread <subcommand> [<subcommand-options>]
+
+The following subcommands are supported:
+
+      backtrace      -- Show thread call stacks.  Defaults to the current
+                        thread, thread indexes can be specified as
+                        arguments.
+                        Use the thread-index "all" to see all threads.
+                        Use the thread-index "unique" to see threads grouped by
+                        unique call stacks.
+                        Use 'settings set frame-format' to customize the
+                        printing of frames in the backtrace and 'settings set
+                        thread-format' to customize the thread header.
+      continue       -- Continue execution of the current target process.  One
+                        or more threads may be specified, by default all
+                        threads continue.
+      exception      -- Display the current exception object for a thread.
+                        Defaults to the current thread.
+      info           -- Show an extended summary of one or more threads. 
+                        Defaults to the current thread.
+      jump           -- Sets the program counter to a new address.
+      list           -- Show a summary of each thread in the current target
+                        process.  Use 'settings set thread-format' to customize
+                        the individual thread listings.
+      plan           -- Commands for managing thread plans that control
+                        execution.
+      return         -- Prematurely return from a stack frame, short-circuiting
+                        execution of newer frames and optionally yielding a
+                        specified value.  Defaults to the exiting the current
+                        stack frame.  Expects 'raw' input (see 'help
+                        raw-input'.)
+      select         -- Change the currently selected thread.
+      step-in        -- Source level single step, stepping into calls. 
+                        Defaults to current thread unless specified.
+      step-inst      -- Instruction level single step, stepping into calls. 
+                        Defaults to current thread unless specified.
+      step-inst-over -- Instruction level single step, stepping over calls. 
+                        Defaults to current thread unless specified.
+      step-out       -- Finish executing the current stack frame and stop after
+                        returning.  Defaults to current thread unless specified.
+      step-over      -- Source level single step, stepping over calls. 
+                        Defaults to current thread unless specified.
+      step-scripted  -- Step as instructed by the script class passed in the -C
+                        option.  You can also specify a dictionary of key (-k)
+                        and value (-v) pairs that will be used to populate an
+                        SBStructuredData Dictionary, which will be passed to
+                        the constructor of the class implementing the scripted
+                        step.  See the Python Reference for more details.
+      trace          -- Commands for operating on traces of the threads in the
+                        current process.
+      until          -- Continue until a line number or address is reached by
+                        the current or specified thread.  Stops when returning
+                        from the current function as a safety measure.  The
+                        target line number(s) are given as arguments, and if
+                        more than one is provided, stepping will stop when the
+                        first one is hit.
+
+For more help on any particular subcommand, type 'help <command> <subcommand>'.
+(lldb) thread select 2
+* thread #2, name = 'tls', stop reason = signal SIGSTOP
+    frame #0: 0x00007ffb0a599e9e libc.so.6`epoll_wait + 94
+libc.so.6`epoll_wait:
+->  0x7ffb0a599e9e <+94>:  cmpq   $-0x1000, %rax            ; imm = 0xF000 
+    0x7ffb0a599ea4 <+100>: ja     0x7ffb0a599ed8            ; <+152>
+    0x7ffb0a599ea6 <+102>: movl   %r8d, %edi
+    0x7ffb0a599ea9 <+105>: movl   %eax, 0xc(%rsp)
+(lldb) step
+Process 3047461 stopped
+* thread #1, name = 'tls', stop reason = signal SIGSTOP
+    frame #0: 0x00007ffb0a4b680a libc.so.6`__sigsuspend + 74
+libc.so.6`__sigsuspend:
+->  0x7ffb0a4b680a <+74>: cmpq   $-0x1000, %rax            ; imm = 0xF000 
+    0x7ffb0a4b6810 <+80>: ja     0x7ffb0a4b6848            ; <+136>
+    0x7ffb0a4b6812 <+82>: movl   %r8d, %edi
+    0x7ffb0a4b6815 <+85>: movl   %eax, 0x8(%rsp)
+  thread #2, name = 'tls', stop reason = instruction step into
+    frame #0: 0x00007ffb0a599ea4 libc.so.6`epoll_wait + 100
+libc.so.6`epoll_wait:
+->  0x7ffb0a599ea4 <+100>: ja     0x7ffb0a599ed8            ; <+152>
+    0x7ffb0a599ea6 <+102>: movl   %r8d, %edi
+    0x7ffb0a599ea9 <+105>: movl   %eax, 0xc(%rsp)
+    0x7ffb0a599ead <+109>: callq  0x7ffb0a504a60            ; ___lldb_unnamed_symbol3445
+  thread #3, name = 'tls', stop reason = signal SIGSTOP
+    frame #0: 0x000056536dbade37 tls`specialized TLSKeyShareExtension.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff950250b60, messageType=<unavailable>) at TLSKeyShareExtension.swift:88:28 [opt]
+   85  	            var numBytes = Int(numBytes16)
+   86  	            var clientShares: [KeyShareEntry] = []
+   87  	            
+-> 88  	            while numBytes > 0 {
+   89  	                let bytesRead = inputStream.bytesRead
+   90  	                let keyShareEntry = KeyShareEntry(inputStream: inputStream)
+   91  	                
+  thread #4, name = 'tls', stop reason = signal SIGSTOP
+    frame #0: 0x00007ffb0aab1f4b libswiftCore.so`swift_beginAccess + 75
+libswiftCore.so`swift_beginAccess:
+->  0x7ffb0aab1f4b <+75>: addq   $0x8, %rsp
+    0x7ffb0aab1f4f <+79>: popq   %rbx
+    0x7ffb0aab1f50 <+80>: popq   %r12
+    0x7ffb0aab1f52 <+82>: popq   %r14
+Target 0: (tls) stopped.
+(lldb) thread select 3
+* thread #3, name = 'tls', stop reason = signal SIGSTOP
+    frame #0: 0x000056536dbade37 tls`specialized TLSKeyShareExtension.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff950250b60, messageType=<unavailable>) at TLSKeyShareExtension.swift:88:28 [opt]
+   85  	            var numBytes = Int(numBytes16)
+   86  	            var clientShares: [KeyShareEntry] = []
+   87  	            
+-> 88  	            while numBytes > 0 {
+   89  	                let bytesRead = inputStream.bytesRead
+   90  	                let keyShareEntry = KeyShareEntry(inputStream: inputStream)
+   91  	                
+(lldb) p numBytes
+(Int) $R0 = 4
+(lldb) step
+Process 3047461 stopped
+* thread #1, name = 'tls', stop reason = signal SIGSTOP
+    frame #0: 0x00007ffb0a4b680a libc.so.6`__sigsuspend + 74
+libc.so.6`__sigsuspend:
+->  0x7ffb0a4b680a <+74>: cmpq   $-0x1000, %rax            ; imm = 0xF000 
+    0x7ffb0a4b6810 <+80>: ja     0x7ffb0a4b6848            ; <+136>
+    0x7ffb0a4b6812 <+82>: movl   %r8d, %edi
+    0x7ffb0a4b6815 <+85>: movl   %eax, 0x8(%rsp)
+  thread #2, name = 'tls', stop reason = trace
+    frame #0: 0x00007ffb0a599ea4 libc.so.6`epoll_wait + 100
+libc.so.6`epoll_wait:
+->  0x7ffb0a599ea4 <+100>: ja     0x7ffb0a599ed8            ; <+152>
+    0x7ffb0a599ea6 <+102>: movl   %r8d, %edi
+    0x7ffb0a599ea9 <+105>: movl   %eax, 0xc(%rsp)
+    0x7ffb0a599ead <+109>: callq  0x7ffb0a504a60            ; ___lldb_unnamed_symbol3445
+  thread #3, name = 'tls', stop reason = step in
+    frame #0: 0x000056536dbade48 tls`specialized TLSKeyShareExtension.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff950250b60, messageType=<unavailable>) at TLSKeyShareExtension.swift:89:45 [opt]
+   86  	            var clientShares: [KeyShareEntry] = []
+   87  	            
+   88  	            while numBytes > 0 {
+-> 89  	                let bytesRead = inputStream.bytesRead
+   90  	                let keyShareEntry = KeyShareEntry(inputStream: inputStream)
+   91  	                
+   92  	                numBytes -= (inputStream.bytesRead - bytesRead)
+  thread #4, name = 'tls', stop reason = signal SIGSTOP
+    frame #0: 0x00007ffb0aab1f4b libswiftCore.so`swift_beginAccess + 75
+libswiftCore.so`swift_beginAccess:
+->  0x7ffb0aab1f4b <+75>: addq   $0x8, %rsp
+    0x7ffb0aab1f4f <+79>: popq   %rbx
+    0x7ffb0aab1f50 <+80>: popq   %r12
+    0x7ffb0aab1f52 <+82>: popq   %r14
+Target 0: (tls) stopped.
+(lldb) help thread
+Commands for operating on one or more threads in the current process.
+
+Syntax: thread <subcommand> [<subcommand-options>]
+
+The following subcommands are supported:
+
+      backtrace      -- Show thread call stacks.  Defaults to the current
+                        thread, thread indexes can be specified as
+                        arguments.
+                        Use the thread-index "all" to see all threads.
+                        Use the thread-index "unique" to see threads grouped by
+                        unique call stacks.
+                        Use 'settings set frame-format' to customize the
+                        printing of frames in the backtrace and 'settings set
+                        thread-format' to customize the thread header.
+      continue       -- Continue execution of the current target process.  One
+                        or more threads may be specified, by default all
+                        threads continue.
+      exception      -- Display the current exception object for a thread.
+                        Defaults to the current thread.
+      info           -- Show an extended summary of one or more threads. 
+                        Defaults to the current thread.
+      jump           -- Sets the program counter to a new address.
+      list           -- Show a summary of each thread in the current target
+                        process.  Use 'settings set thread-format' to customize
+                        the individual thread listings.
+      plan           -- Commands for managing thread plans that control
+                        execution.
+      return         -- Prematurely return from a stack frame, short-circuiting
+                        execution of newer frames and optionally yielding a
+                        specified value.  Defaults to the exiting the current
+                        stack frame.  Expects 'raw' input (see 'help
+                        raw-input'.)
+      select         -- Change the currently selected thread.
+      step-in        -- Source level single step, stepping into calls. 
+                        Defaults to current thread unless specified.
+      step-inst      -- Instruction level single step, stepping into calls. 
+                        Defaults to current thread unless specified.
+      step-inst-over -- Instruction level single step, stepping over calls. 
+                        Defaults to current thread unless specified.
+      step-out       -- Finish executing the current stack frame and stop after
+                        returning.  Defaults to current thread unless specified.
+      step-over      -- Source level single step, stepping over calls. 
+                        Defaults to current thread unless specified.
+      step-scripted  -- Step as instructed by the script class passed in the -C
+                        option.  You can also specify a dictionary of key (-k)
+                        and value (-v) pairs that will be used to populate an
+                        SBStructuredData Dictionary, which will be passed to
+                        the constructor of the class implementing the scripted
+                        step.  See the Python Reference for more details.
+      trace          -- Commands for operating on traces of the threads in the
+                        current process.
+      until          -- Continue until a line number or address is reached by
+                        the current or specified thread.  Stops when returning
+                        from the current function as a safety measure.  The
+                        target line number(s) are given as arguments, and if
+                        more than one is provided, stepping will stop when the
+                        first one is hit.
+
+For more help on any particular subcommand, type 'help <command> <subcommand>'.
+(lldb) thread select 3
+* thread #3, name = 'tls', stop reason = step in
+    frame #0: 0x000056536dbade48 tls`specialized TLSKeyShareExtension.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff950250b60, messageType=<unavailable>) at TLSKeyShareExtension.swift:89:45 [opt]
+   86  	            var clientShares: [KeyShareEntry] = []
+   87  	            
+   88  	            while numBytes > 0 {
+-> 89  	                let bytesRead = inputStream.bytesRead
+   90  	                let keyShareEntry = KeyShareEntry(inputStream: inputStream)
+   91  	                
+   92  	                numBytes -= (inputStream.bytesRead - bytesRead)
+(lldb) thread step-over
+Process 3047461 stopped
+* thread #3, name = 'tls', stop reason = step over
+    frame #0: 0x000056536dbadbb9 tls`specialized TLSKeyShareExtension.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff950250b60, messageType=<unavailable>) at TLSKeyShareExtension.swift:90:64 [opt]
+   87  	            
+   88  	            while numBytes > 0 {
+   89  	                let bytesRead = inputStream.bytesRead
+-> 90  	                let keyShareEntry = KeyShareEntry(inputStream: inputStream)
+   91  	                
+   92  	                numBytes -= (inputStream.bytesRead - bytesRead)
+   93  	
+Target 0: (tls) stopped.
+(lldb) p bytesRead
+(Int) $R1 = 36
+(lldb) thread step-over
+Process 3047461 stopped
+* thread #3, name = 'tls', stop reason = step over
+    frame #0: 0x000056536dbadd90 tls`specialized TLSKeyShareExtension.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff950250b60, messageType=<unavailable>) at TLSKeyShareExtension.swift:92:42 [opt]
+   89  	                let bytesRead = inputStream.bytesRead
+   90  	                let keyShareEntry = KeyShareEntry(inputStream: inputStream)
+   91  	                
+-> 92  	                numBytes -= (inputStream.bytesRead - bytesRead)
+   93  	
+   94  	                if let keyShareEntry = keyShareEntry {
+   95  	                    clientShares.append(keyShareEntry)
+Target 0: (tls) stopped.
+(lldb) p keyShareEntry
+error: expression failed to parse:
+error: type for typename "$s8SwiftTLS20TLSKeyShareExtensionVD" was not found
+error: type for typename "$s8SwiftTLS15InputStreamType_pD" was not found
+error: <EXPR>:3:1: error: cannot find 'keyShareEntry' in scope
+keyShareEntry
+^~~~~~~~~~~~~
+
+(lldb) thread step-over
+Process 3047461 stopped
+* thread #3, name = 'tls', stop reason = step over
+    frame #0: 0x000056536dbaddb9 tls`specialized TLSKeyShareExtension.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff950250b60, messageType=<unavailable>) at TLSKeyShareExtension.swift:94:40 [opt]
+   91  	                
+   92  	                numBytes -= (inputStream.bytesRead - bytesRead)
+   93  	
+-> 94  	                if let keyShareEntry = keyShareEntry {
+   95  	                    clientShares.append(keyShareEntry)
+   96  	                }
+   97  	            }
+  thread #4, name = 'tls', stop reason = signal SIGTRAP
+    frame #0: 0x000056536dbaddaa tls`specialized TLSKeyShareExtension.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff8fb2b5a70, messageType=<unavailable>) at TLSKeyShareExtension.swift:92:52 [opt]
+   89  	                let bytesRead = inputStream.bytesRead
+   90  	                let keyShareEntry = KeyShareEntry(inputStream: inputStream)
+   91  	                
+-> 92  	                numBytes -= (inputStream.bytesRead - bytesRead)
+   93  	
+   94  	                if let keyShareEntry = keyShareEntry {
+   95  	                    clientShares.append(keyShareEntry)
+Target 0: (tls) stopped.
+(lldb) p numBytes
+(Int) $R2 = 4
+(lldb) p inputStream.bytesRead
+error: expression failed to parse:
+error: type for typename "$s8SwiftTLS20TLSKeyShareExtensionVD" was not found
+error: type for typename "$s8SwiftTLS15InputStreamType_pD" was not found
+error: <EXPR>:3:1: error: cannot find 'inputStream' in scope
+inputStream.bytesRead
+^~~~~~~~~~~
+
+(lldb) thread step-over
+Process 3047461 stopped
+* thread #3, name = 'tls', stop reason = step over
+    frame #0: 0x000056536dbade34 tls`specialized TLSKeyShareExtension.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff950250b60, messageType=<unavailable>) at TLSKeyShareExtension.swift:88:28 [opt]
+   85  	            var numBytes = Int(numBytes16)
+   86  	            var clientShares: [KeyShareEntry] = []
+   87  	            
+-> 88  	            while numBytes > 0 {
+   89  	                let bytesRead = inputStream.bytesRead
+   90  	                let keyShareEntry = KeyShareEntry(inputStream: inputStream)
+   91  	                
+  thread #4, name = 'tls', stop reason = signal SIGTRAP
+    frame #0: 0x000056536dbaddaa tls`specialized TLSKeyShareExtension.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff8fb2b5a70, messageType=<unavailable>) at TLSKeyShareExtension.swift:92:52 [opt]
+   89  	                let bytesRead = inputStream.bytesRead
+   90  	                let keyShareEntry = KeyShareEntry(inputStream: inputStream)
+   91  	                
+-> 92  	                numBytes -= (inputStream.bytesRead - bytesRead)
+   93  	
+   94  	                if let keyShareEntry = keyShareEntry {
+   95  	                    clientShares.append(keyShareEntry)
+Target 0: (tls) stopped.
+(lldb) thread step-over
+Process 3047461 stopped
+* thread #3, name = 'tls', stop reason = step over
+    frame #0: 0x000056536dbade48 tls`specialized TLSKeyShareExtension.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff950250b60, messageType=<unavailable>) at TLSKeyShareExtension.swift:89:45 [opt]
+   86  	            var clientShares: [KeyShareEntry] = []
+   87  	            
+   88  	            while numBytes > 0 {
+-> 89  	                let bytesRead = inputStream.bytesRead
+   90  	                let keyShareEntry = KeyShareEntry(inputStream: inputStream)
+   91  	                
+   92  	                numBytes -= (inputStream.bytesRead - bytesRead)
+  thread #4, name = 'tls', stop reason = signal SIGTRAP
+    frame #0: 0x000056536dbaddaa tls`specialized TLSKeyShareExtension.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff8fb2b5a70, messageType=<unavailable>) at TLSKeyShareExtension.swift:92:52 [opt]
+   89  	                let bytesRead = inputStream.bytesRead
+   90  	                let keyShareEntry = KeyShareEntry(inputStream: inputStream)
+   91  	                
+-> 92  	                numBytes -= (inputStream.bytesRead - bytesRead)
+   93  	
+   94  	                if let keyShareEntry = keyShareEntry {
+   95  	                    clientShares.append(keyShareEntry)
+Target 0: (tls) stopped.
+(lldb) thread step-over
+Process 3047461 stopped
+* thread #3, name = 'tls', stop reason = step over
+    frame #0: 0x000056536dbadbb9 tls`specialized TLSKeyShareExtension.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff950250b60, messageType=<unavailable>) at TLSKeyShareExtension.swift:90:64 [opt]
+   87  	            
+   88  	            while numBytes > 0 {
+   89  	                let bytesRead = inputStream.bytesRead
+-> 90  	                let keyShareEntry = KeyShareEntry(inputStream: inputStream)
+   91  	                
+   92  	                numBytes -= (inputStream.bytesRead - bytesRead)
+   93  	
+Target 0: (tls) stopped.
+(lldb) p numBytes
+(Int) $R3 = 4
+(lldb) thread step-over
+Process 3047461 stopped
+* thread #3, name = 'tls', stop reason = step over
+    frame #0: 0x000056536dbadd90 tls`specialized TLSKeyShareExtension.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff950250b60, messageType=<unavailable>) at TLSKeyShareExtension.swift:92:42 [opt]
+   89  	                let bytesRead = inputStream.bytesRead
+   90  	                let keyShareEntry = KeyShareEntry(inputStream: inputStream)
+   91  	                
+-> 92  	                numBytes -= (inputStream.bytesRead - bytesRead)
+   93  	
+   94  	                if let keyShareEntry = keyShareEntry {
+   95  	                    clientShares.append(keyShareEntry)
+Target 0: (tls) stopped.
+(lldb)  
+Process 3047461 stopped
+* thread #3, name = 'tls', stop reason = step over
+    frame #0: 0x000056536dbaddb9 tls`specialized TLSKeyShareExtension.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff950250b60, messageType=<unavailable>) at TLSKeyShareExtension.swift:94:40 [opt]
+   91  	                
+   92  	                numBytes -= (inputStream.bytesRead - bytesRead)
+   93  	
+-> 94  	                if let keyShareEntry = keyShareEntry {
+   95  	                    clientShares.append(keyShareEntry)
+   96  	                }
+   97  	            }
+  thread #4, name = 'tls', stop reason = signal SIGTRAP
+    frame #0: 0x000056536dbaddaa tls`specialized TLSKeyShareExtension.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff8fb2b5a70, messageType=<unavailable>) at TLSKeyShareExtension.swift:92:52 [opt]
+   89  	                let bytesRead = inputStream.bytesRead
+   90  	                let keyShareEntry = KeyShareEntry(inputStream: inputStream)
+   91  	                
+-> 92  	                numBytes -= (inputStream.bytesRead - bytesRead)
+   93  	
+   94  	                if let keyShareEntry = keyShareEntry {
+   95  	                    clientShares.append(keyShareEntry)
+Target 0: (tls) stopped.
+(lldb) p numBytes
+(Int) $R4 = 4
+(lldb) thread step-over
+Process 3047461 stopped
+* thread #3, name = 'tls', stop reason = step over
+    frame #0: 0x000056536dbade34 tls`specialized TLSKeyShareExtension.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff950250b60, messageType=<unavailable>) at TLSKeyShareExtension.swift:88:28 [opt]
+   85  	            var numBytes = Int(numBytes16)
+   86  	            var clientShares: [KeyShareEntry] = []
+   87  	            
+-> 88  	            while numBytes > 0 {
+   89  	                let bytesRead = inputStream.bytesRead
+   90  	                let keyShareEntry = KeyShareEntry(inputStream: inputStream)
+   91  	                
+  thread #4, name = 'tls', stop reason = signal SIGTRAP
+    frame #0: 0x000056536dbaddaa tls`specialized TLSKeyShareExtension.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff8fb2b5a70, messageType=<unavailable>) at TLSKeyShareExtension.swift:92:52 [opt]
+   89  	                let bytesRead = inputStream.bytesRead
+   90  	                let keyShareEntry = KeyShareEntry(inputStream: inputStream)
+   91  	                
+-> 92  	                numBytes -= (inputStream.bytesRead - bytesRead)
+   93  	
+   94  	                if let keyShareEntry = keyShareEntry {
+   95  	                    clientShares.append(keyShareEntry)
+Target 0: (tls) stopped.
+(lldb) p inputStream
+error: expression failed to parse:
+error: type for typename "$s8SwiftTLS20TLSKeyShareExtensionVD" was not found
+error: type for typename "$s8SwiftTLS15InputStreamType_pD" was not found
+error: <EXPR>:3:1: error: cannot find 'inputStream' in scope
+inputStream
+^~~~~~~~~~~
+
+(lldb) p numBytes
+(Int) $R5 = 4
+(lldb) thread step-over
+Process 3047461 stopped
+* thread #3, name = 'tls', stop reason = step over
+    frame #0: 0x000056536dbade48 tls`specialized TLSKeyShareExtension.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff950250b60, messageType=<unavailable>) at TLSKeyShareExtension.swift:89:45 [opt]
+   86  	            var clientShares: [KeyShareEntry] = []
+   87  	            
+   88  	            while numBytes > 0 {
+-> 89  	                let bytesRead = inputStream.bytesRead
+   90  	                let keyShareEntry = KeyShareEntry(inputStream: inputStream)
+   91  	                
+   92  	                numBytes -= (inputStream.bytesRead - bytesRead)
+  thread #4, name = 'tls', stop reason = signal SIGTRAP
+    frame #0: 0x000056536dbaddaa tls`specialized TLSKeyShareExtension.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff8fb2b5a70, messageType=<unavailable>) at TLSKeyShareExtension.swift:92:52 [opt]
+   89  	                let bytesRead = inputStream.bytesRead
+   90  	                let keyShareEntry = KeyShareEntry(inputStream: inputStream)
+   91  	                
+-> 92  	                numBytes -= (inputStream.bytesRead - bytesRead)
+   93  	
+   94  	                if let keyShareEntry = keyShareEntry {
+   95  	                    clientShares.append(keyShareEntry)
+Target 0: (tls) stopped.
+(lldb) p numBytes
+(Int) $R6 = 4
+(lldb) thread step-over
+Process 3047461 stopped
+* thread #3, name = 'tls', stop reason = step over
+    frame #0: 0x000056536dbadbb9 tls`specialized TLSKeyShareExtension.init(inputStream=SwiftTLS.InputStreamType @ 0x00007ff950250b60, messageType=<unavailable>) at TLSKeyShareExtension.swift:90:64 [opt]
+   87  	            
+   88  	            while numBytes > 0 {
+   89  	                let bytesRead = inputStream.bytesRead
+-> 90  	                let keyShareEntry = KeyShareEntry(inputStream: inputStream)
+   91  	                
+   92  	                numBytes -= (inputStream.bytesRead - bytesRead)
+   93  	
+Target 0: (tls) stopped.
+(lldb) p bytesRead
+(Int) $R7 = 36
+(lldb) Connection to swifttls.org closed by remote host.
+Connection to swifttls.org closed.
+client_loop: send disconnect: Broken pipe
+Nicos-Mac-Studio:~ nico$ 

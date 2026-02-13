@@ -510,8 +510,7 @@ public class ASN1Parser
         return nil
     }
     
-    public func parseObject() -> ASN1Object?
-    {
+    public func parseObject() -> ASN1Object? {
         let startCursor = cursor
         
         if let t = self.subData(cursor..<cursor+1) {
